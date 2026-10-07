@@ -94,10 +94,10 @@ namespace SpaceGame.EditorTools
         private const string EcoHubPrefab = StructureDir + "/Outpost/LatticeOutpost.prefab";
         private const string MidRingPrefab = StructureDir + "/Industrial/MiningRigDerelict.prefab";
 
-        // The Clanker itself (ClankerBuilder). Until 2026-09-07 the garrison was the PatrolRobot
-        // family standing in; "PatrolRobot 2" was never used because it ships on HumansFaction
-        // (design doc §2.2) and would have garrisoned the town on the players' side.
-        private static readonly string[] GarrisonPrefabs = { ClankerBuilder.PrefabPath };
+        // Every Clanker body ClankerBuilder builds: the RPR Clanker and the three Same Gev Dudios
+        // bodies (PatrolRobot 1/2/3, rebuilt as Clankers on 2026-09-23). The generator picks each
+        // garrison member's body at random, so a patrol is a mix of them.
+        private static readonly IReadOnlyList<string> GarrisonPrefabs = ClankerBuilder.AllPrefabPaths;
 
         // Mounted Clankers (RobotHorseBuilder): robot horses with a Clanker in the saddle, on
         // their own slots so the town always fields this many rather than rolling for them.
@@ -115,6 +115,9 @@ namespace SpaceGame.EditorTools
         /// <summary>Metres past the outer ring at which the alarm counts someone as inside.</summary>
         public const float AlarmMargin = 40f;
 
+        /// <summary>How far from the town's centre the alarm counts someone as inside.</summary>
+        public const float AlarmRadius = OuterRadius + AlarmMargin;
+
         /// <summary>
         /// The town's people, kept topped up by SettlementPopulation. The generated garrison is
         /// five on foot plus two mounted pairs (nine faction entities); the cap leaves room for a
@@ -123,6 +126,14 @@ namespace SpaceGame.EditorTools
         public const int PopulationCap = 26;
         public const float PopulationInterval = 45f;
         public const int PopulationWave = 3;
+
+        /// <summary>
+        /// SettlementPopulation's draw weights: each body on foot at <see cref="FootInhabitantWeight"/>,
+        /// the outrider at <see cref="OutriderInhabitantWeight"/>. With four foot bodies that keeps
+        /// the town's three-on-foot-to-one-mounted mix (4 × 3 : 4).
+        /// </summary>
+        public const int FootInhabitantWeight = 3;
+        public const int OutriderInhabitantWeight = 4;
         private const string OwnerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
@@ -149,7 +160,7 @@ namespace SpaceGame.EditorTools
             var opened = new List<Scene>();
             try
             {
-                OpenChunksAround(config, spawn, opened);
+                OpenChunksAround(config, spawn, MaxDistanceFromSpawn + 2f * SiteRadius, opened);
                 Physics.SyncTransforms();
 
                 if (!TryChooseSite(config, spawn, out Vector3 centre, out float heightRange))
@@ -333,21 +344,18 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// Opens every chunk whose bounds, grown by the site radius, touch the search annulus's
-        /// bounding box. Only scenes this call opened go into <paramref name="opened"/>.
+        /// Opens every chunk scene whose bounds come within <paramref name="reach"/> of
+        /// <paramref name="centre"/> on X/Z. Only scenes this call opened go into
+        /// <paramref name="opened"/>; the caller closes them.
         /// </summary>
-        private static void OpenChunksAround(WorldStreamingConfig config, Vector3 spawn, List<Scene> opened)
+        internal static void OpenChunksAround(WorldStreamingConfig config, Vector3 centre, float reach, List<Scene> opened)
         {
-            float reach = MaxDistanceFromSpawn + SiteRadius;
-            var search = new Bounds(spawn, new Vector3(reach * 2f, 10000f, reach * 2f));
+            var search = new Bounds(centre, new Vector3(reach * 2f, 10000f, reach * 2f));
 
             foreach (ChunkInfo chunk in config.chunks)
             {
                 if (string.IsNullOrEmpty(chunk.scenePath)) continue;
-
-                Bounds grown = chunk.worldBounds;
-                grown.Expand(new Vector3(SiteRadius * 2f, 10000f, SiteRadius * 2f));
-                if (!grown.Intersects(search)) continue;
+                if (!chunk.worldBounds.Intersects(search)) continue;
 
                 Scene scene = SceneManager.GetSceneByPath(chunk.scenePath);
                 if (scene.IsValid() && scene.isLoaded) continue;
@@ -357,25 +365,32 @@ namespace SpaceGame.EditorTools
             }
         }
 
+        /// <summary>
+        /// The surface height of whichever open chunk terrain covers (<paramref name="x"/>,
+        /// <paramref name="z"/>), or null when none does. Chunk terrain is binary on disk, so the
+        /// chunk scenes have to be open for this to see anything.
+        /// </summary>
+        internal static float? TerrainHeightAt(Terrain[] terrains, float x, float z)
+        {
+            var p = new Vector3(x, 0f, z);
+            foreach (Terrain terrain in terrains)
+            {
+                if (terrain == null || terrain.terrainData == null) continue;
+                Vector3 origin = terrain.transform.position;
+                Vector3 size = terrain.terrainData.size;
+                if (x < origin.x || z < origin.z || x > origin.x + size.x || z > origin.z + size.z) continue;
+                return origin.y + terrain.SampleHeight(p);
+            }
+            return null;
+        }
+
         private static bool TryChooseSite(WorldStreamingConfig config, Vector3 spawn,
                                           out Vector3 centre, out float bestRange)
         {
             Terrain[] terrains = Terrain.activeTerrains;
             List<Bounds> keepOut = FeatureKeepOutBounds();
 
-            float? HeightAt(float x, float z)
-            {
-                var p = new Vector3(x, 0f, z);
-                foreach (Terrain terrain in terrains)
-                {
-                    if (terrain == null || terrain.terrainData == null) continue;
-                    Vector3 origin = terrain.transform.position;
-                    Vector3 size = terrain.terrainData.size;
-                    if (x < origin.x || z < origin.z || x > origin.x + size.x || z > origin.z + size.z) continue;
-                    return origin.y + terrain.SampleHeight(p);
-                }
-                return null;
-            }
+            float? HeightAt(float x, float z) => TerrainHeightAt(terrains, x, z);
 
             centre = default;
             bestRange = float.MaxValue;
@@ -474,7 +489,7 @@ namespace SpaceGame.EditorTools
             alarm.Configure(
                 AssetDatabase.LoadAssetAtPath<SpaceGame.Agents.FactionDefinition>(OwnerFactionPath),
                 AssetDatabase.LoadAssetAtPath<SpaceGame.Agents.FactionRelationshipTable>(RelationshipsPath),
-                OuterRadius + AlarmMargin);
+                AlarmRadius);
             EditorUtility.SetDirty(alarm);
 
             // The town keeps its people coming: topped up to PopulationCap every PopulationInterval
@@ -485,13 +500,12 @@ namespace SpaceGame.EditorTools
             population.Configure(
                 AssetDatabase.LoadAssetAtPath<SpaceGame.Agents.FactionDefinition>(OwnerFactionPath),
                 AssetDatabase.LoadAssetAtPath<SpaceGame.Agents.FactionRelationshipTable>(RelationshipsPath),
-                new[]
-                {
-                    new SpaceGame.Agents.SettlementPopulation.Inhabitant { prefab = recipe.robotPrefabs[0], weight = 3 },
-                    new SpaceGame.Agents.SettlementPopulation.Inhabitant { prefab = recipe.outriderPrefabs[0], weight = 1 },
-                },
+                recipe.robotPrefabs
+                    .Select(body => new SpaceGame.Agents.SettlementPopulation.Inhabitant { prefab = body, weight = FootInhabitantWeight })
+                    .Append(new SpaceGame.Agents.SettlementPopulation.Inhabitant { prefab = recipe.outriderPrefabs[0], weight = OutriderInhabitantWeight })
+                    .ToArray(),
                 PopulationCap, PopulationInterval,
-                InnerRadius * 0.6f, OuterRadius * 0.9f, OuterRadius + AlarmMargin);
+                InnerRadius * 0.6f, OuterRadius * 0.9f, AlarmRadius);
             var waves = new SerializedObject(population);
             waves.FindProperty("spawnsPerWave").intValue = PopulationWave;
             waves.ApplyModifiedPropertiesWithoutUndo();

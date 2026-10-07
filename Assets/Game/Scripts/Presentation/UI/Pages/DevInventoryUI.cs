@@ -478,7 +478,7 @@ namespace SpaceGame.Presentation
 
             foreach (InventoryItem item in items)
             {
-                if (item == null) continue;
+                if (item == null || !item.showInDevBrowser) continue;
                 cards.Add(BuildCard(item));
             }
 

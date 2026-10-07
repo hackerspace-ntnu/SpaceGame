@@ -10,7 +10,6 @@ paths:
   - Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicStage.cs
   - Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicView.cs
   - Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs
-  - Assets/Game/Editor/Environment/ShipSchematicBuilder.cs
   - Assets/Game/Editor/Environment/FeatureEdges.cs
   - Assets/Game/Art/Shaders/UI/Terminal/SchematicHull.shader
   - Assets/Game/Art/Shaders/UI/Terminal/SchematicWire.shader
@@ -33,13 +32,13 @@ symptoms:
   - "the module the schematic had lit goes dark the moment the mouse button goes down"
   - "the wireframe draws every edge of every triangle"
 reads_with: [Terminal, PlayerShip, Multiplayer]
-updated: 2026-09-05
+updated: 2026-10-06
 ---
 
 # ShipSchematic
 
 The first page of the lander's cockpit terminal ([Terminal](Terminal.md)): the ship itself, drawn small
-and green behind the glass as a hidden-line wireframe. The eleven salvage modules it can be missing
+and green behind the glass as a hidden-line wireframe. The eleven salvage modules it can be missing (the twelfth socket, the transmitter, is not drawn: it is not in the hull model)
 glow red and pulse; the crew turn the hull with a drag, zoom with the wheel, and point at a module to
 read what it is and what the ship cannot do without it. Clicking one selects it, clicking it again
 clears it, a different one moves the selection across.
@@ -49,7 +48,7 @@ feed are [Terminal](Terminal.md); the modules, their sockets and the mask are [P
 
 ## Model
 
-- **The drawing is the real ship.** [`ShipSchematicBuilder`](Assets/Game/Editor/Environment/ShipSchematicBuilder.cs)
+- **The drawing is the real ship.** `ShipSchematicBuilder`
   cuts a miniature out of the SAME `player_ship.fbx` the hull is built from (renderers only, flat, no
   colliders, normalised to about a unit long), so the picture cannot describe a hull that no longer
   exists — which the side elevation of rectangles it replaced could, while also unable to say WHICH
@@ -85,7 +84,7 @@ feed are [Terminal](Terminal.md); the modules, their sockets and the mask are [P
 | `DragGesture` | [DragGesture.cs](Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs) | Pure. One press: a click until it leaves a dead zone measured **from the press point**, a turn after. Nothing turns inside the zone. Tested. |
 | `ShipPartInfo` | [ShipPartInfo.cs](Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs) | Pure. Name and function per kind, the detail block, the overview, `CountInstalled` / `FittedOfKind` / `MissingKinds`. Tested, including completeness over the enum. |
 | `ShipSchematicModel` | [ShipSchematicModel.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs) | On the baked prefab: which renderers are modules (socket NAME + kind), which are hull, and their boxes in **model space**, measured from the meshes. |
-| `ShipSchematicBuilder` | [ShipSchematicBuilder.cs](Assets/Game/Editor/Environment/ShipSchematicBuilder.cs) | **Tools ▸ SpaceGame ▸ Build Ship Schematic Prefab**. Fails loudly if any `ShipPartKind` has no mesh. Writes the line meshes to `Assets/Game/Art/Models/Generated/ShipSchematicWire.asset`. |
+| `ShipSchematicBuilder` | ShipSchematicBuilder.cs | **Tools ▸ SpaceGame ▸ Build Ship Schematic Prefab**. Fails loudly if any `ShipPartKind` has no mesh. Writes the line meshes to `Assets/Game/Art/Models/Generated/ShipSchematicWire.asset`. |
 | `FeatureEdges` | [FeatureEdges.cs](Assets/Game/Editor/Environment/FeatureEdges.cs) | Welds by position, then keeps boundary and crease edges as a `MeshTopology.Lines` mesh. |
 | `SchematicHull` / `SchematicWire` | [Shaders/UI/Terminal/](Assets/Game/Art/Shaders/UI/Terminal) | Faces: unlit, near-black, **depth-written**, scanline. Lines: unlit, flat, `ZWrite Off` + `Offset -1,-1`. Both take their colour per renderer. |
 | `ShipPartNaming` | [ShipPartNaming.cs](Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs) | The `Part_<Kind>_<Side>` convention, shared with `PlayerShipBuilder`. |

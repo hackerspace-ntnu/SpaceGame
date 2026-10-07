@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da4a39d433d38c24d958ed2d45a0652e, type: 3}
+  m_Name: 06_RecoverOxygenPlant
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.RecoverOxygenPlantStep
+  id: recover-oxygen-plant
+  title: Recover the oxygen plant
+  briefing:
+  - Hold on. Cabin air is gone. The back door burst open when we hit, and the oxygen
+    plant went out through it.
+  - It's lying on the sand behind us. Lift it by the handle and carry it back to
+    its mount. The crash will have cracked it, so take the soldering torch off the
+    gear wall and close the seams, then give it a power cell.
+  lookAtFocus: 1
+  outsideStatus: Thrown out of the back door. Lift it by the handle
+  carryingStatus: 'Carrying:  <b>{0:0} m</b> to its mount'
+  damagedStatus: 'Damaged: solder the seams  <b>{0}/{1}</b>'
+  powerStatus: Fit a power cell
+  torch: {fileID: 11400000, guid: ad4dea599137eca49916333f41cce1fc, type: 2}
+  torchRemark:
+  - It's in, but the crash cracked it. See those glowing seams? Those have to be
+    sealed before it will run.
+  - There's a soldering torch on the gear wall. Take it with RMB, then hold LMB on
+    the glowing seam until it closes. Three seams.
+  beaconLift: 1.5

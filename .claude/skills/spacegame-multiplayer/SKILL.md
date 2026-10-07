@@ -118,7 +118,7 @@ consults the list, so an unregistered prefab is a host that works and clients th
 | Tier | Rule | Members |
 |---|---|---|
 | 1 | **MUST** have a root `NetworkObject` **and** a prefab-list entry | Anything `GameServices.World.Spawn` can be handed — including **every `InventoryItem.itemPrefab`** (dropping a hotbar slot routes through `World.Spawn`), deployables such as `RocketSpawn`, vehicles, the networked player prefab |
-| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`, `AgentProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
+| 2 | **MUST NOT** be networked: projectiles | `projectile`, `RocketProjectile`, `BallLightningProjectile`. Every machine instantiates its own; only the authority's applies damage (`Weapon.ShotDealsDamage`) |
 | 3 | **MUST NOT** be networked: equipped visuals | `EquipItemSocket.Equip` plain-`Instantiate`s onto a bone and rebuilds locally from the replicated hotbar. A `NetworkObject` cannot parent to a plain transform anyway |
 
 Register with `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`. The live list is
@@ -139,7 +139,7 @@ Nested `NetworkObject`s are a warning, not an error; a `NetworkBehaviour` on a p
 | Handlers must be **idempotent** and re-entrancy-safe | On the host, a request handler that answers with a broadcast re-enters `Dispatch` on the same channel inline (`SendTo.ClientsAndHost`), so state is applied twice. `NetLatch.Apply` shows the shape: act only when the new state differs. |
 | `UsableItem.Use()` runs on the **authority only**; `Present()` runs everywhere | A client pulling the trigger runs only `Present()`. Put the aim in `NetArg.P`/`R` from `OnRequestUse` — `Camera.main` on the server is the *host's* camera. |
 | Local feedback for a client comes from a broadcast, not from the local call | `NetMsg.Damaged` is broadcast on the victim's channel and republished as `NetworkedHealthComponent.DamageAnnounced(victim, amount, attacker)`. Filter with `NetworkObject.IsOwner` on the attacker. |
-| Anything a **suppressed driver** would have drawn must be broadcast explicitly | `NetAuthority` disables `AgentController`, `IMovementMotor` and `NavMeshAgent` on remote copies, so a remote turret/NPC never runs the code that spawns its muzzle flash or projectile. Motion arrives through the NetworkTransform; discrete effects need a `NetToOthers` of their own — which is exactly what `EntityEquipmentController` does with `NetMsg.ItemUsed`. |
+| Anything a **suppressed driver** would have drawn must be broadcast explicitly | `NetAuthority` disables `IMovementMotor` and `NavMeshAgent` on remote copies, and `AgentController` runs only its `IPresentationModule`s there, so a remote turret/NPC never runs the code that spawns its muzzle flash or projectile. Motion arrives through the NetworkTransform; discrete effects need a `NetToOthers` of their own — which is exactly what `EntityEquipmentController` does with `NetMsg.ItemUsed`. |
 | `NetAuthority` keys on ownership, is idempotent, and stops at the `NetworkObject` boundary | `Start` and `OnNetworkSpawn` race; a ran-once flag left every client simulating its own copy. A rider is parented *into* its mount, so crossing the boundary would switch off the player sitting on it. |
 
 ## Verification recipe

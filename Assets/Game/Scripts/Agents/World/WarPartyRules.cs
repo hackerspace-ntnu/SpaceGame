@@ -47,6 +47,11 @@ namespace SpaceGame.Agents
         [Tooltip("Goodwill returned when the party is wiped out. The next party is a tier stronger.")]
         public float defeatedCredit;
 
+        [Tooltip("Wiping out a party of the roster's last tier ends the war: goodwill is lifted at least this " +
+                 "far past the AtWar band's exit (atWar + hysteresis), so the band leaves AtWar with it. " +
+                 "Above zero — exactly on the exit is still AtWar.")]
+        public float peaceMargin;
+
         public static WarPartySettings Default => new WarPartySettings
         {
             partyCooldown = 60f,
@@ -58,6 +63,7 @@ namespace SpaceGame.Agents
             trailFuzz = 30f,
             caughtCredit = 15f,
             defeatedCredit = 4f,
+            peaceMargin = 1f,
         };
     }
 
@@ -77,6 +83,15 @@ namespace SpaceGame.Agents
             int next = outcome == Reckoning.Defeated ? tier + 1 : tier;
             return Mathf.Clamp(next, 0, cap);
         }
+
+        /// <summary>
+        /// Beating the roster's strongest party ends the war (user decision 2026-10-07, every tribe):
+        /// <paramref name="tier"/> is the beaten party's, read before <see cref="NextTier"/> clamps.
+        /// Without it a war entered deep only closed once goodwill crept out of AtWar, and with the
+        /// tier capped every further party was the same fight for 4 points.
+        /// </summary>
+        public static bool EndsWar(Reckoning outcome, int tier, int maxTier) =>
+            outcome == Reckoning.Defeated && tier >= Mathf.Max(0, maxTier);
 
         public static float StagingDistance(float spawnRadius, float margin) => spawnRadius + Mathf.Max(0f, margin);
 
@@ -137,11 +152,13 @@ namespace SpaceGame.Agents
             wipedOut || (fightersSpawned > 0 && fightersDead >= fightersSpawned);
 
         /// <summary>
-        /// Nothing of a spawned party is left in the field: no spawned member, and no fighter standing —
-        /// a rider who dismounted is in neither list the mounts are, and still fights.
+        /// Nothing of a spawned group is left in the field: no spawned member standing, and no fighter
+        /// standing — a rider who dismounted is in neither list the mounts are, and still fights.
+        /// Counts of the standing (<see cref="GroupMembership.CountStanding"/>), not of objects: a
+        /// corpse lies in the group's lists for minutes after it falls.
         /// </summary>
-        public static bool IsWipedOut(int liveMembers, int standingFighters) =>
-            liveMembers <= 0 && standingFighters <= 0;
+        public static bool IsWipedOut(int standingMembers, int standingFighters) =>
+            standingMembers <= 0 && standingFighters <= 0;
 
         public static bool IsCaughtBy(string killerGroupId, string partyGroupId) =>
             !string.IsNullOrEmpty(partyGroupId) && killerGroupId == partyGroupId;

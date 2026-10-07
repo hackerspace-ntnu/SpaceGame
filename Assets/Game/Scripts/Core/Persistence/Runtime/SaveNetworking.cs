@@ -110,7 +110,7 @@ namespace SpaceGame.Core.Persistence
 
             if (Network.Server && networkObject != null && networkObject.IsSpawned)
             {
-                networkObject.Despawn();
+                NetworkDespawn.Despawn(networkObject);
                 return;
             }
 

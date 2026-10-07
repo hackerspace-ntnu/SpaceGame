@@ -106,7 +106,7 @@ namespace SpaceGame.Tests
         /// — the metres the fitting actually occupies in the aft room, and the <c>TOTAL</c> baked
         /// into <c>inventory_wall.blend</c> — comes out unchanged. Type a literal into
         /// <c>WallDisplay</c> instead and the next move of the factor resizes the ship's fitting
-        /// with nothing anywhere to say so: <c>PlayerShipBuilder</c>'s <c>WallDepth</c> and
+        /// with nothing anywhere to say so: the ship's <c>WallDepth</c> and
         /// <c>WallGridCentreHeight</c> are measurements of the drawn fitting and would both go
         /// quietly wrong.
         /// </para>
@@ -116,8 +116,8 @@ namespace SpaceGame.Tests
         {
             Assert.AreEqual(PackScale.WallDrawn, PackScale.Factor * PackScale.WallDisplay, 1e-5f,
                 "the gear wall's drawn size has come loose from PackScale.WallDrawn. That number " +
-                "is the room's, not the pack's: inventory_wall_scale.py bakes it into the model " +
-                "as TOTAL and PlayerShipBuilder measures the fitting at it, so the two frames " +
+                "is the room's, not the pack's: it is baked into the model " +
+                "as TOTAL and the ship measures the fitting at it, so the two frames " +
                 "must multiply back to it at every value of Factor.");
         }
 
@@ -129,7 +129,7 @@ namespace SpaceGame.Tests
         public void EveryShippedFaceKeepsItsCellCount()
         {
             // The rig's seven faces and the wall, as CELL COUNTS — the authored quantity. The
-            // metres in ExpeditionRigWiring.SurfaceTable and InventoryWallBuilder are these times
+            // metres in ExpeditionRigWiring.SurfaceTable and on the wall are these times
             // the cell, and that is the direction the dependency runs.
             (int across, int up)[] faces =
             {

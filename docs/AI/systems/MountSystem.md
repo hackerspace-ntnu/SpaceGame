@@ -11,7 +11,7 @@ symptoms:
   - "what does seatOffset, followMountPitch or leapHoldTime do"
 reads_with: [Vehicles, Ornithopter, PlayerShip]
 redirect_to: Vehicles
-updated: 2026-09-07
+updated: 2026-10-03
 ---
 
 # Mount system
@@ -25,14 +25,12 @@ Files moved: the mount code is `Assets/Game/Scripts/agents/Modules/Riding/`, **n
 | Motor ([Motors/](Assets/Game/Scripts/agents/AI/Motors/)) | Rider steer | Jump / Leap | Vertical axis | Needs |
 |---|---|---|---|---|
 | `NavMeshAgentMotor` | tank | ✅ / ✅ | ❌ | baked NavMesh + `NavMeshAgent` |
-| `RigidbodyMotor` | tank | ✅ / ✅ (kinematic arc) | ❌ | Rigidbody + Collider |
-| `FlyingRigidbodyMotor` | throttle + yaw | ❌ | ✅ (`altitudeHold`, `cruiseAltitude`) | Rigidbody + Collider |
 | `HoverRigidbodyMotor` | throttle + yaw | ❌ | ❌ — `input.Vertical` ignored; holds `rideHeight` over ground | Rigidbody + `HoverGroundSensor` |
 | `OrnithopterFlightMotor` | `Move.y` = pitch, `Move.x` = roll | ❌ | `Vertical` = flap (beat / tuck) | see [Ornithopter.md](Ornithopter.md) |
-| `LeggedDriver` (+ `OstrichDriver`, `DesertCrawlerDriver`, `HorseDriver`, `CrabDriver`, `HumanoidDriver`) | gait-bound | ❌ | ❌ | a `LeggedLocomotion` |
+| `LeggedDriver` (+ `OstrichDriver`, `DesertCrawlerDriver`, `CrabDriver`, `HumanoidDriver`) | gait-bound | ❌ | ❌ | a `LeggedLocomotion` |
 
 **Jump and the animator.** A motor's jump is invisible to animation unless you ask: `NavMeshAgentMotor`
-hops by animating the agent's `baseOffset` and `RigidbodyMotor` by a kinematic arc, and neither
+hops by animating the agent's `baseOffset`, which never
 appears in the velocity `AgentAnimatorDriver.Tick` receives. `IMountJumpMotor.IsAirborne` is the
 bridge — the driver sets `IsGrounded` from it, so a controller wanting an airborne pose transitions
 on that bool. Drive the state from the **bool, not a trigger**: the motor decides how long the mount

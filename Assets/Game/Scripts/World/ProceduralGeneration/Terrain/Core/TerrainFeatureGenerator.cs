@@ -9,7 +9,7 @@ namespace SpaceGame.World
     /// mesher / smoothing / skirt-blend themselves; they only describe their shape as an
     /// <see cref="ITerrainDensity"/>, and this orchestrator does the rest.
     ///
-    /// Pipeline (multi-pass, like <c>SettlementGenerator</c>):
+    /// Pipeline (multi-pass):
     ///   1. <see cref="TerrainFeature.BuildDensity"/>      — feature describes its solid volume.
     ///   2. <see cref="TerrainMarchingCubesMesher.Build"/> — voxelise + iso-surface extract the mesh
     ///                                                       (cheap surface-band walk for heightfields).

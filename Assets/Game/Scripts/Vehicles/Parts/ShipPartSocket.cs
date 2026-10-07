@@ -45,6 +45,11 @@ namespace SpaceGame.Vehicles
                  "not still solid.")]
         [SerializeField] private Collider partCollider;
 
+        [Tooltip("What stands in this socket while it holds a burnt-out unit: the broken unit's " +
+                 "mesh, its sparks and the collider players take it off by. Hidden otherwise. " +
+                 "Leave empty on a socket that is never authored broken.")]
+        [SerializeField] private GameObject brokenUnit;
+
         /// <summary>
         /// Shared across every socket in the session and never destroyed, deliberately. A material
         /// per socket would be eleven identical materials on one ship and a fresh leak on every
@@ -62,9 +67,13 @@ namespace SpaceGame.Vehicles
 
         private ShipPartGhost ghost = ShipPartGhost.Off;
         private bool installed;
+        private bool broken;
 
         public ShipPartKind Kind => kind;
         public bool Installed => installed;
+
+        /// <summary>Holds a burnt-out unit: occupied, not working.</summary>
+        public bool Broken => broken;
 
         /// <summary>Where a HUD marker or a ghost label would sit: the middle of the part itself.</summary>
         public Vector3 Centre => AimBounds.center;
@@ -86,14 +95,17 @@ namespace SpaceGame.Vehicles
         private void Awake() => Apply();
 
         /// <summary>
-        /// Show or hide the fitted part. Called by <see cref="ShipPartRack"/> only, on every
-        /// machine, from the replicated mask.
+        /// Show the fitted part, the burnt-out unit, or neither. Called by
+        /// <see cref="ShipPartRack"/> only, on every machine, from the replicated masks. A socket
+        /// that is both is fitted: the rack never authors that, but a working part wins.
         /// </summary>
-        public void SetInstalled(bool value)
+        public void SetState(bool isInstalled, bool isBroken)
         {
-            if (installed == value) return;
+            isBroken &= !isInstalled;
+            if (installed == isInstalled && broken == isBroken) return;
 
-            installed = value;
+            installed = isInstalled;
+            broken = isBroken;
             Apply();
         }
 
@@ -111,6 +123,8 @@ namespace SpaceGame.Vehicles
 
         private void Apply()
         {
+            if (brokenUnit != null) brokenUnit.SetActive(broken);
+
             if (partRenderer == null) return;
 
             if (fitted == null) fitted = partRenderer.sharedMaterials;
@@ -126,7 +140,9 @@ namespace SpaceGame.Vehicles
             // An absent part is not solid — you can walk through the hole where an engine was.
             if (partCollider != null) partCollider.enabled = false;
 
-            if (ghost == ShipPartGhost.Off)
+            // A socket holding a broken unit is occupied: the unit is what is drawn there, and a
+            // ghost of the working part on top of it would say "fit me here" when nothing fits.
+            if (ghost == ShipPartGhost.Off || broken)
             {
                 partRenderer.enabled = false;
                 return;

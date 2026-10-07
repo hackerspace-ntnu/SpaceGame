@@ -66,10 +66,12 @@ namespace SpaceGame.EditorTools
 
         public static void Place()
         {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ClankerBuilder.PrefabPath);
-            if (prefab == null)
+            // One member per Clanker body in turn, so the posse near the ship shows every body.
+            GameObject[] bodies = ClankerBuilder.AllPrefabPaths.Select(AssetDatabase.LoadAssetAtPath<GameObject>).ToArray();
+            if (bodies.Any(b => b == null))
             {
-                Debug.LogError($"[ClankerSquadPlacer] No prefab at {ClankerBuilder.PrefabPath}; build the Clanker first.");
+                Debug.LogError($"[ClankerSquadPlacer] A Clanker body is missing from {string.Join(", ", ClankerBuilder.AllPrefabPaths)}; " +
+                               "build the Clanker first.");
                 return;
             }
 
@@ -117,7 +119,7 @@ namespace SpaceGame.EditorTools
                     float angle = (float)(rng.NextDouble() * Mathf.PI * 2f);
                     Vector3 flat = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Spread * (i + 1) / SquadSize;
                     float y = terrain.transform.position.y + terrain.SampleHeight(flat);
-                    var member = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root.transform);
+                    var member = (GameObject)PrefabUtility.InstantiatePrefab(bodies[i % bodies.Length], root.transform);
                     member.transform.SetPositionAndRotation(new Vector3(flat.x, y, flat.z),
                                                             Quaternion.Euler(0f, (float)(rng.NextDouble() * 360f), 0f));
                     Override(member.GetComponent<SpaceGame.Agents.FormationModule>(), so =>

@@ -155,6 +155,11 @@ namespace SpaceGame.Gameplay.Arrival
                  "time, which is why it is minutes rather than seconds.")]
         [SerializeField] private float strandedSeatTimeout = 180f;
 
+        [Tooltip("The vehicle parked beside every hull once it is down — one per landed ship, so one " +
+                 "per team in versus. Spawned once per world: a loaded world never flies an arrival, " +
+                 "and the vehicle comes back through its own SaveableEntity.")]
+        [SerializeField] private ArrivalStarterVehicle starterVehicle = new();
+
         /// <summary>Every hull on its way down, by team. A story world files its one under -1.</summary>
         private readonly Dictionary<int, ArrivalFlight> flights = new();
 
@@ -183,6 +188,25 @@ namespace SpaceGame.Gameplay.Arrival
 
         /// <summary>True once the crash has finished, or once a save said it already had.</summary>
         public bool HasArrived { get; private set; }
+
+        /// <summary>
+        /// Whether the crew are down: the arrival has finished, or this world has no arrival at all
+        /// (a scene with no director). The one reading of "after the landing" for anything that
+        /// waits on it — objectives, and the ship's burnt-out transmitter catching fire.
+        /// </summary>
+        public static bool CrewHasLanded => Instance == null || Instance.HasArrived;
+
+        /// <summary>
+        /// SERVER: a hull has come down for good, once per hull per arrival — so once per world,
+        /// since a world is arrived in exactly once. Raised from the same point the starter
+        /// vehicle is delivered from, and for the same reason: never from inside a save's capture.
+        /// What the crash did to the ship (a door burst, the oxygen plant thrown out) hangs off this.
+        /// </summary>
+        public static event System.Action<GameObject> HullLanded;
+
+        // Statics outlive play mode with Enter Play Mode Options on (see INVARIANTS).
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetLandingListeners() => HullLanded = null;
 
         /// <summary>True while any hull is actually flying its arc.</summary>
         public bool IsRunning { get; private set; }
@@ -405,6 +429,76 @@ namespace SpaceGame.Gameplay.Arrival
         {
             HasArrived = true;
             SpawnManager.Instance.SpawnPlayerForClient(clientId, position);
+        }
+
+        /// <summary>
+        /// Puts the arrival ship down already landed — no descent, no cutscene — and marks the
+        /// arrival done, for a disposable session that starts play the instant the world is ready
+        /// rather than sitting through the crash.
+        ///
+        /// <para>
+        /// Uses the same landing measurement <see cref="EnsureStoryFlight"/> plans its descent onto
+        /// (<see cref="ShipGrounding.TryResolveHullLanding"/> against <paramref name="impactPoint"/>),
+        /// so the ship ends up exactly where a real crash would have put it — this just skips the
+        /// twenty seconds of flying there. Idempotent: called once <see cref="HasArrived"/> is
+        /// already true, it does nothing, which is what makes it safe for every connecting client's
+        /// spawn flow to call rather than just the first.
+        /// </para>
+        /// </summary>
+        public IEnumerator SpawnAlreadyLanded(Vector3 impactPoint)
+        {
+            if (!Network.Server)
+            {
+                Debug.LogError("[Arrival] SpawnAlreadyLanded called off the server.", this);
+                yield break;
+            }
+
+            if (HasArrived) yield break;
+
+            if (!CanFly(out _))
+            {
+                // No prefab, or no lateral budget: never going to work, and the same reasoning
+                // SpawnNormally states applies here too — a world that starts everybody on the
+                // ground has had whatever arrival it is going to get.
+                HasArrived = true;
+                yield break;
+            }
+
+            float landingYaw = LandingYawOf(path);
+            float deadline = Time.time + seatResolveTimeout;
+            Vector3 landing;
+
+            while (!ShipGrounding.TryResolveHullLanding(new Vector2(impactPoint.x, impactPoint.z),
+                                                         landingYaw, shipPrefab, probeHeight, Landing,
+                                                         out landing))
+            {
+                if (Time.time >= deadline)
+                {
+                    Debug.LogError($"[Arrival] No ground under the impact point after " +
+                                   $"{seatResolveTimeout}s — starting this disposable session with " +
+                                   "no ship.", this);
+                    HasArrived = true;
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            GameObject ship = GameServices.World.Spawn(shipPrefab, landing,
+                                                        Quaternion.Euler(0f, landingYaw, 0f));
+
+            if (ship == null)
+                Debug.LogError("[Arrival] Spawning the disposable-session ship returned nothing. Is " +
+                               "it registered in the network prefab list?", this);
+            else
+                ship.name = shipPrefab.name + " (Landed)";
+
+            HasArrived = true;
+
+            // The crash's damage still happens to a ship that skipped the flight: the back door is
+            // burst and the oxygen plant thrown out, so the opening objectives are the same ones.
+            // The starter vehicle is NOT delivered here; the disposable session never had one.
+            AnnounceLanded(ship);
         }
 
         /// <summary>
@@ -842,6 +936,8 @@ namespace SpaceGame.Gameplay.Arrival
 
             flight.Landed = true;
             descending--;
+            // After the books balance: an optional extra that throws must not hold the crew's release.
+            DeliverStarterVehicle(flight);
         }
 
         /// <summary>A descent whose hull went away. The books still have to balance.</summary>
@@ -880,6 +976,42 @@ namespace SpaceGame.Gameplay.Arrival
                 GroundFlightAtRest(flight);
                 flight.Landed = true;
             }
+
+            // A second pass, so every hull is grounded before any optional extra can throw.
+            foreach (ArrivalFlight flight in flights.Values)
+                if (flight.Landed) DeliverStarterVehicle(flight);
+        }
+
+        /// <summary>
+        /// Parks this hull's starter vehicle beside it, once. Called from every path that finishes a
+        /// landing for good — the settle, the watchdog, the versus fallback — and deliberately NOT
+        /// from <see cref="GroundUnfinishedFlights"/>: that one runs inside a save's capture (and at
+        /// network shutdown), where spawning a networked object is the wrong thing to do, and the
+        /// descent it interrupts still lands and delivers normally afterwards.
+        /// </summary>
+        private void DeliverStarterVehicle(ArrivalFlight flight)
+        {
+            if (!flight.IsAlive || flight.StarterVehicleDelivered) return;
+
+            // Marked before the spawn, not after it: a spawn that fails has already logged why, and
+            // retrying from the next landing path would only log it again.
+            flight.StarterVehicleDelivered = true;
+            starterVehicle.Deliver(flight.Ship);
+
+            AnnounceLanded(flight.Ship);
+        }
+
+        /// <summary>
+        /// SERVER: raise <see cref="HullLanded"/> for a hull that is down for good — from the end of a
+        /// descent, and from a disposable session's ship put down already landed, which never flies
+        /// one. Each listener is its own fault domain: one broken crash effect must not stop the rest.
+        /// </summary>
+        private void AnnounceLanded(GameObject ship)
+        {
+            if (HullLanded == null || ship == null) return;
+
+            foreach (System.Delegate listener in HullLanded.GetInvocationList())
+                Fault.Run(this, "Arrival.HullLanded", () => ((System.Action<GameObject>)listener)(ship));
         }
 
         /// <summary>

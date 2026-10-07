@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Ragdoll;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Characters
@@ -71,6 +72,7 @@ namespace SpaceGame.Characters
         [SerializeField] private Animator animator;
         [SerializeField] private CapsuleCollider playerCollider;
         private PlayerStance stance;
+        private LedgeClimber ledgeClimber;
         private Vector2 moveInput;
         private float jumpCooldownTimer;
         private bool jumpOnCooldown;
@@ -113,6 +115,9 @@ namespace SpaceGame.Characters
         /// it haul" half of a pull strength — so it is the authored ceiling, not the current speed.
         /// </summary>
         public float SprintSpeed => sprintSpeed;
+
+        /// <summary>The ordinary walk, in m/s: what a carried load slows the player down from.</summary>
+        public float WalkSpeed => moveSpeed;
 
         /// <summary>
         /// Where the player is asking to go, in world space, normalised — zero when they are not
@@ -212,15 +217,40 @@ namespace SpaceGame.Characters
         {
             get
             {
-                if (stance != null && stance.IsCrouching) return crouchSpeed;
-                if (stance == null) return moveSpeed;
-                return stance.IsSprinting ? sprintSpeed : moveSpeed;
+                if (stance != null && stance.IsCrouching) return Mathf.Min(crouchSpeed, haulSpeedCap);
+                if (stance == null) return Mathf.Min(moveSpeed, haulSpeedCap);
+                return Mathf.Min(stance.IsSprinting ? sprintSpeed : moveSpeed, haulSpeedCap);
             }
         }
+
+        private float haulSpeedCap = float.PositiveInfinity;
+        private int haulEndedFrame = -1;
+
+        /// <summary>
+        /// Takes both hands and a heavy load: speed is held to <paramref name="maxSpeed"/>, and jumping and dashing are off. The
+        /// caller must give it back with <see cref="StopHauling"/> — it is reached from a release, a death and a teardown alike.
+        /// </summary>
+        public void StartHauling(float maxSpeed) => haulSpeedCap = Mathf.Max(0.1f, maxSpeed);
+
+        /// <summary>Gives the body its speed and its jump back. The press that let go of the load does not also jump.</summary>
+        public void StopHauling()
+        {
+            if (!IsHauling) return;
+
+            haulSpeedCap = float.PositiveInfinity;
+            haulEndedFrame = Time.frameCount;
+        }
+
+        /// <summary>Whether something heavy is in both hands.</summary>
+        public bool IsHauling => haulSpeedCap < float.PositiveInfinity;
+
+        // Jumping and dashing are off while hauling, and on the frame it ends: the press that lets go is not also a jump.
+        private bool HaulingBlocksActions => IsHauling || Time.frameCount == haulEndedFrame;
 
         private void Awake()
         {
             stance = GetComponent<PlayerStance>();
+            ledgeClimber = GetComponent<LedgeClimber>();
         }
 
         private void Start()
@@ -229,12 +259,8 @@ namespace SpaceGame.Characters
             inputs.OnJumpPressed += OnJump;
             inputs.OnDashPressed += OnDash;
 
-            var health = GetComponent<HealthComponent>();
-            if (health != null)
-            {
-                health.OnDamage += _ => TriggerAnimator("Hurt");
-                health.OnDeath += () => TriggerAnimator("Die");
-            }
+            // No hurt or death animation from here: the flinch is the server's (HurtReaction, on
+            // every machine) and death is the ragdoll's.
         }
 
         private void FixedUpdate()
@@ -588,9 +614,18 @@ namespace SpaceGame.Characters
     
         private void ApplyFallDamage(int damage)
         {
+            // A landing too soft to round to any damage is not a fall worth falling over for.
+            if (damage <= 0) return;
+
             var health = GetComponent<HealthComponent>();
             if (health)
             {
+                // The landing knocks the player flat for exactly the fall's time, and the damage
+                // that follows is not priced as a hit on top. The request goes FIRST: both travel on
+                // this body's relay in order, so the damage lands on a body already down, and a hit
+                // on a downed body does not knock it — see RagdollController.KnockHere.
+                RagdollController.RequestFallKnockdown(this);
+
                 // Only the owner measures its own fall, but the server owns the health that
                 // results — otherwise a client's landing hurts nobody but their own screen.
                 NetDamage.Apply(health.gameObject, damage);
@@ -652,12 +687,6 @@ namespace SpaceGame.Characters
             return planar <= clipSpeed ? 1f : planar / clipSpeed;
         }
 
-        private void TriggerAnimator(string triggerName)
-        {
-            if (animator && animator.runtimeAnimatorController != null)
-                animator.SetTrigger(triggerName);
-        }
-
         public void ForceIdleAnimation()
         {
             if (!animator)
@@ -688,7 +717,15 @@ namespace SpaceGame.Characters
             // merely tidiness: the leg jump is 7 m/s and it SETS the vertical axis, so pressing it
             // in the same physics step as the jumping rod's 11 m/s hop would overwrite the hop with
             // a smaller number and the player would go lower for having timed it well.
-            if (bouncing || climbing)
+            if (bouncing || climbing || HaulingBlocksActions)
+            {
+                return;
+            }
+
+            // A wall too tall to jump onto is climbed instead. Asked here, before the leg jump, rather
+            // than by a second Jump subscriber: two subscribers fire in no defined order, and the jump
+            // would leave the ground in the same step the climb took the body.
+            if (ledgeClimber != null && ledgeClimber.TryClimb())
             {
                 return;
             }
@@ -707,7 +744,7 @@ namespace SpaceGame.Characters
 
         public void OnDash()
         {
-            if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+            if (rb == null || !isActiveAndEnabled || rb.isKinematic || HaulingBlocksActions)
             {
                 return;
             }

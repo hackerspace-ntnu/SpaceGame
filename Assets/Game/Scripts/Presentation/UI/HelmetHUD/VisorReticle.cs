@@ -369,20 +369,7 @@ namespace SpaceGame.Presentation
             return true;
         }
 
-        /// <summary>
-        /// A world point as an anchoredPosition on this layer.
-        ///
-        /// <para>
-        /// Through <see cref="RectTransformUtility"/> rather than by dividing the screen point by
-        /// the canvas scale, because this layer is not guaranteed to sit at the canvas origin:
-        /// <see cref="VisorSway"/> writes an offset onto the visor root every frame, so the whole
-        /// helmet — this bracket with it — lags a few pixels behind a head turn. Everything else on
-        /// the layer is meant to do that. A mark that claims to be ON something in the world is not,
-        /// and drifting off its target exactly while the player swings the camera onto it is the
-        /// worst moment to drift. Asking the rectangle where a screen point falls inside it takes
-        /// that offset — and any other ancestor transform — out of the answer.
-        /// </para>
-        /// </summary>
+        /// <summary>A world point as an anchoredPosition on this layer. See <see cref="VisorProjection"/>.</summary>
         private bool TryToCanvas(Camera view, Vector3 world, out Vector2 canvasPoint)
         {
             canvasPoint = default;
@@ -390,17 +377,7 @@ namespace SpaceGame.Presentation
             Vector3 screen = view.WorldToScreenPoint(world);
             if (screen.z <= 0f) return false;   // behind the eye
 
-            Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? canvas.worldCamera
-                : null;
-
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    root, screen, uiCamera, out Vector2 local)) return false;
-
-            // Local space is measured from the pivot; anchoredPosition on a bottom-left-anchored
-            // child is measured from the corner.
-            canvasPoint = local + Vector2.Scale(root.rect.size, root.pivot);
-            return true;
+            return VisorProjection.TryScreenToLayer(root, canvas, screen, out canvasPoint);
         }
 
         /// <summary>The union of the renderers under a subject, or false when it draws nothing.</summary>

@@ -10,23 +10,25 @@ namespace SpaceGame.EditorTools
 {
     public class RosterAssetTests
     {
-        // Nomad.prefab is excluded: its recipe (NomadPrefabBuilder.Nomad) sets RandomWeapon = false
-        // -- he carries the walking staff instead -- so he was never built with an NpcRandomLoadout
-        // and has nothing for this test to check.
+        private const string SandRosterPath = "Assets/Game/ScriptableObjects/Factions/Rosters/SandTribe.asset";
+        private const string SandFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/SandTribeFaction.asset";
+
+        // Nomad.prefab is excluded: he carries the walking staff instead of a random gun, so he has no
+        // NpcRandomLoadout and nothing for this test to check.
         private static readonly string[] NomadPrefabs =
         {
-            "Assets/Game/Prefabs/Agents/Characters/Nomad_Maroon.prefab",
-            "Assets/Game/Prefabs/Agents/Characters/Nomad_StrawHat.prefab",
-            "Assets/Game/Prefabs/Agents/Characters/Nomad_Tan.prefab",
-            "Assets/Game/Prefabs/Agents/Characters/Nomad_Umber.prefab",
+            "Assets/Game/Prefabs/agents/Characters/Nomad_Maroon.prefab",
+            "Assets/Game/Prefabs/agents/Characters/Nomad_StrawHat.prefab",
+            "Assets/Game/Prefabs/agents/Characters/Nomad_Tan.prefab",
+            "Assets/Game/Prefabs/agents/Characters/Nomad_Umber.prefab",
         };
 
-        private static FactionRoster Sand => AssetDatabase.LoadAssetAtPath<FactionRoster>(RosterAuthoring.SandRosterPath);
+        private static FactionRoster Sand => AssetDatabase.LoadAssetAtPath<FactionRoster>(SandRosterPath);
 
         [Test]
         public void SandRoster_Exists_AndValidates()
         {
-            Assert.IsNotNull(Sand, $"No roster at {RosterAuthoring.SandRosterPath}. Run Tools/SpaceGame/Agents/Author Sand Tribe Roster.");
+            Assert.IsNotNull(Sand, $"No roster at {SandRosterPath}.");
             var problems = RosterValidation.Problems(Sand);
             Assert.IsEmpty(problems, string.Join("\n", problems));
         }
@@ -34,7 +36,8 @@ namespace SpaceGame.EditorTools
         [Test]
         public void SandFaction_PointsAtItsRoster()
         {
-            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(RosterAuthoring.SandFactionPath);
+            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(SandFactionPath);
+            Assert.IsNotNull(faction, $"No faction at {SandFactionPath}.");
             Assert.AreSame(Sand, faction.roster);
             Assert.AreSame(faction, Sand.faction);
         }
@@ -73,7 +76,7 @@ namespace SpaceGame.EditorTools
                     .ToArray();
 
                 CollectionAssert.AreEqual(Sand.handItems, baked,
-                    $"{path}: re-run Tools/SpaceGame/Agents/Build Sand Nomad NPCs after changing the roster.");
+                    $"{path}: its NpcRandomLoadout.candidates must equal the roster's handItems, in order.");
             }
         }
 

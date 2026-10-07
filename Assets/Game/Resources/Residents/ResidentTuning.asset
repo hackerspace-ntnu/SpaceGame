@@ -1,0 +1,178 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a8e136f5416449388c39be215375288, type: 3}
+  m_Name: ResidentTuning
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentTuning
+  workSession: {x: 180, y: 360}
+  breakLength: {x: 30, y: 90}
+  attendResumeSeconds: 2.5
+  minDwellRealSeconds: 20
+  windowJitter: 30
+  bedtimeSpread: {x: 1260, y: 1440}
+  wake: {x: 300, y: 390}
+  templates:
+  - lifestyle: 0
+    blocks:
+    - activity: 1
+      startHour: 0
+      endHour: 6
+    - activity: 2
+      startHour: 6
+      endHour: 18
+    - activity: 4
+      startHour: 18
+      endHour: 19
+    - activity: 5
+      startHour: 19
+      endHour: 22
+    - activity: 1
+      startHour: 22
+      endHour: 24
+  - lifestyle: 1
+    blocks:
+    - activity: 1
+      startHour: 0
+      endHour: 6
+    - activity: 4
+      startHour: 6
+      endHour: 12
+    - activity: 3
+      startHour: 12
+      endHour: 13
+    - activity: 4
+      startHour: 13
+      endHour: 18
+    - activity: 5
+      startHour: 18
+      endHour: 22
+    - activity: 1
+      startHour: 22
+      endHour: 24
+  - lifestyle: 2
+    blocks:
+    - activity: 1
+      startHour: 0
+      endHour: 6
+    - activity: 6
+      startHour: 6
+      endHour: 15.5
+    - activity: 4
+      startHour: 15.5
+      endHour: 18
+    - activity: 5
+      startHour: 18
+      endHour: 22
+    - activity: 1
+      startHour: 22
+      endHour: 24
+  departWindow: {x: 420, y: 840}
+  returnBy: 930
+  backstopDelay: 60
+  tripKinds:
+  - kind: 1
+    cue: {fileID: 11400000, guid: 715904eee05614279aac9c04ad3c3f5a, type: 2}
+    prop: {fileID: 0}
+  - kind: 2
+    cue: {fileID: 11400000, guid: 599dfae6df6354d2aae60815659b1082, type: 2}
+    prop: {fileID: 0}
+  - kind: 4
+    cue: {fileID: 11400000, guid: e1b10f80b9d86409689a49d385d0a58f, type: 2}
+    prop: {fileID: 0}
+  - kind: 8
+    cue: {fileID: 11400000, guid: 68e2eae465f494ceeb182ec73c79d9d4, type: 2}
+    prop: {fileID: 0}
+  - kind: 16
+    cue: {fileID: 11400000, guid: 2732a566aaa1144999e8a015b7c14fa5, type: 2}
+    prop: {fileID: 0}
+  - kind: 32
+    cue: {fileID: 11400000, guid: b3acfe6aaab834790bda024e73f5109c, type: 2}
+    prop: {fileID: 0}
+  tripPoints: 8
+  tripDistance: {x: 60, y: 150}
+  carryItems:
+  - {fileID: 11400000, guid: 8606d20773ec74310b34aa8581cc8dea, type: 2}
+  - {fileID: 11400000, guid: 694b68856690c4cf0b7839882a89fcb9, type: 2}
+  - {fileID: 11400000, guid: d95e67566932144259ce66b831aea56f, type: 2}
+  - {fileID: 11400000, guid: abc65110dc567494da8bc78ce4a174c8, type: 2}
+  - {fileID: 11400000, guid: 38688743ffe304f499c15a34f6edfb68, type: 2}
+  - {fileID: 11400000, guid: c4e6a82b9a68245379937c28894f7f83, type: 2}
+  - {fileID: 11400000, guid: c5dea2a31e207420e94bb37c370b7cb1, type: 2}
+  - {fileID: 11400000, guid: 0d8a49db50d3447a38bb2f491764531c, type: 2}
+  - {fileID: 11400000, guid: f2cdf83cba4ba453b9c27848a1d11b60, type: 2}
+  - {fileID: 11400000, guid: 243a28d045535489bb1166385f2f4482, type: 2}
+  - {fileID: 11400000, guid: d06e72ba1a25b4d998ebd88fde8417f2, type: 2}
+  choreSession: {x: 60, y: 120}
+  ambleChance: 0.6
+  ambleStopSeconds: {x: 5, y: 14}
+  ambleReach: 0.7
+  pairGap: 1.4
+  pairWaitDistance: 7
+  walkTalkRange: 4
+  walkTalkRestSeconds: 30
+  perimeterOffset: 5
+  perimeterPoints: 24
+  patrolSpeed: 0.8
+  walkSpeed: 1.5
+  detourFactor: 1.3
+  doorStandDistances:
+  - 1.5
+  - 2.5
+  - 4
+  - 6
+  campSleepCue: {fileID: 11400000, guid: 8a6433e000b314ec7aadac154bf9c6ca, type: 2}
+  climbCue: {fileID: 11400000, guid: cd05d4cabedb4059a4bf713e8732cb01, type: 2}
+  standSnapRadius: 1.2
+  standSnapHeight: 1.5
+  doorThresholdSnap: 1.5
+  standRecheckSeconds: 20
+  stationMaxShift: 0.6
+  stationMinDistance: 1
+  stationReachTolerance: 0.4
+  seatReach: 1.5
+  elevatedSeatRise: 1.5
+  seatWatchRadius: 60
+  seatHipsAboveSurface: 0.1
+  stoolHipsAboveSurface: 0.18
+  stoolMaxDrop: 0.1
+  seatBlendSeconds: 0.2
+  cartReach: 4
+  toolTransitSeconds: 0.25
+  noticeRadius: 14
+  earshot: 20
+  avoidRadius: 10
+  gunshotsToWake: 1
+  racketSecondsToWake: 6
+  settleSeconds: 20
+  remarkGapPerPlayer: 9
+  remarkGapPerResident: 45
+  maxBubbles: 4
+  pairInterval: 2
+  maxTurns: 4
+  conversationRestSeconds: 90
+  focusAfterLine: 2
+  familiarityPerTalk: 2
+  dailyTalkCap: 10
+  warmAt: 20
+  coldAt: 20
+  forgiveDaysBase: 3
+  favorForHit: -25
+  favorForThreat: -10
+  favorForKilling: -100
+  favorForDefending: 25
+  familyShare: 0.75
+  friendShare: 0.5
+  coworkerShare: 0.35
+  neighbourShare: 0.2
+  favorLimit: 100
+  irritationStepSeconds: 8
+  rumourTellSeconds: 1.5
+  rumourSweepSeconds: 0.5

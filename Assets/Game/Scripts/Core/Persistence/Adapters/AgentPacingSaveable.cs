@@ -27,9 +27,9 @@ namespace SpaceGame.Core.Persistence
     /// Update reconciles it.
     ///
     /// <c>AgentController.enabled</c> is not here either, though it IS durable state: it is written by
-    /// <c>HealthReactionModule</c>, on the death path and on the threshold path, and both are restored
-    /// by <see cref="HealthReactionSaveable"/> — from the module that asserts it, rather than from a
-    /// second saver free to disagree.
+    /// <c>HealthReactionModule</c> on the death path, and a restored death re-runs that path
+    /// (<c>HealthComponent.IsRestoring</c> → <c>ApplyDeadState</c>) — so the module that asserts it
+    /// restores it, rather than a second saver free to disagree.
     /// </summary>
     [RequireComponent(typeof(AgentController))]
     public class AgentPacingSaveable : MonoBehaviour, ISaveable

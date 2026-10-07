@@ -60,7 +60,9 @@ Full rules: [docs/AI/CONTRIBUTING.md](docs/AI/CONTRIBUTING.md).
 | [spacegame-persistence](.claude/skills/spacegame-persistence/SKILL.md) | Save/load: state resets, entities duplicate, savers missing from JSON |
 | [spacegame-tribe](.claude/skills/spacegame-tribe/SKILL.md) | Adding a tribe: roster, war parties, caravans, goodwill |
 | [spacegame-vessel](.claude/skills/spacegame-vessel/SKILL.md) | NPC-flown transports: turning a model into a vessel that carries a group, lands or hovers, and drops them off |
-| [blender-model](.claude/skills/blender-model/SKILL.md) | Any 3D asset — models, props, variants — in the `.blend` library |
+
+3D assets no longer have a skill: the model library is `.blend` files and exported FBX, with no
+generator scripts. See [docs/AI/systems/ArtPipeline.md](docs/AI/systems/ArtPipeline.md).
 
 ## Non-negotiables for every new feature
 

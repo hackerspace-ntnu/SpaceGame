@@ -23,12 +23,16 @@ using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.DuneFoil;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Vehicles
 {
-    public class DeckBoarding : MonoBehaviour, IInteractable, IContextualInteractable,
+    public class DeckBoarding : MonoBehaviour, IInteractable, IInteractionMoment, IContextualInteractable,
                                 IInteractionReadout
     {
+        /// <summary>Nothing on the body: boarding moves the body onto the deck at once.</summary>
+        public CharacterMoment InteractionMoment => CharacterMoment.None;
+
         [Header("Where you land")]
         [Tooltip("Exact spot to put the player. When empty, the top of the deck collider is used.")]
         [SerializeField] private Transform boardPoint;

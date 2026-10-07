@@ -15,7 +15,7 @@
 // their head does instead of down the body's forward.
 //
 // ── Why the bones are written in LateUpdate rather than through the IK pass ──
-// The player's Upper Body avatar mask deliberately excludes the head (PlayerUpperBodySetup: an
+// The player's Upper Body avatar mask deliberately excludes the head (HumanoidMasks: an
 // Upper Body layer at weight 1 would flatten the head of every death and damage clip on the Base
 // Layer), so there is no masked layer here to hang a head goal on, and OnAnimatorIK only arrives
 // for layers with their IK Pass ticked — a flag that is invisible in code and silently switchable

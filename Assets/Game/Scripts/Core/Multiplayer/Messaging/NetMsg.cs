@@ -27,9 +27,11 @@ namespace SpaceGame.Core
         public const ushort ItemUseHeld = 5;  // server → peers: sustain the presentation
 
         // ── Combat ──
-        public const ushort Damage    = 10; // → server, on the TARGET's relay. A = amount, Target = source
+        public const ushort Damage    = 10; // → server, on the TARGET's relay. A = amount, B = DamageKind, Target = source
 
-        // server → peers, on the VICTIM's relay. A = amount, Target = the attacking PLAYER.
+        // server → peers, on the VICTIM's relay. A = amount, B = DamageDefense, Target = the
+        // attacking PLAYER. A is 0 when the victim blocked or dodged the whole blow — the one
+        // case B alone is the news.
         //
         // Damage above travels towards the server; this is the answer coming back, and it exists
         // because a client cannot see its own hits land. Weapon.Use() runs on the authority alone,
@@ -303,7 +305,13 @@ namespace SpaceGame.Core
         public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
 
         // Server → everyone, on the VICTIM's relay: this body has been knocked down. Every machine
-        // presents it going limp, with P as the impulse handed to the hips (m/s, world space).
+        // presents it going limp, with P as the velocity handed to every bone (m/s, world space).
+        //
+        //   A  down-time in ms, priced by KnockdownPolicy on the deciding machine.
+        //   B  the RagdollCause.
+        //
+        // Send through RagdollController.Knock, never directly: that is where the victim's
+        // KnockdownTuning prices the event and where hit immunity is checked.
         //
         // Broadcast for the same reason Flung (79) is: bone transforms are not replicated, so a
         // ragdoll is not something one machine can do on another's behalf — every machine has to
@@ -313,7 +321,7 @@ namespace SpaceGame.Core
         //
         // A message of its own rather than a flag on Flung, because Flung is shared three ways and
         // one of them is self-inflicted: GravelBlasterArtifact flings the HOLDER as self-propulsion
-        // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
+        // (GravelBlasterArtifact.MisfireUse, its backfire). A ragdoll hung off Flung would knock players down every
         // time they fired their own gravel blaster.
         public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
 
@@ -459,7 +467,7 @@ namespace SpaceGame.Core
         public const ushort LeaveSeat = 91; // server → everyone, on the SHIP's relay
 
         // (92 and 93 were SeatRequest/SeatRelease, retired: passenger chairs are ordinary mounts —
-        //  PlayerShipBuilder gives every non-helm chair its own MountModule — so a second, bespoke
+        //  The ship prefab gives every non-helm chair its own MountModule — so a second, bespoke
         //  way to sit down was two mechanisms for one job. Not reused; ids travel between builds.)
 
         // "Let me out of my arrival seat." Client → server, on the SHIP's relay.
@@ -638,8 +646,104 @@ namespace SpaceGame.Core
         public const ushort ConjurerStruck = 114; // server → everyone: draw the bolt at P
 
         // ── Emotes ──
-        // A gesture with no item behind it: /wave and its siblings. On the PLAYER's relay.
-        //   A = index into PlayerEmotes.Table.
+        // A gesture with no item behind it, typed as /wave and its siblings. On the PLAYER's relay.
+        // The emote wheel sends nothing: it runs on the owner, who plays at once.
+        //   A = index into EmoteCatalog.Entries, which names the CharacterAction to play.
         public const ushort Emote = 115; // server → everyone
+
+        // ── Character actions ──
+        // Server → everyone else, on the BODY's relay: play (or stop) a CharacterAction on it.
+        // For the actions no existing message already carries — a flinch the server decided from
+        // damage, a dwell loop, a relayed dialogue gesture. On an NPC every machine plays it; on a
+        // player only the owner's play takes effect and NGO's NetworkAnimator carries it on.
+        //   A = CharacterActionCatalog index, or -1 - slot to stop that slot.
+        //   B = variant | arm << 8 (arm: 0 none, 1 left, 2 right).
+        public const ushort CharacterActed = 116; // server → everyone else
+
+        // ── Settlement residents ──
+        // Both on the RESIDENT's relay. The server alone picks what a resident says — the line
+        // table, the resident's memory and its stance live there — so a player addressing one
+        // only asks, and the answer comes back as a line id every machine looks up in its own
+        // copy of the same table. Speech is not replayed to late joiners: a line is a moment,
+        // and the resident's standing activity already arrives with its NetworkVariable.
+        //
+        //   ResidentAddressed   Target = the speaking PLAYER's NetworkObjectId (the sender), so
+        //                       the server answers the right person even on the host.
+        //   ResidentSaid        Target = the addressee player's NetworkObjectId, 0 for a line
+        //                       said to nobody in particular.
+        //                       A = the line id — LineTable.IdOf's uint FNV-1a hash carried
+        //                       bit-for-bit in the int field: send unchecked((int)id), read
+        //                       unchecked((uint)arg.A). Never a numeric conversion; ids above
+        //                       int.MaxValue arrive negative and must round-trip unchanged.
+        //                       B = the subject resident's index in its settlement roster
+        //                       ({friend}, {kin} in the line), -1 for none.
+        public const ushort ResidentAddressed = 117; // player → server
+        public const ushort ResidentSaid      = 118; // server → everyone, host included
+
+        // ── Player racket ──
+        // Owner → server, on the PLAYER's relay: "I am sprinting here". Sprint is decided on the
+        // owner and never replicated, while noise is heard only where agents tick — the server —
+        // so the owner reports it, throttled to one per PlayerStance.racketInterval. No payload:
+        // the server emits from its own copy of the body.
+        public const ushort SprintRacket = 119; // owner → server
+
+        // ── Seats ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into
+        // PlayerSeating's NetworkVariable; nothing is sent back, because every machine reads that.
+        // (Not the retired 92/93 SeatRequest/SeatRelease, which belonged to ship chairs.)
+        //   SitRequest   A = Seat.Id of the seat the player wants to sit on.
+        //   StandRequest no payload: stand the sender up.
+        public const ushort SitRequest   = 120; // owner → server
+        public const ushort StandRequest = 121; // owner → server
+
+        // ── Pushables ──
+        // Both owner → server, on the PLAYER's relay. The server decides and writes the answer into PlayerPushing's
+        // NetworkVariable; nothing is sent back, because every machine reads that.
+        //   PushRequest    A = Pushable.Id of the cart the player wants to take hold of.
+        //   ReleaseRequest no payload: let the sender's hands off the cart.
+        public const ushort PushRequest    = 122; // owner → server
+        public const ushort ReleaseRequest = 123; // owner → server
+
+        // ── Colony airlocks ──
+        // On the BUILDING's channel: the settlement wrapper's NetworkObject, or the building's root
+        // when it has none (a hand-placed colony, which then runs each machine's airlock alone).
+        // A = the AirlockChamber's index among the chambers on that entity (NetChannel.IndexOf).
+        //   AirlockOperate B = -1 asks for the state (a late joiner); otherwise bit 0 is the hatch
+        //                  (0 inner, 1 outer) and bit 1 says the clicker stands in the chamber.
+        //   AirlockState   B = AirlockState.ToWire(), plus bit 8 when it is the answer to an ask
+        //                  (land in it, do not animate into it).
+        public const ushort AirlockOperate = 124; // clicker → server
+        public const ushort AirlockState   = 125; // server → everyone
+
+        // ── Knockdown requests ──
+        // Owner → server, on the VICTIM's relay: "my own landing was hard enough to knock me down".
+        // A = RagdollCause. The server checks Network.MayActFor and prices it through
+        // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
+        // fall is only ever measured by the machine that owns the body — hence the round trip.
+        public const ushort KnockdownRequest = 126; // owner → server, on the VICTIM's relay
+
+        // Owner → server, on the PLAYER's relay: "I pressed Jump while knocked down — let me up".
+        // The server checks Network.MayActFor and answers with GotUp (128). Players only; handled
+        // by PlayerRagdoll.
+        public const ushort GetUpRequest = 127; // owner → server, on the PLAYER's relay
+
+        // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
+        // machine runs its own copy of the ragdoll, so every machine has to be told.
+        public const ushort GotUp = 128; // server → everyone, on the PLAYER's relay
+
+        // ── Burnt-out ship modules ──
+        // Taker → server, on the SHIP's channel: "pull the burnt-out unit out of this socket".
+        // A = the socket's index in ShipPartRack.Sockets. The server re-checks that the unit is
+        // still there and has burned and been put out, pops a FizzlingHusk onto the floor and
+        // clears the rack's broken bit, which reaches everyone through the rack's replicated mask.
+        // Handled by BrokenShipPart.
+        public const ushort ShipPartTakeBroken = 129; // taker → server, on the SHIP's channel
+
+        // ── Lifted loads ──
+        // Carrier → server, on the LOAD's channel. Subject = the carrier's body. A = 1: "lift it" — the
+        // server checks reach and that nobody holds it and writes Liftable's replicated state. A = 0:
+        // "I put it down here" — P/R = the rest pose the carrier's machine is lowering it onto, which the
+        // server takes unless its own view of the load disagrees. Handled by Liftable.
+        public const ushort LiftRequest = 130; // carrier → server, on the LOAD's channel
     }
 }

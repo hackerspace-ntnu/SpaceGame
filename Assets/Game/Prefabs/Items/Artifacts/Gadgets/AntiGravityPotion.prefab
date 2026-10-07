@@ -53,6 +53,7 @@ GameObject:
   - component: {fileID: 1167127891669193151}
   - component: {fileID: 4251647312523281873}
   - component: {fileID: -91773103128960938}
+  - component: {fileID: 5853759651378119461}
   m_Layer: 0
   m_Name: AntiGravityPotion
   m_TagString: Untagged
@@ -150,6 +151,7 @@ MonoBehaviour:
       Data3: -1864092773
       Data4: 339326117
     Path: event:/SFX/Slurp
+  useAction: {fileID: 0}
 --- !u!114 &5075579139318363498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -233,6 +235,7 @@ MonoBehaviour:
   holdSize: 0.5
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2109368218578899848
 MonoBehaviour:
@@ -348,6 +351,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &5853759651378119461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7402587260625591437}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &3981575716944773001
 PrefabInstance:
   m_ObjectHideFlags: 0

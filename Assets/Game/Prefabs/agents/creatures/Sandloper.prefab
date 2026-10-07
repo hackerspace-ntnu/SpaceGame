@@ -191,9 +191,6 @@ PrefabInstance:
       addedObject: {fileID: -4770600856821276478}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -1920526351586795887}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 3025819800490467034}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
@@ -216,6 +213,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6383576929369345763}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 763513128182412275}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2587982446461795468}
   m_SourcePrefab: {fileID: 100100000, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
 --- !u!95 &176337004500388985 stripped
 Animator:
@@ -313,6 +316,15 @@ MonoBehaviour:
   carryLandTolerance: 0.15
   maxCarryFallSpeed: 30
   maxThrustDragSpeed: 20
+  usesLadders: 1
+  ladderClimbSpeed: 1.6
+  ladderDescendSpeed: 2
+  ladderStandoff: 0.65
+  ladderStepSpeed: 1.6
+  plainLinkSpeed: 3
+  jumpLinkSpeed: 5
+  jumpLinkArcHeight: 0.8
+  jumpLinkArcPerMetre: 0.25
   agent: {fileID: 4323444541838615247}
   navMeshSnapDistance: 6
   walkSpeedMultiplier: 0.2413493
@@ -364,10 +376,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 5773246978882158280}
   animatorDriver: {fileID: 6073845140653462437}
-  nearbyAgentScanRadius: 0
-  nearbyAgentLayer:
-    serializedVersion: 2
-    m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &5250026723770419512
@@ -422,7 +430,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &8551630109162701986
@@ -447,18 +455,7 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
-  memoryDuration: 12
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotId: 407
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+  sightRecheckInterval: 0.2
 --- !u!114 &7807784956072048733
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -479,6 +476,7 @@ MonoBehaviour:
   sampleDistance: 6
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
+  onlyReachableDestinations: 0
   minWaitTime: 1.5
   maxWaitTime: 6
   stopDistance: 0.2
@@ -663,7 +661,7 @@ MonoBehaviour:
   ActiveSceneSynchronization: 0
   SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
+  DontDestroyWithOwner: 1
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
@@ -834,18 +832,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &-1920526351586795887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6906698745191926969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &3025819800490467034
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -931,13 +917,17 @@ MonoBehaviour:
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  maxJointMassRatio: 8
   angularDamping: 0.6
   linearDamping: 0.05
   solverIterations: 14
   sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
   selfCollision: 0
   swingLimit: 45
   twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
   settleLinearSpeed: 0.35
   settleAngularSpeed: 1.2
   settleSeconds: 0.45
@@ -960,9 +950,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 0.1
+    minSeconds: 0.1
+    maxSeconds: 0.2
+    threshold: 0.35
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
+    reknockImmunitySeconds: 1
+  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
-  downedSeconds: 1.2
 --- !u!114 &1650530464596609212
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1035,6 +1037,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountNetworkSync
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &763513128182412275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &2587982446461795468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!4 &7640608676881219498 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -5111575511331140030, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}

@@ -40,6 +40,10 @@ namespace SpaceGame.Agents
 
         [Min(1)]
         public int count = 1;
+
+        [Tooltip("These fly on their own wings instead of taking a vessel seat: a flying party's escort, flying " +
+                 "station round its vessel and landing beside its drop. They never lead.")]
+        public bool ownWings;
     }
 
     [Serializable]
@@ -57,7 +61,7 @@ namespace SpaceGame.Agents
         public RosterMember[] members = Array.Empty<RosterMember>();
 
         [Tooltip("Weapons a member may draw at spawn. Baked into each nomad's NpcRandomLoadout by " +
-                 "NomadPrefabBuilder; a test fails if the two differ.")]
+                 "the shipped nomad prefabs; a test fails if the two differ.")]
         public InventoryItem[] handItems = Array.Empty<InventoryItem>();
 
         [Tooltip("Shouted by a war party on first sight of the player it is hunting.")]
@@ -68,6 +72,8 @@ namespace SpaceGame.Agents
 
         private static readonly List<GameObject> CandidateBuffer = new();
         private static readonly List<float> WeightBuffer = new();
+        private static readonly List<(double key, int candidate)> RoundBuffer = new();
+        private static readonly int RoleKinds = Enum.GetValues(typeof(RosterRole)).Length;
 
         public int MaxTier => Mathf.Max(0, warPartyTiers.Length - 1);
 
@@ -75,28 +81,43 @@ namespace SpaceGame.Agents
             warPartyTiers.Length == 0 ? null : warPartyTiers[Mathf.Clamp(tier, 0, warPartyTiers.Length - 1)];
 
         /// <summary>
-        /// A prefab for <paramref name="role"/>, the same one every time for the same seed and index.
+        /// The prefab dealt as the <paramref name="dealt"/>-th <paramref name="role"/> of the group with
+        /// <paramref name="seed"/>, the same one every time. The role's members are a deck: each round
+        /// deals every member with a positive weight once, in an order shuffled per round, so no member
+        /// comes twice before every one has come once. A weight only orders the round — a heavier member
+        /// tends to come earlier (first with the odds of its weight), so a small group sees it more.
         /// Never substitutes another role: an empty role is an authoring error, logged, and null.
         /// </summary>
-        public GameObject Draw(RosterRole role, int seed, int index)
+        public GameObject Deal(RosterRole role, int seed, int dealt)
         {
             CandidateBuffer.Clear();
             WeightBuffer.Clear();
 
             foreach (RosterMember member in members)
             {
-                if (member == null || member.prefab == null || member.role != role) continue;
+                if (member == null || member.prefab == null || member.role != role || member.weight <= 0f) continue;
 
                 CandidateBuffer.Add(member.prefab);
                 WeightBuffer.Add(member.weight);
             }
 
-            int pick = RosterDraw.PickWeighted(WeightBuffer, RosterDraw.Roll01(seed, index));
-            if (pick >= 0) return CandidateBuffer[pick];
+            if (CandidateBuffer.Count == 0)
+            {
+                Debug.LogError($"[FactionRoster] {name} has no {role} members with a positive weight; " +
+                               "nothing was drawn.", this);
+                return null;
+            }
 
-            Debug.LogError($"[FactionRoster] {name} has no {role} members with a positive weight; " +
-                           "nothing was drawn.", this);
-            return null;
+            // A weighted shuffle (Efraimidis-Spirakis): each member's key is roll^(1/weight), and the
+            // round deals them highest key first.
+            int round = Mathf.Max(0, dealt) / CandidateBuffer.Count;
+            int roundSeed = (int)RosterDraw.Hash(seed, round * RoleKinds + (int)role);
+            RoundBuffer.Clear();
+            for (int i = 0; i < CandidateBuffer.Count; i++)
+                RoundBuffer.Add((Math.Pow(RosterDraw.Roll01(roundSeed, i), 1d / WeightBuffer[i]), i));
+            RoundBuffer.Sort((a, b) => b.key != a.key ? b.key.CompareTo(a.key) : a.candidate.CompareTo(b.candidate));
+
+            return CandidateBuffer[RoundBuffer[Mathf.Max(0, dealt) % CandidateBuffer.Count].candidate];
         }
 
         /// <summary>Warns and never blocks: a half-filled slot is unfinished, not broken (CONTENT-0004).</summary>

@@ -241,7 +241,7 @@ namespace SpaceGame.Agents
             // but forget them. Same reasoning as the mount-side case in OnDisable, mirrored.
             //
             // This lives HERE, not at the call sites, because six independent paths reach Dismount
-            // (SteerModule, MountNetworkSync, DuneRiderController, WingPackItem, OnDisable, and
+            // (SteerModule, MountNetworkSync, WingPackItem, OnDisable, and
             // anything added later) and each one would otherwise need the same guard.
             if (!RiderTeardownBeacon.CanReparent(rider))
             {
@@ -312,7 +312,7 @@ namespace SpaceGame.Agents
             CarriedBody.Abandon(this);
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
-            suppressedModules.Clear();
+            suppressedModules.Forget();
             ownRigidbodyConstraintsCaptured = false;
             ClearMountedReferences();
             activeSeatPoint = seatPoint;

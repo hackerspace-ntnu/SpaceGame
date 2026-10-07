@@ -7,6 +7,7 @@ paths:
   - Assets/Game/Scripts/Core/Input/
   - Assets/Game/Scripts/Core/Registry/
   - Assets/Game/Scripts/Core/Settings/
+  - Assets/Game/Scripts/Core/Rendering/
   - Assets/Game/Scenes/Core/Bootstrap.unity
 symptoms:
   - "GameServices.World is null and every spawn or despawn NREs"
@@ -15,15 +16,16 @@ symptoms:
   - "playing straight from a world scene has no items, no audio, no registries"
   - "my asmdef cannot see PlayerController / GameServices / NetMessaging"
   - "a gameplay hotkey still fires while a menu or the chat box is open"
+  - "Camera.main is null while I ride a vehicle, so a distance LOD hides or never fades"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-09-30
+updated: 2026-10-06
 ---
 
 # Core Services
 
 The glue layer: boot order, the static service/registry locators, player input, and PlayerPrefs-backed settings.
 
-**Scope:** [Assets/Game/Scripts/Core/GameServices/](Assets/Game/Scripts/Core/GameServices), [Core/Input/](Assets/Game/Scripts/Core/Input), [Core/Registry/](Assets/Game/Scripts/Core/Registry), [Core/Settings/](Assets/Game/Scripts/Core/Settings), [Core/SceneManagement/Core/](Assets/Game/Scripts/Core/SceneManagement/Core), [Assets/Game/Settings/Input/](Assets/Game/Settings/Input), [Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity), all `.asmdef`s.
+**Scope:** [Assets/Game/Scripts/Core/GameServices/](Assets/Game/Scripts/Core/GameServices), [Core/Input/](Assets/Game/Scripts/Core/Input), [Core/Registry/](Assets/Game/Scripts/Core/Registry), [Core/Settings/](Assets/Game/Scripts/Core/Settings), [Core/Rendering/](Assets/Game/Scripts/Core/Rendering), [Core/SceneManagement/Core/](Assets/Game/Scripts/Core/SceneManagement/Core), [Assets/Game/Settings/Input/](Assets/Game/Settings/Input), [Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity), all `.asmdef`s.
 **Related:** [Multiplayer.md](Multiplayer.md), [Persistence.md](Persistence.md), [SceneTransitions.md](SceneTransitions.md), [UI.md](UI.md), [audio.md](audio.md)
 
 ## Model
@@ -49,6 +51,7 @@ The glue layer: boot order, the static service/registry locators, player input, 
 | `GameSettings` | [GameSettings.cs](Assets/Game/Scripts/Core/Settings/GameSettings.cs) | All player options, PlayerPrefs, `Changed` event |
 | `PlayerInputManager` | [PlayerInputManager.cs](Assets/Game/Scripts/Core/Input/PlayerInputManager.cs) | Single source of player input; owns `InputControls` |
 | `InputManager` | [InputManager.cs](Assets/Game/Scripts/Core/Input/InputManager.cs) | Legacy stub reading `InputSystem.actions.FindAction("Attack")` — an action that does not exist in this asset |
+| `ViewCamera` | [ViewCamera.cs](Assets/Game/Scripts/Core/Rendering/ViewCamera.cs) | Static: the camera this machine is drawing from — the last `CameraType.Game` camera that rendered with no `targetTexture` (`RenderPipelineManager.beginCameraRendering`), else `Camera.main`. `Current`, `DistanceTo(point)` (NaN with no camera). Presentation only |
 | `TextEntry` | [TextEntry.cs](Assets/Game/Scripts/Core/Input/TextEntry.cs) | `IsTyping`: a `TMP_InputField` has focus. The one check every key that acts must stand down for — chat, pause, inventories and the voice keys share it rather than each carrying a copy |
 | `SceneReference` | [SceneReference.cs](Assets/Game/Scripts/Core/SceneManagement/Core/SceneReference.cs) | ScriptableObject wrapping a scene *name* (editor-only `SceneAsset` field) |
 | `Game` / `GameMode` | [Game.cs](Assets/Game/Scripts/Gameplay/Game/State/Game.cs) | `Singleplayer` \| `Multiplayer`; drives service reload |
@@ -69,7 +72,6 @@ Almost all gameplay code is in the **default `Assembly-CSharp`** (no asmdef). Th
 | `SpaceGame.Vehicles.DuneFoil` | [Vehicles/DuneFoil/](Assets/Game/Scripts/Vehicles/DuneFoil/SpaceGame.Vehicles.DuneFoil.asmdef) | Sailer physics | Persistence, Teleporting |
 | `SpaceGame.Vehicles.Ornithopter` | [Vehicles/Ornithopter/](Assets/Game/Scripts/Vehicles/Ornithopter/SpaceGame.Vehicles.Ornithopter.asmdef) | Flight model | `FMODUnity`, Audio, Teleporting |
 | `SpaceGame.Gear.JumpingRod` | [Gear/JumpingRod/](Assets/Game/Scripts/Gear/JumpingRod/SpaceGame.Gear.JumpingRod.asmdef) | Pogo maths | — |
-| `SpaceGame.Minigame.Core` | [Gameplay/Minigame/Core/](Assets/Game/Scripts/Gameplay/Minigame/Core/SpaceGame.Minigame.Core.asmdef) | Match rules | — |
 | `SpaceGame.Versus.Core` | [Gameplay/Versus/Core/](Assets/Game/Scripts/Gameplay/Versus/Core/SpaceGame.Versus.Core.asmdef) | Team/ring layout | — |
 | `SpaceGame.World.Safety` | [World/Safety/Rules/](Assets/Game/Scripts/World/Safety/Rules/SpaceGame.World.Safety.asmdef) | Safety rules | — |
 | `SpaceGame.World.Streaming` | [World/Streaming/Grid/](Assets/Game/Scripts/World/Streaming/Grid/SpaceGame.World.Streaming.asmdef) | Chunk grid maths | — |
@@ -88,7 +90,7 @@ Asset: [InputSystem_Actions.inputactions](Assets/Game/Settings/Input/InputSystem
 | Map | Actions |
 | --- | --- |
 | `Player` | Move, Look, Use, Interact (**right mouse**), Crouch (**C**), Jump, Previous, Next, Sprint (**Shift**, read by the body and by mounts), Dash, Vertical, Turn (Q/E, mounts), Backpack, GauntletLeft (**Q**), GauntletRight (**E**) |
-| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory (**O**), Chat, Hud, BodyInventory (**I**) |
+| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory (**O**), Chat, Hud, BodyInventory (**I**), EmoteWheel (**V** / d-pad down, held), EmotePage (Q/E, scroll, shoulders), EmoteAim (right stick) |
 | `Hotbar` | Hotbar1–Hotbar10, Drop, HotbarScroll |
 
 Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
@@ -133,6 +135,7 @@ Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
 - `OnDisable` zeroes `MoveInput`/`LookInput`/`CrouchHeld` on purpose: axes are only written in `Update`, so a stale vector would outlive death.
 - `SceneReference` stores a scene **name**, not a path or index. NGO hashes scene *paths* case-sensitively — see [Multiplayer.md](Multiplayer.md).
 - `Bootstrapper.AfterSceneLoad` is `async void` with no error handling; an exception during the target load is swallowed. `ApplyEngineSettings` skips window mode in the editor deliberately (it would fullscreen the Game view every Play).
+- **`Camera.main` is not this machine's view.** While riding it is null (orbit camera Untagged, player camera off); in cutscenes, focus shots and spectating it is not the camera drawing. Use `ViewCamera` for presentation distances (dust, smoke, track belts, the distant city use it; ~33 older `Camera.main` users elsewhere are not migrated — [DEFECTS.md](../DEFECTS.md)). It is one frame behind (read in `Update`, recorded at render), ignores render-texture and Scene/preview cameras, and is never a gameplay input: the server's view says nothing about what a client sees. Per-*player* aim is `AimProvider.ViewCamera`, a different thing. Domain reload is off, so `SubsystemRegistration` forgets the last session's camera.
 - Any world-level hotkey must first check `GameplayMenuScope.AcceptsGameplayInput` — the shared, reference-counted gate.
 
 ## Extending

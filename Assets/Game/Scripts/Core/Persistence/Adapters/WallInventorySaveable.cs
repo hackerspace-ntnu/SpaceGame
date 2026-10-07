@@ -26,13 +26,37 @@ namespace SpaceGame.Core.Persistence
     {
         public const string Key = "wallInventory";         // written into save files — never rename
 
+        /// <summary>
+        /// Names this wall's record when its entity carries more than one wall.
+        ///
+        /// <para>
+        /// One saver owns one key on its entity, and every wall would otherwise write the same
+        /// one: the satellite tower carries the catwalk's gear board and the dish's transmitter
+        /// cradle under one record, and with a shared key the later saver wins the capture and
+        /// both restore from the same placements. Empty — every wall that is the only one on its
+        /// entity — keeps the plain key, so no record already in a save file moves.
+        /// </para>
+        /// <para>
+        /// A baked name rather than the wall's position among its siblings, for the reason
+        /// <c>DeriveAuthoredId</c> warns about: a re-parented wall would quietly read its
+        /// neighbour's record. Written into save files — never rename one once it has shipped.
+        /// </para>
+        /// </summary>
+        [Tooltip("Empty for a wall that is alone on its entity. A second wall on the same entity " +
+                 "needs its own name here, or the two share one save record. Never rename.")]
+        [SerializeField] private string recordName = "";
+
         private WallInventory wall;
 
         // Lazy-resolved, NOT cached in Awake: EditMode tests never run Awake, so a saver that
         // caches there cannot be round-trip tested by PersistenceProbe.
         private WallInventory Wall => wall != null ? wall : wall = GetComponent<WallInventory>();
 
-        public string SaveKey => Key;
+        public string SaveKey => KeyFor(recordName);
+
+        /// <summary>The key a wall with this <see cref="recordName"/> saves under.</summary>
+        public static string KeyFor(string recordName) =>
+            string.IsNullOrEmpty(recordName) ? Key : Key + "." + recordName;
 
         /// <summary>
         /// The version and the placements. <see cref="PackSaveCodec.State"/> also carries where a
@@ -60,15 +84,22 @@ namespace SpaceGame.Core.Persistence
             public List<PackSaveCodec.PackPlacementRecord> placements;
         }
 
-        // null stores nothing — the right answer for an empty wall, and it keeps a ship that has
-        // never been used out of the file entirely.
+        // null stores nothing — the right answer for an empty wall that was BUILT empty, and it
+        // keeps a ship that has never been used out of the file entirely.
+        //
+        // A wall built with starting gear writes its record even when it is empty. Its starting
+        // gear is laid on again by every load (WallInventory.Awake), and only a record — the
+        // codec's "stored empty", an empty placements list — clears it back off. Writing nothing
+        // for a wall the players emptied would hand them its battery again on every reload.
         public object CaptureState()
         {
             if (Wall == null) return null;
 
             PackSaveCodec.State captured = PackSaveCodec.Capture(Wall.Layout);
 
-            return captured.placements == null || captured.placements.Count == 0
+            bool empty = captured.placements == null || captured.placements.Count == 0;
+
+            return empty && !Wall.HasStartingContents
                 ? null
                 // Taken from the codec rather than restated, so the two cannot drift apart the next
                 // time the format moves.

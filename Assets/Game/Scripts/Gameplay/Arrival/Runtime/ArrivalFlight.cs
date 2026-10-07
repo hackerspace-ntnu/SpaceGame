@@ -57,6 +57,12 @@ namespace SpaceGame.Gameplay.Arrival
         public bool Landed { get; set; }
 
         /// <summary>
+        /// True once this hull's starter vehicle has been parked beside it, so the several paths that
+        /// can finish a landing — the settle, the watchdog, the versus fallback — park one between them.
+        /// </summary>
+        public bool StarterVehicleDelivered { get; set; }
+
+        /// <summary>
         /// Whether the hull still exists. A destroyed GameObject compares equal to null, so a flight
         /// whose ship went away with its scene answers false here rather than throwing a frame later
         /// inside the descent.

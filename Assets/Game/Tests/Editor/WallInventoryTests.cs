@@ -12,6 +12,8 @@ using SpaceGame.Persistence;
 using UnityEngine;
 using UnityEngine.TestTools;
 
+using HotbarBehaviour = SpaceGame.Tests.TestDoubles.HotbarBehaviour;
+
 namespace SpaceGame.Tests
 {
     /// <summary>
@@ -126,7 +128,7 @@ namespace SpaceGame.Tests
         /// <para>
         /// Set through the serialized field rather than through a setter, because there is no
         /// setter and there should not be: the number is authored onto the prefab by
-        /// <c>InventoryWallBuilder</c> and read, never written, at runtime. The face is told to
+        /// the wall prefab and read, never written, at runtime. The face is told to
         /// forget its container because it may already have resolved one at the old value.
         /// </para>
         /// </summary>
@@ -495,6 +497,80 @@ namespace SpaceGame.Tests
             Assert.IsNull(saver.CaptureState());
         }
 
+        /// <summary>
+        /// A wall built WITH gear that the players emptied stays empty after a reload.
+        ///
+        /// <para>
+        /// Every load builds the wall from its prefab, and building it lays the starting gear on
+        /// again. Only a record clears that back off — so a wall with starting gear has to write
+        /// one even when it is empty, or every reload hands the players its battery once more.
+        /// The fixture's second wall stands for the reloaded one: its starting gear is already on
+        /// it, the way <c>Awake</c> leaves it, before the record is read.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void AWallEmptiedOfItsStartingGearStaysEmptyAfterAReload()
+        {
+            InventoryItem battery = Item("battery");
+
+            WallInventory emptied = Wall();
+            StartingMain(emptied, battery);
+            var saver = emptied.gameObject.AddComponent<WallInventorySaveable>();
+
+            object captured = saver.CaptureState();
+            Assert.IsNotNull(captured, "an emptied wall with starting gear wrote no record, so the " +
+                                       "next load would lay its gear on again.");
+
+            WallInventory reloaded = Wall();
+            StartingMain(reloaded, battery);
+            Assert.IsTrue(reloaded.TryPlace(battery, PackSurfaceId.WallGrid, new Vector2(M(0.18f), M(0.18f)), 0f));
+
+            reloaded.gameObject.AddComponent<WallInventorySaveable>()
+                    .RestoreState(JObject.Parse(JsonConvert(captured)));
+
+            Assert.AreEqual(0, reloaded.Layout.Placements.Count,
+                            "the reload granted the starting gear a second time.");
+        }
+
+        /// <summary>
+        /// A wall's starting gear is DRAWN, not only held, from the moment it is stocked.
+        ///
+        /// <para>
+        /// Stocking runs from <c>Awake</c> with the layout's change events muted, and for a long
+        /// time nothing drew afterwards: the gear was in the layout but had no display copy, so it
+        /// was invisible and, since the take ray hits display copies, untakeable. Every other path
+        /// happened to redraw — a save restore, a client adopting the wire, the ship's crew stores —
+        /// so the bug showed only on a host with no record for the wall: a new world, a save older
+        /// than the wall, the satellite tower's catwalk board on its first visit.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void StartingGearIsDrawnAsSoonAsTheWallIsStocked()
+        {
+            var hook = UnityEditor.AssetDatabase.LoadAssetAtPath<InventoryItem>(
+                "Assets/Game/Resources/Items/Artifacts/GrapplingHook.asset");
+            Assert.IsNotNull(hook, "the grappling hook asset moved; point this test at it again.");
+
+            WallInventory wall = Wall(new Vector2(M(0.567f), M(0.945f)));
+            StartingMain(wall, hook);
+
+            // What Awake does, called directly because Awake does not run in EditMode.
+            typeof(PackContainer).GetMethod("BeginContents", Hidden).Invoke(wall, null);
+
+            Assert.AreEqual(1, wall.Layout.Placements.Count, "the wall did not stock its starting hook.");
+
+            int packItemLayer = LayerMask.NameToLayer("PackItem");
+            bool drawn = Array.Exists(wall.GetComponentsInChildren<Renderer>(true),
+                                      r => r.gameObject.layer == packItemLayer);
+
+            Assert.IsTrue(drawn, "the hook is on the wall but nothing draws it, so nobody can see or " +
+                                 "take it until something else changes the wall.");
+        }
+
+        private static void StartingMain(WallInventory wall, params InventoryItem[] items) =>
+            typeof(PackContainer).GetField("startingMainItems", Hidden)
+                                 .SetValue(wall, new List<InventoryItem>(items));
+
         // ── The press, end to end ────────────────────────────────────────────
         //
         // The one path nothing else covers, and the one that shipped broken: a player pointing at
@@ -502,62 +578,6 @@ namespace SpaceGame.Tests
         // It runs offline, where NetMessaging dispatches straight to the local handler, so this
         // exercises RequestStow -> the wire encoding -> OnStowRequested -> TryStowFromHotbar for
         // real rather than calling the last one directly.
-
-        /// <summary>
-        /// A hotbar that is a COMPONENT.
-        ///
-        /// The other fixtures here use a plain C# adapter, which is enough when the pack is handed
-        /// the interface directly. It is not enough here: the server side resolves the hotbar off
-        /// the body named in the message, with <c>GetComponentInChildren</c>, so a hotbar that is
-        /// not a component is invisible to exactly the code under test.
-        /// </summary>
-        private sealed class HotbarBehaviour : MonoBehaviour, IPlayerInventory
-        {
-            private readonly PlayerInventory inner = new(4);
-
-            public int SelectedSlotIndex => inner.SelectedSlotIndex;
-
-            public event Action<InventorySlot> OnSlotSelected
-            {
-                add => inner.OnSlotSelected += value;
-                remove => inner.OnSlotSelected -= value;
-            }
-
-            public event Action<int, InventorySlot> OnSlotChanged
-            {
-                add => inner.OnSlotChanged += value;
-                remove => inner.OnSlotChanged -= value;
-            }
-
-            public event Action<InventoryItem, ItemState> OnItemDropped
-            {
-                add => inner.OnItemDropped += value;
-                remove => inner.OnItemDropped -= value;
-            }
-
-            public bool TryAddItem(InventoryItem item) => inner.TryAddItem(item);
-            public bool TryRemoveItem(int index) => inner.TryRemoveItem(index);
-            public void SelectSlot(int slotIndex) => inner.SelectSlot(slotIndex);
-
-            public bool TrySetSlot(int index, InventoryItem item)
-            {
-                inner.SetSlot(index, item);
-                return true;
-            }
-
-            public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot) =>
-                inner.RestoreSlots(items, selectedSlot);
-
-            public int GetInventorySize() => inner.GetInventorySize();
-            public InventorySlot GetSlot(int index) => inner.GetSlot(index);
-            public InventorySlot GetSelectedSlot() => inner.GetSelectedSlot();
-
-            public InventoryItem GetSelectedItem()
-            {
-                InventorySlot slot = GetSelectedSlot();
-                return slot == null || slot.IsEmpty ? null : slot.Item;
-            }
-        }
 
         /// <summary>
         /// A body with a hotbar and an interactor, which is what a request names.
@@ -812,11 +832,11 @@ namespace SpaceGame.Tests
         /// 2.580 m tall in the original 0.09 m frame (all-mesh bounds of
         /// <c>inventory_wall.blend</c>; 3.870 m at the 1.5 rig it was first cut against), and the
         /// 2026-09-02 ship's baked collision offers 4.383 m of headroom over its footprint at
-        /// <c>PlayerShipBuilder.WallRibClearance</c> — a budget that allows 1.602 with the 0.25 m
+        /// the ship's wall rib clearance — a budget that allows 1.602 with the 0.25 m
         /// gap the old guard required. The user chose the bigger board over the clearance, so
         /// this test pins the DECISION rather than the room: it fails in the same edit that moves
         /// the constant, in either direction, before any prefab is rebuilt.
-        /// <c>PlayerShipTests.PlayerShip_InventoryWallFaceIsAimableFromTheRoom</c>
+        /// the ship's own wall-aim probe
         /// is the one that measures the built ship.
         /// </para>
         /// <para>
@@ -841,7 +861,7 @@ namespace SpaceGame.Tests
                             ", not the " + DecidedOverModel.ToString("0.0") + " x " +
                             PackScale.WallModel.ToString("0.00") + " decided on 2026-09-02. If " +
                             "this is a new decision, restate it here, rebuild both prefabs and " +
-                            "re-run PlayerShipTests' wall probes; if it is not, put the " +
+                            "re-check the ship's wall probes; if it is not, put the " +
                             "constant back.");
         }
 
@@ -1008,7 +1028,7 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The shipped wall's two lists, as <c>OxygenGearBuilder.RouteIntoTheGame</c> writes them:
+        /// The shipped wall's two lists:
         /// the battery is a machine part and there is one, the tank is a store and there is one per
         /// head. A tank left in BOTH lists is the migration half-done, and it reads as one spare
         /// bottle too many at every crew size rather than as a broken build.

@@ -1,6 +1,6 @@
 ---
 name: spacegame-tribe
-description: Use when adding a new tribe to SpaceGame end to end — a FactionDefinition with a FactionRoster, its people, mounts and hand weapons, its war parties, and its caravans. Also use when a tribe's caravan or war party is broken — "no war-party template" in the console, a caravan that never draws a member for a role, a rebuild that leaves nomads without savers or a ragdoll, or a roster that fails RosterAssetTests.
+description: Use when adding a new tribe to SpaceGame end to end — a FactionDefinition with a FactionRoster, its people, mounts and hand weapons, its war parties, and its caravans. Also use when a tribe's caravan or war party is broken — "no war-party template" in the console, a caravan that never draws a member for a role, a prefab edit that leaves nomads without savers or a ragdoll, or a roster that fails RosterAssetTests.
 ---
 
 # SpaceGame tribes
@@ -18,9 +18,14 @@ multiplayer and persistence: [AgentSystem.md](../../../docs/AI/systems/AgentSyst
 one — read [spacegame-agent](../spacegame-agent/SKILL.md) first if a new creature/prefab is also
 needed; this skill assumes the people already exist as agent prefabs.
 
-The Sand Tribe is the worked example throughout: `SandTribeFaction.asset`, `SandTribe.asset`,
-[RosterAuthoring.cs](../../../Assets/Game/Editor/Agents/RosterAuthoring.cs),
-[NomadPrefabBuilder.cs](../../../Assets/Game/Editor/Agents/NomadPrefabBuilder.cs).
+The Sand Tribe is the worked example throughout: `SandTribeFaction.asset`, `SandTribe.asset`, the
+`Nomad_*` prefabs under `Assets/Game/Prefabs/agents/Characters/`, and
+[RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs).
+
+**Everything here is an authored asset.** The editor scripts that used to generate tribes —
+`RosterAuthoring` (rosters, ledger rows, war-party templates) and `NomadPrefabBuilder` (the people)
+— were deleted. You edit the faction, roster, prefabs and the `NpcWorldSim` object by hand (Inspector
+or a `SerializedObject` edit), and the tests in §7 are what catch a mistake.
 
 ## 1. `FactionDefinition`
 
@@ -36,17 +41,13 @@ nothing can move a value nobody can read as better than Hostile. Add any relatio
 
 `FactionGoodwillLedger` lives on the `NpcWorldSim` object in
 `Assets/Game/Scenes/world/persistentScene.unity`. Add the new `FactionDefinition` to its
-`tribes` array (Inspector, or a `SerializedObject` edit from an editor menu like
-`RosterAuthoring.WireWorldSim` does for templates). Skip this and the tribe has no goodwill rows at
+`tribes` array (Inspector, or a `SerializedObject` edit). Skip this and the tribe has no goodwill rows at
 all: every hit and kill on its people is silently ignored, and it can never reach `AtWar`.
 
 ## 3. `FactionRoster`
 
-One roster per tribe, `Assets/Game/ScriptableObjects/Factions/Rosters/<Tribe>.asset`, built by a new
-menu method in [RosterAuthoring.cs](../../../Assets/Game/Editor/Agents/RosterAuthoring.cs) that builds
-the tribe's `members` and tiers and hands them to the shared `AuthorRoster(...)` — see
-`AuthorSandRoster` and `AuthorSkyRoster`; do not copy the body. It is idempotent (overwrites what it
-owns, nothing else). The roster it writes has:
+One roster per tribe, `Assets/Game/ScriptableObjects/Factions/Rosters/<Tribe>.asset`, created with
+`Assets > Create` (or by duplicating `SandTribe.asset`) and filled in the Inspector. It has:
 
 - **`members`** — one `RosterMember { role, prefab, weight }` per person/mount. `role = Rider` means
   `prefab` is the **mount**, carrying an `NpcPassenger` — the same convention caravan templates use;
@@ -56,45 +57,47 @@ owns, nothing else). The roster it writes has:
   with, and `RosterValidation` fails a member whose baked faction disagrees with the roster's.
 - **`handItems`** — every entry must be `EquipKind.Hand` (`RosterValidation` fails otherwise) and, to
   read as a threat before it fires (`MenaceSensor`/`AggressionTelegraphModule`), should have
-  `InventoryItem.menacing` set. Baked into every random-weapon member's `NpcRandomLoadout.candidates`
-  by the tribe's prefab builder — see §4, and never hand-edit that array.
+  `InventoryItem.menacing` set. Must equal every random-weapon member's `NpcRandomLoadout.candidates`
+  — see §4.
 - **`warPartyTiers`** — `WarPartyTier[]`, each a set of `RoleCount { role, count }`. Every role a tier
   asks for must have at least one `members` entry with positive weight, or `RosterValidation` fails
   and `NpcGroupComposition.Resolve` logs an error and draws nothing for that tier at runtime.
+  A flying tribe's `RoleCount.ownWings` members escort its vessel on their own wing packs instead of
+  taking a seat (never `Rides`, never lead): see `WarPartyEscorts` and SkyTribe.md (Sky: 2 / 4 / 6).
 - **`hostileLines`** — a `DialogPool` shouted by `ChatterModule.WarCry` on a war party's first sight
   of its quarry. Without one, `WarPartyDirector.OnQuarrySighted` has nothing to say and stays silent.
 
 Finish by setting `faction.roster = roster` (the back-reference `RosterValidation` checks both ways)
-and running `RosterValidation.Problems(roster)` — log every problem, same as `AuthorSandRoster` does.
+and checking `RosterValidation.Problems(roster)` is empty — the §7 test does exactly that.
 
-## 4. Bake weapons into the prefab, and never break the builder's chain
+## 4. Keep the prefabs' weapons equal to the roster, and finish the wiring
 
-The tribe's prefab builder (`NomadPrefabBuilder.BuildArmedNomads` + `RegisterBuiltNomads`, as
-`BuildSandNomads`/`BuildSkyNomads` use them) bakes `roster.handItems` into
-each random-weapon member's `NpcRandomLoadout.candidates` — this is **generated**, never hand-edited;
-`RosterAssetTests`-style tests fail the moment the two arrays disagree (§7), and a rebuild overwrites
-the prefab wholesale regardless.
+Each random-weapon member's `NpcRandomLoadout.candidates` must hold exactly `roster.handItems`, in
+the same order. Nothing generates it any more (`NomadPrefabBuilder` is gone), so **change both
+together**; `RosterAssetTests` fails the moment the two arrays disagree (§7). A second tribe reusing
+existing bodies duplicates the people prefabs (`AssetDatabase.CopyAsset`, so each copy gets a fresh
+GUID) and sets their own `EntityFaction.faction`, dialog lines and cloth colours — the roster
+validates the prefabs' baked faction.
 
-**The build is a chain, and it must run to the end.** `BuildSandNomads` builds every prefab, then
-calls `NetworkPrefabRegistrar.Sync(out _, out _)` → `WireSaveables()` → `RagdollWiring.WirePrefabs()` (`RegisterBuiltNomads`). Never `SyncMenu()` from a builder: it ends in a modal dialog that parks the rest of the chain until a human clicks OK. A second tribe reusing existing bodies adds recipes rather than a builder — `NomadPrefabBuilder.SkyNomads` is the Sand FBX with its own `FactionPath`, `RosterPath`, `DialogLines` and `ClothPalette` (whose `MaterialPrefix` must differ, or it recolours the first tribe's cloth). On a fresh tribe build → author roster → build again: the roster validates the prefabs' baked faction, the prefabs bake the roster's hand items. An
-interrupted run (editor reload, exception, a Unity crash mid-build) that stops before the last two
-steps leaves finished-looking prefabs with **no savers and no `RagdollRig`** — seen this way in this
-session. `AgentController`/`AgentGoal` are auto-added in `Awake` so they are not usually at risk, but
-treat a half-finished build as suspect across the board: re-run the whole builder method rather than
-patching by hand, and read the prefabs back (`SaveablePolicy`, `RagdollWiring.WirePrefabs`,
-`Tools ▸ Save System ▸ Validate Save Wiring`) before trusting them.
+**After adding or editing a person prefab, run the wiring menus, all of them, in order:**
+`Tools/SpaceGame/Multiplayer/Sync Network Prefabs` → `Tools/Save System/Wire Saveable Prefabs` →
+`Tools/SpaceGame/Ragdoll/Wire Prefabs`. Stopping early leaves finished-looking prefabs with **no
+network entry, no savers or no `RagdollRig`**, all silently. `AgentController`/`AgentGoal` are
+auto-added in `Awake` so they are not usually at risk. Read the prefabs back
+(`Tools ▸ Save System ▸ Validate Save Wiring`, `Tools ▸ SpaceGame ▸ Ragdoll ▸ Diagnose Wired Prefabs`)
+before trusting them.
 
 ## 5. War-party template
 
 A tribe cannot raise a war party without a `runtimeOnly` + `bountyHunters` `NpcGroupTemplate` whose
-`tribe` is set, living in the `NpcWorldSim` object's `templates` list — add one from a menu method
-modelled on `RosterAuthoring.WireWorldSim` (`Tools/SpaceGame/Agents/Wire War Party Templates`), which
-duplicates an existing caravan template's formation, clears `members`/`tasks` (a war party's people
-come from `NpcGroupComposition.Resolve` reading the roster's `warPartyTiers`, never a fixed member
-list), and sets `runtimeOnly = true`. Skip this and `WarPartyDirector.Raise` logs
+`tribe` is set, living in the `NpcWorldSim` object's `templates` list (inlined in
+`persistentScene.unity`) — copy the Sand tribe's war-party template: an existing caravan template's
+formation with `members`/`tasks` cleared (a war party's people come from
+`NpcGroupComposition.Resolve` reading the roster's `warPartyTiers`, never a fixed member list) and
+`runtimeOnly = true`. Skip this and `WarPartyDirector.Raise` logs
 `"<Tribe> is at war but the NpcWorldSim has no war-party template for it"` and no party ever comes,
-however angry the tribe is. Also ensure a `WarPartyDirector` component sits on the same `NpcWorldSim`
-object — `WireWorldSim` adds one if missing.
+however angry the tribe is.
+Also ensure a `WarPartyDirector` component sits on the same `NpcWorldSim` object.
 
 **A party can travel by vessel instead of on foot**: give the template an `NpcGroupTransport`
 (`smallVessel`/`largeVessel`, `travelSpeed`, `homeSiteName`) and the sim spawns the party seated in
@@ -113,11 +116,17 @@ index)` when `prefab` is null. Seeded by `RosterDraw.StableHash(template.id)`, s
 re-spawns with the same faces and guns after every fold (`GroupMembership.MemberIndex` feeds
 `NpcRandomLoadout`'s own seeded roll).
 
+**A herding caravan** (the Sand `sand-appa-herders`, `AppaHerdAuthoring`): the leader and the herders are fixed
+mount prefabs carrying an `NpcPassenger` rider and a `HerdingModule`, the livestock a riderless prefab that
+serializes the tribe's faction, all sharing the group's `FormationModule` band. List the herders **after** the
+livestock so their unused column slots are the tail's.
+
 ## 7. Tests
 
-Add a fixture beside [RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs),
-one per tribe (or parameterise the existing one over a tribe list — either is fine, keep it
-readable). Cover, per the Sand fixture:
+[RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs) covers the Sand Tribe
+with literal asset paths (restored 2026-10-02 after the builders it called were deleted; there is no
+Sky fixture). Add the new tribe beside it — a second fixture, or parameterise the existing one over a
+tribe list, either is fine, keep it readable. Cover, per the Sand fixture:
 
 - `RosterValidation.Problems(roster)` is empty.
 - The faction ↔ roster back-reference holds both ways.
@@ -141,6 +150,11 @@ seen only on the host is not finished, and persistence fails silently.
       credits nothing and shows no notice); the war itself stays open and after `partyCooldown` a new
       party rises nearer the player.
 - [ ] Wipe a party out → `WarNotice.Weakening`; the next party is one `WarPartyTier` stronger.
+- [ ] Wipe out a party of the roster's **last** tier → the war ends at once, however deep the
+      hostility: goodwill is lifted just past `AtWar`'s exit (`WarPartySettings.peaceMargin`), "given
+      up" appears, and no further party comes (`WarPartyRules.EndsWar`).
+- [ ] Kill two of a party, walk away until it folds, walk back → it returns without those two
+      (`NpcGroup.Fallen`), and still without them after a save and reload.
 - [ ] Get killed by the party → `Reckoning.Caught` credits goodwill (+`caughtCredit`, 15 by
       default), which lifts the band out of `AtWar` and ends the whole war through the same
       `BandChanged` → `EndWar` path fleeing or decay would, once enough credits have landed —
@@ -160,6 +174,9 @@ seen only on the host is not finished, and persistence fails silently.
 - [ ] Two players at war with the tribe → two independent parties (a war is keyed per player).
 - [ ] A crewmate helping fight the party loses no goodwill of their own (compare the ledger value
       before and after — `SelfDefenceRules`).
+- [ ] Kill one of the tribe's caravan, then the others who turn on you → every kill costs goodwill
+      (self-defence is war parties only); a war party's survivors after it is called off still cost
+      nothing to the quarry until they fold (`NpcGroup.Released`).
 - [ ] Quit and reload during a cooldown → the next party is still the escalated tier
       (`FactionGoodwillSaveable.Standing.warTier`).
 - [ ] Walk away from the tribe's caravan until it folds, walk back → the same members carry the same
@@ -171,20 +188,27 @@ seen only on the host is not finished, and persistence fails silently.
 ## 9. A home settlement (optional)
 
 A tribe with a town gets `WorldSiteMarker` (`SiteKind.Home`), `SettlementAlarm` and
-`SettlementPopulation` on the town root, wired by a builder — `ClankerSettlementBuilder.PlaceGenerator`
-(a town inside a chunk scene) or [SkyCitySettlementWiring](../../../Assets/Game/Editor/Environment/SkyCitySettlementWiring.cs)
-(a structure outside them). Three `SettlementPopulation` options decide whether it works:
+`SettlementPopulation` on the town root, added by hand — the Clanker town (inside a chunk scene) and
+the `SkyCityFleet` prefab root (outside them) are the two worked examples; the builders that once
+placed them are deleted. Three `SettlementPopulation` options decide whether it works:
 
 - **The town is not in a chunk scene** (placed in `persistentScene`, like the Sky City) → set
   `keepGroundChunksLoaded`, or every reload spawns a second population beside the restored one.
 - **Its NavMesh is in pieces** (roofs, decks, ledges) → point `reachableFrom` at a Transform on the
-  walkable part, and build its people with `NomadRecipe.WanderReachableOnly` (or set
-  `WanderModule.onlyReachableDestinations`) so they do not wander to the railings.
+  walkable part, and set `WanderModule.onlyReachableDestinations` on its people so they do not
+  wander to the railings.
 - **It must look lived-in on arrival** → `initialWaves` / `initialWaveInterval`.
 
 Verify in play: count the tribe's agents inside `countRadius`, check each with
 `NavMeshReach.CanWalk` from the anchor, save, reload the same world, and count again — the number
 must not grow.
+
+**A home that moves** (the Striders' walking city) is not a settlement but a seeded caravan template
+whose carriers hold the people: carrier prefabs with `VesselSeats` + `CrewShift` + a gangway marker,
+member specs with `crew: true` listed **after** the carriers, a carrier flagged `isLeader` with the
+task list (it holds the column's departure gate until its crew is back aboard), and
+`FormationModule.holdSlotAtRest` on anything too big to share a rest ring. Full recipe, build order
+and traps: [Striders.md](../../../docs/AI/systems/Striders.md).
 
 ## Related
 

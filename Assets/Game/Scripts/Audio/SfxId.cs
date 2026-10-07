@@ -95,6 +95,7 @@ namespace SpaceGame.Audio
         ShipRepair = 703,
         ShipAlarm = 704,
         VehicleStep = 705,
+        DishMotorLoop = 706,
 
         // ---- Ambience (800) ----
         AmbWindLoop = 800,

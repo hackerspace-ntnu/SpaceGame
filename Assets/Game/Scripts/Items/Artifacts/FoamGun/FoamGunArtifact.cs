@@ -103,14 +103,14 @@ namespace SpaceGame.Items
         [Tooltip("How fast foam leaves the bell, in metres per second. It is the arc's launch " +
                  "speed AND the delay before a lump swells, so the mass grows where the stream " +
                  "has actually reached. Keep it in step with the jet's own start speed in " +
-                 "FoamGunSprayBuilder; the two describe the same foam and only look right when " +
+                 "the spray prefab; the two describe the same foam and only look right when " +
                  "they agree.")]
         [SerializeField, Min(1f)] private float sprayTravelSpeed = 22f;
 
         [Tooltip("How hard gravity pulls the stream, as a multiple of this world's 18 m/s2. It " +
                  "is what makes this a hose rather than a gun, and it decides the reach: at 22 " +
                  "m/s and 1.4 that is about 7 m held level and 20 m lobbed at 45 degrees. Must " +
-                 "match the jet's own gravityModifier in FoamGunSprayBuilder or the foam lands " +
+                 "match the jet's own gravityModifier on the spray prefab or the foam lands " +
                  "somewhere the player never saw the stream go.")]
         [SerializeField, Min(0f)] private float sprayGravity = 1.4f;
 

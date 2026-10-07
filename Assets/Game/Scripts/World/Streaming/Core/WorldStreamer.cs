@@ -289,6 +289,28 @@ namespace SpaceGame.World
             public Action OnComplete;
         }
 
+        /// <summary>
+        /// The world's baked sites become destinations now, before any chunk loads — on every machine, since the
+        /// registry is plain data. Awake rather than Start or a network spawn: chunk scenes cannot have loaded
+        /// yet, and a marker in this scene that enabled first keeps its live record (see MergeSites).
+        /// </summary>
+        private void Awake()
+        {
+            if (config == null) return;
+
+            if (config.siteCatalog == null)
+                Debug.LogWarning($"[WorldStreamer] {config.name} has no site catalog, so a site is known only once its " +
+                                 "chunk has loaded. Run Tools/SpaceGame/World/Bake Site Catalog.", this);
+            WorldSiteRegistry.MergeCatalog(config.siteCatalog);
+        }
+
+        /// <summary>The world is being unloaded: its sites go with it, so none leaks into the next world played.</summary>
+        public override void OnDestroy()
+        {
+            WorldSiteRegistry.Clear();
+            base.OnDestroy();
+        }
+
         private void Start()
         {
             persistentScene = gameObject.scene;

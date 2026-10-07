@@ -306,7 +306,8 @@ namespace SpaceGame.Items
                     surface = itemSurface;
                     uv = itemUv;
                     hovered = visual;
-                    hasHovered = wall.TryFindAt(surface.Id, uv, out hoveredPlacement);
+                    hasHovered = wall.TryFindAt(surface.Id, uv, out hoveredPlacement) &&
+                                 InTakeReach(ray.origin);
                     return true;
                 }
 
@@ -352,6 +353,16 @@ namespace SpaceGame.Items
             uv = hitUv;
             return true;
         }
+
+        /// <summary>
+        /// Whether the hovered gear is within this wall's take rule from the camera. Out of reach
+        /// it is simply not offered, the way a board across the room never was: no take verb, and
+        /// the Use button stays the hand's. The server asks the same rule again on the request.
+        /// </summary>
+        private bool InTakeReach(Vector3 eye) =>
+            wall.TakeReach.IsUnlimited ||
+            wall.TakeReach.Allows(eye, wall.TakePoint(surface.Id, wall.AnchorUv(hoveredPlacement)),
+                                  transform, wall.transform);
 
         private static WallInventory WallOf(PackSurface s) =>
             s != null ? s.GetComponentInParent<WallInventory>() : null;

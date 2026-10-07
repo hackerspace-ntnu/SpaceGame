@@ -28,7 +28,7 @@ namespace SpaceGame.Tests
 
         /// <summary>
         /// The ship's gear wall, in cells. See PackSurfaceId.WallGrid and
-        /// InventoryWallBuilder.SurfaceCellsAcross/Up — the largest face a module can be stowed on.
+        /// the wall's SurfaceCellsAcross/Up — the largest face a module can be stowed on.
         /// </summary>
         private const int WallCellsAcross = 30;
         private const int WallCellsUp = 22;
@@ -122,7 +122,7 @@ namespace SpaceGame.Tests
             foreach (ShipPartKind kind in Kinds())
                 Assert.IsTrue(sockets.Any(s => s.Kind == kind),
                     $"No socket on PlayerShip takes {kind}. The mesh was renamed or dropped — " +
-                    "check PART_KINDS in ship_parts.py and re-run both export scripts.");
+                    "check the part-kind names on the ship model and re-export it.");
 
             Assert.AreEqual(0, rack.AuthoredMask,
                 "PlayerShip is authored with modules already fitted. It is meant to spawn wrecked; " +
@@ -194,7 +194,7 @@ namespace SpaceGame.Tests
         /// exactly, so hauling one cost the whole face. An authored row wins over the derived
         /// footprint outright, so the price of that rule was seven identical squares: the 11 m
         /// nuclear motor, the intake plate and the stubby belly turbine were one object to the
-        /// layout and to the eye. The rows are gone (ShipPartItemBuilder.ClearPackShapes) and one
+        /// layout and to the eye. The rows are gone and one
         /// coming back is silent — nothing throws, the modules simply stop being distinguishable
         /// on the mat and on the ship's gear wall.
         /// </para>

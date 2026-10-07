@@ -389,6 +389,8 @@ are the crew's mirror: the same body, the same guns, the wrong side.
 
 ### 3.8 Gear: the same inventory the player has
 
+> **Superseded by the 2026-10-06 phase 5 design** ([2026-10-06-phase5-worn-gear-and-sky-flight-design.md](2026-10-06-phase5-worn-gear-and-sky-flight-design.md)); `DuneOrnithopter` has an `AgentController`, and NPC pilots fly the `NpcOrnithopter` variant.
+
 Nomads already hold and fire **the same `InventoryItem` assets and `UsableItem` prefabs the
 player uses**, through `EntityInventoryComponent` + `EntityEquipmentController` +
 `NpcItemUseModule`, and drop them through `EntityLootTable`. That covers the hand slot.

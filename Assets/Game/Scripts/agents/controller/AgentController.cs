@@ -1,8 +1,9 @@
 // Main runtime coordinator for entity agents.
 // Each frame: ticks all side-effect modules (ClaimsMovement==false) unconditionally, then
-// evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins.
-// Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
+// evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins —
+// then lets a facing module turn the body only if it outranks that winner.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Diagnostics;
 using SpaceGame.Gameplay.Status;
@@ -21,10 +22,10 @@ namespace SpaceGame.Agents
         [SerializeField] private MonoBehaviour MotorComponent;
         [SerializeField] private AgentAnimatorDriver animatorDriver;
 
-        [Header("Nearby Agents (Flocking)")]
-        [Tooltip("Radius within which nearby agents are gathered for FlockingModule. 0 = disabled.")]
-        [SerializeField] private float nearbyAgentScanRadius = 0f;
-        [SerializeField] private LayerMask nearbyAgentLayer;
+        [Tooltip("Off for a body that never picks a target of its own — the NPC craft, whose pilot does the " +
+                 "fighting. No AgentTargeting is added, so its modules see no target and it needs no EntityFaction.")]
+        [SerializeField] private bool acquiresTargets = true;
+
 
         [Header("Speed Variation")]
         [Tooltip("How much the agent's speed can drift above and below its base. 0.1 = ±10%.")]
@@ -33,20 +34,15 @@ namespace SpaceGame.Agents
         [SerializeField] private float speedVariationPeriod = 6f;
 
         public IMovementMotor Motor { get; private set; }
+
         private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
         private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
         private IBehaviourModule[] presentationModules; // IPresentationModule — ticked on every machine
         private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
-        private IAgentBrain legacyBrain;
-        private HerdModule herdModule;
         private AgentTargeting targeting;
         private AgentGoal goal;
         private float speedVariationPhase;
 
-        // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
-        private readonly Collider[] neighbourBuffer = new Collider[32];
-        private readonly Vector3[] nearbyPositionBuffer = new Vector3[32];
-        private readonly Vector3[] nearbyVelocityBuffer = new Vector3[32];
 
         private AgentAuthority authority;
 
@@ -92,8 +88,106 @@ namespace SpaceGame.Agents
         /// <see cref="NpcPassenger"/> re-derives it the moment it seats anybody. See the note on
         /// <c>simulating</c> above for the same argument.
         /// </para>
+        /// <para>
+        /// While it is set, seating owns the motor: <see cref="Dormant"/> and <see cref="Offstage"/>
+        /// still starve the modules but leave the motor alone (NpcSeating recorded what it switched
+        /// off, and a resume under a moving hull would put the agent off the mesh). Clearing it hands
+        /// the motor back in the state the park reasons now ask for (SimulationDistance.md).
+        /// </para>
         /// </summary>
-        public bool RidesAsPassenger { get; set; }
+        public bool RidesAsPassenger
+        {
+            get => ridesAsPassenger;
+            set
+            {
+                if (ridesAsPassenger == value)
+                    return;
+
+                ridesAsPassenger = value;
+                if (!ridesAsPassenger) ReconcileMotorWithPark();
+            }
+        }
+
+        private bool ridesAsPassenger;
+
+        /// <summary>
+        /// Present but not acting: indoors, asleep, a cutscene extra. No module ticks — the same
+        /// starvation as <see cref="StatusReceiver.Suppressed"/> — and the motor is stopped and
+        /// suspended, so a NavMeshAgent stops writing the transform and the body can be placed.
+        /// <see cref="AgentTargeting"/> and <see cref="PerceptionModule"/> skip their own Update too.
+        ///
+        /// <para>
+        /// A flag rather than <c>enabled = false</c>: <c>enabled</c> belongs to
+        /// <see cref="HealthReactionModule"/> (death) and to the save system that captures it, and
+        /// an offstage agent switched off is one that reloads dead-still for ever. Server-side and
+        /// not saved — whoever set it re-derives it.
+        /// </para>
+        /// </summary>
+        public bool Offstage
+        {
+            get => offstage;
+            set
+            {
+                if (offstage == value)
+                    return;
+
+                bool wasParked = IsParked;
+                offstage = value;
+                RefreshPark(wasParked);
+            }
+        }
+
+        private bool offstage;
+
+        /// <summary>
+        /// Parked because no player is near: the second reason beside <see cref="Offstage"/>, written
+        /// only by <c>SimulationRange</c> (SimulationDistance.md). Same starvation, same parked
+        /// motor; kept apart from Offstage so the residents' routine and the range can never release
+        /// each other's park. Server-side, not saved, not replicated — the range re-derives it every tick.
+        /// </summary>
+        public bool Dormant
+        {
+            get => dormant;
+            set
+            {
+                if (dormant == value)
+                    return;
+
+                bool wasParked = IsParked;
+                dormant = value;
+                RefreshPark(wasParked);
+            }
+        }
+
+        private bool dormant;
+
+        /// <summary>Not acting for any reason: <see cref="Offstage"/> or <see cref="Dormant"/>.</summary>
+        public bool IsParked => offstage || dormant;
+
+        // What the motor was last told, so a passenger set down can be handed the motor the park
+        // reasons now ask for: they may have changed while seating held it.
+        private bool motorParked;
+
+        // The motor parks on the first reason and unparks only when the last one clears. A watcher's
+        // motor is already parked; authority returning resumes it unless still parked. A passenger's
+        // motor belongs to its seating until it is put down.
+        private void RefreshPark(bool wasParked)
+        {
+            if (IsParked == wasParked || !simulating || ridesAsPassenger)
+                return;
+
+            if (IsParked) ParkMotor();
+            else UnparkMotor();
+        }
+
+        private void ReconcileMotorWithPark()
+        {
+            if (!simulating || IsParked == motorParked)
+                return;
+
+            if (IsParked) ParkMotor();
+            else UnparkMotor();
+        }
 
         // ── Save/restore ──────────────────────────────────────────────────────────
         //
@@ -135,10 +229,22 @@ namespace SpaceGame.Agents
         // the cached lookup cannot see for itself.
         private void OnTransformParentChanged() => authority?.Invalidate();
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string UpdateMarkerName = "SpaceGame.Agent.Update";
+        private static readonly ProfilerMarker UpdateMarker = new(UpdateMarkerName);
+        private const string ModulesMarkerName = "SpaceGame.Agent.Modules";
+        private static readonly ProfilerMarker ModulesMarker = new(ModulesMarkerName);
+        private const string FacingMarkerName = "SpaceGame.Agent.Facing";
+        private static readonly ProfilerMarker FacingMarker = new(FacingMarkerName);
+
         private void Update()
         {
-            float deltaTime = Time.deltaTime;
+            using (UpdateMarker.Auto())
+                Simulate(Time.deltaTime);
+        }
 
+        private void Simulate(float deltaTime)
+        {
             // Before anything decides or moves. Every module below this line writes shared state —
             // a target, a path, a bite — and running them on a machine that does not own the entity
             // is not a smaller version of the same behaviour, it is a second one: two brains
@@ -148,6 +254,16 @@ namespace SpaceGame.Agents
             if (!RefreshAuthority())
             {
                 TickPresentation(deltaTime);
+                return;
+            }
+
+            // Not in the scene's action at all (offstage or dormant). The motor was parked when the flag went up, so
+            // there is nothing to tick but the animator, which settles to idle.
+            if (IsParked)
+            {
+                if (animatorDriver)
+                    animatorDriver.Tick(Vector3.zero, true, false);
+
                 return;
             }
 
@@ -163,7 +279,10 @@ namespace SpaceGame.Agents
             if (RidesAsPassenger)
             {
                 if (status == null || !status.Suppressed)
+                {
+                    using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
                     TickSideEffectModules(BuildPresentationContext(), deltaTime);
+                }
 
                 return;
             }
@@ -193,8 +312,14 @@ namespace SpaceGame.Agents
             }
 
             AgentContext context = BuildContext();
-            MoveIntent intent = EvaluateModules(in context, deltaTime);
-            ApplyFacingOverride(in context, ref intent);
+            MoveIntent intent = EvaluateModules(in context, deltaTime, out IBehaviourModule winner);
+
+            // A module can seat this body in the pass above (ResidentSeating): its agent is off on purpose, and ticking the
+            // motor now would re-attach it to the NavMesh under the seat and drag it off.
+            if (RidesAsPassenger)
+                return;
+
+            ApplyFacingOverride(in context, winner, ref intent);
 
             if (speedVariationAmount > 0f && intent.Type == AgentIntentType.MoveToPosition)
             {
@@ -234,19 +359,40 @@ namespace SpaceGame.Agents
             return simulating;
         }
 
-        // Handing the body over to whoever does own it. Stopping the motor is not the same as
-        // ceasing to tick it: a NavMeshAgent keeps walking its last path forever, and would spend
-        // the rest of the session fighting the replicated transform. See ISelfDrivingMotor.
+        // Handing the body over to whoever does own it. An offstage or dormant body's motor is parked already.
         private void SuspendSimulation()
         {
-            Motor?.ForceStop();
+            if (!IsParked) ParkMotor();
+        }
+
+        private void ResumeSimulation()
+        {
+            if (!IsParked) UnparkMotor();
+        }
+
+        // Stopping the motor is not the same as ceasing to tick it: a NavMeshAgent keeps walking
+        // its last path forever, and would spend the rest of the session fighting the replicated
+        // transform. See ISelfDrivingMotor.
+        //
+        // A motor NetAuthority has already switched off moves nothing and is not stopped: the
+        // rigidbody motors stop by writing velocity, which a remote copy's kinematic body answers
+        // with a console warning — on every client, for every such agent, now that this controller
+        // stays enabled there.
+        private void ParkMotor()
+        {
+            motorParked = true;
+
+            if (MotorComponent is Behaviour { isActiveAndEnabled: true })
+                Motor?.ForceStop();
 
             if (Motor is ISelfDrivingMotor selfDriving)
                 selfDriving.SuspendSelfDrive();
         }
 
-        private void ResumeSimulation()
+        private void UnparkMotor()
         {
+            motorParked = false;
+
             if (Motor is ISelfDrivingMotor selfDriving)
                 selfDriving.ResumeSelfDrive();
         }
@@ -256,11 +402,16 @@ namespace SpaceGame.Agents
         /// nothing else. See <see cref="IPresentationModule"/>.
         ///
         /// <para>
+        /// NetAuthority leaves this controller enabled on watching machines for exactly this call
+        /// (SimulationDrivers does not list it); before it did, presentation modules — ambient
+        /// chatter — never ticked on a client at all.
+        /// </para>
+        /// <para>
         /// Locomotion animation is deliberately NOT driven from here. It is driven by
         /// <see cref="AgentAnimatorDriver"/> off the replicated transform, because this controller
-        /// is not reliably running at all on a watching machine — NetAuthority disables it outright
-        /// on the prefabs that carry one — and an animation that only plays when the brain happens
-        /// to be enabled is the "creatures slide instead of walking" bug wearing a different hat.
+        /// can be switched off on a watching machine — by death, a ragdoll, a teleport — and an
+        /// animation that only plays when the brain happens to be enabled is the "creatures slide
+        /// instead of walking" bug wearing a different hat.
         /// </para>
         /// </summary>
         private void TickPresentation(float deltaTime)
@@ -270,6 +421,7 @@ namespace SpaceGame.Agents
 
             AgentContext context = BuildPresentationContext();
 
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             foreach (IBehaviourModule module in presentationModules)
             {
                 if (module.IsActive)
@@ -294,26 +446,6 @@ namespace SpaceGame.Agents
                 Goal = goal,
             };
 
-            if (nearbyAgentScanRadius > 0f)
-            {
-                int count = Physics.OverlapSphereNonAlloc(transform.position, nearbyAgentScanRadius, neighbourBuffer, nearbyAgentLayer);
-                int written = 0;
-                for (int i = 0; i < count && written < nearbyPositionBuffer.Length; i++)
-                {
-                    Transform t = neighbourBuffer[i].transform;
-                    if (t == transform)
-                        continue;
-                    nearbyPositionBuffer[written] = t.position;
-                    // Populate velocity from NavMeshAgentMotor if available.
-                    IMovementMotor neighbourMotor = t.GetComponent<IMovementMotor>();
-                    nearbyVelocityBuffer[written] = neighbourMotor != null ? neighbourMotor.Velocity : Vector3.zero;
-                    written++;
-                }
-                ctx.NearbyAgentPositions = nearbyPositionBuffer;
-                ctx.NearbyAgentVelocities = nearbyVelocityBuffer;
-                ctx.NearbyAgentCount = written;
-            }
-
             return ctx;
         }
 
@@ -322,10 +454,8 @@ namespace SpaceGame.Agents
         /// the authority for a body that is riding as cargo (<see cref="RidesAsPassenger"/>).
         ///
         /// A separate method rather than a flag on <see cref="BuildContext"/>, because the two are
-        /// not the same query with an option: this one may not touch the motor (it has been parked,
-        /// and its Velocity would be a stale zero dressed up as a measurement) and must not run the
-        /// neighbour OverlapSphere, which is the single most expensive thing an agent does and the
-        /// whole reason a client should not be paying for agents it does not own.
+        /// not the same query with an option: this one may not touch the motor, which has been
+        /// parked, and whose Velocity would be a stale zero dressed up as a measurement.
         /// </summary>
         private AgentContext BuildPresentationContext() => new AgentContext
         {
@@ -354,21 +484,32 @@ namespace SpaceGame.Agents
         /// Not <c>internal</c>: the tests live in <c>Assembly-CSharp-Editor</c>, which has no
         /// <c>InternalsVisibleTo</c> into <c>Assembly-CSharp</c> and would not see it.
         /// </para>
+        /// <para>
+        /// <see cref="Fault.TryEnter"/> and a local try/catch rather than <see cref="Fault.Run"/>:
+        /// this runs once per module per creature per frame, and a closure here was a heap
+        /// allocation on every one of those calls.
+        /// </para>
         /// </summary>
         public static MoveIntent? RunModule(IBehaviourModule module, in AgentContext context, float deltaTime)
         {
-            if (module is not Component owner) return null;
+            if (module is not Component owner || !Fault.TryEnter(owner, ModuleSite)) return null;
 
-            MoveIntent? result = null;
-            AgentContext local = context;   // a lambda cannot capture an `in` parameter
-
-            Fault.Run(owner, ModuleSite, () => result = module.Tick(in local, deltaTime));
-
-            return result;
+            try
+            {
+                return module.Tick(in context, deltaTime);
+            }
+            catch (System.Exception e)
+            {
+                Fault.Report(owner, ModuleSite, e);
+                return null;
+            }
         }
 
         /// <summary>One site name for every module, so a creature's quarantines are per component.</summary>
         private const string ModuleSite = "AgentModule.Tick";
+
+        /// <summary>The facing pass's site — separate, so a broken aim does not quarantine the walk.</summary>
+        private const string FacingSite = "AgentModule.Facing";
 
         /// <summary>
         /// Attacks, audio, the gun in the NPC's hand: everything that claims no movement. Ticked
@@ -387,9 +528,12 @@ namespace SpaceGame.Agents
             }
         }
 
-        private MoveIntent EvaluateModules(in AgentContext context, float deltaTime)
+        // winner: the movement module whose intent this is, or null when nothing claimed the frame.
+        private MoveIntent EvaluateModules(in AgentContext context, float deltaTime, out IBehaviourModule winner)
         {
+            using ProfilerMarker.AutoScope sample = ModulesMarker.Auto();
             TickSideEffectModules(in context, deltaTime);
+            winner = null;
 
             // First movement module to return non-null wins this frame.
             if (movementModules != null)
@@ -402,48 +546,76 @@ namespace SpaceGame.Agents
                     MoveIntent? result = RunModule(module, in context, deltaTime);
                     if (result.HasValue)
                     {
-                        // Don't broadcast Idle — it would lock the whole herd in place.
-                        if (result.Value.Type != AgentIntentType.Idle)
-                            herdModule?.Publish(module.Priority, result.Value);
+                        winner = module;
                         return result.Value;
                     }
                 }
             }
 
-            // Fall back to legacy brain if present (old NpcBrain / EnemyBrain on same prefab).
-            if (legacyBrain != null)
-                return legacyBrain.Tick(in context, deltaTime);
-
             return MoveIntent.Idle();
         }
 
+        /// <summary>
+        /// May a facing module with <paramref name="facingPriority"/> turn a body whose movement
+        /// frame was won at <paramref name="winnerPriority"/> (null: nothing claimed it)? Only from
+        /// strictly above — or when the facing module IS the winner, aiming its own move.
+        ///
+        /// <para>
+        /// Before this rule any facing module turned the body, so a telegraph (22) or a ranged aim
+        /// could turn an NPC away from the player <see cref="InteractionFocusModule"/> (100) had it
+        /// facing mid-conversation. Public and static so the rule is testable without a scene.
+        /// </para>
+        /// </summary>
+        public static bool FacingApplies(int facingPriority, int? winnerPriority, bool isWinner) =>
+            isWinner || !winnerPriority.HasValue || facingPriority > winnerPriority.Value;
+
         // Second arbitration pass, over the facing channel only. Runs after a locomotion winner is
         // picked and does not disturb it: the highest-priority facing module that wants the body
-        // pointed somewhere gets it, whether or not it also won the movement frame.
-        private void ApplyFacingOverride(in AgentContext context, ref MoveIntent intent)
+        // pointed somewhere gets it — if it outranks the movement winner (FacingApplies).
+        private void ApplyFacingOverride(in AgentContext context, IBehaviourModule winner, ref MoveIntent intent)
         {
             if (facingModules == null)
                 return;
+
+            using ProfilerMarker.AutoScope sample = FacingMarker.Auto();
+            int? winnerPriority = winner?.Priority;
 
             foreach (IFacingModule module in facingModules)
             {
                 if (!module.IsActive)
                     continue;
 
-                if (module is not Component owner) continue;
+                // Not break: the winner itself may sit further down the list, aiming its own move.
+                if (!FacingApplies(module.FacingPriority, winnerPriority, ReferenceEquals(module, winner)))
+                    continue;
 
-                bool wants = false;
-                Vector3 facePosition = Vector3.zero;
-                AgentContext local = context;
-
-                Fault.Run(owner, "AgentModule.Facing",
-                          () => wants = module.TryGetFacing(in local, out facePosition));
-
-                if (!wants) continue;
+                if (!RunFacing(module, in context, out Vector3 facePosition)) continue;
 
                 intent.FacePosition = facePosition;
                 intent.OverrideFacing = true;
                 return;
+            }
+        }
+
+        /// <summary>
+        /// Asks one facing module behind the fault barrier. A throw reads as "wants nothing", the
+        /// facing twin of <see cref="RunModule"/>'s null. Public and static for the same reason.
+        /// </summary>
+        public static bool RunFacing(IFacingModule module, in AgentContext context, out Vector3 facePosition)
+        {
+            facePosition = Vector3.zero;
+            if (module is not Component owner || !Fault.TryEnter(owner, FacingSite)) return false;
+
+            // Same allocation-free barrier as RunModule.
+            try
+            {
+                return module.TryGetFacing(in context, out facePosition);
+            }
+            catch (System.Exception e)
+            {
+                Fault.Report(owner, FacingSite, e);
+                facePosition = Vector3.zero;
+                return false;
             }
         }
 
@@ -507,27 +679,16 @@ namespace SpaceGame.Agents
 
             sideEffectModules = sideEffects.ToArray();
             presentationModules = presentation.ToArray();
-            herdModule = GetComponentInChildren<HerdModule>(true);
             // Auto-added rather than required, so prefabs that predate the component still get one
             // shared target decision instead of every combat module resolving its own.
-            targeting = AgentTargeting.GetOrAdd(gameObject);
+            targeting = acquiresTargets ? AgentTargeting.GetOrAdd(gameObject) : null;
 
             // Same reasoning for travel: one destination per agent, written by whoever decides and
             // read by whoever moves. Auto-added so a prefab needs no extra step to be sendable.
             goal = AgentGoal.GetOrAdd(gameObject);
 
-            // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
-            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (mb is IAgentBrain brain && mb is not IBehaviourModule)
-                {
-                    legacyBrain = brain;
-                    break;
-                }
-            }
-
-            if (movementModules.Length == 0 && legacyBrain == null)
-                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule or IAgentBrain. Add at least one module.", this);
+            if (movementModules.Length == 0)
+                Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule. Add at least one module.", this);
         }
 
         private void ResolveMotor()
@@ -556,11 +717,7 @@ namespace SpaceGame.Agents
             Motor = MotorComponent as IMovementMotor;
 
             if (Motor == null)
-                Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (pathfinding) or RigidbodyMotor (physics vehicle).", this);
+                Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (pathfinding), HoverRigidbodyMotor or LeggedDriver.", this);
         }
-
-        // Allow modules or external systems to force a live refresh (e.g. after adding components at runtime).
-        public void RefreshModules() => ResolveModules();
-        public void RefreshMotor() => ResolveMotor();
     }
 }

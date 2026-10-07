@@ -43,6 +43,41 @@ namespace SpaceGame.EditorTools
             return prefab;
         }
 
+        [Test]
+        public void AFlownVesselIsNotARagdollBody()
+        {
+            // HealthComponent alone makes a prefab a body to RagdollWiring, and the transports have
+            // one so they can be shot down. Two guards say this is a hull, not a creature: the pilot,
+            // wherever the prefab lives, and the Prefabs/Vehicles folder. The counter-case lives where
+            // neither folder rule applies, so it proves the pilot alone is enough.
+            var hull = new GameObject("Transport");
+            spawned.Add(hull);
+            hull.AddComponent<HealthComponent>();
+            const string creaturePath = "Assets/Game/Prefabs/Agents/creatures/Transport.prefab";
+            const string vehiclePath = "Assets/Game/Prefabs/Vehicles/Sky/Transport.prefab";
+
+            Assert.IsTrue(RagdollWiring.IsBody(hull, creaturePath), "counter-case: health alone is a body");
+            Assert.IsFalse(RagdollWiring.IsBody(hull, vehiclePath), "anything under Prefabs/Vehicles is a machine by folder");
+
+            hull.AddComponent<VesselPilot>();
+            Assert.IsFalse(RagdollWiring.IsBody(hull, creaturePath), "a piloted hull must not ragdoll, wherever it lives");
+        }
+
+        [TestCaseSource(nameof(Transports))]
+        public void TheVesselCarriesNoSaversAndNoRagdoll(SkyVesselBuilder.Transport transport)
+        {
+            // Read off disk, because the failure is the project-wide wiring passes every prefab
+            // builder ends with, not anything the vessel builder does.
+            GameObject prefab = LoadBuilt(transport);
+
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Core.Persistence.SaveableEntity>(),
+                "the war party's group record rebuilds the vessel; it is never saved on its own");
+            Assert.IsEmpty(prefab.GetComponentsInChildren<SpaceGame.Persistence.ISaveable>(true),
+                "savers without an entity are dead weight on a vessel nothing saves");
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Gameplay.Ragdoll.AgentRagdoll>(), "AgentRagdoll");
+            Assert.IsNull(prefab.GetComponent<SpaceGame.Gameplay.Ragdoll.RagdollRig>(), "RagdollRig");
+        }
+
         [TestCaseSource(nameof(Transports))]
         public void TheVesselIsAServerFlownNetworkEntity(SkyVesselBuilder.Transport transport)
         {
@@ -251,6 +286,38 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(0, seats.Occupied, "only the authority seats anybody");
             Assert.IsTrue(Physics.GetIgnoreCollision(npcCollider, hull),
                 "a watching machine still has to stop the passenger shoving the hull");
+        }
+
+        [Test]
+        public void AWatchingMachineStopsASeatedPassengerProbingTheGround()
+        {
+            VesselSeats seats = NewVessel(seatCount: 1);
+            GameObject npc = NewObject("npc");
+            npc.AddComponent<AgentController>();
+            var conform = npc.AddComponent<AgentGroundConform>();
+
+            npc.transform.SetParent(seats.transform, false);
+            seats.RefreshPresented();
+            Assert.IsFalse(conform.enabled, "seated crew are posed by the post, not by the ground under the hull");
+
+            npc.transform.SetParent(null, true);
+            seats.RefreshPresented();
+            Assert.IsTrue(conform.enabled, "off the post, the ground is theirs again");
+        }
+
+        [Test]
+        public void TheAuthoritySeatParksTheConformAndUnseatingRestoresIt()
+        {
+            VesselSeats seats = NewVessel(seatCount: 1);
+            GameObject npc = NewObject("npc");
+            npc.AddComponent<AgentController>();
+            var conform = npc.AddComponent<AgentGroundConform>();
+
+            seats.Seat(npc);
+            Assert.IsFalse(conform.enabled);
+
+            seats.Unseat(0, seats.transform.position + Vector3.right * 5f);
+            Assert.IsTrue(conform.enabled);
         }
 
         private GameObject NewObject(string name)

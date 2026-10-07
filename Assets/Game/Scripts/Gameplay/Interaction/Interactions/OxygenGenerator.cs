@@ -167,6 +167,11 @@ namespace SpaceGame.Gameplay
                  "quicker. Long enough to be an event, short enough to wait out.")]
         [SerializeField, Min(0.1f)] private float fillSeconds = 5f;
 
+        [Tooltip("Charge (0..1) of a battery already fitted when the plant first stands up. Negative means " +
+                 "none: the lander's plant waits for the crew to fit one, a colony's runs off its own supply. " +
+                 "A save restores whatever was fitted, so this only seeds a plant nobody has touched.")]
+        [SerializeField, Range(-1f, 1f)] private float startingBattery = -1f;
+
         [Tooltip("Fraction of a battery one WHOLE tank costs. At the default a battery is worth " +
                  "twenty-five tanks; a partial fill costs proportionally less.")]
         [SerializeField, Range(0.001f, 1f)] private float fillCostPerTank = 0.04f;
@@ -333,6 +338,8 @@ namespace SpaceGame.Gameplay
             if (!IsWired)
                 Debug.LogError(name + ": OxygenGenerator has no tank or battery item assigned — " +
                                "rebuild it with Tools/SpaceGame/Build Oxygen System.", this);
+
+            if (startingBattery >= 0f) plant.Battery = startingBattery;
 
             // Offline and pre-spawn, the mirror is the whole truth, so the machine has to look like
             // whatever it holds before anything replicates.

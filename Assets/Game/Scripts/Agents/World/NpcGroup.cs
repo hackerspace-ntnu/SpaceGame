@@ -30,8 +30,45 @@ namespace SpaceGame.Agents
                  "if none does, the first spawned takes it.")]
         public bool isLeader;
 
+        [Tooltip("Rides one of the group's carriers (a member with a CrewShift) instead of walking: " +
+                 "spawned seated on a free crew post while the group marches, on foot by its " +
+                 "carrier's gangway while the group is stopped.")]
+        public bool crew;
+
         [Min(1)]
         public int count = 1;
+
+        [Tooltip("When set, how many of this member a group gets is drawn from these weights instead " +
+                 "of being count: seeded by the group's roster seed, so a group that folds, unfolds or " +
+                 "reloads comes back with the same number. Empty uses count.")]
+        public WeightedCount[] countWeights = Array.Empty<WeightedCount>();
+
+        [Tooltip("Where this member rides in the group's column. Shuffled members are dealt into a " +
+                 "seeded order (ColumnDeal) instead of marching in the order they are listed.")]
+        public ColumnCard column;
+
+        // Keeps this draw apart from the other rolls seeded by the group's roster seed and a plan index.
+        private const int CountSalt = 0x5EED;
+
+        /// <summary>How many of this member the group with <paramref name="rosterSeed"/> gets;
+        /// <paramref name="index"/> is the plan index the first of them would take.</summary>
+        public int DrawCount(int rosterSeed, int index)
+        {
+            if (countWeights == null || countWeights.Length == 0) return Mathf.Max(1, count);
+
+            var weights = new float[countWeights.Length];
+            for (int i = 0; i < weights.Length; i++) weights[i] = countWeights[i].weight;
+            int pick = RosterDraw.PickWeighted(weights, RosterDraw.Roll01(rosterSeed, index + CountSalt));
+            return pick < 0 ? Mathf.Max(1, count) : Mathf.Max(1, countWeights[pick].count);
+        }
+    }
+
+    /// <summary>One possible member count and how likely it is (NpcGroupMemberSpec.countWeights).</summary>
+    [Serializable]
+    public struct WeightedCount
+    {
+        [Min(1)] public int count;
+        [Min(0f)] public float weight;
     }
 
     /// <summary>
@@ -60,7 +97,42 @@ namespace SpaceGame.Agents
         [Min(1f)]
         public float dockSpacing = 45f;
 
+        [Header("Escort fliers (members with their own wings)")]
+        [Tooltip("How far out from the vessel its escort fliers keep station, metres, on a ring in its own heading frame.")]
+        [Min(1f)]
+        public float escortRadius = 40f;
+
+        [Tooltip("How far above the vessel its escort fliers keep station, metres.")]
+        public float escortHeight = 12f;
+
+        [Tooltip("How far from the vessel's drop the escort fliers land when it goes down to unload, metres — " +
+                 "clear of the hull's own footprint.")]
+        [Min(1f)]
+        public float escortLandingSpread = 30f;
+
+        [Tooltip("Chance an escort flier's hand weapon drops when it dies (its wing pack always does).")]
+        [Range(0f, 1f)]
+        public float flierWeaponDropChance = 0.25f;
+
         public bool Flies => smallVessel != null || largeVessel != null;
+
+        /// <summary>
+        /// Escort flier <paramref name="index"/> of <paramref name="count"/>'s station on the vessel: an even ring of
+        /// <paramref name="radius"/> at <paramref name="height"/>, in the vessel's heading frame, offset half a step so
+        /// nobody sits dead ahead of the bow or in its wake.
+        /// </summary>
+        public static Vector3 EscortOffset(int index, int count, float radius, float height)
+        {
+            float angle = (index + 0.5f) * 360f / Mathf.Max(1, count);
+            return Quaternion.Euler(0f, angle, 0f) * Vector3.forward * radius + Vector3.up * height;
+        }
+
+        /// <summary>Where escort flier <paramref name="index"/> of <paramref name="count"/> lands round a drop at <paramref name="centre"/>.</summary>
+        public static Vector3 EscortLanding(Vector3 centre, int index, int count, float spread)
+        {
+            Vector3 offset = EscortOffset(index, count, spread, 0f);
+            return centre + offset;
+        }
 
         /// <summary>
         /// The party is off the vessel: nobody is left aboard, the hull was shot down, or it is gone.
@@ -113,6 +185,48 @@ namespace SpaceGame.Agents
         }
     }
 
+    /// <summary>
+    /// A group that lives in the air (NpcAirPatrol): spawned already flying, seated in its own craft at cruise
+    /// height, its leader cruising a fixed loop and the rest flying a chevron on the leader's craft. It never lands.
+    /// Set by giving it a route of two or more points.
+    /// </summary>
+    [Serializable]
+    public class NpcGroupAirPatrol
+    {
+        [Tooltip("The loop the patrol flies, world points on the ground (looped). Two or more make the group an air patrol.")]
+        public Vector3[] route = Array.Empty<Vector3>();
+
+        [Tooltip("The leader's speed, 0..1 of its craft's top speed: below 1, so the wingmen have speed in hand " +
+                 "to keep station through the turns.")]
+        [Range(0.1f, 1f)]
+        public float leaderSpeed = 0.7f;
+
+        [Tooltip("Seconds the patrol circles a waypoint before flying on, rolled per waypoint.")]
+        public Vector2 waypointDwell = new Vector2(0f, 40f);
+
+        [Tooltip("Within this of a waypoint (flat) the folded record counts as there, metres.")]
+        [Min(1f)]
+        public float arriveRadius = 80f;
+
+        [Tooltip("A player this close (flat) to the folded record spawns it — further than a walking group's, because " +
+                 "a flier pops into an open sky in plain view. Capped at NpcWorldSim's airborne fold radius.")]
+        [Min(1f)]
+        public float spawnRadius = 550f;
+
+        [Tooltip("Chevron: sideways step per rank, metres.")]
+        [Min(1f)]
+        public float wingLateral = 16f;
+
+        [Tooltip("Chevron: step back per rank, metres.")]
+        [Min(1f)]
+        public float wingBehind = 14f;
+
+        [Tooltip("Chevron: step up per rank, metres, so no wingman flies in the one ahead's wash.")]
+        public float wingStepUp = 2.5f;
+
+        public bool IsSet => route != null && route.Length >= 2;
+    }
+
     /// <summary>An authored group: what it is made of and what it does with its time.</summary>
     [Serializable]
     public class NpcGroupTemplate
@@ -149,13 +263,26 @@ namespace SpaceGame.Agents
         public bool useStartPosition;
         public Vector3 startPosition;
 
+        [Tooltip("Seconds a new world's group spends at its start before choosing where to go, as if " +
+                 "it had just arrived there. 0 sets off on the first tick. Lets a player who lands " +
+                 "nearby reach it before it walks out of range.")]
+        [Min(0f)] public float initialStaySeconds;
+
         [Tooltip("This group hunts players. It roams looking for you rather than working sites, and " +
                  "heads for your last known position when it loses you.")]
         public bool bountyHunters;
 
+        [Tooltip("Drawn from beyond spawnRadius while folded: every machine draws its vehicles' merged far levels " +
+                 "in its column, in dust (DistantGroups, DistantGroupSilhouette). For a group big enough to see from " +
+                 "the edge of the loaded ground -- the Strider city.")]
+        public bool showFromAfar;
+
         [Tooltip("Set a vessel to fly the group in: it spawns aboard, is dropped off near its goal, and " +
                  "walks from there. Empty for a group that walks all the way.")]
         public NpcGroupTransport transport = new NpcGroupTransport();
+
+        [Tooltip("Give it a route to make the group an air patrol: it flies a loop in formation and never lands.")]
+        public NpcGroupAirPatrol airPatrol = new NpcGroupAirPatrol();
 
         [Tooltip("How the group arranges itself on the move.")]
         public FormationShape formation = new FormationShape
@@ -168,6 +295,19 @@ namespace SpaceGame.Agents
             DriftAmplitude = 0.7f,
             DriftRate = 0.08f,
         };
+
+        /// <summary>The id as every machine hashes it: how a replicated group names its template (DistantGroupState).</summary>
+        public int IdHash => HashOf(id);
+
+        public static int HashOf(string templateId) => RosterDraw.StableHash(templateId);
+
+        /// <summary>The first of <paramref name="templates"/> whose <see cref="IdHash"/> is <paramref name="idHash"/>; null when none.</summary>
+        public static NpcGroupTemplate FindByIdHash(IEnumerable<NpcGroupTemplate> templates, int idHash)
+        {
+            foreach (NpcGroupTemplate template in templates)
+                if (template != null && template.IdHash == idHash) return template;
+            return null;
+        }
     }
 
     /// <summary>
@@ -200,13 +340,62 @@ namespace SpaceGame.Agents
         /// <summary>Which prefabs and weapons this group draws. Same seed, same people, after every refold.</summary>
         public int RosterSeed;
 
-        /// <summary>The profile this war party is hunting. Empty for every group that is not one.</summary>
+        /// <summary>
+        /// The profile this war party is hunting. Empty for every group that is not one. Kept when the
+        /// party is <see cref="Released"/>: its bodies still stand, and fighting them off stays self-defence
+        /// for that player (FactionGoodwillLedger.IsSelfDefence) until they fold.
+        /// </summary>
         public string QuarryProfileId = string.Empty;
 
         /// <summary>War-party escalation tier: which row of the roster's warPartyTiers it spawns.</summary>
         public int Tier;
 
-        public bool IsWarParty => !string.IsNullOrEmpty(QuarryProfileId);
+        /// <summary>Hunting its quarry: a war party, and not one released to fold out.</summary>
+        public bool IsWarParty => !Released && !string.IsNullOrEmpty(QuarryProfileId);
+
+        public const string OwnerWar = "war";
+        public const string OwnerExpedition = "expedition";
+
+        /// <summary>
+        /// The director that decides for this group (<see cref="OwnerWar"/>, <see cref="OwnerExpedition"/>);
+        /// empty for a group the sim runs on its own template, and for a war party from an older save.
+        /// Saved (Record.owner).
+        /// </summary>
+        public string Owner = string.Empty;
+
+        /// <summary>
+        /// The war director's party: hunting a quarry, and owned by no other director. An empty owner
+        /// is an older save's party. A released party (quarry cleared) is nobody's war party any more.
+        /// </summary>
+        public bool IsOwnedByWar => IsWarParty && (string.IsNullOrEmpty(Owner) || Owner == OwnerWar);
+
+        /// <summary>A director decides this group's goal; the sim's own hunter and errand rules leave it alone.</summary>
+        public bool IsDirected => IsWarParty || !string.IsNullOrEmpty(Owner);
+
+        /// <summary>
+        /// The owner's members, replacing the template's and the roster's draw (an expedition's are
+        /// its own residents). Null: the template decides. Runtime only.
+        /// </summary>
+        [NonSerialized] public List<PlannedMember> PlannedOverride;
+
+        /// <summary>
+        /// Called for each member before its network spawn, after GroupMembership is stamped, with its
+        /// plan index. Runtime only.
+        /// </summary>
+        [NonSerialized] public Action<GameObject, int> MemberStamp;
+
+        /// <summary>
+        /// Exact poses for the next spawn, by plan index, used instead of formation slots (a hand-off in
+        /// view). Consumed by that spawn: set to null as it starts. Runtime only.
+        /// </summary>
+        [NonSerialized] public List<Pose> SpawnPoses;
+
+        /// <summary>
+        /// Called on a fold for every member still in <see cref="Live"/>, with its plan index, before it
+        /// is despawned. The dead are included — a corpse is deactivated, not destroyed — so check its
+        /// health; a member destroyed outright (its chunk unloaded) is gone and gets no call. Runtime only.
+        /// </summary>
+        [NonSerialized] public Action<GameObject, int> ReadBack;
 
         // Runtime only, never saved. Counted by GroupMembership while the group is spawned and reset on
         // every spawn, which is why a folded party cannot be "defeated": nobody can reach it.
@@ -214,10 +403,11 @@ namespace SpaceGame.Agents
         [NonSerialized] public int FightersDead;
 
         /// <summary>
-        /// A war party with no member left and no fighter standing, dismounted riders included
-        /// (WarPartyRules.IsWipedOut). It never re-spawns; the director resolves it. Saved
-        /// (Record.wipedOut), so a party wiped out just before a save does not respawn at full
-        /// strength on load — the director sees it Defeated instead.
+        /// A group with no member and no fighter left standing, dismounted riders included
+        /// (WarPartyRules.IsWipedOut). It never re-spawns in this world: a war party is resolved by the
+        /// director, any other group -- a caravan, a herd -- is simply gone. Saved (Record.wipedOut),
+        /// so a group wiped out just before a save does not respawn at full strength on load; a war
+        /// party is then seen Defeated instead.
         /// </summary>
         public bool WipedOut;
 
@@ -228,8 +418,24 @@ namespace SpaceGame.Agents
         /// </summary>
         public bool Delivered;
 
+        /// <summary>
+        /// The group's crew is ashore (or on its way ashore/back) rather than seated aboard its
+        /// carriers. Saved (Record.crewAshore), so a walking city mid-disembark on save comes back
+        /// the same way rather than snapping its crew back aboard.
+        /// </summary>
+        public bool CrewAshore;
+
         /// <summary>The vessel flying this group in, or flying home after dropping it off. Runtime only.</summary>
         [NonSerialized] public GameObject Transport;
+
+        /// <summary>
+        /// Members flying escort on <see cref="Transport"/> on their own wings, in station order; each leaves the
+        /// list when it is sent down to land. Runtime only.
+        /// </summary>
+        [NonSerialized] public readonly List<GameObject> Escorts = new();
+
+        /// <summary>The air patrol member whose craft the others fly station on (NpcAirPatrol). Runtime only.</summary>
+        [NonSerialized] public GameObject AirLeader;
 
         /// <summary>The prefab <see cref="Transport"/> was spawned from: a parked hull is only reused for its own kind.</summary>
         [NonSerialized] public GameObject TransportPrefab;
@@ -243,6 +449,36 @@ namespace SpaceGame.Agents
         /// <summary>Released while somebody could see it: removed the moment it folds, never popped out of view.</summary>
         [NonSerialized] public bool DisbandWhenFolded;
 
+        /// <summary>
+        /// No longer anyone's war party (NpcWorldSim.ReleaseGroup) though <see cref="QuarryProfileId"/> still
+        /// names whom it hunted. Runtime only: <see cref="ToRecord"/> saves a released party as hunting
+        /// nobody, so a load drops it as it always has.
+        /// </summary>
+        [NonSerialized] public bool Released;
+
+        /// <summary>
+        /// The <see cref="GroupMembership.MemberIndex"/> of every fighter of this war party who has fallen,
+        /// in any spawn: a fold re-spawns only the rest (<see cref="HasFallen"/>). Saved (Record.fallen).
+        /// </summary>
+        public readonly List<int> Fallen = new();
+
+        /// <summary>A fighter of this war party died (GroupMembership); any other group comes back whole after a fold.</summary>
+        public void NoteFallen(int memberIndex)
+        {
+            if (IsWarParty && !Fallen.Contains(memberIndex)) Fallen.Add(memberIndex);
+        }
+
+        /// <summary>
+        /// Plan member <paramref name="planIndex"/> of this war party is not re-spawned: it fell, or the
+        /// rider in its saddle did (a riderless mount brings nobody into the fight). A gunner's seat is not
+        /// counted — a vehicle whose driver lives comes back with its gun crew.
+        /// </summary>
+        public bool HasFallen(int planIndex) =>
+            IsWarParty && (Fallen.Contains(planIndex) || Fallen.Contains(planIndex + GroupMembership.RiderIndexOffset));
+
+        /// <summary>Seconds each standing member has been straying (NpcWorldSim's stray rule). Runtime only.</summary>
+        [NonSerialized] public readonly Dictionary<GameObject, float> StrayFor = new();
+
         /// <summary>First sight of the quarry since this spawn has been announced.</summary>
         [NonSerialized] public bool QuarrySeenThisSpawn;
 
@@ -254,7 +490,33 @@ namespace SpaceGame.Agents
         /// </summary>
         [NonSerialized] public readonly List<GameObject> Fighters = new();
 
-        public Vector3 Heading => HasGoal ? Flat(GoalPosition - Position).normalized : Vector3.forward;
+        /// <summary>
+        /// The last direction toward a goal, remembered so a group that stops keeps facing the way it
+        /// walked. Runtime only, never saved: a group reloaded without a goal faces +Z.
+        /// </summary>
+        [NonSerialized] private Vector3 lastHeading = Vector3.forward;
+
+        /// <summary>
+        /// Which way the group faces: toward its goal while it has one, else the way it last walked (+Z
+        /// if it never has). The live spawn and the distant silhouette both face this, so neither swings
+        /// round when the group stops.
+        /// </summary>
+        public Vector3 Heading
+        {
+            get
+            {
+                RememberHeading();
+                return lastHeading;
+            }
+        }
+
+        private void RememberHeading()
+        {
+            if (!HasGoal) return;
+            Vector3 toGoal = GoalPosition - Position;
+            toGoal.y = 0f;
+            if (toGoal.sqrMagnitude > 1e-6f) lastHeading = toGoal.normalized;
+        }
 
         public float FlatDistanceTo(Vector3 point) => Flat(point - Position).magnitude;
 
@@ -275,6 +537,8 @@ namespace SpaceGame.Agents
         public bool AdvanceToward(float speed, float delta)
         {
             if (!HasGoal) return false;
+            // Before the step: an arriving step lands on the goal, where there is no direction left.
+            RememberHeading();
 
             Vector3 toGoal = GoalPosition - Position;
             toGoal.y = 0f;
@@ -330,6 +594,18 @@ namespace SpaceGame.Agents
             // Appended 2026-09-17 (sky tribe plan, Task 7). Older saves read false: a party with a
             // transport flies in again; one without never reads it.
             public bool delivered;
+
+            // Appended 2026-09-24 (Striders walking city). Older saves read false: the group comes
+            // back marching, its crew seated, which is what every group without crew already does.
+            public bool crewAshore;
+
+            // Appended 2026-10-03 (settlement expeditions spec §4.4). Older saves read null: no owner, so
+            // a war party is still the war director's (IsOwnedByWar).
+            public string owner;
+
+            // Appended 2026-10-07 (wars that never end). Older saves read null: nobody has fallen, so a
+            // party saved mid-fight by an older build comes back whole, as it always did.
+            public int[] fallen;
         }
 
         public Record ToRecord() => new Record
@@ -347,10 +623,13 @@ namespace SpaceGame.Agents
             hasLead = HasLead,
             leadAge = LeadAge,
             rosterSeed = RosterSeed,
-            quarryProfileId = QuarryProfileId,
+            quarryProfileId = Released ? string.Empty : QuarryProfileId,
             tier = Tier,
             wipedOut = WipedOut,
             delivered = Delivered,
+            crewAshore = CrewAshore,
+            owner = Owner,
+            fallen = Fallen.ToArray(),
         };
 
         public void ApplyRecord(in Record record)
@@ -365,13 +644,17 @@ namespace SpaceGame.Agents
             Lead = record.lead;
             HasLead = record.hasLead;
             LeadAge = record.leadAge;
-            // 0 is what an older save reads. Taking it would re-seed a caravan once and save that back
-            // for good, so the group keeps the seed it was created with (its id's StableHash).
-            if (record.rosterSeed != 0) RosterSeed = record.rosterSeed;
+            // 0 is what a save from before seeds were saved reads: every group then drew from its id's
+            // StableHash, so it keeps drawing the people it had rather than a new world's seed.
+            RosterSeed = record.rosterSeed != 0 ? record.rosterSeed : RosterDraw.StableHash(Id);
             QuarryProfileId = record.quarryProfileId ?? string.Empty;
             Tier = Mathf.Max(0, record.tier);
             WipedOut = record.wipedOut;
             Delivered = record.delivered;
+            CrewAshore = record.crewAshore;
+            Owner = record.owner ?? string.Empty;
+            Fallen.Clear();
+            if (record.fallen != null) Fallen.AddRange(record.fallen);
         }
     }
 }

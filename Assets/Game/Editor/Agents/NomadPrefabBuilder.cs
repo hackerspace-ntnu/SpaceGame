@@ -10,6 +10,7 @@ using SpaceGame.Agents;
 using SpaceGame.Core.Persistence.EditorTools;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
+using SpaceGame.World;
 
 namespace SpaceGame.EditorTools
 {
@@ -54,7 +55,8 @@ namespace SpaceGame.EditorTools
             /// <summary>The roster whose <c>handItems</c> a <see cref="RandomWeapon"/> loadout is baked from.</summary>
             public string RosterPath;
 
-            /// <summary>What the cloth is dyed. See <see cref="NomadPrefabBuilder.ClothPalette"/>.</summary>
+            /// <summary>What the cloth is dyed. See <see cref="NomadPrefabBuilder.ClothPalette"/>. Null for a
+            /// character that keeps its model's own colours and has no wind cloth (the Striders).</summary>
             public ClothPalette ClothPalette;
 
             /// <summary>The flavour lines he says when talked to.</summary>
@@ -82,6 +84,19 @@ namespace SpaceGame.EditorTools
             /// and a wander point on one walks a nomad to the railing and stands him there.
             /// </summary>
             public bool WanderReachableOnly;
+
+            /// Walks to an AgentGoal someone else sets (GoalTravelModule). A walking city's crew are
+            /// sent back to their gangway this way; nobody else needs it.
+            public bool TravelsToGoals;
+
+            /// <summary>Wears the wing pack (EntityBodyEquipment) and flies far goals on it (NpcFlightModule).</summary>
+            public bool FliesWithWingPack;
+
+            /// <summary>Can lead or follow an NpcWorldSim group: NpcTaskModule + FormationModule.</summary>
+            public bool JoinsGroups;
+
+            /// <summary>An InventoryItem asset path worn on the right forearm and fired by NpcGauntletUseModule; null for none.</summary>
+            public string WornGauntlet;
         }
 
         /// <summary>
@@ -167,6 +182,18 @@ namespace SpaceGame.EditorTools
             "Rust holds better than you'd think, a mile up.",
         };
 
+        private static readonly string[] StriderDialogLines =
+        {
+            "Mind the legs. They don't stop for anyone.",
+            "Everything out here is parts, if you look long enough.",
+            "We were walking before your ship fell. We'll be walking after.",
+            "Bring us scrap and we'll talk.",
+            "The houses carry us. We carry the houses. Fair trade.",
+            "Hear that grinding? That's the crawlers eating a hill.",
+            "Don't touch the rig. It bites.",
+            "Rust is just the metal remembering where it came from.",
+        };
+
         // Static initializers run in textual order: the palettes and lines above must precede every recipe.
         public static readonly NomadRecipe Nomad = new NomadRecipe
         {
@@ -197,6 +224,12 @@ namespace SpaceGame.EditorTools
                 NomadRecipe recipe = ArmedNomad(variant, "SkyNomad_", SkyCharacterFolder, RosterAuthoring.SkyFactionPath,
                                                 RosterAuthoring.SkyRosterPath, SkyCloth, SkyDialogLines);
                 recipe.WanderReachableOnly = true;
+                recipe.TravelsToGoals = true;
+                recipe.JoinsGroups = true;
+                recipe.FliesWithWingPack = true;
+                // One variant in four wears the one opted-in gauntlet: enough to meet it, not so many that
+                // every Sky corpse is a Repulsor (GDC-L1-ECON-0001; see SkyTribe.md).
+                if (variant == "StrawHat") recipe.WornGauntlet = RepulsorAssetPath;
                 return recipe;
             })
             .ToArray();
@@ -216,10 +249,37 @@ namespace SpaceGame.EditorTools
             RandomWeapon = true,
             ClothWindScale = 0.35f,
             WanderReachableOnly = true,
+            TravelsToGoals = true,
+            JoinsGroups = true,
+            FliesWithWingPack = true,
         };
 
         /// <summary>Everyone the Sky Tribe fields: its roster's members and the Sky City's inhabitants.</summary>
         public static readonly NomadRecipe[] SkyTribePeople = SkyNomads.Append(SkySoldier).ToArray();
+
+        // What a Sky person wears: the wing pack on the trunk and, on one variant only, the Repulsor.
+        private const string WingPackAssetPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
+        private const string RepulsorAssetPath = "Assets/Game/Resources/Items/Artifacts/RepulsorGauntlet.asset";
+
+        private const string StriderCharacterFolder = CharacterFolder + "/Striders";
+        private const string StriderModelFolder = "Assets/Game/Art/Models/Characters/Striders";
+
+        // The user's four Strider models (strider1.blend, rigged in strider_characters.blend), in their
+        // own palette colours. Each took over one of the old dyed-nomad prefabs by MoveAsset, so the
+        // order is those prefabs' (Umber, Tan, Maroon, StrawHat): the crab outrider and the monowheels
+        // seat index 0, and the doubles' gunners index 1. They walk back to their walking house by goal
+        // when it calls them (CrewShift).
+        public static readonly NomadRecipe[] StriderNomads = new[] { "Horned", "Longcoat", "Warrior", "Beanie" }
+            .Select(variant =>
+            {
+                NomadRecipe recipe = ArmedNomad(variant, "Strider_", StriderCharacterFolder,
+                                                RosterAuthoring.StriderFactionPath, RosterAuthoring.StriderRosterPath,
+                                                null, StriderDialogLines);
+                recipe.FbxPath = $"{StriderModelFolder}/strider_{variant.ToLowerInvariant()}.fbx";
+                recipe.TravelsToGoals = true;
+                return recipe;
+            })
+            .ToArray();
 
         private static NomadRecipe ArmedNomad(string variant, string namePrefix, string folder,
                                               string factionPath, string rosterPath,
@@ -244,7 +304,7 @@ namespace SpaceGame.EditorTools
         // play mode it made NetworkSceneManager's build-index table collide on index 7 and every
         // host start fail with "An item with the same key has already been added. Key: 7".
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
-        private const string AnimatorPath = "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
+        private const string AnimatorPath = HumanoidControllerBuilder.ControllerPath;
         private const string RelationshipsPath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
 
         // The walking staff he carries and fights with. Built by
@@ -371,6 +431,18 @@ namespace SpaceGame.EditorTools
                       "as network prefabs, wired their savers and ragdolls.");
         }
 
+        /// The four Strider people. Run twice on a fresh project, around Author Strider Roster: the
+        /// roster validates the prefabs' baked faction, and the prefabs bake the roster's hand items.
+        [MenuItem("Tools/SpaceGame/Agents/Build Strider Nomad NPCs")]
+        public static void BuildStriderNomads()
+        {
+            var prefabs = BuildArmedNomads(StriderNomads);
+            if (prefabs.Count == 0) return;
+            RegisterBuiltNomads();
+            Debug.Log($"[NomadPrefabBuilder] Built {prefabs.Count} Strider nomad(s), registered them " +
+                      "as network prefabs, wired their savers and ragdolls.");
+        }
+
         /// <summary>
         /// The sky soldier alone, then the same registration chain as <see cref="BuildSkyNomads"/>.
         /// A menu of its own so that adding him never rebuilds - and overwrites - the four sky nomads.
@@ -386,6 +458,20 @@ namespace SpaceGame.EditorTools
             Debug.Log($"[NomadPrefabBuilder] Built {SkySoldier.PrefabPath}, registered it as a network " +
                       "prefab, wired its savers and ragdoll.");
         }
+
+        /// <summary>
+        /// Build ONE Sky nomad, for an agent that must not bake four prefabs in one editor call (the
+        /// editor ran out of memory doing that). Follow the last one with <see cref="RegisterSkyNomads"/>.
+        /// </summary>
+        public static GameObject BuildSkyNomadAt(int index)
+        {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            NomadRecipe recipe = SkyNomads[index];
+            return EnsureHumanoidImport(recipe.FbxPath) ? BuildPrefab(recipe) : null;
+        }
+
+        /// <summary>The registrations every freshly built nomad needs: network list, savers, ragdolls.</summary>
+        public static void RegisterSkyNomads() => RegisterBuiltNomads();
 
         /// <summary>
         /// Imports each recipe's FBX as a Humanoid and builds its prefab. Logs an error and returns
@@ -480,6 +566,9 @@ namespace SpaceGame.EditorTools
                 ConfigureFaction(root, recipe);
                 ConfigureWatch(root);
                 ConfigureWander(root, recipe);
+                ConfigureGoalTravel(root, recipe);
+                ConfigureGroupMembership(root, recipe);
+                ConfigureFlightAndGear(root, recipe);
                 ConfigureAlerts(root);
                 ConfigureHearing(root);
                 ConfigureTelegraph(root);
@@ -487,11 +576,16 @@ namespace SpaceGame.EditorTools
                 ConfigureCombat(root, recipe);
                 ConfigureProvocation(root);
                 ConfigureGait(root);
-                AddClothWind(root);
+                if (recipe.ClothPalette != null) AddClothWind(root);
+
+                // After the modules exist, as ClankerStack does: it empties their Hurt/Death
+                // trigger names, which the humanoid controller has no parameters for.
+                CharacterActionWiring.Ensure(root);
 
                 // Every component this prefab needs must be added HERE. A rebuild overwrites the
                 // asset wholesale, so anything added by hand in the Inspector is silently gone.
                 AgentGroundConformWiring.Ensure(root);
+                DistanceDormancyWiring.Ensure(root);
 
                 saved = PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out ok);
             }
@@ -513,6 +607,9 @@ namespace SpaceGame.EditorTools
             // After the body has been sized, never before: the staff hangs inside the hierarchy
             // CorrectScaleAndSole rescales, so it has to be measured against the finished character.
             if (recipe.CarriesStaff) saved = CorrectStaff(saved, recipe.PrefabPath);
+
+            // Last, because both corrections above apply a probe from the open scene back to the asset.
+            NetworkObjectDefaults.KeepSceneMigrationSync(recipe.PrefabPath);
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[NomadPrefabBuilder] Wrote {recipe.PrefabPath}");
@@ -838,6 +935,8 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static void ApplyClothMaterial(GameObject model, NomadRecipe recipe)
         {
+            if (recipe.ClothPalette == null) return;
+
             int dressed = 0;
             foreach (var renderer in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
@@ -957,6 +1056,18 @@ namespace SpaceGame.EditorTools
             // reason as the rest of this list: Chase reads sibling melee ranges to tighten its
             // stopping distance, and AgentTargeting widens its acquisition range to cover the
             // longest weapon it can find.
+            // Before AgentController, which collects its modules in Awake. See ConfigureGoalTravel.
+            if (recipe.TravelsToGoals)
+                components.Add("SpaceGame.Agents.GoalTravelModule");
+
+            if (recipe.JoinsGroups)
+            {
+                components.Add("SpaceGame.Agents.NpcTaskModule");
+                components.Add("SpaceGame.Agents.FormationModule");
+            }
+            if (recipe.FliesWithWingPack) components.Add("SpaceGame.Agents.NpcFlightModule");
+            if (recipe.WornGauntlet != null) components.Add("SpaceGame.Agents.NpcGauntletUseModule");
+
             if (recipe.CarriesStaff)
                 components.Add("SpaceGame.Agents.CloseCombatModule");
 
@@ -991,6 +1102,8 @@ namespace SpaceGame.EditorTools
             // A NetworkBehaviour, so after the NetworkObject it rides on.
             if (recipe.RandomWeapon)
                 components.Add("SpaceGame.Agents.NpcRandomLoadout");
+            if (recipe.FliesWithWingPack || recipe.WornGauntlet != null)
+                components.Add("SpaceGame.Agents.EntityBodyEquipment");
 
             components.AddRange(new[]
             {
@@ -1473,6 +1586,101 @@ namespace SpaceGame.EditorTools
 
             var so = new SerializedObject(wander);
             SetBool(so, "onlyReachableDestinations", recipe.WanderReachableOnly);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureGoalTravel(GameObject root, NomadRecipe recipe)
+        {
+            if (!recipe.TravelsToGoals) return;
+
+            var travel = FindComponent(root, "SpaceGame.Agents.GoalTravelModule");
+            if (travel == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No GoalTravelModule; he will never walk back " +
+                                 "to his walking house when it calls him.");
+                return;
+            }
+
+            // Fallback + 1: above wander, so a goal someone set wins; below everything reactive,
+            // so a fight still wins over walking home. Set by hand: AddComponent does not run Reset.
+            var so = new SerializedObject(travel);
+            SetInt(so, "priority", ModulePriority.Fallback + 1);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The ground sites a resident's sortie off the Sky City may fly to.
+        private const SiteKind SortieSite = SiteKind.Ruin;
+        private const float SortieSearchRadius = 1500f;
+        private const float SortieArriveRadius = 12f;
+
+        // How often a Sky person flies (playtest 2026-10-07, second pass: fliers off the moored city were
+        // still too rare to be seen). Chance per SortieCheckInterval that a resident with nothing to do sorties.
+        private const float SortieChance = 0.2f;
+        private const float SortieCheckInterval = 20f;
+        // Goals nearer than this, flat metres, are walked.
+        private const float MinFlightDistance = 150f;
+        // The empty sky a ground take-off needs, metres: height above takeoffLift, and half-width.
+        private const float MinLaunchClearance = 6f;
+        private const float TakeoffClearRadius = 4f;
+
+        /// <summary>
+        /// Lead or follow an NpcWorldSim group. Priorities by hand: AddComponent does not run Reset.
+        /// </summary>
+        private static void ConfigureGroupMembership(GameObject root, NomadRecipe recipe)
+        {
+            if (!recipe.JoinsGroups) return;
+            SetPriority(root, "SpaceGame.Agents.NpcTaskModule", ModulePriority.Fallback);
+            SetPriority(root, "SpaceGame.Agents.FormationModule", ModulePriority.Social);
+        }
+
+        /// <summary>
+        /// The worn gear, the Repulsor's trigger finger and the wing-pack flight, with the sortie task.
+        /// </summary>
+        private static void ConfigureFlightAndGear(GameObject root, NomadRecipe recipe)
+        {
+            var body = FindComponent(root, "SpaceGame.Agents.EntityBodyEquipment");
+            if (body != null)
+            {
+                var so = new SerializedObject(body);
+                SerializedProperty worn = so.FindProperty("startingWorn");
+                worn.arraySize = GearRef.BodySlotCount;
+                worn.GetArrayElementAtIndex((int)BodySlot.Torso).objectReferenceValue =
+                    recipe.FliesWithWingPack ? AssetDatabase.LoadAssetAtPath<InventoryItem>(WingPackAssetPath) : null;
+                worn.GetArrayElementAtIndex((int)BodySlot.RightGauntlet).objectReferenceValue =
+                    recipe.WornGauntlet != null ? AssetDatabase.LoadAssetAtPath<InventoryItem>(recipe.WornGauntlet) : null;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            if (recipe.WornGauntlet != null)
+            {
+                var so = new SerializedObject(FindComponent(root, "SpaceGame.Agents.NpcGauntletUseModule"));
+                SetInt(so, "priority", ModulePriority.RangedAttack);
+                SetEnum(so, "gauntletSlot", (int)BodySlot.RightGauntlet);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            if (!recipe.FliesWithWingPack) return;
+            var flight = new SerializedObject(FindComponent(root, "SpaceGame.Agents.NpcFlightModule"));
+            SetInt(flight, "priority", ModulePriority.Override);
+            SetObject(flight, "craftPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(NpcOrnithopterBuilder.PrefabPath));
+            SetFloat(flight, "sortieChance", SortieChance);
+            SetFloat(flight, "sortieCheckInterval", SortieCheckInterval);
+            SetFloat(flight, "minFlightDistance", MinFlightDistance);
+            SetFloat(flight, "minLaunchClearance", MinLaunchClearance);
+            SetFloat(flight, "takeoffClearRadius", TakeoffClearRadius);
+            SerializedProperty task = flight.FindProperty("sortieTask");
+            task.FindPropertyRelative("label").stringValue = "flying down to look around";
+            task.FindPropertyRelative("targetSite").enumValueIndex = (int)SortieSite;
+            task.FindPropertyRelative("searchRadius").floatValue = SortieSearchRadius;
+            task.FindPropertyRelative("arriveRadius").floatValue = SortieArriveRadius;
+            task.FindPropertyRelative("weight").floatValue = 1f;
+            flight.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetPriority(GameObject root, string typeName, int priority)
+        {
+            var so = new SerializedObject(FindComponent(root, typeName));
+            SetInt(so, "priority", priority);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

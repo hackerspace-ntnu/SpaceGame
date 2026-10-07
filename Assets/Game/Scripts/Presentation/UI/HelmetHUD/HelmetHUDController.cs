@@ -16,7 +16,8 @@ namespace SpaceGame.Presentation
     /// <para>
     /// <b>Two sublayers, not one flat set.</b> <see cref="Vitals"/> holds the readouts you play by
     /// — the gauges, the damage arcs. <see cref="Annotations"/> holds the things that describe the
-    /// world — the target bracket and its look-at info box. <see cref="HelmetOverlayVisibility"/> cycles
+    /// world — the target bracket and its look-at info box, the objective and its waypoint.
+    /// <see cref="HelmetOverlayVisibility"/> cycles
     /// between them on H, so there is a state that quiets the world commentary without hiding the
     /// player's own health.
     /// </para>
@@ -31,6 +32,9 @@ namespace SpaceGame.Presentation
 
         [Header("Subsystems")]
         [SerializeField] private HelmetDangerVignette dangerVignette;
+        [Tooltip("UI/HelmetHUDDangerVignette. Referenced rather than looked up by name, which a player " +
+                 "build strips.")]
+        [SerializeField] private Shader dangerVignetteShader;
 
         /// <summary>Things you play by. Drawn at every detail level except Off.</summary>
         public RectTransform Vitals { get; private set; }
@@ -57,6 +61,7 @@ namespace SpaceGame.Presentation
         private VisorGauge oxygenGauge;
         private VisorGauge jetpackGauge;
         private VisorReticle reticle;
+        private VisorObjective objective;
 
         /// <summary>Whose health this visor is currently showing. Null until one resolves.</summary>
         public HealthComponent BoundHealth => healthSource.Health;
@@ -173,6 +178,7 @@ namespace SpaceGame.Presentation
             {
                 dangerVignette = MakeLayer("DangerVignette", Vitals)
                                  .gameObject.AddComponent<HelmetDangerVignette>();
+                dangerVignette.Build(dangerVignetteShader);
             }
 
             // Annotations, not Vitals: the reticle describes something in the world rather than
@@ -181,6 +187,13 @@ namespace SpaceGame.Presentation
             {
                 reticle = MakeLayer("Reticle", Annotations)
                           .gameObject.AddComponent<VisorReticle>();
+            }
+
+            // Annotations too: where the crew are headed describes the world, not the wearer.
+            if (objective == null)
+            {
+                objective = MakeLayer("Objective", Annotations)
+                            .gameObject.AddComponent<VisorObjective>();
             }
         }
 

@@ -190,21 +190,23 @@ namespace SpaceGame.EditorTools
         {
             float y = 100f;
             float lastY = y;
-            float velocity;
+            float velocity = 0f;
 
             for (int i = 0; i < steps; i++)
             {
-                velocity = (y - lastY) / Dt;
+                float measured = (y - lastY) / Dt;
                 if (markBeforeTheFall) lastY = y;
 
-                velocity = AgentCarry.Fall(new Vector3(0f, velocity, 0f),
+                velocity = AgentCarry.Fall(new Vector3(0f, measured, 0f),
                                            Gravity, Dt, TerminalSpeed).y;
                 y += velocity * Dt;
 
                 if (!markBeforeTheFall) lastY = y;
             }
 
-            return (y - lastY) / Dt;
+            // What the last step produced, which is what the motor carries into the next one. The
+            // gap since the mark is not: with the mark taken after the move it is always zero.
+            return velocity;
         }
 
         [Test]
@@ -250,24 +252,26 @@ namespace SpaceGame.EditorTools
             float y = 0f;
             float lastY = y;
             float peak = 0f;
-            float velocity = 0f;
+            float speedAtBurnout = 0f;
 
             for (int i = 0; i < burnSteps * 8; i++)
             {
-                velocity = (y - lastY) / Dt;
+                float measured = (y - lastY) / Dt;
                 lastY = y;
 
-                velocity = AgentCarry.Fall(new Vector3(0f, velocity, 0f),
-                                           Gravity, Dt, TerminalSpeed).y;
+                float velocity = AgentCarry.Fall(new Vector3(0f, measured, 0f),
+                                                 Gravity, Dt, TerminalSpeed).y;
                 y += velocity * Dt;
 
                 if (i < burnSteps) y += acceleration * Dt * Dt;
 
                 peak = Mathf.Max(peak, y);
-                if (i == burnSteps - 1) velocity = (y - lastY) / Dt;
+                // Kept apart from the loop's own velocity, which the coast after burnout overwrites
+                // all the way down to terminal speed.
+                if (i == burnSteps - 1) speedAtBurnout = (y - lastY) / Dt;
             }
 
-            return (peak, velocity);
+            return (peak, speedAtBurnout);
         }
 
         [Test]

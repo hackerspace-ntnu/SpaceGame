@@ -9943,6 +9943,7 @@ GameObject:
   - component: {fileID: -4415284603514325439}
   - component: {fileID: 2478125373709919340}
   - component: {fileID: 1432727027925938080}
+  - component: {fileID: -5945149278599934971}
   m_Layer: 0
   m_Name: FoamGun
   m_TagString: Untagged
@@ -10255,6 +10256,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   dabsPerSecond: 15
   dabsPerTick: 2
   clusterSpread: 0.7
@@ -10335,6 +10337,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.45635772, y: 0.94189185, z: 1.3014913}
   m_Center: {x: 0.004720807, y: -0.11854848, z: -0.0007455945}
+--- !u!114 &-5945149278599934971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6112082475802312479}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &6704895219813610230
 GameObject:
   m_ObjectHideFlags: 0

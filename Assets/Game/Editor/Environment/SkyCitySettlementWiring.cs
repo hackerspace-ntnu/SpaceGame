@@ -10,6 +10,9 @@
 // starboard lane and only spawns where a complete path from it leads. Wandering then cannot leave
 // that region: a NavMesh island is only left by a link, and the city has none.
 //
+// It also gives the city its swarm (SettlementLoiterFlights): residents circling it and landing back on
+// the promenade, landing only on deck reachable from the same anchor.
+//
 // Re-run from: Tools > Environment > Wire Sky City Settlement. Build Sky Fleet Prefabs saves the
 // fleet from scratch and so ends by running this again.
 //
@@ -18,7 +21,9 @@
 // Unlike that town the city is not in a chunk scene, while its people are saved into the chunks
 // under them, so the population keeps those chunks loaded and waits for them before counting
 // (keepGroundChunksLoaded) -- or a reload spawns a second city's worth beside the restored one.
+using System.Linq;
 using SpaceGame.Agents;
+using SpaceGame.Vehicles;
 using SpaceGame.World;
 using UnityEditor;
 using UnityEngine;
@@ -84,14 +89,11 @@ namespace SpaceGame.EditorTools
             if (sky == null) return $"no {RosterAuthoring.SkyFactionPath}";
             if (table == null) return $"no {EntityFactionWiring.RelationshipsPath}";
 
-            var inhabitants = new SettlementPopulation.Inhabitant[NomadPrefabBuilder.SkyTribePeople.Length];
-            for (int i = 0; i < inhabitants.Length; i++)
-            {
-                string path = NomadPrefabBuilder.SkyTribePeople[i].PrefabPath;
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (prefab == null) return $"no {path} - run Tools > SpaceGame > Agents > Build Sky Nomad NPCs / Build Sky Soldier NPC";
-                inhabitants[i] = new SettlementPopulation.Inhabitant { prefab = prefab, weight = 1 };
-            }
+            GameObject[] people = BuiltPeople();
+            if (people.Length == 0)
+                return "no Sky Tribe person is built - run Tools > SpaceGame > Agents > Build Sky Nomad NPCs";
+            SettlementPopulation.Inhabitant[] inhabitants = people
+                .Select(prefab => new SettlementPopulation.Inhabitant { prefab = prefab, weight = 1 }).ToArray();
 
             if (!root.TryGetComponent(out WorldSiteMarker marker))
                 marker = root.AddComponent<WorldSiteMarker>();
@@ -127,12 +129,26 @@ namespace SpaceGame.EditorTools
             pace.FindProperty("reachableFrom").objectReferenceValue = anchor;
             pace.FindProperty("keepGroundChunksLoaded").boolValue = true;
             pace.ApplyModifiedPropertiesWithoutUndo();
+
+            // Residents circling the city and landing back on its promenade (the swarm).
+            if (!root.TryGetComponent(out DriftRouteModule drift))
+                return "no DriftRouteModule on the fleet root - run Build Sky Fleet Prefabs";
+            if (!root.TryGetComponent(out SettlementLoiterFlights loiter))
+                loiter = root.AddComponent<SettlementLoiterFlights>();
+            loiter.Configure(drift, population, anchor);
             return null;
         }
 
+        // The Sky Tribe's people whose prefabs exist. Same rule as RosterAuthoring.AuthorSkyRoster: a
+        // recipe not built yet (the sky soldier today) is left out of the city rather than failing
+        // the wiring -- which used to leave a from-scratch fleet with no settlement at all.
+        private static GameObject[] BuiltPeople() => NomadPrefabBuilder.SkyTribePeople
+            .Select(recipe => AssetDatabase.LoadAssetAtPath<GameObject>(recipe.PrefabPath))
+            .Where(prefab => prefab != null).ToArray();
+
         /// <summary>
         /// The post-condition: <paramref name="root"/> is a Sky Tribe home with an alarm and a
-        /// population of the four sky nomads that spawns from the promenade anchor.
+        /// population of the built Sky Tribe people that spawns from the promenade anchor.
         /// </summary>
         public static bool Verify(GameObject root, out string report)
         {
@@ -162,8 +178,9 @@ namespace SpaceGame.EditorTools
                     sb.AppendLine("  SettlementPopulation is not the Sky Tribe's");
 
                 SerializedProperty inhabitants = so.FindProperty("inhabitants");
-                if (inhabitants.arraySize != NomadPrefabBuilder.SkyTribePeople.Length)
-                    sb.AppendLine($"  {inhabitants.arraySize} inhabitants, not {NomadPrefabBuilder.SkyTribePeople.Length}");
+                int built = BuiltPeople().Length;
+                if (inhabitants.arraySize != built)
+                    sb.AppendLine($"  {inhabitants.arraySize} inhabitants, not the {built} built Sky Tribe people");
                 for (int i = 0; i < inhabitants.arraySize; i++)
                     if (inhabitants.GetArrayElementAtIndex(i).FindPropertyRelative("prefab").objectReferenceValue == null)
                         sb.AppendLine($"  inhabitant {i} has no prefab");
@@ -176,10 +193,26 @@ namespace SpaceGame.EditorTools
                     sb.AppendLine($"  reachableFrom is not the root's {AnchorName}");
             }
 
+            if (!root.TryGetComponent(out SettlementLoiterFlights loiter))
+            {
+                sb.AppendLine("  no SettlementLoiterFlights - the city's residents never circle it");
+            }
+            else
+            {
+                var so = new SerializedObject(loiter);
+                if (so.FindProperty("route").objectReferenceValue != root.GetComponent<DriftRouteModule>())
+                    sb.AppendLine("  SettlementLoiterFlights does not read the fleet's DriftRouteModule");
+                if (so.FindProperty("population").objectReferenceValue != root.GetComponent<SettlementPopulation>())
+                    sb.AppendLine("  SettlementLoiterFlights does not read the fleet's SettlementPopulation");
+                var anchor = so.FindProperty("reachableFrom").objectReferenceValue as Transform;
+                if (anchor == null || anchor.parent != root.transform || anchor.name != AnchorName)
+                    sb.AppendLine($"  SettlementLoiterFlights.reachableFrom is not the root's {AnchorName}");
+            }
+
             bool ok = sb.Length == 0;
             report = ok
                 ? $"  Home '{WorldSite.SkyCityName}', alarm and population r={CityRadius} m, cap {PopulationCap} every " +
-                  $"{PopulationInterval} s after {InitialWaves} quick waves, spawning from {AnchorName}"
+                  $"{PopulationInterval} s after {InitialWaves} quick waves, spawning from {AnchorName}; residents loiter round it"
                 : sb.ToString();
             return ok;
         }

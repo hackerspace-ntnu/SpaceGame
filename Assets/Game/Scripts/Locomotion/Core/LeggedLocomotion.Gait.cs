@@ -14,6 +14,7 @@
 // Turning needs no special case. A foot drifts backwards through the body frame at -(v + w x r),
 // which already accounts for rotation, so a leg on the outside of a turn is handed a longer stride
 // than one on the inside without anything here knowing about turns.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Locomotion
@@ -35,6 +36,12 @@ namespace SpaceGame.Locomotion
 
         private WalkerGait gait;
 
+        /// The feet that came down in the last Step. Read, not raised as an event: whatever answers
+        /// a footfall (dust, sound) runs after this component rather than inside the gait loop, so
+        /// a fault in it can never leave a frame's legs half-updated. Sized for six legs; a machine
+        /// with more grows it once.
+        private readonly List<Footfall> footfalls = new List<Footfall>(6);
+
         private void UpdateGait(float dt)
         {
             float runBlend = RunBlend;
@@ -46,6 +53,7 @@ namespace SpaceGame.Locomotion
             Vector3 linear = commandedWorldVelocity;
             float yawRate = CommandedYawRate * Mathf.Deg2Rad;
             float pace = Pace;
+            footfalls.Clear();
 
             int planted = 0;
             foreach (LegState leg in legs) if (!leg.Swinging) planted++;
@@ -81,6 +89,8 @@ namespace SpaceGame.Locomotion
                         leg.Foot = leg.SwingTo;
                         leg.Swinging = false;
                         planted++;
+                        footfalls.Add(new Footfall(leg.Measure.Index, leg.Foot, leg.GroundNormal,
+                                                   leg.Measure.FootprintRadius));
                     }
                     else
                     {

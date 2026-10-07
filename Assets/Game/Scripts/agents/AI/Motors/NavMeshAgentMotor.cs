@@ -24,9 +24,9 @@ namespace SpaceGame.Agents
     // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(NavMeshAgent))]
-    // Partial: the rope-carry state lives in NavMeshAgentMotor.Carry.cs, the way the ornithopter's
-    // replication does. It is a self-contained state with its own clock and its own tunables, and
-    // this file is long enough already.
+    // Partial: the rope-carry state lives in NavMeshAgentMotor.Carry.cs and the ladder / jump link
+    // crossing in NavMeshAgentMotor.Links.cs, the way the ornithopter's replication does. Each is a
+    // self-contained state with its own clock and its own tunables, and this file is long enough already.
     public partial class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
                                              IMountLeapMotor, IRiderControllable, ISelfDrivingMotor,
                                              ITeleportAware, ITowable
@@ -219,7 +219,7 @@ namespace SpaceGame.Agents
             defaultSpeed = agent.speed;
             defaultBaseOffset = agent.baseOffset;
             defaultAcceleration = agent.acceleration;
-            agent.autoBraking = false;
+            ConfigureLinkTraversal();
 
             // Only disable if the NavMesh isn't ready here yet — WorldStreamer will re-enable us
             // after the chunk is baked. If there's already a NavMesh covering our spawn position
@@ -247,6 +247,7 @@ namespace SpaceGame.Agents
             leapCooldownTimer = 0f;
             isLeaping = false;
             carried = false;
+            ridingLink = false;
         }
 
         // ── Save/restore ──────────────────────────────────────────────────────────
@@ -360,6 +361,13 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // And along an off-mesh link: a ladder, a jump. See NavMeshAgentMotor.Links.cs.
+            if (ridingLink)
+            {
+                AdvanceLinkRide(deltaTime);
+                return;
+            }
+
             if (!agent.isOnNavMesh)
             {
                 TrySnapToNavMesh(deltaTime);
@@ -367,6 +375,12 @@ namespace SpaceGame.Agents
             }
 
             NoteNavMeshFound();
+
+            if (agent.isOnOffMeshLink)
+            {
+                BeginLinkTraversal();
+                return;
+            }
 
             ApplyGroundGrip();
 
@@ -417,9 +431,9 @@ namespace SpaceGame.Agents
             StopAgentPath();
             if (IsAgentReady)
             {
-                // Zero residual internal velocity so the agent doesn't drift
-                // (NavMeshAgent otherwise decelerates from its current velocity, which with
-                // autoBraking=false can take a while and can look like slow circling).
+                // Zero residual internal velocity so the agent doesn't drift. A stopped NavMeshAgent
+                // otherwise decelerates from its current velocity at `acceleration`, which on a fast,
+                // low-acceleration creature takes long enough to look like slow circling.
                 agent.velocity = Vector3.zero;
             }
         }
@@ -439,6 +453,7 @@ namespace SpaceGame.Agents
                 return;
 
             selfDriveSuspended = true;
+            AbandonLinkRide();
 
             // Recorded rather than assumed, because "enabled" is not this agent's resting state:
             // Awake parks it when it wakes before a NavMesh exists beneath it, and resuming would
@@ -466,28 +481,6 @@ namespace SpaceGame.Agents
 
             if (agent != null && suspendedAgentWasEnabled)
                 agent.enabled = true;
-        }
-
-        public void NudgeDestination(Vector3 offset)
-        {
-            if (!IsAgentReady || agent.isStopped || !agent.hasPath)
-                return;
-
-            Vector3 nudged = agent.destination + offset;
-            if (NavMesh.SamplePosition(nudged, out NavMeshHit hit, 2f, NavMesh.AllAreas))
-                agent.SetDestination(hit.position);
-        }
-
-        public void SuggestDestination(Vector3 position)
-        {
-            if (!IsAgentReady)
-                return;
-
-            if (NavMesh.SamplePosition(position, out NavMeshHit hit, 4f, NavMesh.AllAreas))
-            {
-                agent.isStopped = false;
-                agent.SetDestination(hit.position);
-            }
         }
 
         public void ApplyRiderInput(in RiderInput input, float deltaTime)
@@ -589,6 +582,13 @@ namespace SpaceGame.Agents
                 endPoint = hit.position;
             }
 
+            BeginLeap(endPoint, verticalHeight, duration);
+        }
+
+        // Shared by a thrown or mounted leap and by a jump across an off-mesh link: navigation off,
+        // the transform driven along an arc by UpdateMountedLeap, agent.Warp on landing.
+        private void BeginLeap(Vector3 endPoint, float verticalHeight, float duration)
+        {
             leapStart = transform.position;
             leapEnd = endPoint;
             leapVertical = Mathf.Max(0f, verticalHeight);
@@ -604,6 +604,23 @@ namespace SpaceGame.Agents
             }
             agent.updatePosition = false;
             agent.updateRotation = false;
+        }
+
+        // Hands the body back to the agent on the mesh at <paramref name="point"/>: the end of a leap
+        // or of a scripted ride along an off-mesh link.
+        private void LandAt(Vector3 point)
+        {
+            agent.updatePosition = defaultUpdatePosition;
+            agent.updateRotation = defaultUpdateRotation;
+            if (NavMesh.SamplePosition(point, out NavMeshHit hit, mountedLeapSampleRadius, NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position);
+            }
+            else
+            {
+                agent.Warp(point);
+            }
+            agent.isStopped = false;
         }
 
         /// <summary>
@@ -622,6 +639,7 @@ namespace SpaceGame.Agents
         {
             leapStart = move.Point(leapStart);
             leapEnd = move.Point(leapEnd);
+            AbandonLinkRide();
         }
 
         /// <summary>
@@ -658,13 +676,7 @@ namespace SpaceGame.Agents
 
         private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
         {
-            if (intent.OverrideFacingDirection)
-            {
-                // The brain is supplying an explicit facing direction — suppress NavMesh
-                // auto-rotation so an external system (e.g. SteerModule) can own it.
-                agent.updateRotation = false;
-            }
-            else if (intent.OverrideFacing)
+            if (intent.OverrideFacing)
             {
                 // Move-and-aim: travel along the path but keep the body turned toward the facing
                 // target. NavMesh auto-rotation would fight this every frame, so it stays off.
@@ -682,7 +694,9 @@ namespace SpaceGame.Agents
 
             agent.isStopped = false;
 
-            if (!agent.hasPath || Vector3.Distance(agent.destination, intent.TargetPosition) > 0.2f)
+            // Never while a request is still being computed: hasPath stays false until it finishes, and a long path
+            // spans several frames of NavMesh.pathfindingIterationsPerFrame, so re-asking every frame restarts it forever.
+            if (!agent.pathPending && (!agent.hasPath || Vector3.Distance(agent.destination, intent.TargetPosition) > 0.2f))
             {
                 agent.SetDestination(intent.TargetPosition);
             }
@@ -865,17 +879,7 @@ namespace SpaceGame.Agents
             if (t >= 1f)
             {
                 isLeaping = false;
-                agent.updatePosition = defaultUpdatePosition;
-                agent.updateRotation = defaultUpdateRotation;
-                if (NavMesh.SamplePosition(leapEnd, out NavMeshHit hit, mountedLeapSampleRadius, NavMesh.AllAreas))
-                {
-                    agent.Warp(hit.position);
-                }
-                else
-                {
-                    agent.Warp(leapEnd);
-                }
-                agent.isStopped = false;
+                LandAt(leapEnd);
             }
         }
 
@@ -913,6 +917,7 @@ namespace SpaceGame.Agents
             // off as well, and a body streamed out mid-hoist would otherwise come back with the
             // agent unable to move it at all.
             AbandonCarry();
+            AbandonLinkRide();
 
             if (agent)
             {

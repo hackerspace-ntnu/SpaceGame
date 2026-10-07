@@ -137,7 +137,7 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// The item scanner is the one gauntlet worn turned off its own model's frame, and the
         /// number is pinned here because the prefab is not where it is decided: a hand-typed roll
-        /// is silently rewritten by <c>GauntletReseat</c>, which carries the same 180 in
+        /// was silently rewritten by the gauntlet reseat pass, which carried the same 180 in
         /// <c>ItemScannerRollDegrees</c> and is where the reasoning lives.
         /// </summary>
         [Test]

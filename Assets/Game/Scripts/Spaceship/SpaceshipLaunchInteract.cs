@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 
 /// <summary>
 /// Interact script to trigger spaceship launch.
@@ -26,8 +27,11 @@ using SpaceGame.Gameplay;
 /// no further changes.
 /// </para>
 /// </summary>
-public class SpaceshipLaunchInteract : MonoBehaviour, IInteractable, ILatchHost
+public class SpaceshipLaunchInteract : MonoBehaviour, IInteractable, IInteractionMoment, ILatchHost
 {
+    /// <summary>Nothing on the body: launching seats the crew at once.</summary>
+    public CharacterMoment InteractionMoment => CharacterMoment.None;
+
     [SerializeField] private SpaceshipManager targetSpaceship;
     [SerializeField] private bool hasBeenUsed = false;
 

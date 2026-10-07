@@ -8,7 +8,7 @@
 //
 // Same agent, voxel and layer settings as the world bake, read from WorldNavMesh.asset, so a
 // ground NPC paths the city exactly as it paths the desert. Same collider filter and mapping too
-// (WorldNavMeshBaker.IsBakeable / TryColliderToSource).
+// (NavMeshSources.IsBakeable / TryColliderToSource).
 //
 // Re-run from: World > Streaming > Bake Sky City NavMesh
 using System.Collections.Generic;
@@ -100,8 +100,8 @@ namespace SpaceGame.EditorTools
             bool haveBounds = false;
             foreach (Collider col in root.GetComponentsInChildren<Collider>(true))
             {
-                if (!WorldNavMeshBaker.IsBakeable(col, mask)) continue;
-                if (!WorldNavMeshBaker.TryColliderToSource(col, out NavMeshBuildSource src)) continue;
+                if (!NavMeshSources.IsBakeable(col, mask)) continue;
+                if (!NavMeshSources.TryColliderToSource(col, out NavMeshBuildSource src)) continue;
 
                 into.Add(src);
                 if (haveBounds) bounds.Encapsulate(col.bounds);

@@ -44,7 +44,7 @@ Hold Use and a plume of vapour comes out, eighteen metres of it, opening to a 22
 | Freeze time | 0.75 s of continuous spray on one target, anywhere in the cone | `CryoSprayerArtifact.freezeSeconds` |
 | Thaw of the build-up | 0.5 fractions/s once nothing is spraying | `FrostLook.thawPerSecond` |
 | Frozen duration | 10 s, never extended by being sprayed harder | `FrozenStatus` |
-| Sweeps | 15 /s | `CryoSprayerArtifact.sweepsPerSecond` |
+| Sweeps | 15 /s | `SprayerItem.sweepsPerSecond` (the shared sprayer base since 2026-10-06; the valve, hold stream, tank and nozzle live there too, shared with the fire extinguisher, see ShipTransmitterFire) |
 | Frost film on a body | 20 s, 0.03 grip | `SlickStatus` |
 | Tank drain / refill | 0.15 /s held, 0.06 /s idle | `SupplyReservoir` on the prefab |
 
@@ -109,7 +109,7 @@ the barrel — that rime is the same `_Freeze` property as the ice on the target
 `CryoSprayerNozzle` and never fully cleared (`restRime`, so the gun reads as cold at rest).
 
 The plume is authored by **`Tools/SpaceGame/Items/Build Cryo Plume`**
-([CryoPlumeBuilder](Assets/Game/Editor/Items/CryoPlumeBuilder.cs)) — three particle systems on the
+(CryoPlumeBuilder) — three particle systems on the
 prefab (`Jet` with `Shards` and `Mist` under it, plus `Bite` and `Blowoff`) and three materials off
 one shader, [`SpaceGame/Effects/CryoVapour`](Assets/Game/Art/Shaders/Effects/CryoVapour.shader).
 That shader is `FlameBillboard`'s opposite number: same quantized bands and world-space noise, but

@@ -10,6 +10,13 @@ namespace SpaceGame.Core
     public static class AgentAction
     {
         public const int Melee  = 0;
+
+        /// <summary>
+        /// Retired: its only sender, the profile-driven ranged combat module, is gone, and nothing
+        /// listens for it. Kept rather than deleted because ids are append-only — removing it would
+        /// leave a hole a later kind could be tempted to reuse, and an older build would read that
+        /// new kind as a shot.
+        /// </summary>
         public const int Ranged = 1;
 
         /// <summary>

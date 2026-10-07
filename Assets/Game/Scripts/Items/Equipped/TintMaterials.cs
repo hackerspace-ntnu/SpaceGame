@@ -70,10 +70,9 @@ namespace SpaceGame.Items
         {
             Shader shader = Shader.Find(ShaderName);
 
-            // Same fallback shape HelmetDangerVignette uses, so a missing project shader keeps
-            // the session alive rather than null-reffing it. It is a keep-running fallback, not a
-            // visual one: URP/Unlit knows nothing of the outline pass, so a rim renders as plain
-            // colour instead of a rim.
+            // A missing project shader keeps the session alive rather than null-reffing it. It is
+            // a keep-running fallback, not a visual one: URP/Unlit knows nothing of the outline
+            // pass, so a rim renders as plain colour instead of a rim.
             if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
 
             return new Material(shader) { name = name, hideFlags = HideFlags.HideAndDontSave };

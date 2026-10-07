@@ -17,7 +17,7 @@ namespace SpaceGame.Core
             var networkObject = gameObject.GetComponent<NetworkObject>();
             if (Network.IsNetworked && networkObject && networkObject.IsSpawned)
             {
-                networkObject.Despawn(false);
+                NetworkDespawn.Despawn(networkObject, destroy: false);
             }
 
             Object.Destroy(gameObject);

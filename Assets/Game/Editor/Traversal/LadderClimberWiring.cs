@@ -7,38 +7,14 @@
 // Re-run from: Tools > SpaceGame > Player > Wire Ladder Climber
 using SpaceGame.Characters;
 using UnityEditor;
-using UnityEngine;
 
 namespace SpaceGame.EditorTools
 {
     public static class LadderClimberWiring
     {
-        public const string PlayerPrefabPath = "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
+        public const string PlayerPrefabPath = PlayerTraversalWiring.PlayerPrefabPath;
 
         [MenuItem("Tools/SpaceGame/Player/Wire Ladder Climber")]
-        public static void Wire()
-        {
-            GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
-            try
-            {
-                if (root.GetComponent<PlayerMovement>() == null)
-                    throw new System.InvalidOperationException(
-                        $"{PlayerPrefabPath} has no PlayerMovement on its root; LadderClimber belongs beside it.");
-
-                if (root.GetComponent<LadderClimber>() != null)
-                {
-                    Debug.Log($"[LadderClimber] Already on {PlayerPrefabPath}.");
-                    return;
-                }
-
-                root.AddComponent<LadderClimber>();
-                PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);
-                Debug.Log($"[LadderClimber] Added to {PlayerPrefabPath}.");
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-        }
+        public static void Wire() => PlayerTraversalWiring.Ensure<LadderClimber>();
     }
 }

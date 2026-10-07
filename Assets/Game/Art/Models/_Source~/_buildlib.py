@@ -149,6 +149,44 @@ def append_objects(blend, names, into):
     return out
 
 
+def append_reframed(blend, renames, into, frame):
+    """Lift finished parts out of a MODEL file into a component, re-seated at the origin.
+
+    `renames` maps each source object name to its component name. The parts arrive with
+    whatever rig and tilt the model gave them, so every one is unparented (world kept), then
+    moved by the inverse of the FRAME, rotation and translation only: `frame` is either the
+    name of one of the parts (that part lands at the origin, upright) or a Matrix for a point no
+    part sits on (an assembly's ground centre). The rest keep their relation to it. Parents inside
+    the set are restored afterwards, so a ring still carries its paddles. Anything the append
+    dragged in that was not asked for (the model's armature) is removed again.
+    """
+    before = set(bpy.data.objects)
+    objs = append_objects(blend, list(renames), into)
+    worlds = {o.name: o.matrix_world.copy() for o in objs}
+    parents = {o.name: (o.parent.name if o.parent and o.parent.name in renames else None) for o in objs}
+    loc, rot, _ = (frame if isinstance(frame, Matrix) else worlds[frame]).decompose()
+    to_origin = (Matrix.Translation(loc) @ rot.to_matrix().to_4x4()).inverted()
+    for o in objs:
+        o.parent = None
+        o.matrix_world = to_origin @ worlds[o.name]
+    for extra in [o for o in bpy.data.objects if o not in before and o.name not in renames]:
+        bpy.data.objects.remove(extra, do_unlink=True)
+    bpy.context.view_layer.update()
+    by_old = {o.name: o for o in objs}
+    for o in objs:
+        if parents[o.name]:
+            p = by_old[parents[o.name]]
+            w = o.matrix_world.copy()
+            o.parent = p
+            o.matrix_parent_inverse = p.matrix_world.inverted()
+            o.matrix_world = w
+    for old, new in renames.items():
+        by_old[old].name = new
+        by_old[old].data.name = new
+    bpy.context.view_layer.update()
+    return list(by_old.values())
+
+
 # --------------------------------------------------------------------------
 # Part — a bmesh under construction, with per-face material tracking
 # --------------------------------------------------------------------------

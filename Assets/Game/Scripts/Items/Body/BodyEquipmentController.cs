@@ -31,7 +31,7 @@ namespace SpaceGame.Items
         [SerializeField] private HumanBodyBones backBone = HumanBodyBones.Spine;
 
         [Tooltip("Substring hints for a non-humanoid rig (case-insensitive).")]
-        [SerializeField] private string[] backBoneNameHints = { "Spine", "Chest", "Torso" };
+        [SerializeField] private string[] backBoneNameHints = (string[])WornBones.BackHints.Clone();
 
         [Tooltip("Manual fallback when neither lookup finds a bone.")]
         [SerializeField] private Transform backSocketOverride;
@@ -71,10 +71,10 @@ namespace SpaceGame.Items
 
         private readonly Worn[] worn = new Worn[GearRef.BodySlotCount];
 
-        private static readonly string[] LeftForearmHints = { "LeftForeArm", "ForeArm_L", "L_ForeArm", "forearm.L" };
-        private static readonly string[] RightForearmHints = { "RightForeArm", "ForeArm_R", "R_ForeArm", "forearm.R" };
-
         private PlayerController player;
+        private PlayerMovement movement;
+        // A double tap cancels a ledge climb rather than waiting it out; absent on a body that cannot climb.
+        private LedgeClimber ledgeClimber;
         private IBodyEquipment body;
         private EquipmentController hands;
         private PlayerAimRig aimRig;
@@ -126,6 +126,8 @@ namespace SpaceGame.Items
         private void Awake()
         {
             player = GetComponent<PlayerController>();
+            movement = GetComponent<PlayerMovement>();
+            ledgeClimber = GetComponent<LedgeClimber>();
             body = GetComponent<IBodyEquipment>();
             hands = GetComponent<EquipmentController>();
             aimRig = GetComponent<PlayerAimRig>();
@@ -134,7 +136,8 @@ namespace SpaceGame.Items
             {
                 var slot = (BodySlot)i;
                 var entry = new Worn { Slot = slot };
-                entry.Channel = new UseChannel(this, GearArea.Body, () => GearRef.Body(slot), () => UsableOf(entry));
+                entry.Channel = new UseChannel(this, GearArea.Body, () => GearRef.Body(slot), () => UsableOf(entry),
+                                               () => entry.Item);
                 worn[i] = entry;
 
                 if (slot == BodySlot.Torso) continue;
@@ -179,8 +182,8 @@ namespace SpaceGame.Items
             // offsets seats a bracer whether it is held or worn.
             worn[(int)BodySlot.LeftGauntlet].Socket = hands != null ? hands.NewSocket(ItemGrip.Hand.Left) : null;
             worn[(int)BodySlot.RightGauntlet].Socket = hands != null ? hands.NewSocket(ItemGrip.Hand.Right) : null;
-            worn[(int)BodySlot.LeftGauntlet].Bone = BoneResolver.Resolve(animator, transform, HumanBodyBones.LeftLowerArm, LeftForearmHints);
-            worn[(int)BodySlot.RightGauntlet].Bone = BoneResolver.Resolve(animator, transform, HumanBodyBones.RightLowerArm, RightForearmHints);
+            worn[(int)BodySlot.LeftGauntlet].Bone = BoneResolver.Resolve(animator, transform, HumanBodyBones.LeftLowerArm, WornBones.LeftForearmHints);
+            worn[(int)BodySlot.RightGauntlet].Bone = BoneResolver.Resolve(animator, transform, HumanBodyBones.RightLowerArm, WornBones.RightForearmHints);
             worn[(int)BodySlot.Torso].Bone = back;
 
             body.OnBodySlotChanged += OnSlotChanged;
@@ -594,6 +597,13 @@ namespace SpaceGame.Items
             // The back item is the wing pack, and the double tap of Space that deploys it is the
             // ornithopter's flap once airborne; a craft already under the pilot must not spawn another.
             if (body.IsMounted) return;
+            // A double tap is the wings, always — even when its own first tap started a ledge climb (a
+            // grapple's rope offers one on every press of Space). The climb gives way through LetGo,
+            // which hands its weight back first: a back item opened over a climb banks the suspended
+            // gravity as the body's own and hands back a player who walks on air.
+            if (ledgeClimber != null && ledgeClimber.IsClimbing) ledgeClimber.LetGo();
+            // A ladder or hatch is still holding the body, gravity off, and keeps it.
+            if (movement != null && movement.IsClimbing) return;
 
             UseChannel back = worn[(int)BodySlot.Torso].Channel;
             back.Press();

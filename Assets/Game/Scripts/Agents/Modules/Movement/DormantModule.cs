@@ -10,7 +10,7 @@
 //
 // The body never moves through any of it. Sleep is Idle's first frame held flat, so a
 // creature that wakes up and walks away does it without a single pose change; there is no
-// buried squat and no rising clip. (There was, once. See anim.py's SLEEP / WAKE note.)
+// buried squat and no rising clip. (There was, once: the SLEEP / WAKE pair.)
 //
 // It is ONE module at Scripted priority for the same reason it always was: while it is
 // running it starves chase, cast and wander, and that is the documented use of

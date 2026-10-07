@@ -98,7 +98,6 @@ namespace SpaceGame.EditorTools
             {
                 Assert.IsEmpty(horse.GetComponentsInChildren<CloseCombatModule>(true),
                                $"{horse.name} must not kick or trample — the rider does the fighting");
-                Assert.IsEmpty(horse.GetComponentsInChildren<AgentRangedCombatModule>(true), horse.name);
                 Assert.IsEmpty(horse.GetComponentsInChildren<NpcItemUseModule>(true),
                                $"{horse.name} carries no weapon of its own");
                 Assert.IsEmpty(horse.GetComponentsInChildren<FightOrFlightModule>(true),
@@ -113,7 +112,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The outrider's whole job is to put its rider somewhere the rider's gun works. Stop short
-        /// of ClankerBuilder.GunMinRange and the Clanker holds fire at point-blank; stop beyond
+        /// of ClankerStack.GunMinRange and the Clanker holds fire at point-blank; stop beyond
         /// GunMaxRange and it never opens up at all.
         /// </summary>
         [Test]
@@ -124,8 +123,8 @@ namespace SpaceGame.EditorTools
 
             float stop = new SerializedObject(chase).FindProperty("chaseStopDistance").floatValue;
             Assert.AreEqual(RobotHorseBuilder.ChaseStopDistance, stop, 1e-3f);
-            Assert.Greater(stop, ClankerBuilder.GunMinRange, "the rider would be inside its own minimum range");
-            Assert.Less(stop, ClankerBuilder.GunMaxRange, "the rider would be parked out of range of everything");
+            Assert.Greater(stop, ClankerStack.GunMinRange, "the rider would be inside its own minimum range");
+            Assert.Less(stop, ClankerStack.GunMaxRange, "the rider would be parked out of range of everything");
         }
 
         [Test]

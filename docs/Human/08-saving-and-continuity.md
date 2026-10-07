@@ -47,7 +47,7 @@ own suit colour, their own position, their own health. The world half of the sav
 around the player half — it is not allowed to capture players, because they are not world objects.
 
 **Session-wide state.** A handful of things that belong to the world as a whole rather than to any
-object in it: the time of day, the current weather, the map you have uncovered, herd bookkeeping,
+object in it: the time of day, the current weather, the map you have uncovered,
 active ropes, story-run state. These register themselves as global savers and get their own section
 of the file.
 
@@ -343,9 +343,9 @@ every time.
 
 Not everything is meant to. Being explicit about it:
 
-- **Versus and arena match state is not saved, deliberately.** Both are single-session by design. The
-  temporary faction and targeting changes a match makes to entities are specifically excluded from
-  capture, so an arena match does not leave the world's creatures with arena allegiances.
+- **Versus match state is not saved, deliberately.** It is single-session by design. The temporary
+  faction and targeting changes a match makes to entities are specifically excluded from capture, so
+  a match does not leave the world's creatures with match allegiances.
 - **The story run's session state does survive** — its timer and state — and restoring it never
   re-triggers the win.
 - **A late joiner is not placed into an interior other players are inside.** Known and open.

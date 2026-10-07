@@ -109,6 +109,21 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void ALimitedSwingStillUsesTheWholeLimit()
+        {
+            // The other half of the limit: a fix that clamps the shoulder alone, or every stage to a
+            // share of the limit, stops the arm far short of where it is allowed to reach.
+            Vector3 target = upper.position - Vector3.forward * 5f;
+
+            Quaternion before = pointer.rotation;
+            ArmAim.Point(upper, lower, pointer, target,
+                         shoulderShare: 0.55f, maxDegrees: 40f, weight: 1f, elbowPasses: 2);
+
+            Assert.Greater(Quaternion.Angle(before, pointer.rotation), 38f,
+                "a clamp that stops far short wastes the reach the limit allows");
+        }
+
+        [Test]
         public void WeightZeroLeavesTheAnimatedPoseAlone()
         {
             Quaternion before = pointer.rotation;

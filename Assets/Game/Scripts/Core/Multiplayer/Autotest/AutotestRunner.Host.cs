@@ -3,6 +3,7 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Core
@@ -40,6 +41,8 @@ namespace SpaceGame.Core
 
             yield return WaitFor(() => NetworkManager.Singleton.ConnectedClientsIds.Count > 1, "a client to connect");
             Report("HOST_CLIENTS", NetworkManager.Singleton.ConnectedClientsIds.Count);
+            DistantGroups distant = FindAnyObjectByType<DistantGroups>();
+            Report("HOST_DISTANT_GROUPS", distant != null ? distant.Count : -1);
 
             // Let the client finish syncing the scene before anything is changed under it.
             yield return new WaitForSeconds(8f);

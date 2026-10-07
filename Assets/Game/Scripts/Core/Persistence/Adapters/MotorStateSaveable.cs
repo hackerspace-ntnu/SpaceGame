@@ -8,24 +8,15 @@ namespace SpaceGame.Core.Persistence
     /// <summary>
     /// Persists what an entity's motor was in the middle of doing.
     ///
-    /// <b>One saver for all five motors, because a body has one.</b> NavMesh, rigidbody, hovercraft,
-    /// flying craft and legged driver are alternatives, not layers: an entity carries exactly one of
-    /// them. Five keys and five policy clauses for five mutually exclusive components would be five
-    /// things to keep in step for one question — "what was this thing's motor doing" — so it is asked
-    /// once, and each block is written only when the motor it describes is present.
+    /// <b>One saver for all three motors, because a body has one.</b> NavMesh, hovercraft and legged
+    /// driver are alternatives, not layers: an entity carries exactly one of them. Three keys and
+    /// three policy clauses for three mutually exclusive components would be three things to keep in
+    /// step for one question — "what was this thing's motor doing" — so it is asked once, and each
+    /// block is written only when the motor it describes is present.
     ///
-    /// <b>Two of these are safety, not fidelity.</b>
-    ///
-    /// <c>RigidbodyMotor</c> runs a jump or a leap by forcing the body kinematic and remembering what
-    /// it was BEFORE. That memory lives in one field and nowhere else, so a save taken mid-arc
-    /// recorded a kinematic body and lost the only record of what it should stop being — leaving a
-    /// vehicle that reloads weightless and unpushable for the rest of the session, with nothing in
-    /// play able to fix it. The resting flag is therefore captured every time, arc or no arc, and
-    /// re-asserted on restore.
-    ///
-    /// <c>NavMeshAgentMotor</c> runs a mounted leap by switching <c>agent.updatePosition</c> and
-    /// <c>updateRotation</c> off and driving the transform by hand; only the frame the arc LANDS ever
-    /// switches them back. A leap therefore has to come back as a leap and be allowed to finish,
+    /// <b>The leap is safety, not fidelity.</b> <c>NavMeshAgentMotor</c> runs a mounted leap by
+    /// switching <c>agent.updatePosition</c> and <c>updateRotation</c> off and driving the transform
+    /// by hand; only the frame the arc LANDS ever switches them back. A leap therefore has to come back as a leap and be allowed to finish,
     /// rather than being abandoned halfway with the agent's flags left where the takeoff put them.
     ///
     /// <b>What is deliberately left out.</b> Every rider channel — held sticks, tracked throttle,
@@ -74,37 +65,12 @@ namespace SpaceGame.Core.Persistence
             public float leapElapsed;
         }
 
-        public struct BodyState
-        {
-            public bool present;
-            public Destination destination;
-
-            public bool arcing;
-            public float arcElapsed;
-            public float arcDuration;
-            public float arcHeight;
-            public Vector3 arcStart;
-            public Vector3 arcEnd;
-            public float arcCooldown;
-
-            /// <summary>What <c>isKinematic</c> means for this body when nothing is arcing.</summary>
-            public bool restingKinematic;
-        }
-
         public struct HoverState
         {
             public bool present;
             public Destination destination;
             public bool headingValid;
             public float heading;
-        }
-
-        public struct FlyState
-        {
-            public bool present;
-            public Destination destination;
-            public bool riderYawValid;
-            public float riderYaw;
         }
 
         public struct LeggedState
@@ -120,16 +86,12 @@ namespace SpaceGame.Core.Persistence
         public struct State
         {
             public NavState nav;
-            public BodyState body;
             public HoverState hover;
-            public FlyState fly;
             public LeggedState legged;
         }
 
         private NavMeshAgentMotor nav;
-        private RigidbodyMotor body;
         private HoverRigidbodyMotor hover;
-        private FlyingRigidbodyMotor fly;
         private LeggedDriver legged;
         private bool looked;
 
@@ -140,16 +102,14 @@ namespace SpaceGame.Core.Persistence
             if (looked) return;
             looked = true;
             nav = GetComponent<NavMeshAgentMotor>();
-            body = GetComponent<RigidbodyMotor>();
             hover = GetComponent<HoverRigidbodyMotor>();
-            fly = GetComponent<FlyingRigidbodyMotor>();
             legged = GetComponent<LeggedDriver>();
         }
 
         public object CaptureState()
         {
             Look();
-            if (nav == null && body == null && hover == null && fly == null && legged == null)
+            if (nav == null && hover == null && legged == null)
                 return null;
 
             var state = new State();
@@ -171,23 +131,6 @@ namespace SpaceGame.Core.Persistence
                 };
             }
 
-            if (body != null)
-            {
-                state.body = new BodyState
-                {
-                    present = true,
-                    destination = Describe(body.CurrentDestination, body.StopDistance),
-                    arcing = body.Arcing,
-                    arcElapsed = body.ArcElapsed,
-                    arcDuration = body.ArcDuration,
-                    arcHeight = body.ArcHeight,
-                    arcStart = body.ArcStart,
-                    arcEnd = body.ArcEnd,
-                    arcCooldown = body.ArcCooldownTimer,
-                    restingKinematic = body.RestingKinematic,
-                };
-            }
-
             if (hover != null)
             {
                 state.hover = new HoverState
@@ -196,17 +139,6 @@ namespace SpaceGame.Core.Persistence
                     destination = Describe(hover.CurrentDestination, hover.StopDistance),
                     headingValid = hover.HeadingValid,
                     heading = hover.Heading,
-                };
-            }
-
-            if (fly != null)
-            {
-                state.fly = new FlyState
-                {
-                    present = true,
-                    destination = Describe(fly.CurrentDestination, fly.StopDistance),
-                    riderYawValid = fly.RiderYawValid,
-                    riderYaw = fly.RiderYaw,
                 };
             }
 
@@ -247,35 +179,12 @@ namespace SpaceGame.Core.Persistence
                     nav.RestoreLeap(n.leapStart, n.leapEnd, n.leapVertical, n.leapDuration, n.leapElapsed);
             }
 
-            if (body != null)
-            {
-                BodyState b = restored.body;
-                body.RestoreDestination(b.destination.has ? b.destination.position : (Vector3?)null,
-                                        b.destination.stopDistance);
-
-                // Even when the record has no body block: `restingKinematic` then reads false, which
-                // is the correct assertion for a motor that never arced — and the one case that
-                // matters is a body that arrived kinematic from a mid-arc save whose block IS present.
-                body.RestoreArc(b.present && b.arcing, b.arcElapsed, b.arcDuration, b.arcHeight,
-                                b.arcStart, b.arcEnd,
-                                b.present ? b.restingKinematic : body.RestingKinematic,
-                                b.arcCooldown);
-            }
-
             if (hover != null)
             {
                 HoverState h = restored.hover;
                 hover.RestoreDestination(h.destination.has ? h.destination.position : (Vector3?)null,
                                          h.destination.stopDistance);
                 if (h.present && h.headingValid) hover.RestoreHeading(h.heading);
-            }
-
-            if (fly != null)
-            {
-                FlyState f = restored.fly;
-                fly.RestoreDestination(f.destination.has ? f.destination.position : (Vector3?)null,
-                                       f.destination.stopDistance);
-                if (f.present && f.riderYawValid) fly.RestoreRiderYaw(f.riderYaw);
             }
 
             if (legged != null)
@@ -289,19 +198,9 @@ namespace SpaceGame.Core.Persistence
 
         private void ResetToDefaults()
         {
-            // No jump, no leap, no arc, no standing order. The arc reset is the load-bearing one: it
-            // is what hands a body back its weight if it arrived kinematic from somewhere else.
+            // No jump, no leap, no standing order.
             nav?.RestoreCooldowns(-1f, 0f, 0f);
-
-            if (body != null)
-            {
-                body.RestoreDestination(null, 0.2f);
-                body.RestoreArc(false, 0f, 0f, 0f, Vector3.zero, Vector3.zero,
-                                body.RestingKinematic, 0f);
-            }
-
             hover?.RestoreDestination(null, 0.5f);
-            fly?.RestoreDestination(null, 0.5f);
             legged?.RestoreDrive(null, 0f, 0f, 0f);
             legged?.RestoreDetour(Vector3.zero, 0f);
         }

@@ -153,6 +153,18 @@ namespace SpaceGame.Gameplay
         }
 
         /// <summary>
+        /// Empty the connected bottle at once — the crash venting it — and write that to the pack, so it replicates, saves
+        /// and shows on the bottle's own gauge. Nothing connected, nothing to vent.
+        /// </summary>
+        public void Vent()
+        {
+            if (key == null) return;
+
+            charge = 0f;
+            WriteBack(force: true);
+        }
+
+        /// <summary>
         /// Write the live value back whatever step it is on. Called before a save, so what the file
         /// records is the tank as it actually is rather than as it was up to a percent ago.
         /// </summary>

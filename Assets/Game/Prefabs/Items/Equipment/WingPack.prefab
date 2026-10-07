@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 8796212341434097306}
   - component: {fileID: 4906758643045928377}
   - component: {fileID: -2235372918062393051}
+  - component: {fileID: -4892482119387105534}
   m_Layer: 0
   m_Name: WingPack
   m_TagString: Untagged
@@ -63,6 +64,9 @@ MonoBehaviour:
   localEuler: {x: 0, y: 0, z: 0}
   size: 2.64
   inspectSize: 5.51
+  foldedLocalPosition: {x: 0, y: 0.4, z: -0.65}
+  foldedLocalEuler: {x: -90, y: 0, z: 0}
+  foldedSize: 2.64
   anchorToBone: 0
   holdsArmsOut: 0
 --- !u!114 &3609440273465784372
@@ -86,6 +90,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   ornithopterPrefab: {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
   groundClearance: 0.6
   minLaunchClearance: 6
@@ -131,7 +136,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
-  item: {fileID: 0}
+  item: {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
   pickupId: 503
   pickupSound:
     Guid:
@@ -334,6 +339,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-4892482119387105534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7939255268260057349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &6871307205935830923
 PrefabInstance:
   m_ObjectHideFlags: 0

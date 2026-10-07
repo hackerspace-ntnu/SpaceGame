@@ -15,7 +15,6 @@ they are the ones worth reading before you start grepping.
 | **AgentTargeting** | The single owner of "who does this agent fight"; auto-added in `AgentController.Awake` | [AgentSystem](systems/AgentSystem.md) |
 | **AimPivot** | Runtime child built by `PlayerViewNetwork`; the only place to hang things other players must see | [PlayerCharacter](systems/PlayerCharacter.md) |
 | **anchor** | Streaming: a transform chunks stay loaded around, server-only. Not `InteriorAnchor`, not a storm/sky clock anchor | [WorldStreaming](systems/WorldStreaming.md) |
-| **arena** | `MinigameArena.unity`, loaded additively ~16.5 km east of the grid for bot deathmatch — currently an empty scene | [GameModes](systems/GameModes.md) |
 | **arrival** | The one-time crash landing that opens a story world; a server-flown hull plus a local-only cutscene | [PlayerShip](systems/PlayerShip.md) |
 | **artifact** | A player-held usable item occupying a hotbar slot and firing on the shared `Player/Use` action — or worn (a gauntlet, the wing pack) and fired on its own key | [Artifacts](systems/Artifacts.md) |
 | **body slot** | One of the three worn slots — Back, LeftGauntlet, RightGauntlet — beside the three-slot hotbar; arranged on the F screen | [BodyEquipment](systems/BodyEquipment.md) |
@@ -25,17 +24,18 @@ they are the ones worth reading before you start grepping.
 | **builder** | A `*Builder.cs` editor script that rewrites a prefab wholesale — hand edits to its output die on the next run | [EditorTooling](systems/EditorTooling.md) |
 | **caravan** | An `NpcGroup` record lerping along a line in `NpcWorldSim`, becoming real prefabs only near a player | [AgentSystem](systems/AgentSystem.md) |
 | **chunk** | One 500x500 m additive scene of the streamed world; 48 in the main world, addressed by scene *name* | [WorldStreaming](systems/WorldStreaming.md) |
-| **crawler** | Six-legged walker. `DesertCrawler` is the AI-driven habitat; `RigWalker` is the piloted mount version | [Vehicles](systems/Vehicles.md) |
+| **crawler** | Six-legged walker. `DesertCrawler` is the AI-driven habitat — since 2026-09-24 a Strider worker that follows the walking city and digs at its stops; `RigWalker` is the piloted mount version, and `StriderHabitatWalker` its unpilotable Strider variant | [Vehicles](systems/Vehicles.md) |
+| **crew post** | One of a Strider house's six `VesselSeats` markers on the open deck around the house, where its crew sit while the city marches. Not a `VehicleStation` (a player's claimable control) | [Striders](systems/Striders.md) |
 | **cutscene** | A coroutine `MonoBehaviour` (no Timeline, no Cinemachine), local to one machine, run by `CutsceneDirector` | [Cutscenes](systems/Cutscenes.md) |
 | **EquipKind** | `Hand` / `Gauntlet` / `Back` on an `InventoryItem` asset: where the item is equipped. The hotbar stores any kind; the hand equips only `Hand` | [BodyEquipment](systems/BodyEquipment.md) |
 | **gauntlet** | An artifact worn on a forearm (`EquipKind.Gauntlet`), fired on Q (left) or E (right); inert in the hotbar. Six today | [BodyEquipment](systems/BodyEquipment.md) |
 | **DefaultNetworkPrefabs.asset** | The live network prefab list under `ScriptableObjects/Networking/`; the copy at the repo root is stale and unused | [Multiplayer](systems/Multiplayer.md) |
 | **deferred pass** | `IDeferredSaveable.OnLoadComplete`, re-run per player bind and per late chunk — must be idempotent | [Persistence](systems/Persistence.md) |
+| **disposable session** | `WorldSession.Disposable`: the main menu's throwaway story run — ship already landed, nothing ever saved | [GameModes](systems/GameModes.md) |
 | **DuneFoil** (the **foil**) | The sand sailer: no mount at all, a walkable deck with claimable stations and a wheel that turns the foil | [Vehicles](systems/Vehicles.md) |
 | **EffectItem** | `UsableItem` subclass for a timed change to the holder's own body; `Use()` is sealed, override `ApplyEffect()` | [Artifacts](systems/Artifacts.md) |
 | **entity** | Not a base class: three independent marker components — `IPersistentEntity`, `SceneTracked`, `EntityFaction` | [EntitySystem](systems/EntitySystem.md) |
 | **EntityFaction** | The AI-targetability marker; without it a thing is invisible to every targeting module, silently | [AgentSystem](systems/AgentSystem.md) |
-| **EntityProfile_\*** | Data-only authoring *MonoBehaviours* with a Generate button (not ScriptableObjects); exactly four exist | [EntitySystem](systems/EntitySystem.md) |
 | **EntityTargetRegistry** | Static registry of `EntityFaction`s for AI targeting — nothing to do with `Registry<T>` or persistence | [EntitySystem](systems/EntitySystem.md) |
 | **EquipmentController** | Hand sockets plus the only place an item use is triggered across the network | [Inventory](systems/Inventory.md) |
 | **expedition rig** | The backpack prefab itself (`ExpeditionRig.prefab`), built from FBX by `ExpeditionRigWiring` | [Backpack](systems/Backpack.md) |
@@ -46,6 +46,7 @@ they are the ones worth reading before you start grepping.
 | **gait** | `IGaitPattern`: per-leg phase offsets and duty. Bind it *before* deriving speeds or the machine never steps | [Locomotion](systems/Locomotion.md) |
 | **GameplayMenuScope** | The ref-counted owner of cursor, input and timescale while a panel is open; `AcceptsGameplayInput` is the hotkey gate | [UI](systems/UI.md) |
 | **GameServices** | The static service locator (`.World`, `.ItemDropService`); statics survive the menu→world load, MonoBehaviours do not | [CoreServices](systems/CoreServices.md) |
+| **gangway** | The ground-level marker beside a Strider house (`CrewShift.gangway`) where its crew are put ashore and boarded again, sampled onto the NavMesh. Not the `Ramp` of a sky vessel | [Striders](systems/Striders.md) |
 | **GlobalObjectIdHash** | How NGO identifies a prefab on the wire; a script-built `NetworkObject` ships `0` and gets silently dropped | [Multiplayer](systems/Multiplayer.md) |
 | **GlobalRelationships.asset** | The single `FactionRelationshipTable`; a pair with no row is `Neutral`, so adding one turns a faction hostile | [AgentSystem](systems/AgentSystem.md) |
 | **hold pose** | The masked upper-body animator layer a held item puts the character in; auto-added by `OnEquipped` | [Artifacts](systems/Artifacts.md) |
@@ -68,7 +69,6 @@ they are the ones worth reading before you start grepping.
 | **LeggedDriver** | The Assembly-CSharp motor that turns rider input and AI intent into a twist for a `LeggedLocomotion` | [Locomotion](systems/Locomotion.md) |
 | **LeggedLocomotion** | The kinematic base class owning procedural walking; it is the *sole* owner of the body transform | [Locomotion](systems/Locomotion.md) |
 | **LobbySession** | App-lifetime owner of UGS lobby state; `Instance` creates one on touch, use `Existing` to merely ask | [Lobby](systems/Lobby.md) |
-| **MatchManager** | Server orchestrator for all three arena gamemodes: bots, factions, kills, win check, leaderboard | [GameModes](systems/GameModes.md) |
 | **motor** | An `IMovementMotor`: the single owner of "how does this agent move" (NavMesh, rigidbody, hover, flight, legs) | [AgentSystem](systems/AgentSystem.md) |
 | **mount** | Taking a machine over — seat, camera and controls transfer to you. Contrast **station** | [Vehicles](systems/Vehicles.md) |
 | **MountModule** | One seat. A hull with four seats carries four of them, addressed positionally by `MountIndex` | [Vehicles](systems/Vehicles.md) |
@@ -93,7 +93,7 @@ they are the ones worth reading before you start grepping.
 | **portal** | A sprayable one-way-pair aperture you walk through; not a `NetworkObject` — placement replicates as a message | [Portals](systems/Portals.md) |
 | **prefabId** | Asset GUID answering "what do I instantiate"; no prefab on disk ships one until the wiring tool stamps it | [Persistence](systems/Persistence.md) |
 | **`Present()`** | Two unrelated things: the cosmetic every-machine half of an item use, and `MenuScreen.Present()`, which builds a menu page | [Artifacts](systems/Artifacts.md) |
-| **profile** | 5 senses: `TargetingProfile`, `EntityProfile_*`, a save `PlayerProfile` GUID, a UGS `SessionProfile`, a `SandstormProfile` | [EntitySystem](systems/EntitySystem.md) |
+| **profile** | 4 senses: `TargetingProfile`, a save `PlayerProfile` GUID, a UGS `SessionProfile`, a `SandstormProfile` | [AgentSystem](systems/AgentSystem.md) |
 | **ragdoll** | A skeleton *derived* at runtime from mesh vertex weights — no `CharacterJoint` is authored anywhere on disk | [Combat](systems/Combat.md) |
 | **Registry&lt;T&gt;** | The **item** registry (`Resources/Items`), keyed by string ID. Never wire an entity into it | [CoreServices](systems/CoreServices.md) |
 | **relay** | 4 senses: Unity Relay (transport), `NetRelay` (our wire), `AgentActionRelay`/`InteractorRelay`, `Unity.Relay.Editor` (AI sidecar) | [Multiplayer](systems/Multiplayer.md) |
@@ -116,8 +116,9 @@ they are the ones worth reading before you start grepping.
 | **StateBag** | `key -> JObject` inside a save record; one saver owns one key, which is why adding a saver needs no migration | [Persistence](systems/Persistence.md) |
 | **station** | Keeping your body and camera while claiming one control on a walkable deck (`VehicleStation`). Contrast **mount** | [Vehicles](systems/Vehicles.md) |
 | **stow** | Backpack: putting an item onto a pack face (or reshouldering the pack). Vehicles: retracting a deployed part | [Backpack](systems/Backpack.md) |
+| **Strider** | A member of The Striders (`StriderFaction`), the third tribe, whose home is the walking city; files are `Strider*`. The design's working name "Mechanics" is retired | [Striders](systems/Striders.md) |
 | **suit** | The player's colour swatch: one synced index recolouring seven materials matched by *name*, shared with ship livery | [PlayerCharacter](systems/PlayerCharacter.md) |
-| **TargetingProfile** | A ScriptableObject overriding every inline `AgentTargeting` field; `MatchManager` swaps it in for arena bots | [AgentSystem](systems/AgentSystem.md) |
+| **TargetingProfile** | A ScriptableObject overriding every inline `AgentTargeting` field; swapped in at runtime by `ApplyProfile` | [AgentSystem](systems/AgentSystem.md) |
 | **TerrainFeature** | An edit-time marching-cubes addition on top of authored terrain. Only two types remain: `Mesa = 2`, `Cliff = 4` | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **thopter** | Shorthand for the ornithopter | [Ornithopter](systems/Ornithopter.md) |
 | **ToolItem** | `UsableItem` subclass for an aimed, instant or world-changing use; adds `aimProvider` | [Artifacts](systems/Artifacts.md) |
@@ -127,6 +128,7 @@ they are the ones worth reading before you start grepping.
 | **Versus** (VS) | Team PvP in the streamed world; 2–8 teams x 1–12, one team ship each, no scoring and no win condition | [GameModes](systems/GameModes.md) |
 | **VolumeTrigger** | Walk-in trigger that fires **server-only**; its click-to-fire sibling `InteractableTrigger` is deliberately ungated | [Interaction](systems/InteractionSystem.md) |
 | **WalkerPlatformCarrier** | Re-applies a transform-driven hull's per-frame delta to bodies standing on it — transform hulls impart no friction | [Vehicles](systems/Vehicles.md) |
+| **walking city** | The Striders' `strider-city` caravan: 3 crewed `StriderHabitatWalker` houses, 2 `DesertCrawler` workers, 2 crab outriders. Not the Sky City, which stands still in the air | [Striders](systems/Striders.md) |
 | **wing pack** | The folded ornithopter as a worn item; launching spawns the craft and seats the pilot as its owner | [Ornithopter](systems/Ornithopter.md) |
 | **WorldSaveStore** | The chunk-aware half of the save system: `instanceId -> EntityRecord`, hydrated and dehydrated per scene | [Persistence](systems/Persistence.md) |
 | **WorldSession** | The static carrying which world is staged, its config GUID and the staged document across the menu→world load | [Persistence](systems/Persistence.md) |

@@ -32,7 +32,7 @@ New or changed **player-held** item: artifact, gadget, potion, scanner, throwabl
 
 **Not** for: NPC-only guns driven by weapon-profile ScriptableObjects (`SpaceGame.Weapons.Weapon`,
 `Assets/Game/Scripts/Weapons/Core/Weapon.cs`), rideable vehicles/mounts, world interactables
-(`IInteractable`), or authoring the 3D mesh — that is the `blender-model` skill.
+(`IInteractable`), or authoring the 3D mesh — see `docs/AI/systems/ArtPipeline.md`.
 
 ## Build order
 
@@ -44,7 +44,7 @@ Item scripts compile into `Assembly-CSharp`; there is no asmdef under `Scripts/I
 not be one, because these types reach Assembly-CSharp code. Editor tests for them therefore go in
 `Assets/Game/Editor/`, not beside the asmdef'd EditMode tests.
 
-1. **Mesh** — `blender-model` skill; export to `Assets/Game/Art/Models/Items/<name>.fbx`
+1. **Mesh** — author the `.blend` and export to `Assets/Game/Art/Models/Items/<name>.fbx`
    (or `Assets/Game/Art/Models/Weapons/<Name>/`). Skip if reusing an existing FBX.
 2. **Script** — `Assets/Game/Scripts/Items/Artifacts/Gadgets/<Name>Artifact.cs`, namespace
    `SpaceGame.Items`, subclass of `ToolItem` (aimed/instant) or `EffectItem` (timed change to the
@@ -166,8 +166,8 @@ something you have drawn, so the wrist blade and the flame gauntlet read no diff
 torch. Same for anything worn on the back.
 
 There is no way to derive this, which is why it is authored: **"weapon" is not a C# class here.**
-Only two of the seven guns an NPC can roll (`BasicGun`, `BallLightningWeapon`) are `Weapon`
-subclasses — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
+Only one of the seven guns an NPC can roll (`BallLightningWeapon`) is a `Weapon`
+subclass — the rest are ordinary `UsableItem` artifacts — so `held is Weapon` calls a bazooka
 harmless. Add the item to the list in
 [`MenacingItemTests`](Assets/Game/Editor/Tests/MenacingItemTests.cs) with a one-line reason, or the
 test fails; that list is the review surface an authored flag needs so it does not drift one prefab
@@ -213,7 +213,7 @@ Without it, the trigger would be "holds anything and looks at you", which is exa
 
 ## Related skills
 
-- `blender-model` — authoring the FBX and the shared material palette.
+- `docs/AI/systems/ArtPipeline.md` — authoring the FBX and the shared material palette.
 - `spacegame-multiplayer` — `NetRelay`/`NetChannel`/`NetMsg`, authority rules, prefab registration
   in depth.
 - `spacegame-persistence` — `SaveableEntity`, `SaveScope`, the saveable prefab registry.

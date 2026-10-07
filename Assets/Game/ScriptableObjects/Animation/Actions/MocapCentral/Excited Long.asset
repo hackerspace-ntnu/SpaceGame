@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Excited Long
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 0
+  variants:
+  - clip: {fileID: 8993902097722301239, guid: 20bd9284d287246b6980f042bf60fa32, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+    contactAt: 0
+  - clip: {fileID: 8993902097722301239, guid: 8c2915e50905e490c8ca1fbe029bfa37, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+    contactAt: 0
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.2
+  fadeOut: 0.3
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: 388e14d7964ac4a4b9368a04a5e04810, type: 2}
+  postures: 0

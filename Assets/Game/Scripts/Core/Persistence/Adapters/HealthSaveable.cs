@@ -38,7 +38,7 @@ namespace SpaceGame.Core.Persistence
             if (Health == null || state == null) return;
             if (state["current"] is not { Type: JTokenType.Integer } current) return;
 
-            Health.RestoreHealth(current.Value<int>());
+            Health.LoadHealth(current.Value<int>());
         }
     }
 }

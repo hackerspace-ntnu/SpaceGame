@@ -19,7 +19,7 @@ namespace SpaceGame.Agents
         ///
         /// <para>
         /// Which faction an entity belongs to is not authoring: <see cref="EntityFaction.SetFaction"/>
-        /// is a runtime reassignment, and <c>MatchManager</c> re-teams every bot and player it spawns.
+        /// is a runtime reassignment, which a spawner may do for every bot and player it places.
         /// So a save has to be able to name a faction, and a save file cannot hold an object
         /// reference. The display name is not usable as the key — it is a designer-facing string that
         /// is expected to change — and a list index moves the moment a faction is added.
@@ -55,6 +55,12 @@ namespace SpaceGame.Agents
         [Tooltip("This faction's people, if it is a tribe. Empty for Humans, Outlaws, Clankers and " +
                  "animals — only a tribe fields caravans and war parties from a roster.")]
         public FactionRoster roster;
+
+        [Tooltip("This faction's towns move: the Striders' walking city, the Sky Tribe's flying city " +
+                 "and its caravans. Anything that sends the player to a fixed place (the lander's " +
+                 "intercepted signal, ShipSignal) skips a wandering faction's settlements, because a " +
+                 "town that has walked off is not there when they arrive.")]
+        public bool wandering;
 
         /// <summary>
         /// Self-registration, so the save system can look a faction up by the id it stored. Runs when

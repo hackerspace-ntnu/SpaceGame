@@ -74,8 +74,7 @@ namespace SpaceGame.Agents
         //
         // The head's aim is deliberately NOT saved: LateUpdate rebuilds it every frame from
         // `pitchAngle` and `yawAngle`, which are serialized, so it is a function of the prefab and
-        // this transform rather than state. That is the difference from TurretModule, whose barrel
-        // is aimed at a target and therefore has nowhere else to come from.
+        // this transform rather than state, so there is nothing about the head to persist.
         private bool cadenceRestored;
 
         public float CooldownTimer => cooldownTimer;
@@ -127,7 +126,7 @@ namespace SpaceGame.Agents
             // Fired everywhere so every player sees the rocket; damaging only where this launcher
             // is simulated, or the server bills the target once per machine that drew one. This
             // launcher fires on a fixed timer along a fixed heading, so the copies agree without
-            // anything being sent — see TurretModule.Fire for the aimed case.
+            // anything being sent.
             tp.Cosmetic = !authority.SimulatedHere;
             tp.Init(damagePerHit, gameObject);
 

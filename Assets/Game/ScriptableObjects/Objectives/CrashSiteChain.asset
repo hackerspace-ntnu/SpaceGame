@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7165aa3601d3264682078335aaed4d1, type: 3}
+  m_Name: CrashSiteChain
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
+  steps:
+  - {fileID: 11400000, guid: 7d3b5c9e981b1414db78e3230d242719, type: 2}
+  - {fileID: 11400000, guid: 46d8e276024e9534c875ec5129feff0e, type: 2}
+  - {fileID: 11400000, guid: 0982a5bb5bdce184989a06db0a9a4ff6, type: 2}
+  - {fileID: 11400000, guid: c0750443f8296e147ac667b215b5e3be, type: 2}
+  - {fileID: 11400000, guid: 4ba952f0b77ec3b46a544f2adc5a4364, type: 2}
+  - {fileID: 11400000, guid: 9b877535d1167604db9e4318d2d561e6, type: 2}
+  - {fileID: 11400000, guid: dd4fdcce73bd4e9b9bebfb9bcdbc0743, type: 2}
+  - {fileID: 11400000, guid: c4107a01d7164a6bb0c9cb1318997331, type: 2}
+  - {fileID: 11400000, guid: 26dcb83b5b0545a4dba3d5e671f8b2e1, type: 2}

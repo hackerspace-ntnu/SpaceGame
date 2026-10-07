@@ -1,8 +1,8 @@
 // Which items an NPC reads as a weapon, read off the assets.
 //
 // `InventoryItem.menacing` is authored per item and there is no way to derive it: "weapon" is not a
-// C# class in this project. Only two of the seven guns an NPC can roll — BasicGun and
-// BallLightningWeapon — are `Weapon` subclasses; the rest are ordinary `UsableItem` artifacts, so
+// C# class in this project. Only one of the seven guns an NPC can roll — BallLightningWeapon —
+// is a `Weapon` subclass; the rest are ordinary `UsableItem` artifacts, so
 // `held is Weapon` would call a bazooka harmless. A flag is the honest answer, and a flag needs a
 // list somebody can review, which is this file.
 //

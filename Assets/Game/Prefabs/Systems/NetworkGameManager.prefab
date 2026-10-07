@@ -16,6 +16,10 @@ GameObject:
   - component: {fileID: -3328959335672301551}
   - component: {fileID: 5789852136957963805}
   - component: {fileID: 790853505601134990}
+  - component: {fileID: 2260484335927224975}
+  - component: {fileID: 5201564553630205352}
+  - component: {fileID: 5131919924600830709}
+  - component: {fileID: 3069366118147606877}
   m_Layer: 0
   m_Name: NetworkGameManager
   m_TagString: Untagged
@@ -154,3 +158,57 @@ MonoBehaviour:
   mergeShare: 0.5
   maxPatchRadius: 3
   maxPatches: 192
+--- !u!114 &2260484335927224975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd4f2e2427b034dc6a1d17d7bd318369, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.PushableLedger
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5201564553630205352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdd5d05f7bc8035468c4800c0db663d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5131919924600830709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ff3f9306d0027e40a9adfe5886c9129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistantGroups
+  ShowTopMostFoldoutHeaderGroup: 1
+  publishInterval: 0.5
+--- !u!114 &3069366118147606877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bc69419fb3e6694cae2f00d68699f24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistantGroupSilhouette
+  positionLag: 1.5
+  snapDistance: 60

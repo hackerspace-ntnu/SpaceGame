@@ -2806,9 +2806,9 @@ Three parts that never talk to each other directly.
 
 | Part | Where | What it does |
 | --- | --- | --- |
-| Capture | [LookLabCapture.cs](Assets/Game/Editor/Environment/LookLabCapture.cs) | Renders the Game camera to `LookLab/scenes/<name>/color_ldr.png` plus a `pack.json` of provenance |
+| Capture | LookLabCapture.cs | Renders the Game camera to `LookLab/scenes/<name>/color_ldr.png` plus a `pack.json` of provenance |
 | The lab | `LookLab/app/` | Static ES modules; WebGL2 reimplementation of the stages; repaints on change |
-| The bridge | [looklab.py](tools/looklab.py) writes, [LookLabLive.cs](Assets/Game/Editor/Environment/LookLabLive.cs) polls | The page POSTs a look; the server writes `LookLab/live/look.json` atomically; the Editor polls its timestamp at 20 Hz |
+| The bridge | [looklab.py](tools/looklab.py) writes, LookLabLive.cs polls | The page POSTs a look; the server writes `LookLab/live/look.json` atomically; the Editor polls its timestamp at 20 Hz |
 
 Nothing connects to Unity. There is no socket in the Editor to leak across a domain reload.
 
@@ -2819,7 +2819,7 @@ Nothing connects to Unity. There is no socket in the Editor to leak across a dom
 | `PaletteShape` | [PaletteShape.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PaletteShape.cs) | The lattice as data — hue count, lightness steps, chroma fractions and ceiling, neutral count and range. `Default` holds the one committed look. Never serialized on the renderer assets |
 | `PastelPalette.Build(in PaletteShape)` | [PastelPalette.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PastelPalette.cs) | Builds the 204 colours from a shape. The colour math; the numbers live in `PaletteShape` |
 | `PastelQuantizePass.EnsurePalette` | [PastelQuantizeRenderFeature.cs](Assets/Game/Scripts/World/Environment/ColorGrade/PastelQuantizeRenderFeature.cs) | Rebuilds and re-uploads the palette when the shape changed. Called from `AddRenderPasses` |
-| `LookLabLive` | [LookLabLive.cs](Assets/Game/Editor/Environment/LookLabLive.cs) | Polls `look.json`, validates the shape, pushes it to every installed feature. Toggled by `SpaceGame ▸ Look Lab ▸ Live Bridge` |
+| `LookLabLive` | LookLabLive.cs | Polls `look.json`, validates the shape, pushes it to every installed feature. Toggled by `SpaceGame ▸ Look Lab ▸ Live Bridge` |
 | `LabRenderer` | `LookLab/app/gl.js` | One WebGL2 context, one program, one viewport draw per panel |
 
 ## Flows

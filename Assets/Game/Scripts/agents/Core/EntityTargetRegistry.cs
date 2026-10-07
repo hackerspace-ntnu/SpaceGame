@@ -111,7 +111,8 @@ namespace SpaceGame.Agents
 
         // The same query for something that has a side but is not itself an entity — a settlement
         // alarm, a territory. It owns no EntityFaction (registering one would make the town a
-        // target), so it asks by definition and table instead.
+        // target), so it asks by definition and table instead — through FactionRelations, so a
+        // tribe's goodwill toward a player counts here exactly as it does for its people.
         public static void Query(FactionDefinition owner, FactionRelationshipTable table,
                                  FactionRelationship required, Vector3 position, float maxRange,
                                  List<EntityFaction> results)
@@ -132,7 +133,7 @@ namespace SpaceGame.Agents
                 }
                 if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
                     continue;
-                if (table.Get(owner, e.Faction) != required)
+                if (FactionRelations.Resolve(owner, table, e) != required)
                     continue;
 
                 results.Add(e);

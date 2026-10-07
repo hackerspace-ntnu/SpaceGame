@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Punch
+  m_EditorClassIdentifier: 
+  slot: 1
+  playback: 0
+  variants:
+  - clip: {fileID: -623603649343465320, guid: f5773a1483738bf44a4c38c592386239, type: 3}
+    aimDown: {fileID: -623603649343465320, guid: 3c0a04a3c31f43c42af57ffa1dbd881b, type: 3}
+    aimUp: {fileID: -623603649343465320, guid: 2ff4d4773d86f8c4fa5e2d1ada407ac4, type: 3}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+  authoredHand: 0
+  mirrorForOtherArm: 1
+  speedRange: {x: 1, y: 1}
+  fadeIn: 0.06
+  fadeOut: 0.15
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: 6188ee697c4fd4b2fabe83eb05a6fd7b, type: 2}
+  postures: 0

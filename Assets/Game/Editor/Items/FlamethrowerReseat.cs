@@ -26,7 +26,7 @@ namespace SpaceGame.EditorTools
     /// </para>
     /// <para>
     /// <b>Verified out loud.</b> Unity discards prefab saves when the AssetDatabase is read-only
-    /// and says nothing (see <c>ItemScaleLadder</c>), so the prefab is re-loaded off disk
+    /// and says nothing, so the prefab is re-loaded off disk
     /// afterwards and every seat re-measured against the marker it should be sitting on.
     /// </para>
     /// </summary>

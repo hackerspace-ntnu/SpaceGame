@@ -10,7 +10,7 @@ namespace SpaceGame.Presentation
     /// be fitted, and which are the hull they bolt to.
     ///
     /// <para>
-    /// Baked by <c>ShipSchematicBuilder</c> from the same FBX <c>PlayerShipBuilder</c> uses, so the
+    /// Baked from the same FBX the ship prefab uses, so the
     /// drawing on the glass cannot drift from the ship standing around it. Nothing here is logic —
     /// it is the index <see cref="ShipSchematicStage"/> reads so that painting a module is an array
     /// lookup rather than a name search every frame.

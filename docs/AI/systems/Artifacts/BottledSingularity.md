@@ -4,7 +4,7 @@ status: shipped
 authority: Server
 continuous: false
 uses: [RepulsorBlast]
-updated: 2026-09-13
+updated: 2026-09-24
 ---
 
 # Bottled singularity (design)
@@ -51,7 +51,7 @@ The comedy is entirely in the lack of exemptions. Throw it short and you are par
   with an inward sign for 1.5 s and then one outward frame. Same math, same ragdoll path — extract the
   shared part rather than writing a second one.
 - The owner rolls one seed into `NetArg.B` and the outward scatter is derived from it by pure static
-  math, the pattern `GravelBlastMath` and `DragonRocketFlight` already use.
+  math, the pattern `PelletShotMath` and `DragonRocketFlight` already use.
 
 ## Multiplayer
 

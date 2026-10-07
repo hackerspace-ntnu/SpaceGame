@@ -635,7 +635,7 @@ namespace SpaceGame.EditorTools
         ///
         /// <para>
         /// The system is built PLAYING with its emission DISABLED — the shipped manual-emit shape
-        /// (see <c>GravelBlastFx</c>). A system that is not playing ignores <c>Emit</c>; a system
+        /// (see <c>PelletGunFx</c>). A system that is not playing ignores <c>Emit</c>; a system
         /// with emission enabled smokes constantly; and without <c>AlwaysSimulate</c> the puffs
         /// freeze the moment the wearer walks off screen, which for a pack worn on somebody's back
         /// is most of the time.

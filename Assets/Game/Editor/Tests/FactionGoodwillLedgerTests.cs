@@ -14,6 +14,7 @@ using UnityEditor;
 using UnityEngine.TestTools;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.EditorTools
 {
@@ -328,7 +329,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The versus case, and the reason there is no game-mode check anywhere: "same side" is the
-        /// crew in the open world and the TEAM in a match, because MatchManager re-teams players
+        /// crew in the open world and the TEAM in a match, because a match re-teams players
         /// into per-team factions. Somebody on the other team standing next to a hunted player is
         /// not part of their war.
         /// </summary>
@@ -362,5 +363,132 @@ namespace SpaceGame.EditorTools
                 Vector3.zero, humans, new Vector3(Radius, 0f, 0f), humans,
                 GoodwillBand.AtWar, Radius));
         }
+
+        // ── A settlement asks too ──────────────────────────────────────────────────
+        //
+        // A town is not an entity, so SettlementAlarm asks the registry by definition and table.
+        // That query used to read the table alone, and a tribe's alarm rang for — and its defenders
+        // rallied against — a player the tribe itself called Allied.
+
+        /// <summary>
+        /// The definition query goes through goodwill before the table: an Allied player is no
+        /// intruder where the table says Hostile, while a crewmate on no better terms still is.
+        /// </summary>
+        [Test]
+        public void ATribesAlliedPlayerIsNoIntruderInItsSettlement()
+        {
+            SetStance(sand, humans, FactionRelationship.Hostile);
+            EntityFaction ally = Player("Ally", PlayerA);
+            EntityFaction stranger = Player("Stranger", PlayerB);
+            Move(sand, PlayerA, 80f);
+
+            SaveManager previous = SaveManager.Instance;
+            SaveManager players = BindPlayers((PlayerA, ally.gameObject), (PlayerB, stranger.gameObject));
+            var found = new System.Collections.Generic.List<EntityFaction>();
+            try
+            {
+                Assert.AreEqual(GoodwillBand.Allied, ledger.BandForEntity(sand, ally));
+
+                EntityTargetRegistry.Query(sand, table, FactionRelationship.Hostile, Vector3.zero, 100f, found);
+                CollectionAssert.DoesNotContain(found, ally, "the ally's band overrides the table's Hostile row");
+                CollectionAssert.Contains(found, stranger, "the stranger is Wary, so the table's row stands");
+
+                EntityTargetRegistry.Query(sand, table, FactionRelationship.Allied, Vector3.zero, 100f, found);
+                CollectionAssert.Contains(found, ally);
+                CollectionAssert.DoesNotContain(found, stranger);
+            }
+            finally
+            {
+                EntityTargetRegistry.Unregister(ally);
+                EntityTargetRegistry.Unregister(stranger);
+                SetSaveManager(previous);
+                Object.DestroyImmediate(players.gameObject);
+            }
+        }
+
+        [Test]
+        public void ATribesAlliedPlayerIsNotCountedAsOneOfItsTownsPeople()
+        {
+            EntityFaction ally = Player("Ally", PlayerA);
+            ally.gameObject.tag = SpaceGame.Gameplay.SpawnClearance.PlayerTag;
+            Move(sand, PlayerA, 80f);
+
+            var resident = new GameObject("Resident");
+            junk.Add(resident);
+            EntityFaction inhabitant = resident.AddComponent<EntityFaction>();
+            inhabitant.SetFaction(sand, table);
+            EntityTargetRegistry.Register(inhabitant);
+
+            var town = new GameObject("Town");
+            junk.Add(town);
+            var population = town.AddComponent<SettlementPopulation>();
+            population.Configure(sand, table, new SettlementPopulation.Inhabitant[0], maxPopulation: 12,
+                                 spawnInterval: 60f, innerRadius: 45f, outerRadius: 120f, countRadius: 100f);
+
+            SaveManager previous = SaveManager.Instance;
+            SaveManager players = BindPlayers((PlayerA, ally.gameObject));
+            var allied = new System.Collections.Generic.List<EntityFaction>();
+            try
+            {
+                EntityTargetRegistry.Query(sand, table, FactionRelationship.Allied, Vector3.zero, 100f, allied);
+                CollectionAssert.Contains(allied, ally, "precondition: goodwill makes the player Allied");
+
+                Assert.AreEqual(1, population.CountInhabitants(), "only the resident lives here");
+            }
+            finally
+            {
+                EntityTargetRegistry.Unregister(ally);
+                EntityTargetRegistry.Unregister(inhabitant);
+                SetSaveManager(previous);
+                Object.DestroyImmediate(players.gameObject);
+            }
+        }
+
+        private void SetStance(FactionDefinition a, FactionDefinition b, FactionRelationship stance)
+        {
+            var rows = new SerializedObject(table).FindProperty("relationships");
+            rows.arraySize = 1;
+            SerializedProperty row = rows.GetArrayElementAtIndex(0);
+            row.FindPropertyRelative("factionA").objectReferenceValue = a;
+            row.FindPropertyRelative("factionB").objectReferenceValue = b;
+            row.FindPropertyRelative("relationship").enumValueIndex = (int)stance;
+            rows.serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>A crew-faction entity in the registry, a few metres from the origin.</summary>
+        private EntityFaction Player(string name, string profileId)
+        {
+            var go = new GameObject(name);
+            junk.Add(go);
+            go.transform.position = new Vector3(profileId == PlayerA ? 5f : -5f, 0f, 0f);
+            var entity = go.AddComponent<EntityFaction>();
+            entity.SetFaction(humans, table);
+            EntityTargetRegistry.Register(entity);
+            return entity;
+        }
+
+        /// <summary>
+        /// A SaveManager holding just a player service with these bindings — the one part of it
+        /// <c>BandForEntity</c> reads to turn a body into a profile id. Edit mode runs no Awake, so the
+        /// instance and its service are installed by hand.
+        /// </summary>
+        private static SaveManager BindPlayers(params (string profileId, GameObject body)[] bindings)
+        {
+            var manager = new GameObject("SaveManager").AddComponent<SaveManager>();
+            var service = new PlayerSaveService();
+            typeof(SaveManager)
+                .GetField("playerService", System.Reflection.BindingFlags.Instance |
+                                           System.Reflection.BindingFlags.NonPublic)
+                .SetValue(manager, service);
+            SetSaveManager(manager);
+
+            foreach ((string profileId, GameObject body) in bindings)
+                service.Bind(profileId, body, applyPosition: false);
+
+            return manager;
+        }
+
+        private static void SetSaveManager(SaveManager manager) =>
+            typeof(SaveManager).GetProperty(nameof(SaveManager.Instance)).SetValue(null, manager);
     }
 }

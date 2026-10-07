@@ -57,29 +57,13 @@ Legend for the **State** column:
 
 ## 2. Enemies, creatures and NPCs
 
-### `agents/Robots/PatrolRobot.prefab` and variants `1`, `2`, `3`
-### `agents/Robots/DeathmatchBot.prefab`
-
-`EntityAudioModule` + `PerceptionModule` + `SearchModule` + `HealthReactionModule` + `CloseCombatModule` + `AgentRangedCombatModule`.
-
-| Trigger | Id | Sound wanted | State |
-|---|---|---|---|
-| Walk cycle (`footstepInterval` 0.45s) | `EntityFootstep` 411 | Servo-driven metal footfall | **pinned** `event:/SFX/Footstep` (all five) |
-| Idle ambience (every 5–12 s) | `NpcMumbleNeutral` 400 | Machine idle chatter / servo whine | **pinned** `event:/SFX/ElectricHum` (all five) |
-| Spots a target | `EntityAlert` 407 | Detection ping | **pinned** `event:/SFX/Implosion` on `1`, `2`, `3`; unassigned on `PatrolRobot`, `DeathmatchBot` |
-| Loses target, starts searching | `EntitySearch` 408 | Scanning sweep, quieter | catalog (unassigned on all) |
-| Aggro on target | `EntityAggro` 406 | Threat klaxon / lock-on | catalog (unassigned on all) |
-| Takes damage | `EntityHurt` 409 | Metal impact + sparks | **pinned**: `Hit` on `PatrolRobot`/`DeathmatchBot`, `MetalPickup` on `2`/`3`, `PlayerDie` on `1` |
-| Dies | `EntityDeath` 410 | Power-down + collapse | **pinned** `event:/SFX/PlayerDie` (all five) |
-| Melee attack | `EntityAttack` 412 | Servo swing | catalog |
-| Fires ranged weapon → `WPN_RobotPistol.asset` | `WeaponGunFire` 200 (default) | Robot pistol crack | **pinned** `event:/SFX/Hit` on the *ScriptableObject*, shared by all five bots |
-
-> Every robot has five pinned events, so **the robots are the one family the catalog cannot retune.**
-> The `PlayerDie` pin on `PatrolRobot 1`'s *hurt* sound is almost certainly a mistake.
+The four `PatrolRobot` prefabs and `DeathmatchBot` that headed this section are deleted (the bot
+earlier, the robots and their only footstep source, `EntityAudioModule`, on 2026-10-02), and with
+them every pinned robot event. No NPC or creature has a footstep or idle-ambience source now.
 
 ### `agents/Characters/Nomad.prefab`
 
-`PerceptionModule` + `HealthReactionModule` + `CloseCombatModule` + `DialogInteraction`. No `EntityAudioModule` → **no footsteps**.
+`PerceptionModule` + `HealthReactionModule` + `CloseCombatModule` + `DialogInteraction`. No footstep source → **no footsteps**.
 
 | Trigger | Id | Sound wanted | State |
 |---|---|---|---|
@@ -91,7 +75,7 @@ Legend for the **State** column:
 
 ### `agents/creatures/Golem.prefab`, `agents/creatures/DuneRat.prefab`, `agents/creatures/Vrescal.prefab`
 
-Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModule`. No `EntityAudioModule` → **no footsteps, no idle ambience**.
+Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModule`. No footstep or ambience source → **no footsteps, no idle ambience**.
 
 | Trigger | Id | Sound wanted | State |
 |---|---|---|---|
@@ -100,8 +84,8 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 | Hurt | `EntityHurt` 409 | Per-creature pain | catalog |
 | Death | `EntityDeath` 410 | Per-creature death | catalog |
 
-> All three share ids with the robots, so a single catalog slot is currently doing stone, rodent,
-> insect and machine. **These want per-creature pins or their own SfxId numbers.**
+> All three share the generic entity ids, so a single catalog slot is currently doing stone, rodent
+> and insect. **These want per-creature pins or their own SfxId numbers.**
 
 ### `agents/Caravan/NomadOstrich.prefab`, `agents/Caravan/BountyHunter.prefab`
 
@@ -115,13 +99,16 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 
 ## 3. Weapons and projectiles
 
-### `Items/Artifacts/Guns/Gun.prefab` — `BasicGun`
+### `Items/Artifacts/Guns/Gun.prefab` — `PelletGunArtifact` (basic gun)
+
+Updated 2026-09-24, when the basic gun became a hitscan `PelletGunArtifact`.
 
 | Trigger | Id | Sound wanted | State |
 |---|---|---|---|
-| Fire | `WeaponGunFire` 200 | Ballistic crack + mechanical cycle | **pinned** `event:/SFX/Explosion` |
-| Charge start | `WeaponEnergyChargeLoop` 204 | (unused by `BasicGun`) | catalog |
-| Use (base `UsableItem`) | `None` 0 | Deliberately silent — the gun makes its own noise | — |
+| Fire (`reportId`) | `WeaponGunFire` 200 | Ballistic crack + mechanical cycle | catalog |
+| Hit something alive | `ImpactFlesh` 300 | Wet impact at the hit point | catalog |
+| Hit anything else | `ImpactProjectile` 305 | Hard ricochet at the hit point | catalog |
+| Use (base `UsableItem`) | `None` 0 | Deliberately silent — see the `refireSeconds` gotcha in [Artifacts.md](Artifacts.md) | — |
 | Pick up | `InteractPickup` 503 | Weapon pickup clack | catalog |
 
 ### `Items/Artifacts/Guns/CixinGunFinal.prefab` — `BallLightningWeapon`
@@ -273,12 +260,11 @@ Every other UI prefab (`PlayerHUD`, `InventoryUI`, `Slot`, `Interact`, `DialogeP
 
 1. **`PlayerCharacter` `DamageFeedback` plays `event:/UI/No`.** A UI beep on player damage.
 2. **`Menu Button` hover/press are swapped** — hover plays the negative event.
-3. **`PatrolRobot 1` plays `PlayerDie` when hurt**, not when it dies.
-4. **`LightningSpell` casts with `MetalPickup`.**
-5. **`CixinGunFinal` fires on `WeaponGunFire` 200** when `WeaponBallLightningFire` 206 exists and is tuned for it.
-6. **Nothing plays footsteps except the five robots and the player.** Every creature and every legged vehicle is silent underfoot.
-7. **`WingPack` makes no sound on use** despite the full wings family existing in the catalog.
-8. **No music.** The BGM bus and its `AudioSource` are wired and empty.
+3. **`LightningSpell` casts with `MetalPickup`.**
+4. **`CixinGunFinal` fires on `WeaponGunFire` 200** when `WeaponBallLightningFire` 206 exists and is tuned for it.
+5. **Nothing plays footsteps except the player.** Every NPC, creature and legged vehicle is silent underfoot (the robots that had footsteps, via `EntityAudioModule`, were deleted 2026-10-02).
+6. **`WingPack` makes no sound on use** despite the full wings family existing in the catalog.
+7. **No music.** The BGM bus and its `AudioSource` are wired and empty.
 
 ## Ids that exist and no prefab or script uses
 

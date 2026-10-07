@@ -6,7 +6,6 @@ paths:
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs
   - Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs
   - Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs
-  - Assets/Game/Editor/Creatures/SaddleBuilder.cs
   - "Assets/Game/Art/Models/_Source~/models/gear"
 symptoms:
   - "the animal cannot be ridden, or can be ridden with no saddle on it"
@@ -22,14 +21,14 @@ symptoms:
   - "looking at the saddle always offers to ride, never to take it off"
   - "the saddle is the right size for the world but too small for the animal wearing it"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-updated: 2026-09-07
+updated: 2026-10-04
 ---
 
 # Saddles
 
 A saddle turns an animal into something you can ride and something that carries gear. It is an assembly of three systems rather than a new one, which is why it has its own page: no single one of them owns it.
 
-**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddlePlacement`](Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs), [`SaddleBuilder`](Assets/Game/Editor/Creatures/SaddleBuilder.cs), and the model under `_Source~/models/gear/`.
+**Scope:** `SaddleSocket` / `SaddleRemover` ([Riding/](Assets/Game/Scripts/agents/Modules/Riding)), [`SaddlePlacement`](Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs), `SaddleBuilder`, and the model under `_Source~/models/gear/`.
 **Related:** [AgentSystem.md](AgentSystem.md) (the animal), [Backpack.md](Backpack.md) (the container), [Artifacts.md](Artifacts.md) (the item), [Vehicles.md](Vehicles.md) (`MountModule`).
 
 ## Model
@@ -39,7 +38,7 @@ Three pieces, each living where it belongs:
 | Piece | Lives on | Is |
 | --- | --- | --- |
 | `SaddleSocket` | the **animal** | Whether a saddle is on. The only replicated state — one bool. `startSaddled` makes an animal born wearing one (the robot horses, whose saddle is part of the chassis); only the first life reads it — a save restores what was saved, so a horse the player unsaddled stays bare. |
-| `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse wears the Sandloper's (narrow, boards behind the cantle). |
+| `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse and the Dunehorn wear the Sandloper's (narrow, boards behind the cantle). The Dunehorn copies Appa's whole stack, but Appa's saddle is 2.5 m wide in root units against its 0.86 m back. |
 | `SaddlePlacement` | the **item** | The saddle is a [placeable](Placeables.md); this is its rule. Criteria: an animal with a free socket. Logic: `Fit()`. |
 | `SteerModule` | the **animal** | Rider input to the motor. Always on; it self-gates on `IsMounted`. |
 | `SaddleQuickRelease` | the **animal** | `Q` while standing beside it. Same `Request(false)` as the grips. |

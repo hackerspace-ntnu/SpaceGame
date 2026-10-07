@@ -8,8 +8,8 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// What the standing terminal draws on its glass: a header with three tabs and a clock, one
-    /// page at a time under it, and a blinking cursor. Built by <c>StandingTerminalBuilder</c>
+    /// What the standing terminal draws on its glass: a header with four tabs and a clock, one
+    /// page at a time under it, and a blinking cursor. Authored on the terminal prefab
     /// as a world-space canvas laid 2 mm over the screen plate; this only ever moves text,
     /// colours and dots around inside it.
     ///
@@ -19,12 +19,18 @@ namespace SpaceGame.Presentation
     /// operator chose; what the page says comes from a <see cref="TelemetrySnapshot"/> handed
     /// in by <see cref="ShipTelemetrySource"/>, composed by <see cref="ShipTelemetry"/>.
     /// </para>
+    /// <para>
+    /// <b>Until a working long-range transmitter is fitted, only the hull drawing works.</b> Every other
+    /// page is covered by animated static and the no-carrier line (<see cref="ShipTelemetry.ShowsStatic"/>),
+    /// and the COMMS tab is not there at all. Derived from the rack's replicated mask, like every page, so
+    /// every machine shows the same.
+    /// </para>
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TerminalScreen : MonoBehaviour
     {
-        /// <summary>Page order — also the tab order and the 1/2/3 keys. Names live on the console, which owns the page list.</summary>
-        public const int ShipPage = 0, StatusPage = 1, GpsPage = 2;
+        /// <summary>Page order — also the tab order and the 1-4 keys. Names live on the console, which owns the page list.</summary>
+        public const int ShipPage = 0, StatusPage = 1, GpsPage = 2, CommsPage = 3;
 
         [Header("Wiring")]
         [SerializeField] private TerminalConsole console;
@@ -49,6 +55,19 @@ namespace SpaceGame.Presentation
         [SerializeField] private TextMeshProUGUI gpsText;
         [SerializeField] private RectTransform radar;
 
+        [Header("Comms page")]
+        [SerializeField] private TextMeshProUGUI commsText;
+
+        [Tooltip("The COMMS tab. Hidden until the transmitter works: the tab arriving is part of the news.")]
+        [SerializeField] private GameObject commsTab;
+
+        [Header("No carrier")]
+        [Tooltip("Animated static and the no-carrier line, laid over the page area. Up over every page but the " +
+                 "hull drawing while the transmitter is offline.")]
+        [SerializeField] private GameObject staticOverlay;
+
+        [SerializeField] private TextMeshProUGUI staticText;
+
         [Header("Phosphor")]
         [SerializeField] private Color phosphor = new(0.42f, 1f, 0.6f);
         [SerializeField] private Color ink = new(0.02f, 0.075f, 0.045f);
@@ -63,6 +82,7 @@ namespace SpaceGame.Presentation
 
         private readonly List<Image> dots = new();
         private int shown = -1;
+        private TelemetrySnapshot last = TelemetrySnapshot.Empty;
 
         private void Awake()
         {
@@ -124,6 +144,15 @@ namespace SpaceGame.Presentation
                 if (tabLabels != null && i < tabLabels.Length && tabLabels[i] != null)
                     tabLabels[i].color = active ? ink : phosphor;
             }
+
+            PresentCarrier();
+        }
+
+        /// <summary>The static over a page that needs the transmitter, and the COMMS tab once there is one.</summary>
+        private void PresentCarrier()
+        {
+            if (staticOverlay != null) staticOverlay.SetActive(ShipTelemetry.ShowsStatic(shown, last));
+            if (commsTab != null) commsTab.SetActive(ShipTelemetry.CommsTabShown(last));
         }
 
         /// <summary>
@@ -142,7 +171,11 @@ namespace SpaceGame.Presentation
         /// <summary>Redraws every page from one reading. Cheap enough to call a few times a second.</summary>
         public void Present(in TelemetrySnapshot s)
         {
+            last = s;
+            PresentCarrier();
+
             if (clockText != null) clockText.text = ShipTelemetry.Clock(s.TimeOfDay01);
+            if (staticText != null) staticText.text = ShipTelemetry.OfflineLine;
 
             if (shipSummaryText != null) shipSummaryText.text = Summary(s);
             if (schematic != null) schematic.Present(s);
@@ -151,6 +184,8 @@ namespace SpaceGame.Presentation
 
             if (gpsText != null) gpsText.text = ShipTelemetry.GpsPage(s);
             PlotCrew(s.CrewOffsets);
+
+            if (commsText != null) commsText.text = ShipTelemetry.CommsPage(s);
         }
 
         /// <summary>

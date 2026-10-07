@@ -3,7 +3,7 @@
 // The interesting part of this component is how little it does, and that is a property of the
 // architecture rather than of this file. Two facts make "peaceful" almost free:
 //
-//   * Every combat module — ChaseModule, CloseCombatModule, AgentRangedCombatModule — acts only
+//   * Every combat module — ChaseModule, CloseCombatModule, NpcItemUseModule with a gun — acts only
 //     when AgentTargeting is holding a target. None of them consults the faction table itself.
 //     So an agent that never acquires a target is peaceful with no module disabled, no behaviour
 //     tree branch and no state flag threaded through the stack. It simply wanders.
@@ -20,6 +20,11 @@
 //     re-enter          → clock resets to zero.
 // So you cannot wait out a creature standing on top of you, and you are not chased across the
 // world for one stray shot. Walk away and it forgets.
+//
+// Below the grudge sits the meter (AggressionMath) — or, with jostlesToFight > 0, the jostle LADDER:
+// any hit is the fight at once and is announced, while shoves are counted (Jostled) a rung at a time,
+// and each band holds settleSeconds before cooling a step. Raise/Escalate are the band-level entry
+// points.
 //
 // Requires nothing to be wired: it finds AgentTargeting and HealthComponent on the same object.
 using UnityEngine;
@@ -78,7 +83,29 @@ namespace SpaceGame.Agents
         /// <summary>Which band <see cref="Aggression"/> falls in for THIS agent's temperament.</summary>
         public AggressionBand Band => AggressionMath.BandFor(aggression, aggressionSettings.attackAt);
 
-        public AggressionSettings Settings => aggressionSettings;
+        /// <summary>
+        /// The whole temperament. Writable so a spawner can derive it per individual at runtime
+        /// (a resident's temper picks its <c>jostlesToFight</c>); a written value is validated the same
+        /// way the inspector's is.
+        /// </summary>
+        public AggressionSettings Settings
+        {
+            get => aggressionSettings;
+            set
+            {
+                aggressionSettings = Validated(value);
+                RaiseBandChanged();
+            }
+        }
+
+        /// <summary>
+        /// What last raised (or re-asserted) the band — a hit, a gunshot, trespass. Lets whoever
+        /// reacts to <see cref="BandChanged"/> say WHY: "watch it" to a punch, "put that away" to a gun.
+        /// </summary>
+        public AggressionInput LastCause { get; private set; }
+
+        /// <summary>Who <see cref="LastCause"/> came from, when anybody did. Cleared by <see cref="Forget"/>.</summary>
+        public Transform LastCauseFrom { get; private set; }
 
         /// <summary>
         /// Who the meter is filling up because of, before it is full enough to be a grudge.
@@ -130,6 +157,12 @@ namespace SpaceGame.Agents
         private Transform provoker;
         private AggressionBand band;
 
+        // Quiet seconds in the current band, for settleSeconds. Reset by every band change and by
+        // every new provocation, so a rung holds for settleSeconds after the LAST thing that happened.
+        private float bandHeldFor;
+
+        private bool Laddered => aggressionSettings.jostlesToFight > 0;
+
         private AgentTargeting targeting;
         private HealthComponent health;
         private Transform aggressor;
@@ -176,13 +209,19 @@ namespace SpaceGame.Agents
             }
 
             if (health != null)
+            {
                 health.OnDamage += HandleDamage;
+                health.OnDefended += HandleDefended;
+            }
         }
 
         private void OnDisable()
         {
             if (health != null)
+            {
                 health.OnDamage -= HandleDamage;
+                health.OnDefended -= HandleDefended;
+            }
         }
 
         private void HandleDamage(int amount)
@@ -196,15 +235,30 @@ namespace SpaceGame.Agents
             if (health.IsRestoring)
                 return;
 
-            Transform source = health.LastDamageSource;
+            HandleAttack(health.LastDamageSource, amount);
+        }
+
+        /// <summary>
+        /// A blow its guard stopped whole still happened. OnDamage never fires for it, so without
+        /// this a player could block-bait a neutral camp forever without anyone minding — and a
+        /// blow that got partly through is already counted by <see cref="HandleDamage"/>, at the
+        /// amount that landed.
+        /// </summary>
+        private void HandleDefended(DamageHit hit)
+        {
+            if (health == null || health.IsRestoring || hit.Amount > 0)
+                return;
+
+            HandleAttack(hit.Source, hit.Attempted);
+        }
+
+        private void HandleAttack(Transform source, int amount)
+        {
             if (source == null)
                 return;
 
-            // Attribute to the entity, not to the collider or the projectile that carried the
-            // reference — a limb collider is not something the creature can walk toward, and a
-            // projectile is destroyed the frame it lands.
-            EntityFaction attacker = source.GetComponentInParent<EntityFaction>();
-            Transform resolved = attacker != null ? attacker.transform : source;
+            Transform resolved = TargetResolution.EntityOf(source);
+            EntityFaction attacker = resolved.GetComponent<EntityFaction>();
 
             if (resolved == transform)
                 return;                      // self-inflicted; nothing to be angry at
@@ -228,6 +282,14 @@ namespace SpaceGame.Agents
             if (amount < damageThreshold)
                 return;
 
+            // On a ladder a blow is never a warning: landed or blocked, hitting or shooting somebody
+            // is the fight at once, and the camp hears about it. The ladder counts shoves instead.
+            if (Laddered)
+            {
+                Raise(AggressionBand.Grudge, resolved, AggressionInput.Hit);
+                return;
+            }
+
             // Being hit is now one input among several rather than the only one, but it is by far
             // the heaviest: hitGain is set so a solid hit fills the meter on its own, which keeps
             // the behaviour this component had before it had a meter at all.
@@ -242,7 +304,8 @@ namespace SpaceGame.Agents
         /// <para>
         /// Reaching <c>attackAt</c> calls <see cref="Provoke"/> and everything from there is
         /// unchanged: the target goes to AgentTargeting, the leash holds it, the calm-down clock
-        /// runs, the alert goes out. The meter is only the road up to that.
+        /// runs, the alert goes out — unless an ally's alert filled it (<see cref="Announces"/>).
+        /// The meter is only the road up to that.
         /// </para>
         /// <para>
         /// <paramref name="from"/> is remembered as the <see cref="Provoker"/> even well below the
@@ -272,8 +335,7 @@ namespace SpaceGame.Agents
             if (delta <= 0f)
                 return;
 
-            if (from != null && from != transform)
-                provoker = from;
+            RecordCause(input, from);
 
             aggression = AggressionMath.Apply(aggression, delta);
             RaiseBandChanged();
@@ -285,7 +347,83 @@ namespace SpaceGame.Agents
             // pushed over the edge by a noise with nobody to blame stays at the top of the meter
             // and waits, rather than attacking whoever it happens to see next.
             if (TargetResolution.IsViable(provoker))
-                Provoke(provoker);
+                Provoke(provoker, Announces(input));
+        }
+
+        /// <summary>
+        /// A player shoved into this agent (<see cref="JostleSensor"/>): one rung of the ladder,
+        /// <c>jostlesToFight</c> of them the fight. Ignored without a ladder — an agent that weighs
+        /// hits on the meter has no count to keep.
+        /// </summary>
+        public void Jostled(Transform from)
+        {
+            if (Laddered)
+                Escalate(from, AggressionInput.Jostle);
+        }
+
+        /// <summary>
+        /// Put this agent in at least <paramref name="atLeast"/>, whatever the meter said — the
+        /// band-level counterpart of <see cref="AddAggression"/>, for callers that reason in bands
+        /// (a hit on the ladder, a resident joining a bonded ally's fight). Never lowers the band;
+        /// re-asserting the current band restarts its settle hold. Grudge provokes
+        /// <paramref name="from"/> — announced unless the cause is an ally's alert — even from a
+        /// meter already waiting at the top; with nobody viable to blame it waits there.
+        /// </summary>
+        public void Raise(AggressionBand atLeast, Transform from, AggressionInput cause)
+        {
+            if (IsProvoked)
+                return;
+
+            RecordCause(cause, from);
+
+            if (Band < atLeast || atLeast == AggressionBand.Grudge)
+                Reach(atLeast);
+        }
+
+        /// <summary>
+        /// One rung up the ladder (<see cref="AggressionMath.LadderStep"/>): the top rung is the
+        /// fight, provoked on <paramref name="from"/> as <see cref="Raise"/> does. With no ladder
+        /// (<c>jostlesToFight</c> 0) one band up.
+        /// </summary>
+        public void Escalate(Transform from, AggressionInput cause)
+        {
+            if (IsProvoked)
+                return;
+
+            RecordCause(cause, from);
+            Reach(AggressionMath.LadderStep(Band, aggressionSettings.jostlesToFight));
+        }
+
+        /// <summary>
+        /// Does a fight that <paramref name="cause"/> started tell this agent's allies? Every fight
+        /// this agent earned itself does. One that started from an ally's alert does not: every
+        /// receiver re-broadcasting is how one alert would wake the map instead of one camp.
+        /// </summary>
+        public static bool Announces(AggressionInput cause) => cause != AggressionInput.AllyHurt;
+
+        // Who to blame and why, and a fresh settle hold: something just happened.
+        private void RecordCause(AggressionInput cause, Transform from)
+        {
+            if (from != null && from != transform)
+                provoker = from;
+
+            LastCause = cause;
+            LastCauseFrom = from;
+            bandHeldFor = 0f;
+        }
+
+        // Moves the meter to the floor of the band, so every reader of the number agrees with the
+        // band. The top band is the fight itself when there is somebody to have it with.
+        private void Reach(AggressionBand target)
+        {
+            if (target == AggressionBand.Grudge && TargetResolution.IsViable(provoker))
+            {
+                Provoke(provoker, Announces(LastCause));
+                return;
+            }
+
+            aggression = AggressionMath.FloorOf(target, aggressionSettings.attackAt);
+            RaiseBandChanged();
         }
 
         /// <summary>
@@ -301,6 +439,7 @@ namespace SpaceGame.Agents
 
             AggressionBand previous = band;
             band = now;
+            bandHeldFor = 0f;
             BandChanged?.Invoke(previous, now);
         }
 
@@ -310,10 +449,10 @@ namespace SpaceGame.Agents
         ///
         /// <para>
         /// <paramref name="announce"/> tells the <see cref="AlertBroadcaster"/> on this object, if
-        /// there is one, to pass a NEW aggressor on to allies in range. Leave it on for anger this
-        /// creature earned itself (a hit); turn it off when the anger arrived from someone else's
-        /// alert or a restore, or every receiver becomes a broadcaster and one hit cascades across
-        /// the map.
+        /// there is one, to pass a NEW aggressor on to allies in range, naming this agent as the
+        /// victim. Leave it on for anger this creature earned itself (a hit); turn it off when the
+        /// anger arrived from someone else's alert or a restore, or every receiver becomes a
+        /// broadcaster and one hit cascades across the map.
         /// </para>
         /// </summary>
         public void Provoke(Transform target, bool announce = true)
@@ -341,7 +480,7 @@ namespace SpaceGame.Agents
             targeting.ForceTarget(target);
 
             if (announce && newAggressor && TryGetComponent(out AlertBroadcaster broadcaster))
-                broadcaster.Broadcast(target, target.position);
+                broadcaster.Broadcast(target, target.position, transform);
         }
 
         /// <summary>
@@ -404,6 +543,7 @@ namespace SpaceGame.Agents
 
             aggressor = null;
             provoker = null;
+            LastCauseFrom = null;
             CalmingFor = 0f;
 
             // Empty the meter too, or the creature that just forgot you is still reading full and
@@ -421,7 +561,11 @@ namespace SpaceGame.Agents
                 // timer. That is the same split the grudge always had, now with a slope under it.
                 if (aggression > 0f)
                 {
-                    aggression = AggressionMath.Cool(aggression, Time.deltaTime, aggressionSettings.calmRate);
+                    if (aggressionSettings.settleSeconds > 0f)
+                        SettleBand(Time.deltaTime);
+                    else
+                        aggression = AggressionMath.Cool(aggression, Time.deltaTime, aggressionSettings.calmRate);
+
                     if (aggression <= 0f)
                         provoker = null;
                     RaiseBandChanged();
@@ -465,23 +609,50 @@ namespace SpaceGame.Agents
             return CalmingFor >= calmDownDelay;
         }
 
+        // Steps instead of a slope: the band holds settleSeconds of quiet, then drops one band to
+        // its floor, where the next hold starts. Nothing drains a raised band in between, which is
+        // what lets a rung of the ladder stay climbed until the next hit. From Calm, the stray
+        // points below Wary (a gunshot or two) are what go.
+        private void SettleBand(float deltaTime)
+        {
+            bandHeldFor += deltaTime;
+            if (bandHeldFor < aggressionSettings.settleSeconds)
+                return;
+
+            AggressionBand settled = AggressionMath.Settle(Band, bandHeldFor, aggressionSettings.settleSeconds);
+            aggression = AggressionMath.FloorOf(settled, aggressionSettings.attackAt);
+            bandHeldFor = 0f;
+        }
+
         private void OnValidate()
         {
             leashRange = Mathf.Max(1f, leashRange);
             calmDownDelay = Mathf.Max(0f, calmDownDelay);
             damageThreshold = Mathf.Max(0, damageThreshold);
+            aggressionSettings = Validated(aggressionSettings);
+        }
 
+        private static AggressionSettings Validated(AggressionSettings settings)
+        {
             // A zero attackAt is a creature that is permanently at the top of its own meter, which
             // reads in play as one that attacks on sight for no reason anybody can see.
-            aggressionSettings.attackAt = Mathf.Clamp(aggressionSettings.attackAt, 1f, AggressionMath.Max);
-            aggressionSettings.hitGain = Mathf.Max(0f, aggressionSettings.hitGain);
-            aggressionSettings.allyHurtGain = Mathf.Max(0f, aggressionSettings.allyHurtGain);
-            aggressionSettings.gunshotGain = Mathf.Max(0f, aggressionSettings.gunshotGain);
-            aggressionSettings.menaceGainPerSecond = Mathf.Max(0f, aggressionSettings.menaceGainPerSecond);
-            aggressionSettings.menaceRange = Mathf.Max(0f, aggressionSettings.menaceRange);
-            aggressionSettings.menaceDelay = Mathf.Max(0f, aggressionSettings.menaceDelay);
-            aggressionSettings.trespassGainPerSecond = Mathf.Max(0f, aggressionSettings.trespassGainPerSecond);
-            aggressionSettings.calmRate = Mathf.Max(0f, aggressionSettings.calmRate);
+            settings.attackAt = Mathf.Clamp(settings.attackAt, 1f, AggressionMath.Max);
+            settings.hitGain = Mathf.Max(0f, settings.hitGain);
+            settings.allyHurtGain = Mathf.Max(0f, settings.allyHurtGain);
+            settings.gunshotGain = Mathf.Max(0f, settings.gunshotGain);
+            settings.menaceGainPerSecond = Mathf.Max(0f, settings.menaceGainPerSecond);
+            settings.menaceRange = Mathf.Max(0f, settings.menaceRange);
+            settings.menaceDelay = Mathf.Max(0f, settings.menaceDelay);
+            settings.trespassGainPerSecond = Mathf.Max(0f, settings.trespassGainPerSecond);
+            settings.calmRate = Mathf.Max(0f, settings.calmRate);
+            settings.jostlesToFight = Mathf.Max(0, settings.jostlesToFight);
+            settings.settleSeconds = Mathf.Max(0f, settings.settleSeconds);
+
+            // A rung that cools before the next jostle can land is not a ladder.
+            if (settings.jostlesToFight > 0)
+                settings.settleSeconds = Mathf.Max(settings.settleSeconds, AggressionMath.LadderMinSettleSeconds);
+
+            return settings;
         }
 
         private void OnDrawGizmosSelected()

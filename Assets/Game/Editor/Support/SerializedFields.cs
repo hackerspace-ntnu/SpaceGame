@@ -23,6 +23,15 @@ namespace SpaceGame.EditorTools
     /// </summary>
     public static class SerializedFields
     {
+        /// <summary>Opens <paramref name="target"/>, runs <paramref name="edit"/> on it and applies
+        /// the result without an undo step — a builder's scratch object has no history to keep.</summary>
+        public static void Edit(Object target, System.Action<SerializedObject> edit)
+        {
+            var so = new SerializedObject(target);
+            edit(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         public static void Set(SerializedObject so, string name, Object value)
         {
             SerializedProperty p = Find(so, name);
@@ -54,10 +63,34 @@ namespace SpaceGame.EditorTools
             if (p != null) p.stringValue = value;
         }
 
+        public static void SetVector2(SerializedObject so, string name, Vector2 value)
+        {
+            SerializedProperty p = Find(so, name);
+            if (p != null) p.vector2Value = value;
+        }
+
         public static void SetVector3(SerializedObject so, string name, Vector3 value)
         {
             SerializedProperty p = Find(so, name);
             if (p != null) p.vector3Value = value;
+        }
+
+        public static void SetColor(SerializedObject so, string name, Color value)
+        {
+            SerializedProperty p = Find(so, name);
+            if (p != null) p.colorValue = value;
+        }
+
+        /// <summary>An array or list of object references, replaced wholesale.</summary>
+        public static void SetObjects<T>(SerializedObject so, string name, System.Collections.Generic.IReadOnlyList<T> values)
+            where T : Object
+        {
+            SerializedProperty p = Find(so, name);
+            if (p == null) return;
+
+            p.arraySize = values.Count;
+            for (int i = 0; i < values.Count; i++)
+                p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         /// <summary>

@@ -13,10 +13,13 @@
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.EditorTools
 {
@@ -229,6 +232,25 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(provocation.IsProvoked, "A real hit must.");
         }
 
+        // The jostle ladder counts shoves; a blow skips it. Hitting or shooting a villager who would
+        // have warned you three times over a shove is a fight on the spot, however light the blow.
+        [Test]
+        public void OnTheJostleLadder_AnyHitIsAnInstantFight()
+        {
+            ProvocationModule provocation = BuildCreature(out HealthComponent health,
+                                                          out AgentTargeting targeting);
+            AggressionSettings settings = provocation.Settings;
+            settings.jostlesToFight = 3;
+            provocation.Settings = settings;
+            GameObject attacker = BuildAttacker();
+
+            health.Damage(1, attacker.transform);
+
+            Assert.IsTrue(provocation.IsProvoked, "A hit is never a warning.");
+            Assert.AreSame(attacker.transform, targeting.Target);
+            Assert.AreEqual(AggressionInput.Hit, provocation.LastCause);
+        }
+
         [Test]
         public void SelfInflictedDamage_ProvokesNobody()
         {
@@ -288,8 +310,6 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(nomad.GetComponent<ProvocationModule>());
             Assert.IsNotNull(nomad.GetComponent<CloseCombatModule>(),
                              "He fights with the staff at close range, not at a distance.");
-            Assert.IsNull(nomad.GetComponent<AgentRangedCombatModule>(),
-                          "The Nomad is deliberately melee-only.");
 
             Transform staff = nomad.GetComponentsInChildren<Transform>(true)
                                    .FirstOrDefault(t => t.name == "WalkingStaff");
@@ -386,6 +406,90 @@ namespace SpaceGame.EditorTools
                 "decided by component order.");
             Assert.Less(priority, 20,
                 "Above Chase he would stop to politely face someone he is fighting.");
+        }
+
+        // ─────────────────────────────────────────────
+        //  A grudge in an old save
+        // ─────────────────────────────────────────────
+
+        private const string ProfileId = "profile-a";
+
+        /// <summary>Resolves one player reference to one object — all a provocation record names.</summary>
+        private sealed class OnePlayerBinder : ISaveRefBinder
+        {
+            private readonly GameObject player;
+
+            public OnePlayerBinder(GameObject player) => this.player = player;
+
+            public bool TryDescribe(GameObject target, out string kind, out string id)
+            {
+                bool known = target == player;
+                kind = known ? SaveRef.PlayerKind : null;
+                id = known ? ProfileId : null;
+                return known;
+            }
+
+            public bool TryResolve(string kind, string id, out GameObject target)
+            {
+                target = kind == SaveRef.PlayerKind && id == ProfileId ? player : null;
+                return target != null;
+            }
+        }
+
+        /// <summary>Restores one raw provocation record onto a fresh creature, the player resolvable.</summary>
+        private ProvocationModule Restore(JObject record, out GameObject player)
+        {
+            GameObject creature = New("Creature");
+            var provocation = creature.AddComponent<ProvocationModule>();
+            var saver = creature.AddComponent<ProvocationSaveable>();
+            player = New("Player");
+
+            ISaveRefBinder previous = SaveRefBinding.Active;
+            SaveRefBinding.Active = new OnePlayerBinder(player);
+            try
+            {
+                saver.RestoreState(record);
+                saver.OnLoadComplete();
+            }
+            finally
+            {
+                SaveRefBinding.Active = previous;
+            }
+            return provocation;
+        }
+
+        private static JObject PlayerAggressor() =>
+            new JObject { ["kind"] = SaveRef.PlayerKind, ["id"] = ProfileId };
+
+        /// <summary>
+        /// Before the meter, the saver wrote a record only for a provoked creature, so an aggressor
+        /// with no <c>aggression</c> field IS a grudge. Read literally the missing field is 0, and
+        /// 37 of 59 provocation records in real local saves came back calm.
+        /// </summary>
+        [Test]
+        public void AGrudgeSavedBeforeTheMeterExisted_StillHoldsAfterLoading()
+        {
+            ProvocationModule provocation = Restore(
+                new JObject { ["aggressor"] = PlayerAggressor(), ["calmingFor"] = 12.5f },
+                out GameObject player);
+
+            Assert.IsTrue(provocation.IsProvoked, "an old record with an aggressor is a grudge");
+            Assert.AreEqual(player.transform, provocation.Aggressor);
+            Assert.AreEqual(AggressionMath.Max, provocation.Aggression);
+            Assert.AreEqual(12.5f, provocation.CalmingFor, 1e-4f, "the calm-down clock comes back too");
+        }
+
+        /// <summary>The meter's own field, where present, is the answer — a reading below a grudge stays one.</summary>
+        [Test]
+        public void AMeterBelowAGrudge_RestoresAsAReading_NotAFight()
+        {
+            ProvocationModule provocation = Restore(
+                new JObject { ["aggressor"] = PlayerAggressor(), ["calmingFor"] = 0f, ["aggression"] = 40f },
+                out GameObject player);
+
+            Assert.IsFalse(provocation.IsProvoked);
+            Assert.AreEqual(40f, provocation.Aggression, 1e-4f);
+            Assert.AreEqual(player.transform, provocation.Provoker);
         }
     }
 }

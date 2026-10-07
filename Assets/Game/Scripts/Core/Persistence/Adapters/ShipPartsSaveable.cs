@@ -36,6 +36,13 @@ namespace SpaceGame.Core.Persistence
         public struct State
         {
             public int installed;
+
+            /// <summary>
+            /// The sockets still holding a burnt-out unit. Appended 2026-10-06: a save written before
+            /// it reads null, which restores the ship's authored broken units — the transmitter
+            /// socket's unit is seated, unless that save already has a transmitter fitted.
+            /// </summary>
+            public int? broken;
         }
 
         /// <summary>
@@ -44,9 +51,11 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         public object CaptureState()
         {
-            if (Rack == null || Rack.InstalledMask == Rack.AuthoredMask) return null;
+            if (Rack == null) return null;
+            if (Rack.InstalledMask == Rack.AuthoredMask && Rack.BrokenMask == Rack.AuthoredBrokenMask)
+                return null;
 
-            return new State { installed = Rack.InstalledMask };
+            return new State { installed = Rack.InstalledMask, broken = Rack.BrokenMask };
         }
 
         /// <summary>
@@ -61,13 +70,13 @@ namespace SpaceGame.Core.Persistence
 
             if (state == null)
             {
-                Rack.RestoreMask(Rack.AuthoredMask);
+                Rack.RestoreMasks(Rack.AuthoredMask, Rack.AuthoredBrokenMask);
                 return;
             }
 
             var restored = state.ToObject<State>(SaveSerializer.Serializer);
 
-            Rack.RestoreMask(restored.installed);
+            Rack.RestoreMasks(restored.installed, restored.broken ?? Rack.AuthoredBrokenMask);
         }
     }
 }

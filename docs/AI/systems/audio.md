@@ -18,8 +18,9 @@ symptoms:
   - "I want to add a new sound and cannot find where to author the FMOD event"
   - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
+  - "an EditMode test fails on the FMOD error RuntimeManager accessed outside of runtime"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-09-17
+updated: 2026-10-04
 ---
 
 # Audio
@@ -50,9 +51,8 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 | `AudioLoop` | [AudioLoop.cs](Assets/Game/Scripts/Presentation/Audio/AudioLoop.cs) | Drop-on MonoBehaviour wrapper over `LoopingEmitter` (ambience, hums). Replaces FMOD's `StudioEventEmitter` so scene loops go through the catalog. |
 | `AudioManager` | [AudioManager.cs](Assets/Game/Scripts/Presentation/Audio/AudioManager.cs) | **Bus volumes only** (`bus:/`, `/Music`, `/SFX`, `/UI`, `/Reverb`) from `GameSettings`. Singleton on Bootstrap. Not a playback route. |
 | `PlayerAudioModule` | [PlayerAudioModule.cs](Assets/Game/Scripts/Presentation/Audio/PlayerAudioModule.cs) | Player voice: footsteps paced by **distance travelled** (`strideLength`), jump/land/dash, hurt/death/revive. |
-| `EntityAudioModule` | [EntityAudioModule.cs](Assets/Game/Scripts/agents/Audio/EntityAudioModule.cs) | Creature/NPC voice: footsteps off `IMovementMotor.Velocity`, aggro on `ChaseModule` edge, randomised ambient mumbles. Also fires `NoiseEmitter`. |
 | `UIButton` | [UIButton.cs](Assets/Game/Scripts/Presentation/UI/Buttons/UIButton.cs) | UI audio: `Sfx.Play2D(hoverId)` / `(pressId)` on pointer enter/down. |
-| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — `OverlapSphereNonAlloc` broadcast of "something was heard". Lives here because it is triggered alongside sounds. |
+| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — a static receiver registry (`Noise.Emit`), server-side. `NoiseReceiverModule.Heard` (C# event, `NoiseType, Vector3, Transform`) fires for every noise heard whatever the masks say. Lives here because it is triggered alongside sounds. |
 
 ## Catalog
 
@@ -99,13 +99,15 @@ Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/
 
 ## Gotchas
 
+- **`Sfx` returns before FMOD outside Play Mode.** FMOD's `RuntimeManager` exists only in Play Mode and **logs an error** (not an exception) when reached outside it, and NUnit fails any test on an unexpected error log — so every EditMode test whose action made a sound (throwing a lasso) failed on audio. The `Application.isPlaying` check sits after the missing-event warning, so a missing catalog entry still reports in tests, and before the cooldown and cull. Pinned by `SfxEditModeTests`, which uses `Play2D`: a positioned play is culled before FMOD whenever the open scene has a listener out of range, and would pass without reaching the `RuntimeManager`.
+- **Gunshot aggression is independent of `investigateOn`** (fixed 2026-10-01). It used to sit inside the investigate gate, so an agent whose `investigateOn` lacked `Gunshot` never counted shots on its `ProvocationModule` meter at all.
 - **`Sfx` warns once per `SfxId`, forever.** Fix a bank or a mapping mid-session and it stays silent — call `Sfx.Reset()` (auto-called on play-mode entry in editor) to clear `Complained` and the catalog cache.
 - **`Play2D` uses `sourceKey = 0`.** All 2D sounds share one cooldown bucket per id — fine for UI, wrong if you want per-widget rate limiting.
 - **Override does not override tuning.** An inspector `EventReference` picks the asset; cooldown, `maxDistance` and `volume` still come from the catalog entry for that `SfxId`. A slot with no entry gets `cooldown 0`, no cull, `volume 1`.
 - **`EventLinkage: 0` (GUID).** Prefab `EventReference`s and the catalog bind by GUID. Recreating an event in a future FMOD project gives it a new GUID and silently breaks ~37 prefab assignments plus the catalog. Switch `EventLinkage` to Path before recreating anything.
 - **`AudioManager.Instance` is null outside Bootstrap.** It lives on [`AudioManager.prefab`](Assets/Game/Prefabs/Systems/AudioManager.prefab) in `Bootstrap.unity` only. `UIButton` used to route through it and NREd when MainMenu was entered directly — which manifested as "buttons don't highlight". Always use `Sfx`.
 - **`AudioManager` resolves busses lazily and tolerates failure.** `GetBus` throws while banks are still loading; it retries on the next `GameSettings.Changed`. Inspector volume sliders are an editor preview only — the settings menu re-asserts them.
-- **Distance cull needs a listener.** With `StudioListener.ListenerCount == 0` the cull is *skipped*, not forced — everything plays. The listener rides [`Main Camera.prefab`](Assets/Game/Prefabs/Camera/Main%20Camera.prefab).
+- **Distance cull needs a listener.** With `StudioListener.ListenerCount == 0` the cull is *skipped*, not forced — everything plays. The listener rides `Main Camera.prefab`.
 - **Loops leak on the untested teardown path.** `OnDisable` (scene unload) and `OnDestroy` (despawn) are different exits; `AudioLoop` handles both — copy that shape.
 - **Duplicate ids in the catalog** are a warning, not an error: first entry wins. `OnValidate` clamps and invalidates the lookup.
 - **[`SandstormAudio`](Assets/Game/Scripts/World/Environment/Sandstorm/Effects/SandstormAudio.cs) is a plain Unity `AudioSource` + `AudioLowPassFilter`, on purpose** — a 2D continuous loop driven by one number, which would need an FMOD project to author properly. With Unity audio disabled project-wide it is, on that evidence, **inaudible in the shipped game** (see `SfxFile`'s header) — not a pattern to copy.

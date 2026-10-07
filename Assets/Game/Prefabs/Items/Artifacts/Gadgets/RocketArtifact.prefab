@@ -55,6 +55,7 @@ GameObject:
   - component: {fileID: 5791744828363695243}
   - component: {fileID: 2976517297140288024}
   - component: {fileID: 1249109054217957928}
+  - component: {fileID: -3819289633997434770}
   m_Layer: 0
   m_Name: RocketArtifact
   m_TagString: Untagged
@@ -230,6 +231,7 @@ MonoBehaviour:
       Data3: -533523275
       Data4: -1075932117
     Path: event:/SFX/Hit
+  useAction: {fileID: 0}
   launcherPrefab: {fileID: 431438388529227558, guid: 906da3c4fbcf24bafbbb3a8bfba925ea, type: 3}
   spawnDistance: 3
   groundProbeHeight: 2
@@ -310,6 +312,7 @@ MonoBehaviour:
   holdSize: 0.65
   packSize: 0
   sizeReference: {fileID: 0}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2857898024886433648
 MonoBehaviour:
@@ -413,3 +416,15 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.52319896, y: 0.409633, z: 0.77160335}
   m_Center: {x: -0.0016112626, y: 0.13909741, z: 0.000000059604645}
+--- !u!114 &-3819289633997434770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4378794949726358131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable

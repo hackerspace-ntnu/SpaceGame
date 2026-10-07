@@ -67,6 +67,31 @@ namespace SpaceGame.Vehicles.Ornithopter
             return new LaunchCarry(Flatten(forward), speed * speedCarry, climb);
         }
 
+        // The probes start a hand's width above the feet: a ray that starts AT the sole starts inside
+        // the ground it is standing on and finds nothing.
+        private const float ProbeLift = 0.1f;
+
+        /// <summary>No ground within <paramref name="groundClearance"/> straight down: already falling.</summary>
+        public static bool IsAirborne(Vector3 feet, float groundClearance, LayerMask groundMask) =>
+            !Physics.Raycast(feet + Vector3.up * ProbeLift, Vector3.down, groundClearance,
+                             groundMask, QueryTriggerInteraction.Ignore);
+
+        /// <summary>
+        /// A drop worth jumping into, <paramref name="probeForward"/> ahead. This is what makes a cliff
+        /// EDGE work: the ray straight down hits the ledge being stood on; the one that matters is cast
+        /// out over the drop.
+        /// </summary>
+        public static bool HasDropAhead(Vector3 feet, Vector3 forward, float probeForward, float minClearance,
+                                        LayerMask groundMask) =>
+            !Physics.Raycast(feet + Vector3.up * ProbeLift + forward * probeForward, Vector3.down, minClearance,
+                             groundMask, QueryTriggerInteraction.Ignore);
+
+        /// <summary>Air under the wings in either sense: already falling, or at the top of a drop.</summary>
+        public static bool HasLaunchRoom(Vector3 feet, Vector3 forward, float groundClearance, float minClearance,
+                                         float probeForward, LayerMask groundMask) =>
+            IsAirborne(feet, groundClearance, groundMask) ||
+            HasDropAhead(feet, forward, probeForward, minClearance, groundMask);
+
         /// <summary>The compass bearing of a direction, in the degrees the flight model measures
         /// heading in: from +Z toward +X.</summary>
         public static float HeadingOf(Vector3 direction) =>

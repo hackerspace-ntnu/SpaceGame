@@ -12,6 +12,16 @@ namespace SpaceGame.Presentation
         [SerializeField] private float holdDuration = 1.5f;
         [SerializeField] private float blendOutDuration = 0.6f;
 
+        /// <summary>
+        /// What to look at. Settable for callers whose target only exists at runtime — the
+        /// objective briefing aims at a hull socket on a ship that was spawned, not authored.
+        /// </summary>
+        public Transform Target
+        {
+            get => target;
+            set => target = value;
+        }
+
         public override IEnumerator Play(CutsceneContext ctx)
         {
             if (target == null || ctx.PlayerCamera == null)

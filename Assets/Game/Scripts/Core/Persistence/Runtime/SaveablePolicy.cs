@@ -21,6 +21,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
+using SpaceGame.Agents.Residents;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Locomotion;
@@ -43,13 +44,12 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         private static readonly HashSet<string> Transient = new()
         {
-            "AgentProjectile",
             "TurretProjectile",
             "Projectile",
 
             // RocketLauncherTurret is NOT here any more, and never should have been. It is the
             // launcher, not the rocket — the rocket is TurretProjectile, blacklisted on the line
-            // above — and the entry reads like it was added by name-association with the three real
+            // above — and the entry reads like it was added by name-association with the real
             // projectile types around it. The contradiction it produced is visible in the assets:
             // Assets/Game/Resources/Saveable/RocketSpawn.prefab is the only thing carrying the
             // component, it already ships SaveableEntity + TransformSaveable + RigidbodySaveable,
@@ -74,6 +74,19 @@ namespace SpaceGame.Core.Persistence
             // object would ALSO capture it here and re-instantiate a lifeless copy on load.
             if (go.GetComponent<PlayerSaveBinder>() != null || go.GetComponent<PlayerSaveSync>() != null)
                 return false;
+
+            // A piloted transport belongs to the war party that launched it, and that party's group
+            // record rebuilds hull and passengers alike. Its HealthComponent and EntityFaction each
+            // qualify on their own, so without this every prefab builder ending in the project-wide
+            // wiring pass gave both sky transports an entity and savers the design never meant them
+            // to have.
+            if (go.GetComponent<VesselPilot>() != null) return false;
+
+            // An NPC-flown craft is a vehicle for one flight: the flier's group record (or nothing, for a
+            // sortie) is what comes back after a load (D4). Its non-kinematic body and its AgentController
+            // each qualify on their own, and WorldService.Spawn runs EnsureSpawned on every runtime spawn, so
+            // without this a craft caught mid-flight by a save would be wired and restored with nobody aboard.
+            if (go.GetComponent<NpcAviator>() != null) return false;
 
             foreach (Component c in go.GetComponents<Component>())
             {
@@ -190,6 +203,32 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(MountSaveable));
             }
 
+            // Whether seats that crew themselves on spawn were stood down — a group's vehicle a
+            // player took. Without it the load re-crews the player's vehicle with strangers.
+            if (go.GetComponent<ICrewedSeats>() != null && go.GetComponent<CrewSaveable>() == null)
+            {
+                go.AddComponent<CrewSaveable>();
+                parts.Add(nameof(CrewSaveable));
+            }
+
+            // How long a vehicle its group lost has left in the world. Without it a load either
+            // never takes the abandoned vehicle away or restarts its countdown from full.
+            if (go.GetComponent<AbandonedVehicle>() != null && go.GetComponent<AbandonedVehicleSaveable>() == null)
+            {
+                go.AddComponent<AbandonedVehicleSaveable>();
+                parts.Add(nameof(AbandonedVehicleSaveable));
+            }
+
+            // How long a dead body, or the loot it shed, has left lying there. On everything that CAN
+            // become remains rather than on what already is: the Remains itself is added at runtime,
+            // so a freshly loaded item has none until this saver puts one back.
+            if ((go.GetComponent<HealthComponent>() != null || IsPickup(go) || go.GetComponent<Remains>() != null) &&
+                go.GetComponent<RemainsSaveable>() == null)
+            {
+                go.AddComponent<RemainsSaveable>();
+                parts.Add(nameof(RemainsSaveable));
+            }
+
             // Who this was fighting, and what it remembers. AgentTargeting rather than
             // AgentController: an agent with no targeting has no combat state to lose, and the saver
             // would capture an empty bag on every entity in the world.
@@ -239,6 +278,13 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(ShipPartsSaveable));
             }
 
+            // The fire a burnt-out module starts, beside the rack whose broken bit it burns on.
+            if (go.GetComponent<ShipPartFire>() != null && go.GetComponent<ShipPartFireSaveable>() == null)
+            {
+                go.AddComponent<ShipPartFireSaveable>();
+                parts.Add(nameof(ShipPartFireSaveable));
+            }
+
             // Which team a hull is painted for. Runtime-spawned rather than authored — every versus
             // ship is made mid-match — so the runtime pass is the one that matters here, and it is
             // the reason this clause exists rather than the colour being wired onto a prefab.
@@ -276,9 +322,8 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(ProvocationSaveable));
             }
 
-            // What makes AgentStateSaveable's last-known position mean anything. SearchModule starts
-            // on a falling edge (had a target, lost it) and a restored agent's `hadTarget` is always
-            // false — so the position the save went out of its way to keep was never walked to.
+            // A search in progress: without it an agent saved mid-search reloads standing still, with
+            // the last-known position AgentStateSaveable kept and nothing walking to it.
             if (go.GetComponent<SearchModule>() != null && go.GetComponent<SearchSaveable>() == null)
             {
                 go.AddComponent<SearchSaveable>();
@@ -298,6 +343,14 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(NoiseInvestigationSaveable));
             }
 
+            // A settlement resident's memory of players — familiarity and grudges. Its day is
+            // re-planned from the seed on load; what it remembers about you is not derivable.
+            if (go.GetComponent<Resident>() != null && go.GetComponent<ResidentSaveable>() == null)
+            {
+                go.AddComponent<ResidentSaveable>();
+                parts.Add(nameof(ResidentSaveable));
+            }
+
             // Fleeing is hysteresis — trigger radius in, safe radius out — so it cannot be recomputed
             // from where things are standing. A creature restored calm inside the gap between the two
             // never resumes running.
@@ -305,12 +358,6 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<FleeSaveable>();
                 parts.Add(nameof(FleeSaveable));
-            }
-
-            if (go.GetComponent<CoverModule>() != null && go.GetComponent<CoverSaveable>() == null)
-            {
-                go.AddComponent<CoverSaveable>();
-                parts.Add(nameof(CoverSaveable));
             }
         }
 
@@ -320,18 +367,12 @@ namespace SpaceGame.Core.Persistence
         private static void EnsureAgentRoutine(GameObject go, List<string> parts)
         {
             // Keyed off PatrolModule rather than AgentTargeting, which is where patrol progress used
-            // to ride. PatrolRobot and DeathmatchBot have the first and not the second, so the one
-            // population whose whole identity IS a route was the population saving nothing about it.
+            // to ride: a patroller need not carry AgentTargeting, and one without it saved nothing
+            // about the route that is its whole identity.
             if (go.GetComponent<PatrolModule>() != null && go.GetComponent<PatrolSaveable>() == null)
             {
                 go.AddComponent<PatrolSaveable>();
                 parts.Add(nameof(PatrolSaveable));
-            }
-
-            if (go.GetComponent<BasePatrolModule>() != null && go.GetComponent<BasePatrolSaveable>() == null)
-            {
-                go.AddComponent<BasePatrolSaveable>();
-                parts.Add(nameof(BasePatrolSaveable));
             }
 
             // Anchors, not just destinations. These modules re-latch their home from
@@ -344,24 +385,7 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(WanderSaveable));
             }
 
-            if (go.GetComponent<AirWanderModule>() != null && go.GetComponent<AirWanderSaveable>() == null)
-            {
-                go.AddComponent<AirWanderSaveable>();
-                parts.Add(nameof(AirWanderSaveable));
-            }
-
-            if (go.GetComponent<WanderBehaviour>() != null &&
-                go.GetComponent<WanderBehaviourSaveable>() == null)
-            {
-                go.AddComponent<WanderBehaviourSaveable>();
-                parts.Add(nameof(WanderBehaviourSaveable));
-            }
-
-            // One saver for the three modules that resolve their own target: an agent almost never
-            // has more than one of them, and they hold the same two fields for the same reason.
-            if ((go.GetComponent<HuntModule>() != null ||
-                 go.GetComponent<KeepDistanceModule>() != null ||
-                 go.GetComponent<ApproachModule>() != null) &&
+            if (go.GetComponent<KeepDistanceModule>() != null &&
                 go.GetComponent<PursuitSaveable>() == null)
             {
                 go.AddComponent<PursuitSaveable>();
@@ -388,16 +412,18 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(AgentGoalSaveable));
             }
 
-            if (go.GetComponent<HerdModule>() != null && go.GetComponent<HerdMemberSaveable>() == null)
-            {
-                go.AddComponent<HerdMemberSaveable>();
-                parts.Add(nameof(HerdMemberSaveable));
-            }
-
             if (go.GetComponent<FormationModule>() != null && go.GetComponent<FormationSaveable>() == null)
             {
                 go.AddComponent<FormationSaveable>();
                 parts.Add(nameof(FormationSaveable));
+            }
+
+            // Where a drifting hull is on its loop. The pose alone restores the Sky City mid-voyage
+            // believing it is moored at its first waypoint.
+            if (go.GetComponent<DriftRouteModule>() != null && go.GetComponent<DriftRouteSaveable>() == null)
+            {
+                go.AddComponent<DriftRouteSaveable>();
+                parts.Add(nameof(DriftRouteSaveable));
             }
 
             // The phase offset that stops a crowd marching in step for a moment after every load.
@@ -415,12 +441,11 @@ namespace SpaceGame.Core.Persistence
         {
             // Every cooldown in the game reloaded at zero, which is a free hit for whoever reloads:
             // a melee creature saved mid-swing struck immediately, a turret two seconds into its
-            // reload was ready. One saver for all three modules because an agent composes them and
+            // reload was ready. One saver for both modules because an agent composes them and
             // they hold the same shape of state.
             if (go.GetComponent<CombatCadenceSaveable>() == null &&
-                (go.GetComponent<AgentRangedCombatModule>() != null ||
-                 go.GetComponent<CloseCombatModule>() != null ||
-                 go.GetComponent<NpcItemUseModule>() != null))
+                (go.GetComponent<CloseCombatModule>() != null ||
+                 go.GetComponent<ItemUseModuleBase>() != null))
             {
                 go.AddComponent<CombatCadenceSaveable>();
                 parts.Add(nameof(CombatCadenceSaveable));
@@ -428,20 +453,11 @@ namespace SpaceGame.Core.Persistence
 
             // Includes where the barrel pointed, which lives on a CHILD transform and so is invisible
             // to TransformSaveable.
-            if (go.GetComponent<TurretSaveable>() == null &&
-                (go.GetComponent<TurretModule>() != null || go.GetComponent<RocketLauncherTurret>() != null))
+            if (go.GetComponent<RocketLauncherTurret>() != null &&
+                go.GetComponent<TurretSaveable>() == null)
             {
                 go.AddComponent<TurretSaveable>();
                 parts.Add(nameof(TurretSaveable));
-            }
-
-            // Asked of the subtree: a WeaponMount lives on a hand bone while the saver belongs on the
-            // entity — the same split ArticulatedPartsSaveable makes.
-            if (go.GetComponentInChildren<WeaponMount>(true) != null &&
-                go.GetComponent<WeaponMountSaveable>() == null)
-            {
-                go.AddComponent<WeaponMountSaveable>();
-                parts.Add(nameof(WeaponMountSaveable));
             }
 
             // EntityInventorySaveable keeps what is in the bag; this keeps what is in the hand, and
@@ -453,7 +469,15 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityEquipmentSaveable));
             }
 
-            // Which side this entity is on. SetFaction is a runtime reassignment — MatchManager
+            // What it wears: without this a looted wing pack grows back on the corpse on every reload.
+            if (go.GetComponent<EntityBodyEquipment>() != null &&
+                go.GetComponent<EntityBodyEquipmentSaveable>() == null)
+            {
+                go.AddComponent<EntityBodyEquipmentSaveable>();
+                parts.Add(nameof(EntityBodyEquipmentSaveable));
+            }
+
+            // Which side this entity is on. SetFaction is a runtime reassignment — a spawner
             // re-teams every arena spawn — and nothing captured it, so a re-teamed entity reloaded on
             // its prefab's faction and either turned on its own side or became untargetable.
             if (go.GetComponent<EntityFaction>() != null && go.GetComponent<EntityFactionSaveable>() == null)
@@ -462,25 +486,11 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(EntityFactionSaveable));
             }
 
-            // Which health thresholds have already fired. Without it, onThresholdReached re-fires on
-            // the first hit after every load — a badly hurt creature replays its enrage and its
-            // scream — and any module a threshold switched off comes back on.
-            if (go.GetComponent<HealthReactionModule>() != null &&
-                go.GetComponent<HealthReactionSaveable>() == null)
-            {
-                go.AddComponent<HealthReactionSaveable>();
-                parts.Add(nameof(HealthReactionSaveable));
-            }
-
-            // What the motor was in the middle of. Any of the five, because an entity carries exactly
-            // one and the saver writes only the block for the motor it finds. Includes the flag that
-            // says what a mid-arc body's isKinematic should go back to — lose that and an agent saved
-            // mid-leap is permanently kinematic and unpushable.
+            // What the motor was in the middle of. Any of the three, because an entity carries exactly
+            // one and the saver writes only the block for the motor it finds.
             if (go.GetComponent<MotorStateSaveable>() == null &&
                 (go.GetComponent<NavMeshAgentMotor>() != null ||
-                 go.GetComponent<RigidbodyMotor>() != null ||
                  go.GetComponent<HoverRigidbodyMotor>() != null ||
-                 go.GetComponent<FlyingRigidbodyMotor>() != null ||
                  go.GetComponent<LeggedDriver>() != null))
             {
                 go.AddComponent<MotorStateSaveable>();
@@ -517,6 +527,13 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<LeverSaveable>();
                 parts.Add(nameof(LeverSaveable));
+            }
+
+            // Where a player left the satellite dish pointing.
+            if (go.GetComponent<DishRig>() != null && go.GetComponent<DishRigSaveable>() == null)
+            {
+                go.AddComponent<DishRigSaveable>();
+                parts.Add(nameof(DishRigSaveable));
             }
 
             // A cell and a bottle left in the plant are items out of somebody's hotbar. Without

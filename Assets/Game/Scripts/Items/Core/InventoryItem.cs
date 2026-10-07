@@ -8,6 +8,12 @@ using UnityEditor;
 namespace SpaceGame.Items
 {
     /// <summary>
+    /// How strange an item looks to a settlement resident — what makes them stop and ask about it.
+    /// Ordered by how much it draws the eye.
+    /// </summary>
+    public enum Curiosity : byte { None, Odd, Precious, Alien }
+
+    /// <summary>
     /// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
     /// </summary>
     [CreateAssetMenu(menuName = "Items/Item")]
@@ -70,6 +76,26 @@ namespace SpaceGame.Items
                  "before it reports anything: holding a gun is not a threat, having just fired one " +
                  "while squared up at somebody is.")]
         public bool menacing;
+
+        [Tooltip("An NPC wearing this gauntlet fires it at its target (NpcGauntletUseModule). Off by default: " +
+                 "most gadgets assume a player's camera, so each one opts in after it has been checked to " +
+                 "work from an NPC's aim (UsableItem.HolderAimRay).")]
+        public bool npcUsable;
+
+        [Tooltip("How strange this item looks to a settlement resident when you hold it in front " +
+                 "of them.\n\n" +
+                 "None — ordinary gear nobody remarks on (most of the list).\n" +
+                 "Odd — clearly not from around here: they ask what it is.\n" +
+                 "Precious — valuable or rare: they eye it, and traders want it.\n" +
+                 "Alien — nothing they have a word for: they stare, and the timid back away.")]
+        public Curiosity curiosity;
+
+        [Tooltip("List this item in the developer artifact browser (O)?\n\n" +
+                 "Leave it on for anything a developer might want to hand themselves. Turn it off " +
+                 "for props that exist for a character to carry and that mean nothing in the " +
+                 "player's hotbar — the hand tools and vessels residents hold. The item still " +
+                 "registers, saves, drops and picks up like any other.")]
+        public bool showInDevBrowser = true;
 
 #if UNITY_EDITOR
         private void OnValidate()

@@ -97,9 +97,6 @@ namespace SpaceGame.Agents
             {
                 handledLoss = targeting.LostCount;
 
-<<<<<<< HEAD
-                Sfx.Play(searchSound, transform.position);
-=======
                 if (!hasTarget && !isSearching && targeting.HasLastKnownPosition)
                 {
                     searchPosition = targeting.LastKnownPosition;
@@ -108,7 +105,6 @@ namespace SpaceGame.Agents
 
                     Sfx.Play(searchId, transform.position, searchSound, GetInstanceID());
                 }
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
             }
 
             if (!isSearching)

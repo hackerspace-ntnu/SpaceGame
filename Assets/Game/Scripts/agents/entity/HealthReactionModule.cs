@@ -204,11 +204,6 @@ namespace SpaceGame.Agents
             if (emitNoiseOnDeath && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Death, deathNoiseRadius);
 
-<<<<<<< HEAD
-            Sfx.Play(deathSound, transform.position);
-
-=======
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
             onDeath?.Invoke();
 
             ApplyDeadState();

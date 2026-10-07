@@ -204,34 +204,6 @@ namespace SpaceGame.Tests
 
         // ─────────── Fixture ───────────
 
-<<<<<<< HEAD
-        /// <summary>
-        /// A ranged module wired well enough to fire, with its authority resolved by hand.
-        ///
-        /// AddComponent does not run Awake outside play mode, so every field Awake would have
-        /// resolved has to be planted — including the AgentAuthority, or the handler's guard would
-        /// short-circuit on null and the test would pass without ever exercising the rule.
-        /// </summary>
-        private (AgentRangedCombatModule, string) NewRangedModule()
-        {
-            GameObject agent = NewObject("ranged");
-            var module = agent.AddComponent<AgentRangedCombatModule>();
-            PlantAuthority(module);
-
-            GameObject bullet = NewObject(FixturePrefix + Guid.NewGuid().ToString("N"));
-
-            var definition = ScriptableObject.CreateInstance<AgentWeaponDefinition>();
-            definition.projectilePrefab = bullet;
-            //definition.fireSound;   add custom sound here??? reminder you can add a custom sound?
-            assets.Add(definition);
-
-            Plant(module, "weapon", definition);
-
-            return (module, bullet.name + "(Clone)");
-        }
-
-=======
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
         private static void PlantAuthority(Component module) =>
             Plant(module, "authority", new AgentAuthority(module));
 

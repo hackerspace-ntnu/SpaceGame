@@ -52,7 +52,7 @@ symptoms:
   - "a character prefab (a miner) never moves into a settlement"
   - "Generate says copies made for a role with no place here stayed out"
 reads_with: [Errands, HouseVisits, ResidentsBaseline, ResidentReputation, AgentSystem, Multiplayer, Persistence, TerrainGeneration, Seats, Pushables, Stations, Outposts]
-updated: 2026-10-04
+updated: 2026-10-09
 ---
 
 # Residents
@@ -124,7 +124,7 @@ modules) with the resident component stack; its one new decision is **what to do
   character prefabs (`ResidentStackBuilder.EnsureStack`, prefab assets, skips one open in Prefab Mode) →
   `Settlement.Generate` (layout, terrain, decorations, `SpawnChance` rolls, then **Populate**: beds → newcomers,
   throwaway NavMesh, `walkableHeart`, muster spot (`SettlementMuster`, if the culture's profile has a `musterUse`), `SettlementPlaces.Problems`
-  → place characters → `ResidentAssignment`) → `ResidentValidator` (lines, archetypes, roster, expeditions, quotas, muster spot). **Generate + Bake World NavMesh** does the same and then
+  → place characters (random points on the walkable area that the heart can walk to, 30 tries each; **a character chance left out is then put on the heart's own ground**, `SettlementWalkableArea.PatchWhere`, drawn from a second seeded stream so settlements that never needed it generate as before: 2026-10-09, the workshop's ledges are under a twentieth of the walkable area in its footprint and 1 of 4 moved in, [Workshop.md](Workshop.md)) → `ResidentAssignment`) → `ResidentValidator` (lines, archetypes, roster, expeditions, quotas, muster spot). **Generate + Bake World NavMesh** does the same and then
   re-bakes the world NavMesh. Generate's summary line names every door or spot nobody can walk to, and empty beds.
 - **Places (runtime, lazily).** Doors (one per `Dwelling`, at the first point out from the doorway reachable from
   `walkableHeart`), camps (one per resident without a dwelling), spots (every active `SettlementSpot` under
@@ -173,7 +173,7 @@ modules) with the resident component stack; its one new decision is **what to do
 - The hand slot is saved (`EntityEquipmentSaveable`) but re-asserted from the activity every frame, so a save never reloads a tool into a conversation or empty hands to the forge.
 
 ## Gotchas
-- **A character prefab made for a role moves in only where that role has its place** (2026-10-04). `Populate` skips a copy whose prefab names an archetype the settlement cannot host (`ResidentAssignment.Places.CanHost`: a post with no spot of it, a chore missing an end) and takes the next copy instead; Generate names the skipped roles only when beds stay empty. Roles set on prefabs bypass the culture's lifestyle and patrol shares (those still steer the role-less copies) and need not be in the culture's `archetypes` list. Expedition role-quota picks (Apply Role Quotas) never recast them: they have no culture profile. The 52 `Raxy_{Type,Job,Casual}_*` prefabs carry roles, every one of the 38 archetypes at least once; the hand-dressed `Raxy_*`/`Drifter_Raxy*` prefabs do not, and are still dealt one from their profile.
+- **A character prefab made for a role moves in only where that role has its place** (2026-10-04). `Populate` skips a copy whose prefab names an archetype the settlement cannot host (`ResidentAssignment.Places.CanHost`: a post with no spot of it, a chore missing an end) and takes the next copy instead; Generate names the skipped roles only when beds stay empty. Roles set on prefabs bypass the culture's lifestyle and patrol shares (those still steer the role-less copies) and need not be in the culture's `archetypes` list. Expedition role-quota picks (Apply Role Quotas) never recast them: they have no culture profile. The 52 `Raxy_{Type,Job,Casual}_*` prefabs carry roles, every one of the 38 archetypes at least once; the hand-dressed `Raxy_*`/`Drifter_Raxy*` prefabs do not, and are still dealt one from their profile. **A culture copied from `NomadCulture` keeps its expedition profile** (2026-10-09). A people with only one or two bodies cannot fill the nomad quotas (Guard, Hunter, Scout…), so `ShellbackCulture` sets `expeditions` to none: the Shellback settlement (`ShellbackSettlement.asset`, Chunk_2_1, nomad layout) is a plain resident settlement with no muster and no bands. Its bodies are `Shellback_Mechanic` (`Resident.archetype` = Tinker) and `Shellback_Villager` (dealt by the culture); Generate fills 42 of 55 beds. Give the culture an `ExpeditionProfile` only together with bodies for every quota role.
 - **A spot is authored where a person STANDS, and a sit spot also has a `Seat` placed on it** (`SeatPlacer`; Deco_Stool_Set's `Spot_Seat` is 1.4 m out, so its seat is a cushion or chair there, not one of the stools). The body goes from the spot's stand point onto the seat, so `AtPlace` counts a sitter as there. `SettlementPlaces.Problems` and `SeatTests` fail a sit spot with no seat. `{place}` in a line is the speaker's held spot's `SpotUse.displayName`, or "here".
 - **`SettlementPlace.Position` is the measured stand point, not the spot's transform.** Use `SpotAt(i).Position` for the authored one.
   Never insert a place or reorder the gather: unusable places keep their index precisely for this.

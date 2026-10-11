@@ -54,6 +54,14 @@ namespace SpaceGame.Vehicles
         [Tooltip("Ignore riders that are moving away fast, so a jump off the deck is not fought.")]
         [SerializeField] private float maxCarrySpeed = 25f;
 
+        [Header("Footing")]
+        [Tooltip("Carry only riders with one of this platform's own colliders under their feet. For a platform " +
+                 "with fixed ground inside its carry volume: a turning floor with a stair standing in it.")]
+        [SerializeField] private bool onlyThoseStandingOnIt;
+        [Tooltip("Metres below a rider's feet the platform may be and still be what they stand on: a jump's height.")]
+        [SerializeField, Min(0.1f)] private float footingReach = 2.5f;
+
+        private readonly RaycastHit[] footingHits = new RaycastHit[16];
         private readonly HashSet<Rigidbody> riders = new HashSet<Rigidbody>();
         private readonly HashSet<Rigidbody> claimed = new HashSet<Rigidbody>();
         private Collider[] overlapBuffer = new Collider[32];
@@ -105,6 +113,35 @@ namespace SpaceGame.Vehicles
 
         /// <summary>Point the carrier at its trigger volume. Used by the prefab builders and tests.</summary>
         public void BindCarryVolume(Collider volume) => carryVolume = volume;
+
+        /// <summary>
+        /// Leave alone whoever is inside the volume but over ground that is not this platform's: see
+        /// <see cref="onlyThoseStandingOnIt"/>. Used by the prefab builders and tests.
+        /// </summary>
+        public void CarryOnlyThoseStandingOnIt(float reach)
+        {
+            onlyThoseStandingOnIt = true;
+            footingReach = reach;
+        }
+
+        /// <summary>Whether the first thing under <paramref name="part"/> of a rider is one of this platform's colliders.</summary>
+        private bool StandsOnIt(Collider part, Rigidbody rider)
+        {
+            Bounds bounds = part.bounds;
+            int count = Physics.RaycastNonAlloc(bounds.center, Vector3.down, footingHits, bounds.extents.y + footingReach,
+                                                ~0, QueryTriggerInteraction.Ignore);
+
+            Collider ground = null;
+            float nearest = float.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = footingHits[i];
+                if (hit.collider.attachedRigidbody == rider || hit.distance >= nearest) continue;
+                nearest = hit.distance;
+                ground = hit.collider;
+            }
+            return ground != null && ground.transform.IsChildOf(transform);
+        }
 
         // Covers the superstructure: main deck, forward apron and roof terrace. Sized from the
         // renderers so it keeps working if the hull is re-authored.
@@ -175,6 +212,7 @@ namespace SpaceGame.Vehicles
                 // not own is kinematic here precisely BECAUSE it is somebody else's to simulate,
                 // which is the definition of another player standing on the deck.
                 if (rb.isKinematic && Network.Owns(rb)) continue;
+                if (onlyThoseStandingOnIt && !StandsOnIt(other, rb)) continue;
 
                 riders.Add(rb);
             }

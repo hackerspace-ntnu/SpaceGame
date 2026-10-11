@@ -1,5 +1,657 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &531061936607085516
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6736618791827586798}
+  - component: {fileID: 2884218285052516304}
+  - component: {fileID: 598708962189981832}
+  m_Layer: 0
+  m_Name: BrewingStill_Neck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &6736618791827586798
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531061936607085516}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5344682012211690187}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2884218285052516304
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531061936607085516}
+  m_Mesh: {fileID: 916312027489076547, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &598708962189981832
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531061936607085516}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 6697138931531071778, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1863472543702099419
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4099582401861333653}
+  - component: {fileID: 3230960430130918744}
+  - component: {fileID: 905588995732877561}
+  m_Layer: 0
+  m_Name: BrewingStill_Tub
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4099582401861333653
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863472543702099419}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1394032483240391149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3230960430130918744
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863472543702099419}
+  m_Mesh: {fileID: 2974734713230495979, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &905588995732877561
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1863472543702099419}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 2043506970664812740, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7893694533828302414, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 3230756071487966642, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3714333458021065862
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 324716518952626295}
+  - component: {fileID: 8073945105474680152}
+  - component: {fileID: 3721138677173156154}
+  m_Layer: 0
+  m_Name: BrewingStill_Coil
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &324716518952626295
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3714333458021065862}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9192338965461794230}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8073945105474680152
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3714333458021065862}
+  m_Mesh: {fileID: -7595516577870877123, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+--- !u!23 &3721138677173156154
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3714333458021065862}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 6697138931531071778, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 2043506970664812740, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4379115374635356430
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8187039081096443310}
+  - component: {fileID: 5754259109582461752}
+  - component: {fileID: 4326977859348517466}
+  m_Layer: 0
+  m_Name: BrewingStill_Neck
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8187039081096443310
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4379115374635356430}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5344682012211690187}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5754259109582461752
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4379115374635356430}
+  m_Mesh: {fileID: -3454026358137040949, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &4326977859348517466
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4379115374635356430}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 6697138931531071778, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5121190742861204183
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9037325589116270467}
+  - component: {fileID: 390017521153272022}
+  - component: {fileID: 6482753629133378566}
+  m_Layer: 0
+  m_Name: BrewingStill_Firebox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &9037325589116270467
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5121190742861204183}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3678400086403369747}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &390017521153272022
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5121190742861204183}
+  m_Mesh: {fileID: 2553624076405826114, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &6482753629133378566
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5121190742861204183}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 5844172771257128476, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7283746086969790678, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 1776139046433724427, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 8297594676762976574, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7893694533828302414, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -5464143896136656499, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -1595973800188585706, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -6703107486403147712, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 8387001452365709565, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 2043506970664812740, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6307403898819831314
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8067370226890692902}
+  - component: {fileID: 1247071487306508708}
+  - component: {fileID: 6137688643303516199}
+  m_Layer: 0
+  m_Name: BrewingStill_Jug
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8067370226890692902
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6307403898819831314}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3973035542854317804}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1247071487306508708
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6307403898819831314}
+  m_Mesh: {fileID: -582889635267675347, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+--- !u!23 &6137688643303516199
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6307403898819831314}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -4608977360595367264, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 7259488003050952856, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -9162918577661269544, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -4117553388204323661, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6488869531386300249
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1357355716317417358}
+  - component: {fileID: 3030485311493005378}
+  - component: {fileID: 593382674345426576}
+  m_Layer: 0
+  m_Name: BrewingStill_Tub
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1357355716317417358
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6488869531386300249}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1394032483240391149}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3030485311493005378
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6488869531386300249}
+  m_Mesh: {fileID: -8252679306179825288, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &593382674345426576
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6488869531386300249}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 2043506970664812740, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7893694533828302414, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 3230756071487966642, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &7472695219360010788
 GameObject:
   m_ObjectHideFlags: 0
@@ -10,6 +662,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6978049935930502356}
   - component: {fileID: 5644789222059407458}
+  - component: {fileID: 8766969974862313880}
   m_Layer: 0
   m_Name: Deco_BrewingStill
   m_TagString: Untagged
@@ -54,6 +707,232 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.8, y: 2.2, z: 1.4}
   m_Center: {x: 0.25, y: 1.05, z: 0.15}
+--- !u!205 &8766969974862313880
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7472695219360010788}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0.23451293, y: 1.0403464, z: 0.12999758}
+  m_Size: 2.7721128
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 355427253141558227}
+    - renderer: {fileID: 4339750878803542155}
+    - renderer: {fileID: 4688289556668074193}
+    - renderer: {fileID: 3921252823814595}
+    - renderer: {fileID: 8145379049783448471}
+    - renderer: {fileID: 7190773781249459152}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8792114707120850135}
+    - renderer: {fileID: 4339750878803542155}
+    - renderer: {fileID: 4688289556668074193}
+    - renderer: {fileID: 6137688643303516199}
+    - renderer: {fileID: 4326977859348517466}
+    - renderer: {fileID: 905588995732877561}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 664695964594577826}
+    - renderer: {fileID: 3721138677173156154}
+    - renderer: {fileID: 6482753629133378566}
+    - renderer: {fileID: 6137688643303516199}
+    - renderer: {fileID: 598708962189981832}
+    - renderer: {fileID: 593382674345426576}
+  m_Enabled: 1
+--- !u!1 &7504584601583052670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4662246418512502551}
+  - component: {fileID: 4303666614086411109}
+  - component: {fileID: 664695964594577826}
+  m_Layer: 0
+  m_Name: BrewingStill_Boiler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4662246418512502551
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7504584601583052670}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4647748492825715392}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4303666614086411109
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7504584601583052670}
+  m_Mesh: {fileID: 4300000, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &664695964594577826
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7504584601583052670}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 6697138931531071778, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7893694533828302414, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8005000377803224418
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4906301937603280061}
+  - component: {fileID: 4841276340845476108}
+  - component: {fileID: 8792114707120850135}
+  m_Layer: 0
+  m_Name: BrewingStill_Boiler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4906301937603280061
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8005000377803224418}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4647748492825715392}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4841276340845476108
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8005000377803224418}
+  m_Mesh: {fileID: 4300000, guid: 270ebb3484c8047f49acbcb8cce3ce31, type: 2}
+--- !u!23 &8792114707120850135
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8005000377803224418}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: 6697138931531071778, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  - {fileID: -7893694533828302414, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &564127930355194789
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -136,11 +1015,98 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 5139788033147107685, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4906301937603280061}
+    - targetCorrespondingSourceObject: {fileID: 5139788033147107685, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4662246418512502551}
+    - targetCorrespondingSourceObject: {fileID: 8666492260099450387, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 324716518952626295}
+    - targetCorrespondingSourceObject: {fileID: -5415470530878484298, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9037325589116270467}
+    - targetCorrespondingSourceObject: {fileID: -5695046251710010039, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8067370226890692902}
+    - targetCorrespondingSourceObject: {fileID: -3605078020106313362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8187039081096443310}
+    - targetCorrespondingSourceObject: {fileID: -3605078020106313362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6736618791827586798}
+    - targetCorrespondingSourceObject: {fileID: -7742613043710481848, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4099582401861333653}
+    - targetCorrespondingSourceObject: {fileID: -7742613043710481848, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1357355716317417358}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+--- !u!23 &3921252823814595 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 565695463770147430, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &26623713572027470 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &355427253141558227 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 232661510500665462, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1394032483240391149 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7742613043710481848, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3678400086403369747 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5415470530878484298, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3973035542854317804 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5695046251710010039, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4339750878803542155 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4905040998017213650, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4647748492825715392 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5139788033147107685, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4688289556668074193 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4124160508638178444, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5344682012211690187 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3605078020106313362, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7190773781249459152 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2008906721549641611, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8145379049783448471 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -658057383478376398, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
+  m_PrefabInstance: {fileID: 564127930355194789}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &9192338965461794230 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8666492260099450387, guid: 44517992cc3004e388158fc22764a7d8, type: 3}
   m_PrefabInstance: {fileID: 564127930355194789}
   m_PrefabAsset: {fileID: 0}

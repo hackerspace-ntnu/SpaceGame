@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8813915173930548161, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_LocalPosition.x
@@ -54,11 +54,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8549929304202883975, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -3407281022648903414, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -745535922988196416, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -74,11 +74,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2209395922645360146, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 2427765428170687802, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 4814261502877427579, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -86,7 +86,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 4a693198bec0e4a7cbffc3036bde50b7, type: 2}
     - target: {fileID: 5319218751117706374, guid: 337c175d81f3c4402a6b28fecb71c806, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -121,11 +121,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0, y: 1.6586722, z: 2.5881472}
   m_Size: 5.4762225
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.25
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 6169378475714865811}
@@ -135,6 +135,17 @@ LODGroup:
     - renderer: {fileID: 7558400964314821908}
     - renderer: {fileID: 2607863331237499535}
     - renderer: {fileID: 4488035879721945150}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7613989891135148287}
+    - renderer: {fileID: 1826466752203244782}
+    - renderer: {fileID: 8141542010533260675}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7613989891135148287}
+    - renderer: {fileID: 1826466752203244782}
   m_Enabled: 1
 --- !u!23 &4488035879721945150 stripped
 MeshRenderer:

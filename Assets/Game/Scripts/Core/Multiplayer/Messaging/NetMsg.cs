@@ -708,5 +708,11 @@ namespace SpaceGame.Core
         //                  (land in it, do not animate into it).
         public const ushort AirlockOperate = 124; // clicker → server
         public const ushort AirlockState   = 125; // server → everyone
+
+        // ── Workshop ── BURNED. These carried the workshop's crane levers until the hoist was left to run by
+        // itself (2026-10-11). Nothing sends or hears them; the ids stay taken. A turning room is turned from its
+        // hand cog, a VehicleStation (StationClaim / StationState).
+        public const ushort WorkshopOperate = 126; // burned
+        public const ushort WorkshopState   = 127; // burned
     }
 }

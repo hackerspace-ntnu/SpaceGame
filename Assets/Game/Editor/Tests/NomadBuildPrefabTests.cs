@@ -227,7 +227,7 @@ namespace SpaceGame.EditorTools
                 {
                     // The build's own Model is covered by its baked Collision shell, which is checked against it by eye in the audit.
                     if (renderer.name == "Model" && renderer.transform.parent == root.transform) continue;
-                    if (!IsHardObject(renderer)) continue;
+                    if (IsLowerDetailStandIn(renderer, root) || !IsHardObject(renderer)) continue;
                     float covered = CoveredShare(renderer, solid);
                     if (covered < CoverageNeeded)
                         failures.Add($"{Describe(path, root, renderer.transform)}: {Dimensions(SizeOf(renderer))} m, {covered:P0} of it within {CoverageReach} m of a collider");
@@ -481,6 +481,16 @@ namespace SpaceGame.EditorTools
                     if ((collider.ClosestPoint(world) - world).sqrMagnitude <= CoverageReach * CoverageReach) { covered++; break; }
             }
             return (float)covered / sampled;
+        }
+
+        // A renderer the build's LODGroup draws only past LOD0 is a lower-detail copy of one that LOD0 draws (a forced
+        // Mesh LOD level, ArtPipeline.md). The LOD0 original carries the collider and the ladder; its copies need neither.
+        private static bool IsLowerDetailStandIn(Renderer renderer, GameObject root)
+        {
+            var group = root.GetComponent<LODGroup>();
+            if (group == null) return false;
+            LOD[] lods = group.GetLODs();
+            return lods.Length > 1 && !lods[0].renderers.Contains(renderer) && lods.Skip(1).Any(lod => lod.renderers.Contains(renderer));
         }
 
         // A decoration is a prefab instance (not the FBX shell) that is not itself inside another instance.

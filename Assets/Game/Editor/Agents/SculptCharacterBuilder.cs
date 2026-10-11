@@ -447,6 +447,12 @@ namespace SpaceGame.EditorTools
             WireProjectWide();
             RagdollWiring.WirePrefabs();
 
+            // After CorrectScaleAndSole has measured them: a garment's reduced copy is not a garment
+            // to the measure, so wired before it a hat's copy would count toward the height.
+            var builtPaths = new List<string>();
+            foreach (var prefab in built) builtPaths.Add(AssetDatabase.GetAssetPath(prefab));
+            CharacterLodWiring.Wire(builtPaths);
+
             Debug.Log($"[SculptCharacterBuilder] Built {built.Count} drifter NPC(s) into {CharacterFolder}.");
         }
 
@@ -471,6 +477,7 @@ namespace SpaceGame.EditorTools
                 try
                 {
                     ApplyBehaviour(root, recipe);
+                    CharacterLodWiring.EnsureIfCovered(root, recipe.PrefabPath);
                     PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out bool ok);
                     if (ok) updated++;
                     else Debug.LogError($"[SculptCharacterBuilder] Failed to save {recipe.PrefabPath}.");
@@ -1055,8 +1062,10 @@ namespace SpaceGame.EditorTools
             high = float.MinValue;
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
-                // Measured without clothes, so every outfit of one character stands the same height.
-                if (DrifterClothes.IsPartOfGarment(renderer.transform)) continue;
+                // Measured without clothes, so every outfit of one character stands the same height --
+                // and without the reduced copies, among them every garment's.
+                if (DrifterClothes.IsPartOfGarment(renderer.transform) ||
+                    CharacterLodWiring.IsLodCopy(renderer.transform)) continue;
 
                 low = Mathf.Min(low, renderer.bounds.min.y);
                 high = Mathf.Max(high, renderer.bounds.max.y);

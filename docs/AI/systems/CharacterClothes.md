@@ -20,8 +20,8 @@ symptoms:
   - "a duplicated garment has vertex GROUPS with the right bone names but does nothing when posed"
   - "a belt or pouch near the hip gets dragged along by a swinging arm"
   - "a renamed garment object leaves its old garment prefab rendering nothing, still nested in an outfit"
-reads_with: [ArtPipeline, AgentSystem, TalkingMouth]
-updated: 2026-10-04
+reads_with: [ArtPipeline, AgentSystem, TalkingMouth, LevelOfDetail]
+updated: 2026-10-05
 ---
 
 # Character Clothes
@@ -64,6 +64,7 @@ None beyond the prefab: a saved drifter respawns from its prefab id, wearing wha
 
 ## Gotchas
 
+- **A Raxy's far tiers are `SkinnedMeshRenderer` copies of its garments** under `Model/LODs` (2026-10-05). After adding, removing or renaming a garment on any Raxy prefab — by hand, by recipe or by the external outfit kit — run *Tools ▸ SpaceGame ▸ Agents ▸ Wire Character LODs*, or the new garment draws at every distance and the removed one's copies linger. See [LevelOfDetail.md](LevelOfDetail.md).
 - **A skinned garment on its own draws nothing.** With no wearer its renderer has 0 bones against the mesh's 67 bind poses, and Unity renders nothing and says nothing. The first garment prefabs shipped like that and looked empty. The `RestPose` view is the fix. Do not delete it from a garment prefab.
 - **A flat-shaded garment reads as a noise pattern in game.** The user modelled every garment flat (`use_smooth` off on all 1280 poncho faces), and a crumpled low-poly surface lit per triangle looks like speckle. In Unity the tell is ~3 vertices per triangle on the mesh; smooth, the poncho drops from 3557 to 832. Fix it in Blender: shade smooth, sharp by angle.
 - **`ApplySkin` paints every EMBEDDED slot with the skin.** Garment and mouth slots survive only because the importer remaps them to project materials (`AssetDatabase.IsSubAsset` false). A new garment material with no remap gets the Raxy's skin texture.

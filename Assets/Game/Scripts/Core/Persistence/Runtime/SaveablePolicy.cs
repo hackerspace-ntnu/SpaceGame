@@ -477,6 +477,15 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(OxygenGeneratorSaveable));
             }
 
+            // The key gear on a transfer board is an item out of somebody's hotbar, and the rooms' stops are
+            // which doors of the mountain are open. Neither may come back at its authored start.
+            if (go.GetComponent<SpaceGame.World.Workshop>() != null &&
+                go.GetComponent<WorkshopSaveable>() == null)
+            {
+                go.AddComponent<WorkshopSaveable>();
+                parts.Add(nameof(WorkshopSaveable));
+            }
+
             if (go.GetComponent<HoloProjectorInteraction>() != null &&
                 go.GetComponent<ProjectorSaveable>() == null)
             {

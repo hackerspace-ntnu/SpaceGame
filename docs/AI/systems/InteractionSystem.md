@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation, Pushables]
-updated: 2026-10-03
+updated: 2026-10-09
 ---
 
 # Interaction
@@ -79,7 +79,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `TerminalConsole` | [Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | Opens the standing terminal's zoom-in on the presser's machine and claims the keyboard on the server (`NetworkVariable` operator, `IContextualInteractable` refuses everyone else while it is held). Its pages replicate the same way; the camera does not. On the `StandingTerminal` prefab nested in the lander's cockpit at scale 1. See [Terminal.md](Terminal.md). |
 | `DialogInteraction` | [Interactions/DialogInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogInteraction.cs) | Speaks the next line (sequence / random pool / [`DialogPool`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogPool.cs) / branching Y-N). Contextual: silent while `AgentTargeting`/`ProvocationModule` says it is fighting **you**. Purely local, no netcode. |
 | `HoloProjectorInteraction` | [Interactions/HoloProjectorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/HoloProjectorInteraction.cs) | Powers a fixed `MapHologramTerrain` (its `projectorAnchor` mode) on/off via a `NetLatch`. On the `HoloProjector` prefab ([Environment/Structures](Assets/Game/Prefabs/Environment/Structures)), rebuilt by `Tools > SpaceGame > Build Holo Projector Prefab`. Ships nested on `PlayerShip.prefab` (placed by `PlayerShipBuilder.BuildHoloProjector`), where the ship's NetworkObject makes the switch replicate. As a plain chunk prop the latch is local-per-machine — coherent, since the hologram's content (fog of war) is per-viewer anyway. |
-| `AirlockHatch` | [World/Colony/AirlockHatch.cs](Assets/Game/Scripts/World/Colony/AirlockHatch.cs) | Toggles its hatch through the `AirlockChamber` that bound it: server-decided, interlocked, cycles the chamber's air before opening the far side. A refusal ("Close the outer hatch first") is a visor message on the presser's machine, so `CanInteract` stays true and the readout's prompt names what the press will do. See [ColonyInterior.md](ColonyInterior.md). |
+| `AirlockHatch` | [World/Colony/AirlockHatch.cs](Assets/Game/Scripts/World/Colony/AirlockHatch.cs) | Toggles its hatch through the `AirlockChamber` that bound it: server-decided, interlocked, cycles the chamber's air before opening the far side. A refusal ("Close the outer hatch first") is a visor message on the presser's machine, so `CanInteract` stays true and the readout's prompt names what the press will do. See [ColonyInterior.md](ColonyInterior.md). **`WorkshopControlPoint`** was the same idea for the workshop's crane levers and is gone with them (2026-10-11); the workshop's rooms are turned from `WorkshopWheel`, a `VehicleStation` held by a mouse button, RMB one way and LMB the other ([Workshop.md](Workshop.md)). |
 | `InteractableTrigger` | [Triggers/InteractableTrigger.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableTrigger.cs) | Forwards to the `ITriggerable` on the same GameObject. Ungated on purpose (unlike [`VolumeTrigger`](Assets/Game/Scripts/Gameplay/Interaction/Triggers/VolumeTrigger.cs), which is server-only). |
 | `InteractableProxy` | [Triggers/InteractableProxy.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableProxy.cs) | Redirects the same press to an `IInteractable` on another GameObject. Must stay netcode-free. |
 | `PickupableItem` | [Items/Core/PickupableItem.cs](Assets/Game/Scripts/Items/Core/PickupableItem.cs) | Picks the item up (`Network.Execute` → server). `IInteractionReadout`: the label is the item's own `itemName`, the same string the scanner uses — without it every piece of salvage in the world read "Pickupable Item". |
@@ -119,7 +119,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 
 | Path | Carrier | Authority |
 | --- | --- | --- |
-| Colony airlocks | `NetMsg.AirlockOperate` (124) / `AirlockState` (125) on the building's channel, `A` = chamber index | `Network.Simulates(chamber)`; the whole state travels as one int, a late joiner asks with `B = -1` |
+| Colony airlocks | `NetMsg.AirlockOperate` (124) / `AirlockState` (125) on the building's channel, `A` = chamber index | `Network.Simulates(chamber)`; the whole state travels as one int, a late joiner asks with `B = -1`. `WorkshopOperate` (126) / `WorkshopState` (127) were the same shape and are burned ([Workshop.md](Workshop.md)) |
 | Doors, levers, spaceship launch, map projector | `NetMsg.LatchSet` (63) / `LatchState` (64), `A` = latch index, `B` = verb (−1 ask, 0/1 set, 2/3 instant) | `Network.Simulates(owner)`, re-runs `Accepts` on arrival, idempotent on state |
 | Vehicle stations | `NetMsg.StationClaim` (65) / `StationState` (66) on the vehicle's channel | Server owns the claim table; occupant predicts locally |
 | Articulated parts | `NetMsg.PartToggle` (60) / `PartState` | Server |

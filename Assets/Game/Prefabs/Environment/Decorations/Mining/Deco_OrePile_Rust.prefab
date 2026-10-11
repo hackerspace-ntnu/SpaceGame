@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3247776768760023800}
   - component: {fileID: 322661983798244047}
   - component: {fileID: 4482429057494637462}
+  - component: {fileID: 5109976086050074883}
   m_Layer: 0
   m_Name: Deco_OrePile_Rust
   m_TagString: Untagged
@@ -70,9 +71,228 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Ore pile
-  description: Raw ore waiting for the smelter.
   scanClass: 1
-  lookSeconds: 6
+--- !u!205 &5109976086050074883
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 17850038270907138}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.04377508, y: 0.85011226, z: 0.22791481}
+  m_Size: 2.9460588
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8572559524941905422}
+    - renderer: {fileID: 5653085092475345836}
+    - renderer: {fileID: 4912583669938894838}
+    - renderer: {fileID: 5289190039497816332}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5565875696718478918}
+    - renderer: {fileID: 5653085092475345836}
+    - renderer: {fileID: 1382149174490482432}
+    - renderer: {fileID: 4988295235358841807}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7037703659231296203}
+    - renderer: {fileID: 7998682102187113671}
+    - renderer: {fileID: 5672696585276560648}
+  m_Enabled: 1
+--- !u!1 &214187102032481280
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4621359033717847520}
+  - component: {fileID: 2731049803602527779}
+  - component: {fileID: 5565875696718478918}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Basket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4621359033717847520
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 214187102032481280}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4999091774906082777}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2731049803602527779
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 214187102032481280}
+  m_Mesh: {fileID: 4300000, guid: a43de9b844ba74300a48c6b8f78dd219, type: 2}
+--- !u!23 &5565875696718478918
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 214187102032481280}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -9162918577661269544, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: -4117553388204323661, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 6947914750725671505, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 7394809625278489721, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: -5464143896136656499, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &364230857614809632
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7248921127316205071}
+  - component: {fileID: 3128560954532213259}
+  - component: {fileID: 7998682102187113671}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Heap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7248921127316205071
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 364230857614809632}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8365557283033743102}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3128560954532213259
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 364230857614809632}
+  m_Mesh: {fileID: -449096596638297542, guid: a43de9b844ba74300a48c6b8f78dd219, type: 2}
+--- !u!23 &7998682102187113671
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 364230857614809632}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6947914750725671505, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 7394809625278489721, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: -7283746086969790678, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4005653721704507121
 GameObject:
   m_ObjectHideFlags: 0
@@ -104,6 +324,98 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3247776768760023800}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4627832204477669944
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 274999609777995529}
+  - component: {fileID: 3199043088003149803}
+  - component: {fileID: 4988295235358841807}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Shovel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &274999609777995529
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4627832204477669944}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5598824507208402480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3199043088003149803
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4627832204477669944}
+  m_Mesh: {fileID: 7319097349559176012, guid: a43de9b844ba74300a48c6b8f78dd219, type: 2}
+--- !u!23 &4988295235358841807
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4627832204477669944}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 8387001452365709565, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 2043506970664812740, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6549074541214176667
 GameObject:
   m_ObjectHideFlags: 0
@@ -151,6 +463,284 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: b8dcc03de9ef344b9a07075f6ab63c86, type: 2}
   face: {fileID: 7520870296001361744}
   group: 
+  stationCue: {fileID: 0}
+--- !u!1 &7273550447658654490
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7656192289606788342}
+  - component: {fileID: 6356452891787785005}
+  - component: {fileID: 5672696585276560648}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Shovel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7656192289606788342
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7273550447658654490}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5598824507208402480}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6356452891787785005
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7273550447658654490}
+  m_Mesh: {fileID: 7319097349559176012, guid: a43de9b844ba74300a48c6b8f78dd219, type: 2}
+--- !u!23 &5672696585276560648
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7273550447658654490}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 8387001452365709565, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 2043506970664812740, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7354165146641198697
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1663573225310119875}
+  - component: {fileID: 5734451422528178834}
+  - component: {fileID: 1382149174490482432}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Heap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1663573225310119875
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7354165146641198697}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8365557283033743102}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5734451422528178834
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7354165146641198697}
+  m_Mesh: {fileID: -449096596638297542, guid: a43de9b844ba74300a48c6b8f78dd219, type: 2}
+--- !u!23 &1382149174490482432
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7354165146641198697}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6947914750725671505, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 7394809625278489721, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: -7283746086969790678, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7390028700437783838
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5991444525180036961}
+  - component: {fileID: 2698262551508768539}
+  - component: {fileID: 7037703659231296203}
+  m_Layer: 0
+  m_Name: OrePile_Rust_Chunks
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5991444525180036961
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7390028700437783838}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3501470257974320987}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2698262551508768539
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7390028700437783838}
+  m_Mesh: {fileID: 2919136235849889894, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+--- !u!23 &7037703659231296203
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7390028700437783838}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6947914750725671505, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 7394809625278489721, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 5268086735378734929, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  - {fileID: 5571457084037410874, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &8117895499673684121
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -225,9 +815,67 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3875586665796889920, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4621359033717847520}
+    - targetCorrespondingSourceObject: {fileID: -4593893344720103486, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5991444525180036961}
+    - targetCorrespondingSourceObject: {fileID: 338017314767287911, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1663573225310119875}
+    - targetCorrespondingSourceObject: {fileID: 338017314767287911, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7248921127316205071}
+    - targetCorrespondingSourceObject: {fileID: 4403266768875966121, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 274999609777995529}
+    - targetCorrespondingSourceObject: {fileID: 4403266768875966121, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7656192289606788342}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+--- !u!4 &3501470257974320987 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -4593893344720103486, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4912583669938894838 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3784587345766743919, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4999091774906082777 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3875586665796889920, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5289190039497816332 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4165394948793299349, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5598824507208402480 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4403266768875966121, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5653085092475345836 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4694083406998908107, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8365557283033743102 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 338017314767287911, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8572559524941905422 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8764190117980572009, guid: 247d4524090ee46769d29446ad69c480, type: 3}
+  m_PrefabInstance: {fileID: 8117895499673684121}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8584484927904919410 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 247d4524090ee46769d29446ad69c480, type: 3}

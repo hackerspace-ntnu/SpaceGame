@@ -1,5 +1,188 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &864334231933777904
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3538918559195510962}
+  - component: {fileID: 556477587794151066}
+  - component: {fileID: 2754358686333958652}
+  m_Layer: 0
+  m_Name: Tent_SailStriped_Masts
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3538918559195510962
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864334231933777904}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3218067962576919283}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &556477587794151066
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864334231933777904}
+  m_Mesh: {fileID: -2878497747879173773, guid: cc886060e6e834e0383e01c4da97ca64, type: 2}
+--- !u!23 &2754358686333958652
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 864334231933777904}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2043506970664812740, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: -1817902785023152626, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: 5844172771257128476, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1901167363766785295
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5172657242653982693}
+  - component: {fileID: 4412009809866079182}
+  - component: {fileID: 6237779491809723526}
+  m_Layer: 0
+  m_Name: Tent_SailStriped_Canopy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5172657242653982693
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1901167363766785295}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8629381549049851626}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4412009809866079182
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1901167363766785295}
+  m_Mesh: {fileID: 736072691887228671, guid: cc886060e6e834e0383e01c4da97ca64, type: 2}
+--- !u!23 &6237779491809723526
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1901167363766785295}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7777823034393992955, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: -4117553388204323661, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3578430050521773812
 GameObject:
   m_ObjectHideFlags: 0
@@ -9,6 +192,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5081180090358926618}
+  - component: {fileID: 1229633802005876699}
   m_Layer: 0
   m_Name: Deco_Tent_SailStriped
   m_TagString: Untagged
@@ -33,6 +217,48 @@ Transform:
   - {fileID: 1502391641289485523}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!205 &1229633802005876699
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3578430050521773812}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.11359167, y: 2.3196695, z: -0.0019111633}
+  m_Size: 12.503797
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.3
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8944655773866555803}
+    - renderer: {fileID: 4510786501636717954}
+    - renderer: {fileID: 4122636659864187644}
+    - renderer: {fileID: 3350581937615817626}
+    - renderer: {fileID: 8843975774356176579}
+    - renderer: {fileID: 106961402261895893}
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8944655773866555803}
+    - renderer: {fileID: 4436221866155307215}
+    - renderer: {fileID: 4122636659864187644}
+    - renderer: {fileID: 3350581937615817626}
+    - renderer: {fileID: 2754358686333958652}
+    - renderer: {fileID: 106961402261895893}
+  - screenRelativeHeight: 0.01
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8944655773866555803}
+    - renderer: {fileID: 6237779491809723526}
+    - renderer: {fileID: 4122636659864187644}
+    - renderer: {fileID: 6767848612734825335}
+    - renderer: {fileID: 2754358686333958652}
+    - renderer: {fileID: 106961402261895893}
+  m_Enabled: 1
 --- !u!1 &4781672552648410088
 GameObject:
   m_ObjectHideFlags: 0
@@ -160,6 +386,189 @@ CapsuleCollider:
   m_Height: 3.82
   m_Direction: 1
   m_Center: {x: 3.389, y: 1.855, z: -3.081}
+--- !u!1 &7315570241043182186
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3772009255988711767}
+  - component: {fileID: 2657426999189252690}
+  - component: {fileID: 6767848612734825335}
+  m_Layer: 0
+  m_Name: Tent_SailStriped_Hem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3772009255988711767
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7315570241043182186}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 64516887402031357}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2657426999189252690
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7315570241043182186}
+  m_Mesh: {fileID: -1634207579352521696, guid: cc886060e6e834e0383e01c4da97ca64, type: 2}
+--- !u!23 &6767848612734825335
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7315570241043182186}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -4117553388204323661, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: 4828741692213396955, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: -8142929037515239768, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8536963319874174986
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 607257189847146163}
+  - component: {fileID: 6770984457329931865}
+  - component: {fileID: 4436221866155307215}
+  m_Layer: 0
+  m_Name: Tent_SailStriped_Canopy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &607257189847146163
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8536963319874174986}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8629381549049851626}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6770984457329931865
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8536963319874174986}
+  m_Mesh: {fileID: 4300000, guid: cc886060e6e834e0383e01c4da97ca64, type: 2}
+--- !u!23 &4436221866155307215
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8536963319874174986}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7777823034393992955, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  - {fileID: -4117553388204323661, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &5158422955338327256
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -242,11 +651,68 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -5739874470537704910, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 607257189847146163}
+    - targetCorrespondingSourceObject: {fileID: -5739874470537704910, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5172657242653982693}
+    - targetCorrespondingSourceObject: {fileID: -4074821306116879323, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3772009255988711767}
+    - targetCorrespondingSourceObject: {fileID: -1495553947071463893, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3538918559195510962}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+--- !u!4 &64516887402031357 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -4074821306116879323, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &106961402261895893 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5110009482114899469, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3218067962576919283 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1495553947071463893, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3350581937615817626 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7631858495499218754, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4122636659864187644 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 9124550594615072292, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4510786501636717954 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -499919124872849062, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4619812670207689523 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8629381549049851626 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5739874470537704910, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8843975774356176579 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4815901315529860581, guid: edafaf201f18d49038357493bdac02bf, type: 3}
+  m_PrefabInstance: {fileID: 5158422955338327256}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8944655773866555803 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4920275699314516669, guid: edafaf201f18d49038357493bdac02bf, type: 3}
   m_PrefabInstance: {fileID: 5158422955338327256}
   m_PrefabAsset: {fileID: 0}

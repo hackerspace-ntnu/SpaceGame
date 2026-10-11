@@ -90,11 +90,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7656832854537881410, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -7342290921998148584, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -7296102179671640179, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_LocalScale.x
@@ -122,19 +122,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6247837779402908728, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -5742852230145777163, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -5648563705589846097, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -5338689214071425034, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -4888668482891044995, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -294,7 +294,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5955462849084319729, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 6836876190253957150, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_LocalScale.x
@@ -322,7 +322,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7220661502237006615, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7485734589967270391, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_LocalScale.x
@@ -366,7 +366,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8324525155107437828, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 8425134435078609264, guid: d427dfcf9139142cba560dfbff7352a1, type: 3}
       propertyPath: m_LocalScale.x
@@ -467,13 +467,13 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2611060213106947647}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: 0.03998995, y: 3.7688744, z: 0.0663867}
-  m_Size: 29.289104
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_LocalReferencePoint: {x: 0.039990425, y: 3.768875, z: 0.06638622}
+  m_Size: 29.289108
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.3
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 6592562557836182137}
@@ -485,6 +485,26 @@ LODGroup:
     - renderer: {fileID: 870249429991659469}
     - renderer: {fileID: 6863881365585182142}
     - renderer: {fileID: 2899640936171670101}
+    - renderer: {fileID: 3630144539442190668}
+    - renderer: {fileID: 590317425942373196}
+    - renderer: {fileID: 1174818456310299231}
+    - renderer: {fileID: 342303056495332380}
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 986005873767961468}
+    - renderer: {fileID: 3630144539442190668}
+    - renderer: {fileID: 590317425942373196}
+    - renderer: {fileID: 1174818456310299231}
+    - renderer: {fileID: 342303056495332380}
+    - renderer: {fileID: 2931229903750137355}
+    - renderer: {fileID: 870249429991659469}
+    - renderer: {fileID: 6863881365585182142}
+    - renderer: {fileID: 2899640936171670101}
+  - screenRelativeHeight: 0.01
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 986005873767961468}
     - renderer: {fileID: 3630144539442190668}
     - renderer: {fileID: 590317425942373196}
     - renderer: {fileID: 1174818456310299231}

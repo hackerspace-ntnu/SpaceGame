@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6394271991940593281}
   - component: {fileID: 1691251398191031803}
+  - component: {fileID: 629893784478024993}
   m_Layer: 0
   m_Name: Deco_HoloIdol_Creature
   m_TagString: Untagged
@@ -54,6 +55,497 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.5, y: 2.1, z: 1.5}
   m_Center: {x: 0, y: 1.1, z: 0}
+--- !u!205 &629893784478024993
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1388171578123198445}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: 0.0036572218, y: 1.1280668, z: -0.0017528534}
+  m_Size: 2.2561336
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 3092295099940441653}
+    - renderer: {fileID: 9030939700188958038}
+    - renderer: {fileID: 5777408173733276323}
+    - renderer: {fileID: 3225598374358092822}
+    - renderer: {fileID: 4586685080386964793}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 3092295099940441653}
+    - renderer: {fileID: 9030939700188958038}
+    - renderer: {fileID: 5777408173733276323}
+    - renderer: {fileID: 3225598374358092822}
+    - renderer: {fileID: 4586685080386964793}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2707688763457066132}
+    - renderer: {fileID: 7659016947302903077}
+    - renderer: {fileID: 2246763196189145934}
+    - renderer: {fileID: 7776072749372421065}
+    - renderer: {fileID: 8819972852604381998}
+  m_Enabled: 1
+--- !u!1 &1422825056833564817
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3235081454095465153}
+  - component: {fileID: 6779314270535096130}
+  - component: {fileID: 2707688763457066132}
+  m_Layer: 0
+  m_Name: HoloIdol_Creature_Beam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3235081454095465153
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1422825056833564817}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6264738266819923091}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6779314270535096130
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1422825056833564817}
+  m_Mesh: {fileID: 8553675131310864361, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+--- !u!23 &2707688763457066132
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1422825056833564817}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 482913151567680609, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2519832396901859486
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7382429978024011677}
+  - component: {fileID: 6933978064734978918}
+  - component: {fileID: 2246763196189145934}
+  m_Layer: 0
+  m_Name: HoloIdol_Creature_Halo
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7382429978024011677
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2519832396901859486}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8146310455622360113}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6933978064734978918
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2519832396901859486}
+  m_Mesh: {fileID: 8345180035412176971, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+--- !u!23 &2246763196189145934
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2519832396901859486}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 3361319308165263403, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2940226453982872621
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3117397337072712305}
+  - component: {fileID: 4989958351780145736}
+  - component: {fileID: 7776072749372421065}
+  m_Layer: 0
+  m_Name: HoloIdol_Creature_Hologram
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3117397337072712305
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2940226453982872621}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6035757661757467487}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4989958351780145736
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2940226453982872621}
+  m_Mesh: {fileID: 1119941635954459482, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+--- !u!23 &7776072749372421065
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2940226453982872621}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 482913151567680609, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7310150089824572461
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2794268536358683733}
+  - component: {fileID: 3441513090304255426}
+  - component: {fileID: 7659016947302903077}
+  m_Layer: 0
+  m_Name: HoloIdol_Creature_Emitter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &2794268536358683733
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310150089824572461}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5626396617648741186}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3441513090304255426
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310150089824572461}
+  m_Mesh: {fileID: -8892692370735435229, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+--- !u!23 &7659016947302903077
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7310150089824572461}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  - {fileID: 3361319308165263403, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8057141276808125397
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5178621819936322642}
+  - component: {fileID: 8783307541502671094}
+  - component: {fileID: 8819972852604381998}
+  m_Layer: 0
+  m_Name: HoloIdol_Creature_Pedestal
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5178621819936322642
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8057141276808125397}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8591789794036582546}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8783307541502671094
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8057141276808125397}
+  m_Mesh: {fileID: -3972233693048976207, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+--- !u!23 &8819972852604381998
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8057141276808125397}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 974640710366444605, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  - {fileID: 3361319308165263403, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &1988389622638554111
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -132,11 +624,76 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 5577989138091124588, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3235081454095465153}
+    - targetCorrespondingSourceObject: {fileID: -3058836699773128515, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2794268536358683733}
+    - targetCorrespondingSourceObject: {fileID: -1543133914705791026, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7382429978024011677}
+    - targetCorrespondingSourceObject: {fileID: -4009474364514451296, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3117397337072712305}
+    - targetCorrespondingSourceObject: {fileID: 7828389303491306349, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5178621819936322642}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
 --- !u!4 &2022842661224631316 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3092295099940441653 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3562954037308433866, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3225598374358092822 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3988937415862560745, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4586685080386964793 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -6611565641294076218, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5626396617648741186 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3058836699773128515, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5777408173733276323 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5455363057611882844, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6035757661757467487 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -4009474364514451296, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6264738266819923091 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5577989138091124588, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8146310455622360113 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1543133914705791026, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8591789794036582546 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7828389303491306349, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
+  m_PrefabInstance: {fileID: 1988389622638554111}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &9030939700188958038 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -1815942286411962711, guid: 6e82a6c2848ce474bb7973cdf3816b21, type: 3}
   m_PrefabInstance: {fileID: 1988389622638554111}
   m_PrefabAsset: {fileID: 0}

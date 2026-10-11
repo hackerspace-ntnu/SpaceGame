@@ -20,7 +20,7 @@ symptoms:
   - "a bell frame's deck cannot be walked on and its ladder leads nowhere"
   - "an outpost prefab renders at the wrong place or mirrored compared to the .blend"
 reads_with: [Residents, Seats, Ladders, Errands, TerrainGeneration, NavMeshSystem, ArtPipeline]
-updated: 2026-10-04
+updated: 2026-10-09
 ---
 
 # Outposts
@@ -37,7 +37,7 @@ component settles a list of character prefabs at it. It is a [`Settlement`](Asse
 | It is its own config | `Settlement.Config` is `protected virtual`; `Outpost` returns a `SettlementConfig` made from its fields (one building, the residents, the culture), thrown away on `OnValidate`. `sizeMultiplier` is hidden: at 2 it would place the outpost twice |
 | Turn it | The building's yaw is the GameObject's own yaw (`GetSpawnRotation` for the one building); every other settlement ignores the transform's rotation |
 | Its culture | [OutpostCulture.asset](Assets/Game/ScriptableObjects/Residents/OutpostCulture.asset) is a copy of `NomadCulture` with **no expedition profile**: with `NomadCulture` Generate demands a war-band muster spot and 6 Warriors and the validator errors. Set as the script's default reference (`Outpost.cs.meta`), applied when the component is added in the editor |
-| No beds | An outpost has no `Dwelling`, so every listed copy moves in, in seeded order, and sleeps where it stands (a camp sleeper, [Residents.md](Residents.md)). Population = the list, not a bed count |
+| No beds | An outpost has no `Dwelling` (the one that does is the workshop, whose prefab carries a `Dwelling` of four beds: there the beds cap the list, [Workshop.md](Workshop.md)), so every listed copy moves in, in seeded order, and sleeps where it stands (a camp sleeper, [Residents.md](Residents.md)). Population = the list, not a bed count |
 | A prefab is a layout of pieces | Every piece is an instance of its own `Deco_<Kind>` prefab, so an outpost brings those prefabs' work posts, seats, fixtures and colliders. `raxy_outposts_export.py` reads the three .blend files and writes [OutpostLayouts.json](Assets/Game/Art/Models/Environment/Structures/Outpost/OutpostLayouts.json) |
 | What the pieces lack is added | [OutpostPrefabBuilder](Assets/Game/Editor/Terrain/Outposts/OutpostPrefabBuilder.cs) adds ladders, walkable collision, sit spots and props (below) |
 

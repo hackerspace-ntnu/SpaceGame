@@ -16,7 +16,7 @@ symptoms:
   - "legacy Input.GetKey compiles fine but throws at runtime"
   - "which Unity, URP or Netcode version is this project on, and what packages are installed"
 reads_with: [Multiplayer, NavMeshSystem, WorldStreaming, Environment]
-updated: 2026-09-08
+updated: 2026-10-05
 ---
 
 # Project Config
@@ -117,9 +117,9 @@ Physics ([DynamicsManager.asset](ProjectSettings/DynamicsManager.asset)) — the
 | `m_DefaultSolverIterations` | 6 | |
 | `m_WorldBounds` extent | 250 m | Ignored: `m_BroadphaseType: 0` (Sweep-and-Prune). See Gotchas. |
 
-URP `PC_RPAsset` (`PC_Renderer`, deferred `m_RenderingMode: 2`, native render pass on): HDR on, MSAA off (`m_MSAA: 1`), render scale 1, depth **and** opaque textures required, shadow distance 50 m / 4 cascades / soft shadows, 2048 shadowmaps, 4 additional lights per object, SRP Batcher on, dynamic batching off, light layers on.
-Renderer features on `PC_Renderer`: `VolumetricCloudsRenderFeature`, `SandstormRenderFeature`, `FogRenderFeature`, `NewURPRenderFeature`, `ScreenSpaceAmbientOcclusion` **enabled**; `LensDistortionRenderFeature`, `GlassDistortionRenderFeature` **disabled**.
-QualitySettings has exactly **one** level, `PC` (index 0): shadow distance 40, `antiAliasing: 0`, `vSyncCount: 0`, `lodBias: 2`, realtime reflection probes off, terrain tree distance 5000.
+URP `PC_RPAsset` (`PC_Renderer`, Forward+ `m_RenderingMode: 2`, native render pass on): HDR on, MSAA off (`m_MSAA: 1`), render scale 1, depth **and** opaque textures required, shadow distance 50 m / **2 cascades** (was 4 until 2026-10-05; renders matched, ~40 % fewer shadow draws — [LevelOfDetail.md](LevelOfDetail.md)) / soft shadows, 2048 shadowmaps, 4 additional lights per object, SRP Batcher on, dynamic batching off, light layers on.
+Renderer features on `PC_Renderer`: `VolumetricCloudsRenderFeature`, `SandstormRenderFeature`, `FogRenderFeature`, `ScreenSpaceAmbientOcclusion` (DepthNormals source, before opaques) **enabled**; `GlassDistortionRenderFeature`, `PastelQuantizeRenderFeature` **disabled**.
+QualitySettings has exactly **one** level, `PC` (index 0): shadow distance 50 / 2 cascades (URP ignores both and reads `PC_RPAsset`; kept equal so nobody tunes the dead copy), `antiAliasing: 0`, `vSyncCount: 0`, `lodBias: 2`, realtime reflection probes off, terrain tree distance 5000.
 
 ## Version control
 

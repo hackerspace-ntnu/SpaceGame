@@ -48,6 +48,9 @@ namespace SpaceGame.World
             }
         }
 
+        /// <summary>Whether an agent body stands in it, whatever the players are doing.</summary>
+        public bool HoldsAgent => AgentInside();
+
         /// <summary>Whether <paramref name="body"/> is in.</summary>
         public bool Contains(SuitOxygen body)
         {

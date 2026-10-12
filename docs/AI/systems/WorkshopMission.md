@@ -125,8 +125,8 @@ it on the hook and lowers it onto their ship parked in the pit; letting go over 
 
 ## Multiplayer
 
-On the building's channel: `WorkshopMissionAsk` 130 (asker → server, answered with the state to all) and
-`WorkshopMissionState` 131 (server → all; A = `WorkshopMissionState.WithLive`), `WorkshopMissionExamine` 132
+On the building's channel: `WorkshopMissionAsk` 135 (asker → server, answered with the state to all) and
+`WorkshopMissionState` 136 (server → all; A = `WorkshopMissionState.WithLive`), `WorkshopMissionExamine` 137
 (examiner → server; A = clue). Talk is answered on the presser's machine, like `DialogInteraction`; clues are local
 scenery on every machine. The Shellbacks and the thieves are network prefabs
 (registered by Rebuild), and so is the core. **A workshop with no networked wrapper above it** (the bare `Workshop.prefab`, as in

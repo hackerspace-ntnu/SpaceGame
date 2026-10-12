@@ -73,9 +73,9 @@ the core on it, steers it over their ship parked in the pit and lets go over the
 
 ## Multiplayer
 
-On the building's channel. The console's claim is `StationClaim` 65 / `StationState` 66. `WorkshopCraneOperate` 133
+On the building's channel. The console's claim is `StationClaim` 65 / `StationState` 66. `WorkshopCraneOperate` 138
 (player → server): A = -1 ask, 1 grab lever, 2 hang; Target = the player, checked with `MayActFor`.
-`WorkshopCraneState` 134 (server → all): P = the pose, B = driven, loaded, land in it, just fitted. A late joiner asks once
+`WorkshopCraneState` 139 (server → all): P = the pose, B = driven, loaded, land in it, just fitted. A late joiner asks once
 spawned. **Not run on a client.** A workshop with no networked wrapper runs its crane alone on each machine.
 
 ## Persistence

@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 6566248432231935794}
   - component: {fileID: 3472300856056433143}
   - component: {fileID: 2160918923913954109}
+  - component: {fileID: -1186972304884161375}
   m_Layer: 0
   m_Name: Tool_Trowel
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 11400000, guid: f406cff6cb32649c4b130ed36cb8267d, type: 2}
+--- !u!114 &-1186972304884161375
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7929716443534167648}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &7555160417678193337
 PrefabInstance:
   m_ObjectHideFlags: 0

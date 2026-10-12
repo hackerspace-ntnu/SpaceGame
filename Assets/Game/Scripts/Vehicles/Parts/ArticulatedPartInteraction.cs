@@ -132,6 +132,19 @@ namespace SpaceGame.Vehicles
         /// Where one press takes the group. Mixed states resolve toward "close everything", so a
         /// press always leaves the group in a single predictable state.
         /// </summary>
+        /// <summary>
+        /// SERVER: open or close the group as if pressed, for something other than a player doing
+        /// it — the crash bursting the lander's back door open. Same apply and announce as a press,
+        /// so every machine, late joiners and the door's saver see one ordinary door state.
+        /// </summary>
+        public void SetOpenByAuthority(bool open)
+        {
+            if (!Network.Simulates(this)) return;
+
+            Apply(open, instant: false);
+            Announce(open, instant: false);
+        }
+
         private bool NextState()
         {
             foreach (ArticulatedPart part in parts)

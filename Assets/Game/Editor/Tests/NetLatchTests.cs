@@ -307,12 +307,6 @@ namespace SpaceGame.EditorTools
 
             var door = go.AddComponent<DoorInteraction>();
 
-            // Silence the audio before Awake wires anything up. Sfx.Play returns immediately for
-            // SfxId.None with no override, which keeps FMOD — which has no business being spun up by
-            // an EditMode run — entirely out of these tests.
-            Set(door, "openId", SfxId.None);
-            Set(door, "closeId", SfxId.None);
-
             Life(door, "Awake");
             Life(door, "OnEnable");
             return door;
@@ -418,7 +412,6 @@ namespace SpaceGame.EditorTools
         {
             var lever = NewObject("lever").AddComponent<LeverInteraction>();
 
-            Set(lever, "pullId", SfxId.None);
             Set(lever, "oneShot", oneShot);
             Set(lever, "replayOnJoin", replayOnJoin);
 

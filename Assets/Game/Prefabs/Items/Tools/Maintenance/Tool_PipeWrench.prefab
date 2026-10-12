@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 2559408607608213927}
   - component: {fileID: 8559757264469383568}
   - component: {fileID: 1735428770627790653}
+  - component: {fileID: 2279338258719013726}
   m_Layer: 0
   m_Name: Tool_PipeWrench
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &2279338258719013726
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1317891741041670781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &6669882690285393928
 PrefabInstance:
   m_ObjectHideFlags: 0

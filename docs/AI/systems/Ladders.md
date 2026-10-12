@@ -6,6 +6,8 @@ paths:
   - Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs
   - Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs
   - Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs
+  - Assets/Game/Editor/Traversal/LadderClimberWiring.cs
+  - Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs
   - Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs
   - Assets/Game/Editor/Tests/LadderTests.cs
   - Assets/Game/Editor/Tests/LadderTraversalTests.cs
@@ -19,8 +21,8 @@ symptoms:
   - "an NPC slides up a ladder instead of climbing it"
   - "[Ladder] found no NavMesh within 1 m of its foot or exit"
   - "the project has no 'Ladder' NavMesh area"
-reads_with: [PlayerCharacter, ArtPipeline, Wingsuit, NavMeshSystem, AgentSystem]
-updated: 2026-10-02
+reads_with: [PlayerCharacter, LedgeClimbing, ArtPipeline, Wingsuit, NavMeshSystem, AgentSystem]
+updated: 2026-10-06
 ---
 
 # Ladders
@@ -31,14 +33,17 @@ on the player does the player's climbing; `NavMeshAgentMotor` (its `.Links.cs` p
 
 **Scope:** [Ladder.cs](Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs) ·
 [LadderClimber.cs](Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs) ·
-LadderClimberWiring.cs · [NavLinkAreas.cs](Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs) ·
+[LadderClimberWiring.cs](Assets/Game/Editor/Traversal/LadderClimberWiring.cs) · [NavLinkAreas.cs](Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs) ·
 [NavMeshAgentMotor.Links.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs)
-**Where ladders come from:** the Sky City's seven `LAD_SkyCity_##` markers —
-`SkyCityBuilder` adds a `Ladder` to each, wired to
-its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).
-The three `Decorations/Watchtowers/Deco_Watchtower_{Wood,MetalLattice,MetalScaffold}` prefabs carry one each:
-foot on the ground, `Top` 6 m up, `Exit` 0.9 m inside the deck edge through the rail gap (checked 2026-10-02 against
-their colliders: the exit is on the deck, the foot clear of the brace colliders).
+**Where ladders come from:**
+- the Sky City's seven `LAD_SkyCity_##` markers
+- the [dune barge](DuneBarge.md)'s five `LAD_*` markers
+- the satellite tower prefab's `Ladders/CatwalkLadder`: roof deck (13.5 m) to the pedestal catwalk (26.1 m), caged, climbed from outside, exit inward on the catwalk; its control-room column ladder is scenery, ending at a closed plate ([SatelliteDish.md](SatelliteDish.md))
+- the three `Decorations/Watchtowers/Deco_Watchtower_{Wood,MetalLattice,MetalScaffold}` prefabs carry one each: foot on the ground, `Top` 6 m up, `Exit` 0.9 m inside the deck edge through the rail gap (checked 2026-10-02 against their colliders: the exit is on the deck, the foot clear of the brace colliders)
+
+The Sky City and barge builders call [`ModelMarkerImport.GatherLadders`](Assets/Game/Editor/Support/ModelMarkerImport.cs), which adds a `Ladder` to each marker, wired to its `_Top` and `_Exit` children (see [ArtPipeline.md](ArtPipeline.md) and `sky_city_BUILD.md`).
+
+`LadderClimberWiring` is now a thin caller of [`PlayerTraversalWiring.Ensure<T>`](Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs), which also wires the `HatchCrawler`.
 
 ## Model
 
@@ -52,6 +57,7 @@ their colliders: the exit is on the deck, the foot clear of the brace colliders)
   `halfWidth`, from `footMargin` below the foot up to the step-off height. `TopContains`: a band
   `topBand` either side of the step-off height, from `topReach` back over the exit floor out to the
   climber's side of the gap.
+- **A ledge climb holds the body the same way** (`SetClimbing`), so `TryTakeHold` refuses while `IsClimbing` and the ledge climber refuses inside a ladder volume ([LedgeClimbing.md](LedgeClimbing.md)). The body-capsule maths (world height, radius, feet, overlap/sweep) lives in `PlayerBodyShape`, shared by both.
 - **The climber owns the body the way a wing does.** `PlayerMovement.SetClimbing(true)` skips the
   velocity write, fall damage and the leg jump; the probe and animator keep running. Gravity is off
   and restored to what it was.
@@ -148,7 +154,7 @@ a leap and comes back through the leap's saved state.) A teleport or disabling t
 
 **A ladder somewhere else** — add `Ladder` to an object at the ladder's foot (on the rung line), with a
 `top` transform at the step-off height and an `exit` transform on the floor behind the rungs; or call
-`Configure` from a builder, as `SkyCityBuilder.GatherLadders` does. Nothing registers it but enabling it.
+`Configure` from a builder, as `ModelMarkerImport.GatherLadders` does. Nothing registers it but enabling it.
 Check it with a column test like `SkyCityPrefabTests.ThePlayerCanClimbEveryLadderAndStepOffAtTheTop`.
 
 **The player prefab lost the climber** (rebuilt, reverted) — **Tools ▸ SpaceGame ▸ Player ▸ Wire Ladder

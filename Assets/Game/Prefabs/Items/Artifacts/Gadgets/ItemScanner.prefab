@@ -545,6 +545,7 @@ GameObject:
   - component: {fileID: 6896990403598379289}
   - component: {fileID: 4837573345607581139}
   - component: {fileID: 4990370280033222654}
+  - component: {fileID: 8563037136880079077}
   m_Layer: 0
   m_Name: ItemScanner
   m_TagString: Untagged
@@ -656,6 +657,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 50
   scanInterval: 0.25
   maxContacts: 24
@@ -668,6 +670,7 @@ MonoBehaviour:
   antenna: {fileID: 8402166892989048369}
   dialSpeed: 220
   antennaSway: 7
+  poweredPose: 2
   toggleId: 502
   toggleSound:
     Guid:
@@ -926,6 +929,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.399, y: 0.7709558, z: 0.501}
   m_Center: {x: 0.009500012, y: 0.19389457, z: -0.10950002}
+--- !u!114 &8563037136880079077
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7460113200000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &7538472164763884203
 GameObject:
   m_ObjectHideFlags: 0

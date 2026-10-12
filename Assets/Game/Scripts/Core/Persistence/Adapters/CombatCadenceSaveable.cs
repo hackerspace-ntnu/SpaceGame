@@ -22,9 +22,9 @@ namespace SpaceGame.Core.Persistence
     /// two policy clauses and two files to keep in step, for state that is captured and restored
     /// identically.
     ///
-    /// <b>Positional over each component array.</b> An NPC with two <see cref="NpcItemUseModule"/>s
-    /// — the documented way to give it a weapon it swaps by range — has two independent cadences,
-    /// and index i is component i in <c>GetComponents</c> order. A module added to the prefab since
+    /// <b>Positional over each component array.</b> An NPC with two <see cref="ItemUseModuleBase"/>s
+    /// — two hand slots it swaps by range, or a hand weapon and a worn gauntlet — has two independent
+    /// cadences, and index i is component i in <c>GetComponents</c> order. A module added to the prefab since
     /// the save reads as "at its defaults", which is the right answer for a weapon that did not
     /// exist to have been fired.
     ///
@@ -82,15 +82,15 @@ namespace SpaceGame.Core.Persistence
         }
 
         private CloseCombatModule[] meleeModules;
-        private NpcItemUseModule[] itemUseModules;
+        private ItemUseModuleBase[] itemUseModules;
 
         // Lazy, NOT cached in Awake: EditMode tests never run Awake, and a saver that caches there
         // cannot be round-trip tested by PersistenceProbe.
         private CloseCombatModule[] Melee =>
             meleeModules ??= GetComponents<CloseCombatModule>();
 
-        private NpcItemUseModule[] ItemUse =>
-            itemUseModules ??= GetComponents<NpcItemUseModule>();
+        private ItemUseModuleBase[] ItemUse =>
+            itemUseModules ??= GetComponents<ItemUseModuleBase>();
 
         private State pending;
         private bool hasPending;
@@ -98,7 +98,7 @@ namespace SpaceGame.Core.Persistence
         public object CaptureState()
         {
             CloseCombatModule[] melee = Melee;
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
 
             if (melee.Length == 0 && itemUse.Length == 0) return null;
 
@@ -121,7 +121,7 @@ namespace SpaceGame.Core.Persistence
 
             for (int i = 0; i < itemUse.Length; i++)
             {
-                NpcItemUseModule m = itemUse[i];
+                ItemUseModuleBase m = itemUse[i];
                 state.itemUse[i] = new ItemUseState
                 {
                     cooldown = m.CooldownTimer,
@@ -168,7 +168,7 @@ namespace SpaceGame.Core.Persistence
         {
             if (!hasPending) return;
 
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
             ItemUseState[] records = pending.itemUse;
 
             bool resolvedEverything = true;
@@ -204,7 +204,7 @@ namespace SpaceGame.Core.Persistence
                     melee[i].RestoreCadence(m.cooldown, m.commit, m.engaged);
                 }
 
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
             if (state.itemUse != null)
                 for (int i = 0; i < state.itemUse.Length && i < itemUse.Length; i++)
                 {
@@ -224,7 +224,7 @@ namespace SpaceGame.Core.Persistence
             foreach (CloseCombatModule m in Melee)
                 m.RestoreCadence(0f, 0f, false);
 
-            foreach (NpcItemUseModule m in ItemUse)
+            foreach (ItemUseModuleBase m in ItemUse)
             {
                 m.RestoreCadence(0f, 0, 0f, 0f, false, Vector3.zero);
                 m.RestoreAimTracking(null, Vector3.zero);

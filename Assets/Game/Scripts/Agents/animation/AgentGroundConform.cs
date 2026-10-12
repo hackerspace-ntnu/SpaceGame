@@ -17,6 +17,7 @@
 // vertical body with both feet at one height still reads as pasted on. Leaning into the slope is
 // what makes it look like standing on it.
 using SpaceGame.Locomotion;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -93,6 +94,10 @@ namespace SpaceGame.Agents
 
         [SerializeField, Min(0f)] private float tiltFollowSpeed = 8f;
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ProbeMarkerName = "SpaceGame.GroundConform.Probe";
+        private static readonly ProfilerMarker ProbeMarker = new(ProbeMarkerName);
+
         private WalkerGround ground;
         private AgentGrounding grounding;
         private bool initialised;
@@ -165,6 +170,8 @@ namespace SpaceGame.Agents
         /// </summary>
         public void Conform(float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = ProbeMarker.Auto();
+
             Initialise();
 
             bool grounded = ground.TrySurface(transform.position, FootprintRadius,

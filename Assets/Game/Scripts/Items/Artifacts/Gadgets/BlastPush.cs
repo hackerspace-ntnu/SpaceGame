@@ -4,6 +4,7 @@ using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay.Ragdoll;
+using SpaceGame.Vehicles;
 
 namespace SpaceGame.Items
 {
@@ -22,7 +23,8 @@ namespace SpaceGame.Items
     ///   <item>An <b>agent</b> — creature, mount, NPC — has a kinematic transform owned by its
     ///     motor, so forces never land on it at all. It can be knocked down or thrown as a leap,
     ///     and if it can do neither the blast moves it not at all.</item>
-    ///   <item>Anything else with a <b>Rigidbody</b> takes a mass-scaled impulse.</item>
+    ///   <item>Anything else with a <b>Rigidbody</b> takes a mass-scaled impulse — except that a
+    ///     kinematic body belonging to an agent or a moving hull is never woken by it.</item>
     /// </list>
     /// <para>
     /// Extracted because <see cref="RepulsorGauntletArtifact"/> and
@@ -144,6 +146,7 @@ namespace SpaceGame.Items
                 // Only un-kinematic a body this machine simulates — a kinematic replica is
                 // kinematic on purpose (the LassoTether guard).
                 if (!Network.Simulates(body)) return;
+                if (IsDrivenHull(body)) return;
                 body.isKinematic = false;
             }
 
@@ -153,25 +156,36 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Is this kinematic body moved by something that owns it — an agent's motor, a walker's
+        /// platform, a vessel's pilot? Asked of the BODY, upward, because the <c>root</c> a caller
+        /// hands in is often just the collider that was hit: a pellet that strikes the Sky City's
+        /// deck mesh finds no health, passes the deck itself, and the agent check above looks
+        /// DOWN from there and never sees the fleet's AgentController on the parent. Un-kinematic
+        /// that body and the whole city becomes a 1 kg dynamic body on concave mesh colliders that
+        /// tumbles away and drops everyone on it through the floor.
+        /// </summary>
+        private static bool IsDrivenHull(Rigidbody body)
+            => body.GetComponentInParent<AgentController>() != null
+               || body.GetComponentInParent<WalkerPlatformCarrier>() != null
+               || body.GetComponentInParent<VesselPilot>() != null;
+
+        /// <summary>
         /// A creature's transform belongs to its motor and forces never land on it, so there are
         /// only two things that can be done to one: take the body away from the motor and let it
         /// fall, or throw it as a leap.
         ///
         /// Ragdoll wins where the weapon offers it, and the leap is the fallback rather than the
-        /// other way round — but only for a creature that answers <c>CanBeKnockedDown</c>, which
-        /// is what keeps a ridden mount from going limp underneath its rider.
+        /// other way round — but only for a creature that answers <c>RagdollController.CanKnock</c>,
+        /// which is what keeps a ridden mount from going limp underneath its rider. Asked through
+        /// that and not a search of its own, so the body asked is the body <c>Knock</c> then finds.
         /// </summary>
         private static void PushAgent(GameObject root, Vector3 velocity, float referenceSpeed,
                                       in Leap leap, Action<GameObject, Vector3> knock)
         {
-            if (knock != null)
+            if (knock != null && RagdollController.CanKnock(root))
             {
-                var ragdoll = root.GetComponentInChildren<AgentRagdoll>();
-                if (ragdoll != null && ragdoll.CanBeKnockedDown)
-                {
-                    knock(root, velocity);
-                    return;
-                }
+                knock(root, velocity);
+                return;
             }
 
             if (root.GetComponentInChildren<IMountLeapMotor>() == null) return;

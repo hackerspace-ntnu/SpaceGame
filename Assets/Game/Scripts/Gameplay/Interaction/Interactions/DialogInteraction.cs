@@ -112,7 +112,6 @@ namespace SpaceGame.Gameplay
         [Header("Voice")]
         [Tooltip("The vocalisation played each time this character speaks a line. Set to None for " +
                  "someone who should read as silent — a terminal, or a mute character.")]
-        [SerializeField] private SfxId voiceId = SfxId.NpcMumbleNeutral;
         [SerializeField] private EventReference voiceSound;
 
         /// <summary>
@@ -710,7 +709,7 @@ namespace SpaceGame.Gameplay
         {
             NpcDialogPopupUI.Instance.Show(ResolveTokens(line), popupDuration, transform);
 
-            Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
+            Sfx.Play(voiceSound, transform.position);
         }
 
         // ─────────── Saying what this character is actually doing ───────────

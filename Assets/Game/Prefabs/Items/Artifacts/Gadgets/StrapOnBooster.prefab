@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 3843221150626201377}
   - component: {fileID: 8852269295524370240}
   - component: {fileID: 3922726857446710860}
+  - component: {fileID: -1082890040443461105}
   m_Layer: 0
   m_Name: StrapOnBooster
   m_TagString: Untagged
@@ -317,10 +318,23 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   clampedBoosterPrefab: {fileID: 7668843352531583084, guid: ab053a76867e34793ade9df9cba9cc2b, type: 3}
   range: 4
   serverRangeTolerance: 2.5
   showAimHint: 1
+--- !u!114 &-1082890040443461105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8589963900721172279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &9071992217368854832
 PrefabInstance:
   m_ObjectHideFlags: 0

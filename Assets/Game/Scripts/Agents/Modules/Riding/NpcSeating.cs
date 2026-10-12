@@ -56,6 +56,10 @@ namespace SpaceGame.Agents
             foreach (MonoBehaviour behaviour in npc.GetComponentsInChildren<MonoBehaviour>(true))
                 if (behaviour is IMovementMotor) Disable(behaviour);
 
+            // The seat poses the body; see ParkPresentation.
+            foreach (AgentGroundConform conform in npc.GetComponentsInChildren<AgentGroundConform>(true))
+                Disable(conform);
+
             seated = npc;
             CarriedBody.Hold(npc, this);
         }
@@ -118,6 +122,27 @@ namespace SpaceGame.Agents
 
             suppressed.Clear();
             carried.Clear();
+        }
+
+        /// <summary>
+        /// Stop (or resume) <paramref name="npc"/> conforming to the ground, for the presentation half
+        /// of seating that runs on every machine. <see cref="Suppress"/> parks the conform on the
+        /// authority; a watching machine is handed only the parenting, so its carrier calls this.
+        ///
+        /// <para>
+        /// A seated body is posed by its seat. Left running, the conform casts its ring of rays
+        /// every frame for every crew member and leans the body into whatever the hull is standing
+        /// on. Disabling it puts the lean back to rest (<c>AgentGroundConform.OnDisable</c>). A
+        /// corpse is not given it back, for the same reason <see cref="GiveBack"/> hands a corpse
+        /// nothing.
+        /// </para>
+        /// </summary>
+        public static void ParkPresentation(GameObject npc, bool parked)
+        {
+            if (npc == null || (!parked && IsDead(npc))) return;
+
+            foreach (AgentGroundConform conform in npc.GetComponentsInChildren<AgentGroundConform>(true))
+                conform.enabled = !parked;
         }
 
         private static bool IsDead(GameObject npc) => npc.TryGetComponent(out HealthComponent health) && !health.Alive;

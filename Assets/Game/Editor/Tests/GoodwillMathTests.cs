@@ -209,5 +209,22 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(GoodwillMath.IsHunting(GoodwillBand.HostileOnSight),
                            "hostile on sight is not the same as coming to find you");
         }
+
+        // ── Ending a war outright ──────────────────────────────────────────────────
+
+        [Test]
+        public void CreditToLeaveWar_CarriesTheMeterJustPastAtWarsStickyEdge()
+        {
+            // Enter at -80, leave above -70 (hysteresis 10); one point of margin lands at -69.
+            float credit = GoodwillMath.CreditToLeaveWar(-95f, T, 1f);
+
+            Assert.AreEqual(26f, credit, 0.001f);
+            Assert.AreEqual(GoodwillBand.HostileOnSight, From(GoodwillBand.AtWar, -95f + credit),
+                            "the band must leave AtWar, or the director reopens the war it just closed");
+        }
+
+        [Test]
+        public void CreditToLeaveWar_IsNothing_WhenTheMeterIsAlreadyOut() =>
+            Assert.AreEqual(0f, GoodwillMath.CreditToLeaveWar(-50f, T, 1f));
     }
 }

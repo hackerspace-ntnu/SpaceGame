@@ -82,7 +82,6 @@ namespace SpaceGame.Agents
         public event Action OnAttackEvent;
 
         [Header("Audio")]
-        [SerializeField] private SfxId attackId = SfxId.EntityAttack;
         [SerializeField] private EventReference attackSound;
 
         private float cooldownTimer;
@@ -438,7 +437,7 @@ namespace SpaceGame.Agents
         /// </summary>
         private void PresentSwing(Vector3 origin, CharacterAction move, int variant)
         {
-            Sfx.Play(attackId, origin, attackSound, GetInstanceID());
+            Sfx.Play(attackSound, origin);
 
             if (move != null)
                 actions?.Play(move, null, variant);

@@ -1,5 +1,9 @@
-﻿// Defines what an entity drops on death and handles the actual drop.
-// Drops items from EntityInventoryComponent (guaranteed) plus random rolls from the loot table.
+// Defines what an entity drops on death and handles the actual drop.
+// Drops items from EntityInventoryComponent and everything worn (guaranteed) plus random rolls from the loot table —
+// except a worn WING PACK, which only a body killed while flying (seated aloft) or a war-party flier sheds; any
+// other Sky corpse keeps its pack on (user decision 2026-10-07). A war-party flier's bag (its hand weapon) drops
+// only on a roll (MarkWarFlier).
+// Every drop lies beside the body for `lootLifetime` and is then taken away like the body (Remains).
 // Requires HealthComponent on the same GameObject.
 using System;
 using System.Collections.Generic;
@@ -27,73 +31,87 @@ namespace SpaceGame.Agents
         [SerializeField] private List<LootEntry> lootEntries;
 
         [Header("Drop inventory items on death")]
-        [Tooltip("If true, all items currently in EntityInventoryComponent are also dropped.")]
+        [Tooltip("If true, the bag's contents (EntityInventoryComponent) and everything worn (EntityBodyEquipment) are also dropped.")]
         [SerializeField] private bool dropInventoryContents = true;
 
-        [Header("When")]
-        [Tooltip("Off: the drop lands the instant the entity dies. On: it is held back until " +
-                 "HealthReactionModule despawns the body, so the pickup appears as the corpse " +
-                 "goes rather than lying on the floor next to it. Needs a HealthReactionModule " +
-                 "with a despawn delay; without one the drop would never happen, so this falls " +
-                 "back to dropping on death and says so.")]
-        [SerializeField] private bool dropOnDespawn;
+        [Header("Lying there")]
+        [Tooltip("Seconds what this entity drops lies beside its body before the world takes it away -- " +
+                 "and then only once no player is close enough to watch it go (Remains). Picking it " +
+                 "up makes it the player's for good. 0 = it stays until somebody does.")]
+        [SerializeField] private float lootLifetime = 180f;
+
+        [Header("Killed aloft")]
+        [Tooltip("A body killed seated in an IAirborneCarrier (the NPC craft) drops its loot once it is " +
+                 "within this many metres of solid ground below it, not at the kill point.")]
+        [SerializeField, Min(0.1f)] private float landedHeight = 1.5f;
+        [Tooltip("How far below a body killed aloft to look for the ground it is falling to, metres. Must " +
+                 "exceed the highest an NPC flies.")]
+        [SerializeField, Min(1f)] private float groundSearchDepth = 600f;
 
         private HealthComponent health;
         private EntityInventoryComponent entityInventory;
-        private HealthReactionModule reaction;
 
-        /// The resolved answer to `dropOnDespawn`, which is the serialized WISH. It is switched
-        /// off in Awake when there is nothing to wait for, because a loot table that quietly
-        /// pays out nothing is worse than one that pays out early.
-        private bool waitForDespawn;
+        // Seated under an IAirborneCarrier: latched on the way in, and kept through a death, so the seat
+        // letting the body go before this table hears OnDeath (handler order) cannot turn it into a ground death.
+        private bool seatedAloft;
+
+        // What this death was: latched in Drop, read when the drop happens (at once, or once the body is down).
+        private bool diedAloft;
+
+        // A war-party flier (MarkWarFlier): sheds its pack wherever it dies, and its bag only on a roll.
+        private bool warFlier;
+        private float warFlierBagChance = 1f;
+
+        /// <summary>A death now hands the drop to <see cref="LootAwaitingGround"/> (seated aloft, latched).</summary>
+        internal bool DropsOnceDown => seatedAloft;
 
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
             entityInventory = GetComponent<EntityInventoryComponent>();
-            reaction = GetComponent<HealthReactionModule>();
+            seatedAloft = UnderAirborneCarrier();
 
             if (!health)
                 Debug.LogWarning($"{name}: EntityLootTable needs a HealthComponent.", this);
-
-            waitForDespawn = dropOnDespawn && reaction != null && reaction.Despawns;
-
-            if (dropOnDespawn && !waitForDespawn)
-                Debug.LogWarning(
-                    $"{name}: EntityLootTable is set to hold its drop until the body despawns, " +
-                    "but nothing here despawns it — there is no HealthReactionModule, or its " +
-                    "despawn delay is zero. Dropping on death instead, because the alternative " +
-                    "is a creature that can be killed and never pays out.", this);
         }
+
+        /// <summary>
+        /// This body flies in a war party's escort: it drops its wing pack wherever it dies, and the bag (its hand
+        /// weapon) only with <paramref name="bagDropChance"/>. Set at spawn by the world sim, server only; never
+        /// saved, because a war party's members are not saved individually.
+        /// </summary>
+        public void MarkWarFlier(float bagDropChance)
+        {
+            warFlier = true;
+            warFlierBagChance = Mathf.Clamp01(bagDropChance);
+        }
+
+        /// <summary>Is a worn item shed on death? Everything is, but a wing pack only from a death aloft or a war flier.</summary>
+        public static bool DropsWorn(bool isWingPack, bool diedAloft, bool warFlier) =>
+            !isWingPack || diedAloft || warFlier;
 
         private void OnEnable()
         {
             if (health)
-                health.OnDeath += HandleDeath;
-            if (waitForDespawn && reaction)
-                reaction.Despawning += Drop;
+                health.OnDeath += Drop;
         }
 
         private void OnDisable()
         {
             if (health)
-                health.OnDeath -= HandleDeath;
-            if (waitForDespawn && reaction)
-                reaction.Despawning -= Drop;
+                health.OnDeath -= Drop;
         }
 
-        private void HandleDeath()
+        private void OnTransformParentChanged()
         {
-            // Not yet. The body is still there to be looked at, and Drop is on the despawn
-            // instead -- which a restored death reaches in the same frame as this one, so the
-            // guards below still get their say either way.
-            if (waitForDespawn) return;
-
-            Drop();
+            if (UnderAirborneCarrier()) seatedAloft = true;
+            else if (!health || health.Alive) seatedAloft = false;
         }
 
-        /// Roll the table and put the results on the floor. Either the death or the despawn
-        /// calls this, never both.
+        private bool UnderAirborneCarrier() =>
+            AirborneSeat.IsSeatedAloft(transform);
+
+        /// Roll the table and put the results on the floor beside the body.
         private void Drop()
         {
             // Only where this entity is simulated. OnDeath fires on every machine, not just the
@@ -106,21 +124,27 @@ namespace SpaceGame.Agents
             // session that caused it, and those pickups are in the save as runtime entities of their
             // own — so rolling again here does not restore the drop, it duplicates it. Reload five
             // times and the corpse pays out five times.
-            //
-            // With `dropOnDespawn` there is one case this gets wrong in the safe direction. A world
-            // saved while a corpse is still lying there has not paid out yet, and this refuses to
-            // pay out on the load either, so that kill's loot is gone. Fixing it properly means
-            // remembering per-corpse whether the table has been rolled, which is a saver this
-            // component does not have; losing a drop is the better failure than minting one on
-            // every reload for as long as the body exists.
             if (health && health.IsRestoring) return;
 
-            Transform dropOrigin = transform;
-
-            if (dropInventoryContents && entityInventory != null)
+            // Killed in the air (D8): the body falls, and its loot goes down with it rather than from the
+            // kill point.
+            diedAloft = seatedAloft;
+            if (seatedAloft)
             {
-                foreach (InventoryItem item in entityInventory.GetAllItems())
-                    GameServices.ItemDropService.DropItem(dropOrigin, item);
+                LootAwaitingGround.Begin(gameObject, DropAll, landedHeight, groundSearchDepth);
+                return;
+            }
+
+            DropAll();
+        }
+
+        /// The bag, what is worn and the rolls, beside the body.
+        private void DropAll()
+        {
+            if (dropInventoryContents)
+            {
+                if (entityInventory != null && (!warFlier || UnityEngine.Random.value <= warFlierBagChance)) DropBag();
+                DropWorn();
             }
 
             if (lootEntries == null)
@@ -134,9 +158,50 @@ namespace SpaceGame.Agents
                 for (int i = 0; i < entry.quantity; i++)
                 {
                     if (UnityEngine.Random.value <= entry.dropChance)
-                        GameServices.ItemDropService.DropItem(dropOrigin, entry.item);
+                        DropOne(entry.item);
                 }
             }
+        }
+
+        /// <summary>
+        /// Everything in the bag, onto the floor -- and out of the bag. Left in, the body lies there
+        /// for minutes still holding the gun that is also on the sand beside it; emptied, the slot
+        /// change reaches every machine the way the hand's contents always do (NpcRandomLoadout), and
+        /// the bag a save writes for this corpse is the empty one.
+        /// </summary>
+        private void DropBag()
+        {
+            for (int slot = 0; slot < entityInventory.Size; slot++)
+            {
+                InventorySlot contents = entityInventory.GetSlot(slot);
+                if (contents == null || contents.IsEmpty) continue;
+
+                DropOne(contents.Item);
+                entityInventory.RestoreSlot(slot, null);
+            }
+        }
+
+        /// <summary>
+        /// What it was wearing, under the same guards and lifetime as the bag. A Sky nomad's wing pack is how a
+        /// player gets to fly (D7), but only a flier shot down or a war-party flier sheds it (DropsWorn); anyone
+        /// else is buried in theirs. Taken off the body as it drops, so a corpse never holds a copy of what is
+        /// lying beside it.
+        /// </summary>
+        private void DropWorn()
+        {
+            if (!TryGetComponent(out EntityBodyEquipment body)) return;
+            foreach (BodySlot slot in (BodySlot[])Enum.GetValues(typeof(BodySlot)))
+            {
+                InventoryItem item = body.ItemIn(slot);
+                if (item == null || !DropsWorn(WingPackItem.IsWingPack(item), diedAloft, warFlier)) continue;
+                if (body.Remove(slot) != null) DropOne(item);
+            }
+        }
+
+        private void DropOne(InventoryItem item)
+        {
+            GameObject dropped = GameServices.ItemDropService.DropItem(transform, item);
+            if (dropped != null && lootLifetime > 0f) Remains.On(dropped).Begin(lootLifetime);
         }
     }
 }

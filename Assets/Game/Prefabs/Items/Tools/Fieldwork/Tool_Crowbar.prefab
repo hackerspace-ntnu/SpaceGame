@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 3245470239043555139}
   - component: {fileID: 2747757525615946068}
   - component: {fileID: 8603894661878478612}
+  - component: {fileID: -753008763408080065}
   m_Layer: 0
   m_Name: Tool_Crowbar
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-753008763408080065
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6945241663083012800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2988997134720140460
 PrefabInstance:
   m_ObjectHideFlags: 0

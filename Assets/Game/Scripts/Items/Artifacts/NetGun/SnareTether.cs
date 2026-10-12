@@ -114,7 +114,7 @@ namespace SpaceGame.Items
             // LassoTether.Bind, and the reason survives the rework intact even though the rope it
             // was written for is gone: a seated rider is PARENTED to the mount, so one that goes
             // limp in the saddle is dragged along by an animal that walks on regardless — which is
-            // the same hazard AgentRagdoll.HasRider refuses a knockdown over, seen from the rider's
+            // the same hazard AgentRagdoll.RefusesToGoDown refuses a knockdown over, seen from the rider's
             // end instead of the mount's.
             //
             // Note which way round this runs. It unseats THIS body from whatever it is riding; it

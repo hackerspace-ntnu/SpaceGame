@@ -44,6 +44,23 @@ namespace SpaceGame.Core
         public const float MaxFieldOfView = 110f;
         public const int MaxNameLength = 20;
 
+        /// <summary>
+        /// Bounds for the voice gate, as peak amplitude rather than decibels — the same scale
+        /// <see cref="Voice.VoiceCapture.InputLevel"/> reports, so the slider and the input meter
+        /// on the audio page are directly comparable. The floor is deliberately above zero: at
+        /// exactly zero the gate never closes and a player with an open mic transmits their room.
+        /// </summary>
+        public const float MinVoiceGateThreshold = 0.005f;
+        public const float MaxVoiceGateThreshold = 0.3f;
+
+        /// <summary>
+        /// Unbound: push-to-talk is off by default and not in use yet, so it ships without a key
+        /// rather than claiming one. When it wants a default, V is the conventional choice and is
+        /// free in this project's bindings — T is chat, and the rest of the left hand is already
+        /// movement and gear.
+        /// </summary>
+        public const string DefaultPushToTalkBinding = "";
+
         /// <summary>Frame cap choices offered by the video page. 0 means uncapped.</summary>
         public static readonly int[] FrameRateCaps = { 0, 30, 60, 90, 120, 144, 165, 240 };
 
@@ -59,6 +76,14 @@ namespace SpaceGame.Core
         private static float sfxVolume;
         private static float uiVolume;
         private static float ambienceVolume;
+        private static float voiceVolume;
+        private static bool voicePushToTalk;
+        private static float voiceGateThreshold;
+        private static string voiceInputDevice;
+        private static bool voiceSelfMuted;
+        private static bool voicePushToTalkToggle;
+        private static string voicePushToTalkBinding;
+        private static string voiceMuteBinding;
         private static float mouseSensitivity;
         private static float cameraShakeIntensity;
         private static bool invertLookY;
@@ -149,6 +174,97 @@ namespace SpaceGame.Core
         {
             get { EnsureLoaded(); return ambienceVolume; }
             set => SetFloat(ref ambienceVolume, value, 0f, 1f, "AmbienceVolume");
+        }
+
+        // -------------------------------------------------------------------- voice
+
+        /// <summary>
+        /// How loud other players' voices are. Separate from <see cref="SfxVolume"/> because voice
+        /// is the one sound a player cannot afford to lose under the mix — turning the world down
+        /// to hear a teammate should not be the only option.
+        /// </summary>
+        public static float VoiceVolume
+        {
+            get { EnsureLoaded(); return voiceVolume; }
+            set => SetFloat(ref voiceVolume, value, 0f, 1f, "VoiceVolume");
+        }
+
+        /// <summary>
+        /// Transmit only while the push-to-talk channel is open — the key held, or latched on in
+        /// toggle mode (<see cref="VoicePushToTalkToggle"/>) — instead of whenever the gate opens.
+        /// <para>
+        /// Off by default: proximity chat is meant to feel like talking to the person next to you,
+        /// and a key you have to hold undoes that. It is the answer for a player on speakers rather
+        /// than headphones, whose microphone would otherwise echo the whole session back.
+        /// </para>
+        /// </summary>
+        public static bool VoicePushToTalk
+        {
+            get { EnsureLoaded(); return voicePushToTalk; }
+            set => SetBool(ref voicePushToTalk, value, "VoicePushToTalk");
+        }
+
+        /// <summary>
+        /// Peak level the microphone has to reach before the gate opens, on the same 0-1 scale as
+        /// the input meter. Applies in push-to-talk too, where it is a plain noise gate.
+        /// </summary>
+        public static float VoiceGateThreshold
+        {
+            get { EnsureLoaded(); return voiceGateThreshold; }
+            set => SetFloat(ref voiceGateThreshold, value, MinVoiceGateThreshold,
+                            MaxVoiceGateThreshold, "VoiceGateThreshold");
+        }
+
+        /// <summary>
+        /// Which microphone to record from, by NAME. Empty means the system default.
+        /// <para>
+        /// Stored by name rather than by index because device indices are reassigned whenever
+        /// anything is plugged in or removed — a stored index quietly starts recording from a
+        /// different microphone than the one the player chose.
+        /// </para>
+        /// </summary>
+        public static string VoiceInputDevice
+        {
+            get { EnsureLoaded(); return voiceInputDevice; }
+            set => SetString(ref voiceInputDevice, value, "VoiceInputDevice");
+        }
+
+        /// <summary>
+        /// The player has muted their own microphone. Persisted, because someone who muted
+        /// themselves expects to still be muted when they come back, not to rejoin live.
+        /// </summary>
+        public static bool VoiceSelfMuted
+        {
+            get { EnsureLoaded(); return voiceSelfMuted; }
+            set => SetBool(ref voiceSelfMuted, value, "VoiceSelfMuted");
+        }
+
+        /// <summary>
+        /// Push-to-talk as a toggle — each press flips the channel — rather than hold-to-talk.
+        /// Hold is the default because it cannot be left on by accident.
+        /// </summary>
+        public static bool VoicePushToTalkToggle
+        {
+            get { EnsureLoaded(); return voicePushToTalkToggle; }
+            set => SetBool(ref voicePushToTalkToggle, value, "VoicePushToTalkToggle");
+        }
+
+        /// <summary>Input System path of the push-to-talk key, e.g. <c>&lt;Keyboard&gt;/v</c>.</summary>
+        public static string VoicePushToTalkBinding
+        {
+            get { EnsureLoaded(); return voicePushToTalkBinding; }
+            set => SetString(ref voicePushToTalkBinding, value, "VoicePushToTalkBinding");
+        }
+
+        /// <summary>
+        /// Input System path of the key that toggles <see cref="VoiceSelfMuted"/>. Empty — unbound —
+        /// by default: it is an extra for players who want one, and an unexpected key that silences
+        /// your microphone is worse than no key at all.
+        /// </summary>
+        public static string VoiceMuteBinding
+        {
+            get { EnsureLoaded(); return voiceMuteBinding; }
+            set => SetString(ref voiceMuteBinding, value, "VoiceMuteBinding");
         }
 
         // ----------------------------------------------------------------- controls
@@ -417,6 +533,8 @@ namespace SpaceGame.Core
                 "PlayerName", "SuitColorIndex", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
                 "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap",
+                "VoiceVolume", "VoicePushToTalk", "VoiceGateThreshold", "VoiceInputDevice",
+                "VoiceSelfMuted", "VoicePushToTalkToggle", "VoicePushToTalkBinding", "VoiceMuteBinding",
                 "VisorDetail", "ReduceVisorMotion", "Version",
             })
             {
@@ -468,6 +586,15 @@ namespace SpaceGame.Core
             sfxVolume = PlayerPrefs.GetFloat(Prefix + "SfxVolume", 1f);
             uiVolume = PlayerPrefs.GetFloat(Prefix + "UiVolume", 0.85f);
             ambienceVolume = PlayerPrefs.GetFloat(Prefix + "AmbienceVolume", 1f);
+            voiceVolume = PlayerPrefs.GetFloat(Prefix + "VoiceVolume", 1f);
+            voicePushToTalk = PlayerPrefs.GetInt(Prefix + "VoicePushToTalk", 0) == 1;
+            voiceGateThreshold = PlayerPrefs.GetFloat(Prefix + "VoiceGateThreshold", 0.03f);
+            voiceInputDevice = PlayerPrefs.GetString(Prefix + "VoiceInputDevice", string.Empty);
+            voiceSelfMuted = PlayerPrefs.GetInt(Prefix + "VoiceSelfMuted", 0) == 1;
+            voicePushToTalkToggle = PlayerPrefs.GetInt(Prefix + "VoicePushToTalkToggle", 0) == 1;
+            voicePushToTalkBinding = PlayerPrefs.GetString(Prefix + "VoicePushToTalkBinding",
+                                                           DefaultPushToTalkBinding);
+            voiceMuteBinding = PlayerPrefs.GetString(Prefix + "VoiceMuteBinding", string.Empty);
 
             mouseSensitivity = PlayerPrefs.GetFloat(Prefix + "MouseSensitivity", 1f);
             invertLookY = PlayerPrefs.GetInt(Prefix + "InvertLookY", 0) == 1;
@@ -492,6 +619,9 @@ namespace SpaceGame.Core
             sfxVolume = Mathf.Clamp01(sfxVolume);
             uiVolume = Mathf.Clamp01(uiVolume);
             ambienceVolume = Mathf.Clamp01(ambienceVolume);
+            voiceVolume = Mathf.Clamp01(voiceVolume);
+            voiceGateThreshold = Mathf.Clamp(voiceGateThreshold, MinVoiceGateThreshold,
+                                             MaxVoiceGateThreshold);
             mouseSensitivity = Mathf.Clamp(mouseSensitivity, MinSensitivity, MaxSensitivity);
             cameraShakeIntensity = Mathf.Clamp(cameraShakeIntensity, MinCameraShake, MaxCameraShake);
             fieldOfView = Mathf.Clamp(fieldOfView, MinFieldOfView, MaxFieldOfView);
@@ -516,6 +646,17 @@ namespace SpaceGame.Core
 
             field = value;
             PlayerPrefs.SetInt(Prefix + key, value ? 1 : 0);
+            Raise();
+        }
+
+        private static void SetString(ref string field, string value, string key)
+        {
+            EnsureLoaded();
+            string text = value ?? string.Empty;
+            if (text == field) return;
+
+            field = text;
+            PlayerPrefs.SetString(Prefix + key, text);
             Raise();
         }
 

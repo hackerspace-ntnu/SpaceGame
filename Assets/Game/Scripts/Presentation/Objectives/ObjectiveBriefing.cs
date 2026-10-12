@@ -49,6 +49,7 @@ namespace SpaceGame.Presentation
         private Transform focusPoint;
 
         private int briefedStep = -1;
+        private int heardRemarks;
         private bool focusPending;
         private float presentSince = -1f;
         private float lastVisible = float.NegativeInfinity;
@@ -74,7 +75,9 @@ namespace SpaceGame.Presentation
 
             // Read the state as it is now: a step already begun when this wakes was reached before
             // anybody here could have heard it.
-            if (director.Progress.Begun) briefedStep = director.Progress.Step;
+            if (!director.Progress.Begun) return;
+            briefedStep = director.Progress.Step;
+            heardRemarks = director.Progress.Remarks;
         }
 
         private void OnDisable()
@@ -86,19 +89,38 @@ namespace SpaceGame.Presentation
         private void OnChanged(bool live)
         {
             ObjectiveProgress progress = director.Progress;
-            if (!progress.Begun || progress.Step == briefedStep) return;
-
-            briefedStep = progress.Step;
-            pending.Clear();
-            focusPending = false;
+            if (!progress.Begun) return;
 
             ObjectiveStep step = director.Current;
-            if (!live || step == null) return;
 
-            foreach (string line in step.Briefing)
+            if (progress.Step != briefedStep)
+            {
+                briefedStep = progress.Step;
+                heardRemarks = 0;
+                pending.Clear();
+                focusPending = false;
+
+                if (live && step != null)
+                {
+                    Enqueue(step.Briefing);
+                    focusPending = step.LookAtFocus;
+                }
+            }
+
+            // A remark said in the same change as the step began (its condition already held) follows
+            // the briefing. One restored or learned on joining is marked heard, never played.
+            int fresh = progress.Remarks & ~heardRemarks;
+            heardRemarks = progress.Remarks;
+            if (!live || step == null || fresh == 0) return;
+
+            for (int i = 0; i < ObjectiveStep.MaxRemarks; i++)
+                if ((fresh & (1 << i)) != 0) Enqueue(step.RemarkLines(i));
+        }
+
+        private void Enqueue(IReadOnlyList<string> lines)
+        {
+            foreach (string line in lines)
                 if (!string.IsNullOrWhiteSpace(line)) pending.Enqueue(line);
-
-            focusPending = step.LookAtFocus;
         }
 
         private void Update()

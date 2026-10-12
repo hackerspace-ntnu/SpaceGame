@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Items;
+using SpaceGame.Core;
 
 namespace SpaceGame.Presentation
 {
@@ -161,21 +162,10 @@ namespace SpaceGame.Presentation
         public void Toggle()
         {
             // I is a letter before it is a shortcut, so a focused field owns it.
-            if (IsTypingInField()) return;
+            if (TextEntry.IsTyping) return;
 
             if (open) Close();
             else Open();
-        }
-
-        private static bool IsTypingInField()
-        {
-            GameObject selected = EventSystem.current != null
-                ? EventSystem.current.currentSelectedGameObject
-                : null;
-
-            return selected != null
-                   && selected.TryGetComponent(out TMP_InputField field)
-                   && field.isFocused;
         }
 
         /// <summary>

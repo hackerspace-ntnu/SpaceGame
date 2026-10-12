@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 5752961057839421809}
   - component: {fileID: 5914516191196316815}
   - component: {fileID: 5286371690028992576}
+  - component: {fileID: -3563495958082624410}
   m_Layer: 0
   m_Name: Tool_SkinningKnife
   m_TagString: Untagged
@@ -334,6 +335,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 11400000, guid: 04fb311137354dc999186529d7b23c27, type: 2}
+--- !u!114 &-3563495958082624410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 752162728142934350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &8950308721697946548
 GameObject:
   m_ObjectHideFlags: 0

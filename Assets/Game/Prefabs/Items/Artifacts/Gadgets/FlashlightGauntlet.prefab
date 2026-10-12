@@ -87,6 +87,7 @@ GameObject:
   - component: {fileID: 3951191459119231864}
   - component: {fileID: 5798228782532338630}
   - component: {fileID: 2232861584471518834}
+  - component: {fileID: 5286296323101511525}
   m_Layer: 0
   m_Name: FlashlightGauntlet
   m_TagString: Untagged
@@ -151,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1944590511
+  GlobalObjectIdHash: 2588850915
   InScenePlacedSourceGlobalObjectIdHash: 2285439031
   DeferredDespawnTick: 0
   Ownership: 1
@@ -273,6 +274,7 @@ MonoBehaviour:
   holdSize: 0
   packSize: 0
   sizeReference: {fileID: 9024035841541868457}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &2952209512098288765
 MonoBehaviour:
@@ -413,11 +415,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   lamp: {fileID: 6004464043799834792}
   bulb: {fileID: 5789452060611711577}
   bulbDark: {r: 0.08, g: 0.07, b: 0.055, a: 1}
   bulbLit: {r: 3.2, g: 2.85, b: 2.2, a: 1}
   litPose: 2
+--- !u!114 &5286296323101511525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9108599743836721641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &2287481814885380428
 PrefabInstance:
   m_ObjectHideFlags: 0

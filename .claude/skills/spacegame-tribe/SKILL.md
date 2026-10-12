@@ -62,6 +62,8 @@ One roster per tribe, `Assets/Game/ScriptableObjects/Factions/Rosters/<Tribe>.as
 - **`warPartyTiers`** — `WarPartyTier[]`, each a set of `RoleCount { role, count }`. Every role a tier
   asks for must have at least one `members` entry with positive weight, or `RosterValidation` fails
   and `NpcGroupComposition.Resolve` logs an error and draws nothing for that tier at runtime.
+  A flying tribe's `RoleCount.ownWings` members escort its vessel on their own wing packs instead of
+  taking a seat (never `Rides`, never lead): see `WarPartyEscorts` and SkyTribe.md (Sky: 2 / 4 / 6).
 - **`hostileLines`** — a `DialogPool` shouted by `ChatterModule.WarCry` on a war party's first sight
   of its quarry. Without one, `WarPartyDirector.OnQuarrySighted` has nothing to say and stays silent.
 
@@ -114,6 +116,11 @@ index)` when `prefab` is null. Seeded by `RosterDraw.StableHash(template.id)`, s
 re-spawns with the same faces and guns after every fold (`GroupMembership.MemberIndex` feeds
 `NpcRandomLoadout`'s own seeded roll).
 
+**A herding caravan** (the Sand `sand-appa-herders`, `AppaHerdAuthoring`): the leader and the herders are fixed
+mount prefabs carrying an `NpcPassenger` rider and a `HerdingModule`, the livestock a riderless prefab that
+serializes the tribe's faction, all sharing the group's `FormationModule` band. List the herders **after** the
+livestock so their unused column slots are the tail's.
+
 ## 7. Tests
 
 [RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs) covers the Sand Tribe
@@ -143,6 +150,11 @@ seen only on the host is not finished, and persistence fails silently.
       credits nothing and shows no notice); the war itself stays open and after `partyCooldown` a new
       party rises nearer the player.
 - [ ] Wipe a party out → `WarNotice.Weakening`; the next party is one `WarPartyTier` stronger.
+- [ ] Wipe out a party of the roster's **last** tier → the war ends at once, however deep the
+      hostility: goodwill is lifted just past `AtWar`'s exit (`WarPartySettings.peaceMargin`), "given
+      up" appears, and no further party comes (`WarPartyRules.EndsWar`).
+- [ ] Kill two of a party, walk away until it folds, walk back → it returns without those two
+      (`NpcGroup.Fallen`), and still without them after a save and reload.
 - [ ] Get killed by the party → `Reckoning.Caught` credits goodwill (+`caughtCredit`, 15 by
       default), which lifts the band out of `AtWar` and ends the whole war through the same
       `BandChanged` → `EndWar` path fleeing or decay would, once enough credits have landed —
@@ -162,6 +174,9 @@ seen only on the host is not finished, and persistence fails silently.
 - [ ] Two players at war with the tribe → two independent parties (a war is keyed per player).
 - [ ] A crewmate helping fight the party loses no goodwill of their own (compare the ledger value
       before and after — `SelfDefenceRules`).
+- [ ] Kill one of the tribe's caravan, then the others who turn on you → every kill costs goodwill
+      (self-defence is war parties only); a war party's survivors after it is called off still cost
+      nothing to the quarry until they fold (`NpcGroup.Released`).
 - [ ] Quit and reload during a cooldown → the next party is still the escalated tier
       (`FactionGoodwillSaveable.Standing.warTier`).
 - [ ] Walk away from the tribe's caravan until it folds, walk back → the same members carry the same
@@ -187,6 +202,13 @@ placed them are deleted. Three `SettlementPopulation` options decide whether it 
 Verify in play: count the tribe's agents inside `countRadius`, check each with
 `NavMeshReach.CanWalk` from the anchor, save, reload the same world, and count again — the number
 must not grow.
+
+**A home that moves** (the Striders' walking city) is not a settlement but a seeded caravan template
+whose carriers hold the people: carrier prefabs with `VesselSeats` + `CrewShift` + a gangway marker,
+member specs with `crew: true` listed **after** the carriers, a carrier flagged `isLeader` with the
+task list (it holds the column's departure gate until its crew is back aboard), and
+`FormationModule.holdSlotAtRest` on anything too big to share a rest ring. Full recipe, build order
+and traps: [Striders.md](../../../docs/AI/systems/Striders.md).
 
 ## Related
 

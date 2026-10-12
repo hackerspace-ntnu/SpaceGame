@@ -72,7 +72,6 @@ namespace SpaceGame.Items
        public InventoryItem Item => item;
 
        [Header("Audio")]
-       [SerializeField] private SfxId pickupId = SfxId.InteractPickup;
        [SerializeField] private EventReference pickupSound;
 
        public bool CanInteract()
@@ -123,7 +122,7 @@ namespace SpaceGame.Items
           // The cost is that a pickup refused for a full inventory still clicks. That is the better
           // side to err on: the sound is feedback that the interact registered, and holding it back
           // for a server round trip is exactly the lag UsableItem.PlayUse exists to avoid.
-          Sfx.Play(pickupId, transform.position, pickupSound, GetInstanceID());
+          Sfx.Play(pickupSound, transform.position);
 
           Network.Execute(
              local: () => Pickup(interactor),

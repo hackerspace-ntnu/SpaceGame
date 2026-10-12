@@ -99,13 +99,16 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 
 ## 3. Weapons and projectiles
 
-### `Items/Artifacts/Guns/Gun.prefab` — `BasicGun`
+### `Items/Artifacts/Guns/Gun.prefab` — `PelletGunArtifact` (basic gun)
+
+Updated 2026-09-24, when the basic gun became a hitscan `PelletGunArtifact`.
 
 | Trigger | Id | Sound wanted | State |
 |---|---|---|---|
-| Fire | `WeaponGunFire` 200 | Ballistic crack + mechanical cycle | **pinned** `event:/SFX/Explosion` |
-| Charge start | `WeaponEnergyChargeLoop` 204 | (unused by `BasicGun`) | catalog |
-| Use (base `UsableItem`) | `None` 0 | Deliberately silent — the gun makes its own noise | — |
+| Fire (`reportId`) | `WeaponGunFire` 200 | Ballistic crack + mechanical cycle | catalog |
+| Hit something alive | `ImpactFlesh` 300 | Wet impact at the hit point | catalog |
+| Hit anything else | `ImpactProjectile` 305 | Hard ricochet at the hit point | catalog |
+| Use (base `UsableItem`) | `None` 0 | Deliberately silent — see the `refireSeconds` gotcha in [Artifacts.md](Artifacts.md) | — |
 | Pick up | `InteractPickup` 503 | Weapon pickup clack | catalog |
 
 ### `Items/Artifacts/Guns/CixinGunFinal.prefab` — `BallLightningWeapon`

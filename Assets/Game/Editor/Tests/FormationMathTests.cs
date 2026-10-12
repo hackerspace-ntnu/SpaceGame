@@ -146,5 +146,24 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(float.IsNaN(slot.x) || float.IsNaN(slot.y) || float.IsNaN(slot.z),
                 "a zeroed shape and a zero heading must still yield a real position");
         }
+
+        [Test]
+        public void AMarchingLeaderAlwaysMeansTheMarchSlot()
+        {
+            Assert.IsTrue(FormationMath.UseMarchSlot(leaderMoving: true, holdSlotAtRest: false));
+        }
+
+        [Test]
+        public void AFollowerThatHoldsItsSlot_KeepsItWhenTheLeaderStops()
+        {
+            // Machines too big to bunch into the rest ring (the Striders' houses clipped at 17 m).
+            Assert.IsTrue(FormationMath.UseMarchSlot(leaderMoving: false, holdSlotAtRest: true));
+        }
+
+        [Test]
+        public void AnOrdinaryFollower_JoinsTheRestRingWhenTheLeaderStops()
+        {
+            Assert.IsFalse(FormationMath.UseMarchSlot(leaderMoving: false, holdSlotAtRest: false));
+        }
     }
 }

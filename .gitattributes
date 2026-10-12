@@ -5,9 +5,7 @@
 *.cs text eol=lf
 *.shader text eol=lf
 *.cginc text eol=lf
-
 *.meta text eol=lf
-
 # .unity / .prefab / .asset are DELIBERATELY not forced to text. Unity writes some
 # of them as binary regardless of ForceText serialization (terrain heightmaps, baked
 # NavMesh and lighting data, and any scene saved before ForceText was enabled).
@@ -28,10 +26,8 @@ TerrainData*.asset binary
 LightingData.asset binary
 ReflectionProbe*.exr binary
 Lightmap*.exr binary
-
 # ...but ProjectSettings/*.asset is always YAML, so keep NavMeshAreas.asset diffable.
 ProjectSettings/*.asset text eol=lf
-
 # JSON / config
 *.json text eol=lf
 *.xml text eol=lf
@@ -41,6 +37,7 @@ ProjectSettings/*.asset text eol=lf
 # hand-merged, so they live in Git LFS. Matched by filename, not directory (see above).
 deco_*_lod.asset filter=lfs diff=lfs merge=lfs -text
 *_LOD[0-9].asset filter=lfs diff=lfs merge=lfs -text
+*_LOD1_Merged.asset filter=lfs diff=lfs merge=lfs -text
 
 # Binary files (do not touch line endings)
 *.png binary

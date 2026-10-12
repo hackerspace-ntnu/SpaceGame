@@ -180,18 +180,27 @@ namespace SpaceGame.EditorTools
             Assert.IsEmpty(failures, "actions that never play on a wired body:\n  " + string.Join("\n  ", failures));
         }
 
+        /// <summary>
+        /// The per-frame method this fixture steps by hand. CharacterActions reads the Animator after
+        /// it evaluates, which is between Update and LateUpdate, so Advance steps the Animator first.
+        /// </summary>
+        private const string PerFrameMethod = "LateUpdate";
+
         private void Advance(float seconds)
         {
             for (float t = 0f; t < seconds; t += Step)
             {
                 animator.Update(Step);
-                Call("LateUpdate");
+                Call(PerFrameMethod);
             }
         }
 
-        private void Call(string method) =>
-            typeof(CharacterActions).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)
-                                    .Invoke(actions, null);
+        private void Call(string method)
+        {
+            MethodInfo info = typeof(CharacterActions).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.IsNotNull(info, $"CharacterActions has no {method} any more; this fixture steps it by hand and must follow the rename");
+            info.Invoke(actions, null);
+        }
 
         private static CharacterAction Action(string name)
         {

@@ -14,7 +14,7 @@ namespace SpaceGame.Gameplay
     ///
     /// <para>
     /// Everything read here is already replicated — the oxygen plant's state and the part rack's
-    /// mask are NetworkVariables, the crew roster is <see cref="PlayerIdentity"/>, the storm and
+    /// mask are NetworkVariables, so is what the transmitter heard (<see cref="ShipSignal"/>), the crew roster is <see cref="PlayerIdentity"/>, the storm and
     /// the clock run off the shared session clock — so host and clients compose the same screen
     /// from the same numbers with no message of this system's own.
     /// </para>
@@ -34,6 +34,7 @@ namespace SpaceGame.Gameplay
         private Transform ship;
         private OxygenGenerator oxygen;
         private ShipPartRack rack;
+        private ShipSignal signal;
         private float nextRefresh;
 
         /// <summary>
@@ -52,6 +53,7 @@ namespace SpaceGame.Gameplay
             ship = transform.root;
             oxygen = ship.GetComponentInChildren<OxygenGenerator>(true);
             rack = ship.GetComponentInChildren<ShipPartRack>(true);
+            signal = ship.GetComponentInChildren<ShipSignal>(true);
 
             if (rack == null) return;
 
@@ -75,6 +77,12 @@ namespace SpaceGame.Gameplay
 
             s.PartKinds = partKinds;
             if (rack != null) s.PartsInstalledMask = rack.InstalledMask;
+
+            if (signal != null)
+            {
+                s.Signal = signal.Destination;
+                s.SignalTranscript = signal.Transcript;
+            }
 
             if (oxygen != null)
             {

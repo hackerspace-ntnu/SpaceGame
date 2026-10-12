@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 7971654008855960932}
   - component: {fileID: 7168587799659244629}
   - component: {fileID: 2102164620618243049}
+  - component: {fileID: -8369292972239290046}
   m_Layer: 0
   m_Name: Carry_Cart_Hover
   m_TagString: Untagged
@@ -318,6 +319,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-8369292972239290046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 40379624592007366}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &6194936588318826396
 PrefabInstance:
   m_ObjectHideFlags: 0

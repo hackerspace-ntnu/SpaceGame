@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.TestTools.Constraints;
+using Is = UnityEngine.TestTools.Constraints.Is;
 using SpaceGame.Diagnostics;
 
 namespace SpaceGame.Tests
@@ -152,6 +154,67 @@ namespace SpaceGame.Tests
             Assert.IsTrue(Fault.IsQuarantined(t, "one"));
             Assert.IsFalse(Fault.IsQuarantined(t, "two"),
                            "a broken Present must not take Use down with it");
+        }
+
+        private static readonly Fault.RefAction<int> Increment = (ref int n) => n++;
+        private static readonly Fault.RefAction<int> Explode = (ref int n) => throw new InvalidOperationException("boom");
+
+        [Test]
+        public void AStatefulBodyRunsAndHandsItsStateBack()
+        {
+            int n = 0;
+            Assert.IsTrue(Fault.Run(Make<Thrower>(), "site", ref n, Increment));
+            Assert.AreEqual(1, n, "the body wrote through the ref");
+        }
+
+        [Test]
+        public void AStatefulBodyIsQuarantinedExactlyLikeAnActionBody()
+        {
+            Thrower t = Make<Thrower>();
+            int n = 0;
+
+            for (int i = 0; i < Fault.MaxFaultsPerWindow; i++)
+            {
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("\\[Fault\\].*site"));
+                Assert.IsFalse(Fault.Run(t, "site", ref n, Explode));
+            }
+
+            Assert.IsTrue(Fault.IsQuarantined(t, "site"));
+            Assert.IsFalse(t.enabled);
+            Assert.IsFalse(Fault.Run(t, "site", ref n, Increment), "a quarantined site is not entered");
+            Assert.AreEqual(0, n);
+        }
+
+        [Test]
+        public void AStatefulRunAllocatesNothingWhileNothingIsQuarantined()
+        {
+            Thrower t = Make<Thrower>();
+            int n = 0;
+            TestDelegate runs = () => { for (int i = 0; i < 1000; i++) Fault.Run(t, "site", ref n, Increment); };
+            runs();   // warm up: the first call JITs, and the constraint would count the JIT's garbage
+
+            // Is.Not.AllocatingGCMemory, not GC.GetAllocatedBytesForCurrentThread: Unity's Mono
+            // answers 0 to the latter whatever was allocated, so a test built on it always passes.
+            Assert.That(runs, Is.Not.AllocatingGCMemory(), "a key string or closure per call");
+            Assert.GreaterOrEqual(n, 2000, "and every body ran");
+        }
+
+        [Test]
+        public void TheBudgetKnowsWhetherAnythingIsQuarantinedAtAll()
+        {
+            var budget = new FaultBudget(2, 10f);
+            Assert.IsFalse(budget.AnyQuarantined);
+
+            budget.Record("a", 0f);
+            Assert.IsFalse(budget.AnyQuarantined, "one fault under the limit quarantines nothing");
+
+            budget.Record("a", 0.1f);
+            budget.Record("a", 0.2f);   // past the limit: counted once, not twice
+            Assert.IsTrue(budget.AnyQuarantined);
+
+            budget.Clear();
+            Assert.IsFalse(budget.AnyQuarantined);
+            Assert.IsFalse(budget.IsQuarantined("a"));
         }
 
         [Test]

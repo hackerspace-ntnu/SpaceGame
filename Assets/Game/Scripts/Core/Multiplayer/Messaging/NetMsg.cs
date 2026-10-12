@@ -305,7 +305,13 @@ namespace SpaceGame.Core
         public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
 
         // Server → everyone, on the VICTIM's relay: this body has been knocked down. Every machine
-        // presents it going limp, with P as the impulse handed to the hips (m/s, world space).
+        // presents it going limp, with P as the velocity handed to every bone (m/s, world space).
+        //
+        //   A  down-time in ms, priced by KnockdownPolicy on the deciding machine.
+        //   B  the RagdollCause.
+        //
+        // Send through RagdollController.Knock, never directly: that is where the victim's
+        // KnockdownTuning prices the event and where hit immunity is checked.
         //
         // Broadcast for the same reason Flung (79) is: bone transforms are not replicated, so a
         // ragdoll is not something one machine can do on another's behalf — every machine has to
@@ -315,7 +321,7 @@ namespace SpaceGame.Core
         //
         // A message of its own rather than a flag on Flung, because Flung is shared three ways and
         // one of them is self-inflicted: GravelBlasterArtifact flings the HOLDER as self-propulsion
-        // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
+        // (GravelBlasterArtifact.MisfireUse, its backfire). A ragdoll hung off Flung would knock players down every
         // time they fired their own gravel blaster.
         public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
 
@@ -709,11 +715,42 @@ namespace SpaceGame.Core
         public const ushort AirlockOperate = 124; // clicker → server
         public const ushort AirlockState   = 125; // server → everyone
 
+        // ── Knockdown requests ──
+        // Owner → server, on the VICTIM's relay: "my own landing was hard enough to knock me down".
+        // A = RagdollCause. The server checks Network.MayActFor and prices it through
+        // RagdollController.Knock, which broadcasts Knockdown (82). A client cannot broadcast, and a
+        // fall is only ever measured by the machine that owns the body — hence the round trip.
+        public const ushort KnockdownRequest = 126; // owner → server, on the VICTIM's relay
+
+        // Owner → server, on the PLAYER's relay: "I pressed Jump while knocked down — let me up".
+        // The server checks Network.MayActFor and answers with GotUp (128). Players only; handled
+        // by PlayerRagdoll.
+        public const ushort GetUpRequest = 127; // owner → server, on the PLAYER's relay
+
+        // Server → everyone, on the PLAYER's relay: stand this knocked-down player up now. Every
+        // machine runs its own copy of the ragdoll, so every machine has to be told.
+        public const ushort GotUp = 128; // server → everyone, on the PLAYER's relay
+
+        // ── Burnt-out ship modules ──
+        // Taker → server, on the SHIP's channel: "pull the burnt-out unit out of this socket".
+        // A = the socket's index in ShipPartRack.Sockets. The server re-checks that the unit is
+        // still there and has burned and been put out, pops a FizzlingHusk onto the floor and
+        // clears the rack's broken bit, which reaches everyone through the rack's replicated mask.
+        // Handled by BrokenShipPart.
+        public const ushort ShipPartTakeBroken = 129; // taker → server, on the SHIP's channel
+
+        // ── Lifted loads ──
+        // Carrier → server, on the LOAD's channel. Subject = the carrier's body. A = 1: "lift it" — the
+        // server checks reach and that nobody holds it and writes Liftable's replicated state. A = 0:
+        // "I put it down here" — P/R = the rest pose the carrier's machine is lowering it onto, which the
+        // server takes unless its own view of the load disagrees. Handled by Liftable.
+        public const ushort LiftRequest = 130; // carrier → server, on the LOAD's channel
+
         // ── Workshop ── BURNED. These carried the workshop's crane levers until the hoist was left to run by
         // itself (2026-10-11). Nothing sends or hears them; the ids stay taken. A turning room is turned from its
         // hand cog, a VehicleStation (StationClaim / StationState).
-        public const ushort WorkshopOperate = 126; // burned
-        public const ushort WorkshopState   = 127; // burned
+        public const ushort WorkshopOperate = 131; // burned
+        public const ushort WorkshopState   = 132; // burned
 
         // ── Gear doors ──
         // On the BUILDING's channel (the settlement wrapper's NetworkObject, or the building's root when it has none).
@@ -724,8 +761,8 @@ namespace SpaceGame.Core
         //                 joiner), and is answered with one GearDoorState per slot that differs from the start.
         //   GearDoorState A = slot, B = the gear kind's index + 1 (0 empty), plus bit 8 when it is the answer to an
         //                 ask or a restore (land in it: no sound, a solved door stands open at once).
-        public const ushort GearDoorTake  = 128; // taker → server
-        public const ushort GearDoorState = 129; // server → everyone
+        public const ushort GearDoorTake  = 133; // taker → server
+        public const ushort GearDoorState = 134; // server → everyone
 
         // ── Workshop mission ──
         // On the BUILDING's channel, like the gear door. One WorkshopMission per entity: the gate's Shellback, the
@@ -736,9 +773,9 @@ namespace SpaceGame.Core
         //                          is chosen (P is it), the thieves' carrier has the gear, clues examined, and whether it
         //                          just happened (a briefing or a thanks may be spoken; off for an ask, restore or clue).
         //   WorkshopMissionExamine A = the clue of the thieves' trail examined, Target = the examiner's body.
-        public const ushort WorkshopMissionAsk     = 130; // asker → server
-        public const ushort WorkshopMissionState   = 131; // server → everyone
-        public const ushort WorkshopMissionExamine = 132; // examiner → server
+        public const ushort WorkshopMissionAsk     = 135; // asker → server
+        public const ushort WorkshopMissionState   = 136; // server → everyone
+        public const ushort WorkshopMissionExamine = 137; // examiner → server
 
         // ── Workshop crane ──
         // On the BUILDING's channel. One WorkshopCrane per entity: the main room's hoist once somebody has taken its
@@ -749,7 +786,7 @@ namespace SpaceGame.Core
         //                        the hands on the hook, Target = the hanger.
         //   WorkshopCraneState   P = bridge, trolley, height (WorkshopCranePose); B bit 0 driven, bit 1 loaded, bit 2
         //                        land in it (an answer or a restore), bit 3 the let-go just fitted it into a ship.
-        public const ushort WorkshopCraneOperate = 133; // driver / hanger → server
-        public const ushort WorkshopCraneState   = 134; // server → everyone
+        public const ushort WorkshopCraneOperate = 138; // driver / hanger → server
+        public const ushort WorkshopCraneState   = 139; // server → everyone
     }
 }

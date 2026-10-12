@@ -12,7 +12,6 @@
 // (kept inside what an arm can comfortably reach) with the body stepping up or back to reach it. Then the arms reach for the
 // handles; nothing here is baked against a rig.
 using System;
-using SpaceGame.Items;
 using SpaceGame.Presentation;
 using UnityEngine;
 
@@ -202,18 +201,9 @@ namespace SpaceGame.World
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
             if (animator == null || !animator.isHuman) return false;
 
-            leftArm = ArmOf(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, false);
-            rightArm = ArmOf(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, true);
+            leftArm = ReachingArm.Of(animator, false);
+            rightArm = ReachingArm.Of(animator, true);
             return leftArm != null && rightArm != null;
-        }
-
-        private ReachingArm ArmOf(HumanBodyBones upper, HumanBodyBones lower, HumanBodyBones hand, bool right)
-        {
-            Transform shoulder = animator.GetBoneTransform(upper), elbow = animator.GetBoneTransform(lower), wrist = animator.GetBoneTransform(hand);
-            if (shoulder == null || elbow == null || wrist == null) return null;
-
-            // The fist closes where a held item would sit: the grip frame, found the same way for every rig.
-            return new ReachingArm(shoulder, elbow, wrist, HandGripFrame.Derive(animator, wrist, right).LocalPosition);
         }
     }
 }

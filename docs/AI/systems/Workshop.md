@@ -131,7 +131,7 @@ On the building's channel: `SettlementNetworking.Wrap` stands a networked wrappe
 `Workshop` (never put a `NetworkObject` in the prefab). The hand cogs are stations on that entity
 (`StationClaim` 65 / `StationState` 66, [Vehicles.md](Vehicles.md)): one holder a cog, decided by the server;
 the holder's machine turns its own copy at once and takes the server's angle when they let go. The idle hoist needs
-no message: it is a function of the server's clock. The driven hoist is [WorkshopCrane.md](WorkshopCrane.md)'s. `WorkshopOperate` 126 and `WorkshopState` 127 are burned
+no message: it is a function of the server's clock. The driven hoist is [WorkshopCrane.md](WorkshopCrane.md)'s. `WorkshopOperate` 131 and `WorkshopState` 132 are burned
 (the crane levers they carried are gone). With no wrapper above it a workshop runs alone on each machine.
 **Not run on a client.** Everything has been run on an offline host only; a client's prediction, a claim that
 lands after the button is up, and two players at two cogs are untested.

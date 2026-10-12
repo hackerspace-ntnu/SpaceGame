@@ -20,6 +20,17 @@ namespace SpaceGame.Gameplay
     [RequireComponent(typeof(Collider))]
     public class BreathableVolume : MonoBehaviour
     {
+        [Tooltip("What keeps this air breathable — on the lander, its oxygen plant (an IAirSupply). " +
+                 "Leave empty for air that is simply there: a cave, a sealed habitat.")]
+        [SerializeField] private MonoBehaviour airSupply;
+
+        /// <summary>
+        /// Is the air here breathable right now? Always, without a supply; only while the supply
+        /// runs, with one. Asked by <see cref="SuitOxygen"/> each frame rather than pushed, so a plant
+        /// that stops, starts or is thrown out of the ship needs no message to reach the suits.
+        /// </summary>
+        public bool HasAir => !(airSupply is IAirSupply supply) || supply.SuppliesAir;
+
         private void Reset()
         {
             // A volume that is not a trigger is a wall the player walks into, which is a confusing

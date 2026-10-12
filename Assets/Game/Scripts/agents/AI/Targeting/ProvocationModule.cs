@@ -3,7 +3,7 @@
 // The interesting part of this component is how little it does, and that is a property of the
 // architecture rather than of this file. Two facts make "peaceful" almost free:
 //
-//   * Every combat module — ChaseModule, CloseCombatModule, AgentRangedCombatModule — acts only
+//   * Every combat module — ChaseModule, CloseCombatModule, NpcItemUseModule with a gun — acts only
 //     when AgentTargeting is holding a target. None of them consults the faction table itself.
 //     So an agent that never acquires a target is peaceful with no module disabled, no behaviour
 //     tree branch and no state flag threaded through the stack. It simply wanders.

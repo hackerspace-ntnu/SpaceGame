@@ -33,6 +33,18 @@ namespace SpaceGame.Items
                  "the gear screen at 5.51 m, and those are two different models with two spans.")]
         [SerializeField, Min(0f)] private float inspectSize;
 
+        [Header("Folded, on a body with no expedition rig (NPCs)")]
+        [Tooltip("Offset from the spine bone, in the bone's frame, metres, for the item's CARRIED (folded) " +
+                 "model worn by a body with no lash rail. Only used when Folded Size is set.")]
+        [SerializeField] private Vector3 foldedLocalPosition;
+
+        [Tooltip("Rotation of the folded model relative to the spine bone, degrees.")]
+        [SerializeField] private Vector3 foldedLocalEuler;
+
+        [Tooltip("Longest-axis size of the folded model when worn that way, metres. 0 = this item is never " +
+                 "worn folded; a body with no rig then wears its ordinary worn model at Local Position.")]
+        [SerializeField, Min(0f)] private float foldedSize;
+
         [Tooltip("Ignore the pack's lash rail and sit at localPosition on the bone even when the " +
                  "rig IS shouldered. For gear fitted to the BODY rather than clipped to the pack.")]
         [SerializeField] private bool anchorToBone;
@@ -46,6 +58,11 @@ namespace SpaceGame.Items
         public Quaternion LocalRotation => Quaternion.Euler(localEuler);
         public float Size => size;
 
+        public bool HasFoldedPose => foldedSize > 0f;
+        public float FoldedSize => foldedSize;
+        public Vector3 FoldedLocalPosition => foldedLocalPosition;
+        public Quaternion FoldedLocalRotation => Quaternion.Euler(foldedLocalEuler);
+
         /// <summary>
         /// The size the model showing in <paramref name="form"/> should be drawn at.
         ///
@@ -55,11 +72,17 @@ namespace SpaceGame.Items
         /// would squeeze the wing pack's 5.51 m of spread wing into the 1.97 m the stowed bundle
         /// measures — which is the same failure as scaling the worn wings by hand: it drags the
         /// two shoulder pivots off the rail tips they are authored onto. Falls through to
-        /// <see cref="Size"/> at zero, which is every item that has no gear-screen model.
+        /// <see cref="Size"/> at zero, which is every item that has no gear-screen model. The
+        /// carried form takes <see cref="FoldedSize"/> the same way: only an NPC wears the folded
+        /// model (<see cref="WornSeat.ApplyWithoutRig"/>), and a hand never seats through here.
         /// </para>
         /// </summary>
-        public float SizeFor(WornVisual.Form form) =>
-            form == WornVisual.Form.Inspected && inspectSize > 0f ? inspectSize : size;
+        public float SizeFor(WornVisual.Form form) => form switch
+        {
+            WornVisual.Form.Inspected when inspectSize > 0f => inspectSize,
+            WornVisual.Form.Carried when foldedSize > 0f => foldedSize,
+            _ => size,
+        };
 
         /// <summary>
         /// Whether this item's position is the bone's, not the pack rail's.

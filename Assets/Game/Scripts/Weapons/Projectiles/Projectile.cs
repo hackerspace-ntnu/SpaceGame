@@ -26,9 +26,9 @@ namespace SpaceGame.Weapons
 
         [Header("Impact Audio")]
         [Tooltip("Played when the shot lands on something that can bleed.")]
-        [SerializeField] protected SfxId fleshImpactId = SfxId.ImpactFlesh;
+        [SerializeField] protected EventReference fleshImpactSound;
         [Tooltip("Played when the shot lands on anything else — walls, ground, machinery.")]
-        [SerializeField] protected SfxId hardImpactId = SfxId.ImpactMetal;
+        [SerializeField] protected EventReference hardImpactSound;
         [Tooltip("Overrides both of the above.")]
         [SerializeField] protected EventReference impactSound;
 
@@ -168,9 +168,9 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
         {
-            SfxId id = HasHealth(hitCollider) ? fleshImpactId : hardImpactId;
+            EventReference sound = HasHealth(hitCollider) ? fleshImpactSound : hardImpactSound;
 
-            Sfx.Play(id, position, impactSound, GetInstanceID());
+            Sfx.Play(sound, position);
         }
 
         /// <summary>

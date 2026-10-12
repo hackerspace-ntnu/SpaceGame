@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Locomotion;
 using SpaceGame.Teleporting;
+using SpaceGame.Vehicles;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -46,7 +46,7 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// </para>
     /// </summary>
     [RequireComponent(typeof(RagdollRig))]
-    public class AgentRagdoll : MonoBehaviour
+    public class AgentRagdoll : RagdollController
     {
         [Tooltip("Speed handed to the body when it dies of ordinary damage, m/s. Small on purpose " +
                  "— this is a creature folding up, not being launched. The gauntlet supplies its " +
@@ -57,13 +57,6 @@ namespace SpaceGame.Gameplay.Ragdoll
                  "instead of collapsing straight through them.")]
         [SerializeField, Range(0f, 1f)] private float deathImpulseLift = 0.35f;
 
-        [Tooltip("Seconds a knocked-down creature stays down, when the blast that felled it does " +
-                 "not say. The beat that makes a knockdown read as a knockdown rather than a " +
-                 "stumble the creature walks off.")]
-        [SerializeField] private float downedSeconds = 1.2f;
-
-        private RagdollRig rig;
-        private HealthComponent health;
         private AgentController agentController;
         private LeggedLocomotion locomotion;
         private NavMeshAgent navAgent;
@@ -72,41 +65,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         private MountModule mount;
         private NpcPassenger passenger;
 
-        private bool suspended;
         private bool bodyWasKinematic;
+        private RigidbodyInterpolation bodyInterpolation;
         private bool controllerWasEnabled;
         private bool locomotionWasEnabled;
         private bool colliderWasEnabled;
-        private bool dead;
-
-        /// <summary>Earliest this creature may stand up. See <see cref="OnKnockdown"/>.</summary>
-        private float downUntil;
-
-        /// <summary>
-        /// Everything currently holding this creature down with no end time — a net, a tie, both at
-        /// once. See <see cref="HoldDown"/>.
-        ///
-        /// <para>
-        /// A set of holders rather than a flag, the same shape <see cref="CarriedBody"/> uses and
-        /// for the same reason: two systems can want one body down, and the one that lets go first
-        /// must not stand it up. A captor hands back the token it claimed with, so forgetting is a
-        /// compile error rather than a captive that gets up on its own.
-        /// </para>
-        /// </summary>
-        private readonly HashSet<object> holders = new HashSet<object>();
-
-        /// <summary>Is something holding this creature down right now?</summary>
-        public bool IsHeld => holders.Count > 0;
-
-        /// <summary>
-        /// Is this creature on the ground right now, by any route — a net, a tie, or a blast?
-        ///
-        /// The creature counterpart of <c>PlayerRagdoll.IsHeldOrDown</c>, and deliberately broader
-        /// than <see cref="IsHeld"/> for the reason stated there: an animal knocked flat by a
-        /// repulsor blast is just as tieable as a netted one, and the two systems would feel
-        /// unrelated if one refused what the other allowed.
-        /// </summary>
-        public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
 
         /// <summary>
         /// The motor, asked for at the moment it is needed rather than cached in Awake.
@@ -124,10 +87,9 @@ namespace SpaceGame.Gameplay.Ragdoll
         private ISelfDrivingMotor SelfDrivingMotor =>
             agentController != null ? agentController.Motor as ISelfDrivingMotor : null;
 
-        private void Awake()
+        protected override void Awake()
         {
-            rig = GetComponent<RagdollRig>();
-            health = GetComponent<HealthComponent>();
+            base.Awake();
             agentController = GetComponent<AgentController>();
             locomotion = GetComponentInChildren<LeggedLocomotion>(true);
             navAgent = GetComponentInChildren<NavMeshAgent>(true);
@@ -142,52 +104,11 @@ namespace SpaceGame.Gameplay.Ragdoll
             // blast, which is the half of this that needs no health at all.
         }
 
-        private void OnEnable()
-        {
-            this.NetOn(NetMsg.Knockdown, OnKnockdown);
-            if (health != null) health.OnDeath += OnDeath;
-            if (health != null) health.OnRevive += OnRevive;
-        }
-
-        private void OnDisable()
-        {
-            this.NetOff(NetMsg.Knockdown, OnKnockdown);
-            if (health != null) health.OnDeath -= OnDeath;
-            if (health != null) health.OnRevive -= OnRevive;
-        }
-
-        // ── What starts it ────────────────────────────────────────────────────
-
-        private void OnDeath()
-        {
-            dead = true;
-
-            // Death drops every hold's claim — see PlayerRagdoll.OnDeath for why this empties the
-            // set directly rather than calling ReleaseHold, which gives up one claim and would
-            // leave the others standing. The corpse stays limp; it simply stops being a captive
-            // RagdollBudget is forbidden to reclaim.
-            holders.Clear();
-            rig.BudgetExempt = false;
-
-            // A save being loaded, not a kill — the same rule HealthReactionModule.HandleDeath
-            // follows and for the same reason. The corpse's resting POSITION is already in the save
-            // (the rig follows the hips into the transform, so the transform is where the body
-            // lies). What must not happen is throwing it again: a body relaunched on every load
-            // walks its way across the desert one reload at a time.
-            //
-            // The server's death reaching a client live is NOT a load, though it also arrives as a
-            // restore: that body is falling right now and must flail like the host's. It is never
-            // thrown twice either way — a watching machine does not apply the impulse (see
-            // RagdollRig.GoLimp), it follows the replicated hips.
-            bool restoring = health != null && health.IsRestoring && !health.IsReplicating;
-
-            // Read before Suspend, which switches the motor off underneath it.
-            Vector3 carried = restoring ? Vector3.zero : CarriedVelocity;
-
-            Suspend();
-            rig.GoLimp(restoring ? Vector3.zero : DeathImpulse() + carried,
-                       settled: restoring, drives: Drives);
-        }
+        /// <summary>
+        /// Does this machine decide where this creature ends up? A creature is server-authoritative,
+        /// so the answer is the server's (and, offline, everyone's). See <see cref="RagdollRig.Drives"/>.
+        /// </summary>
+        protected override bool Drives => Network.Simulates(this);
 
         /// <summary>
         /// How fast this creature was already travelling.
@@ -197,16 +118,58 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// returns a confident zero. Carrying it into the ragdoll is what stops a creature knocked
         /// down mid-sprint from reading as one that was simply switched off.
         /// </summary>
-        private Vector3 CarriedVelocity =>
+        protected override Vector3 CarriedVelocity =>
             agentController != null && agentController.Motor != null
                 ? agentController.Motor.Velocity
                 : Vector3.zero;
 
         /// <summary>
+        /// Is there someone on this creature's back, or is this creature itself sitting on
+        /// something?
+        ///
+        /// A rider is PARENTED to the seat, so a mount that goes limp underneath one drags them
+        /// through the ground with it — and on a player that is a body the server does not own and
+        /// cannot put back. Mounts keep the leap the gauntlet already gives them instead. Both
+        /// riding systems have to be asked: <c>NpcPassenger</c> deliberately does not go through
+        /// <c>MountModule</c>, because MountModule's rider contract is PlayerMovement. The same
+        /// hazard from the other end is <see cref="IsSeated"/>.
+        /// </summary>
+        protected override bool RefusesToGoDown => (mount != null && mount.IsMounted)
+                                                   || (passenger != null && passenger.HasRider)
+                                                   || IsSeated;
+
+        /// <summary>
+        /// Is this creature cargo — a nomad in a caravan animal's saddle (<c>NpcPassenger</c>) or on
+        /// a sky vessel's deck (<c>VesselSeats</c>)? Parented to the carrier, so limp there it is
+        /// dragged along exactly as a player in a saddle would be. Hits knock the damaged body
+        /// itself, so a shot rider would otherwise be the first to find out.
+        ///
+        /// <para>
+        /// Asked two ways because the two machines know different things. Seating is decided on
+        /// the authority alone, and only there does <see cref="CarriedBody"/> hold the seat's claim —
+        /// the question <c>PlayerRagdoll</c> asks, and the one that also covers any future carrier.
+        /// A watcher learns of the seat only through the replicated parenting, which is what the
+        /// hierarchy check reads, and it has to refuse a hold the authority refused, or the body
+        /// lies limp on its screen alone.
+        /// </para>
+        /// </summary>
+        private bool IsSeated
+        {
+            get
+            {
+                if (CarriedBody.IsCarriedRigidly(gameObject)) return true;
+
+                Transform carrier = transform.parent;
+                return carrier != null && (carrier.GetComponentInParent<NpcPassenger>() != null ||
+                                           carrier.GetComponentInParent<VesselSeats>() != null);
+            }
+        }
+
+        /// <summary>
         /// Away from whatever killed it, and up. Reading the damage source rather than picking a
         /// direction is what makes a creature shot from the front fall backwards.
         /// </summary>
-        private Vector3 DeathImpulse()
+        protected override Vector3 DeathImpulse()
         {
             Transform source = health != null ? health.LastDamageSource : null;
 
@@ -220,190 +183,11 @@ namespace SpaceGame.Gameplay.Ragdoll
                    * deathImpulse;
         }
 
-        private void OnRevive()
-        {
-            dead = false;
-
-            // See PlayerRagdoll.OnRevive: unreachable today, permanent and silent if it ever is.
-            holders.Clear();
-            rig.BudgetExempt = false;
-
-            if (rig.IsLimp) Restore();
-        }
-
-        /// <summary>
-        /// A blast. Every machine presents it: the impulse rides in <c>P</c>, and how long the
-        /// creature stays down in <c>A</c>, as milliseconds.
-        ///
-        /// <para>
-        /// The duration travels with the message rather than being decided locally because it is
-        /// the only part of the recovery every machine can agree on. Settling cannot be: a watcher
-        /// does not simulate the flight — it takes the body's position off the wire — so its
-        /// ragdoll comes to rest on a different schedule from the one that does. Sharing the floor
-        /// and letting each machine wait out its own body on top of it keeps them within a frame or
-        /// two of each other without a second round trip to say "get up now".
-        /// </para>
-        /// </summary>
-        private void OnKnockdown(in NetArg arg, ulong sender)
-        {
-            if (dead) return;                 // a corpse is already down and is not getting up
-            if (HasRider) return;             // see CanBeKnockedDown
-
-            Vector3 carried = CarriedVelocity;
-
-            Suspend();
-            rig.GoLimp(arg.P + carried, settled: false, drives: Drives);
-
-            float down = arg.A > 0 ? arg.A / 1000f : downedSeconds;
-            downUntil = Time.time + down;
-        }
-
-        /// <summary>
-        /// Does this machine decide where this creature ends up? A creature is server-authoritative,
-        /// so the answer is the server's (and, offline, everyone's). See <see cref="RagdollRig.Drives"/>.
-        /// </summary>
-        private bool Drives => Network.Simulates(this);
-
-        /// <summary>
-        /// Is there someone on this creature's back?
-        ///
-        /// A rider is PARENTED to the seat, so a mount that goes limp underneath one drags them
-        /// through the ground with it — and on a player that is a body the server does not own and
-        /// cannot put back. Mounts keep the leap the gauntlet already gives them instead. Both
-        /// riding systems have to be asked: <c>NpcPassenger</c> deliberately does not go through
-        /// <c>MountModule</c>, because MountModule's rider contract is PlayerMovement.
-        /// </summary>
-        private bool HasRider => (mount != null && mount.IsMounted)
-                                 || (passenger != null && passenger.HasRider);
-
-        /// <summary>Can the shock wave knock this creature down, or must it be leapt instead?</summary>
-        public bool CanBeKnockedDown => isActiveAndEnabled && !HasRider;
-
-        /// <summary>
-        /// Go limp and stay limp. The creature counterpart of <c>PlayerRagdoll.HoldDown</c>, and
-        /// like it, released by the caller rather than by a timer.
-        ///
-        /// <para>
-        /// Refuses a creature that is carrying somebody, and that refusal has to be visible to the
-        /// caller rather than silent: <see cref="CanBeKnockedDown"/> is false while a rider is
-        /// aboard for the reason <see cref="HasRider"/> gives, so a net on a ridden mount would
-        /// otherwise be a no-op with a clean console. The captor is expected to fall back to
-        /// whatever restraint it has instead — <c>SnareTether.Bind</c> caps a NavMeshAgent's speed
-        /// when, and only when, this answers false, and has nothing to fall back on for a creature
-        /// with no NavMeshAgent, a legged rig among them. This only says whether the body itself
-        /// went down.
-        /// </para>
-        /// <para>
-        /// Called by <c>SnareTether.Bind</c>, on every machine — see <c>PlayerRagdoll.HoldDown</c>
-        /// for why a capture reaches all of them.
-        /// </para>
-        /// </summary>
-        /// <returns>
-        /// True once the creature is actually limp and held. FALSE means the hold did not take and
-        /// the caller must not treat this body as held — it is dead, it is carrying somebody, or the
-        /// rig declined to go limp at all. See <c>PlayerRagdoll.HoldDown</c> for what that last one
-        /// costs a body that is left believing it was held.
-        /// </returns>
-        public bool HoldDown(object holder)
-        {
-            if (holder == null) return false;
-
-            // A corpse is already down and is not getting up — the same refusal OnKnockdown opens
-            // with. It matters more here than there: a hold that took a corpse would set
-            // BudgetExempt on a body nothing will ever release, which is the leak OnDeath exists to
-            // close arriving through a second door.
-            if (dead) return false;
-
-            // Somebody else already has it down. Take a claim and say so, rather than repeating
-            // work that would record the suspended state as this creature's normal one.
-            if (IsHeld)
-            {
-                holders.Add(holder);
-                return true;
-            }
-
-            if (!CanBeKnockedDown) return false;
-
-            holders.Add(holder);
-
-            // Off the motor and read before Suspend, which switches that motor off underneath it
-            // — the ordering OnKnockdown uses and for the same reason.
-            Vector3 carried = CarriedVelocity;
-
-            Suspend();
-            rig.BudgetExempt = true;
-            rig.GoLimp(carried, settled: false, drives: Drives);
-
-            // Asked of the rig rather than pre-checked, and everything undone on a refusal — see
-            // PlayerRagdoll.HoldDown, which states the case in full.
-            if (rig.IsLimp) return true;
-
-            holders.Remove(holder);
-            rig.BudgetExempt = false;
-            Restore();
-            return false;
-        }
-
-        /// <summary>
-        /// Give up one claim. The creature gets up only once the LAST one is given up — the rule
-        /// <see cref="CarriedBody.Release"/> follows, so a net rotting off a hogtied animal does
-        /// not untie it.
-        ///
-        /// Safe to call with a token that was never claimed, or after death has cleared the set.
-        /// </summary>
-        public void ReleaseHold(object holder)
-        {
-            if (holder == null || !holders.Remove(holder)) return;
-            if (IsHeld) return;
-
-            rig.BudgetExempt = false;
-            downUntil = 0f;
-        }
-
-        // ── Getting back up ───────────────────────────────────────────────────
-
-        private void Update()
-        {
-            if (dead || !suspended) return;
-
-            // A hold has no timer and no settle condition to wait for, so every reason to stand up
-            // below is the wrong one — including the budget rescue underneath, which is the path
-            // BudgetExempt exists to keep a captive off.
-            if (IsHeld) return;
-
-            // The budget froze this body out from under us (RagdollBudget evicts the oldest limp
-            // rig past the cap). Nothing is going to come to rest and nothing is going to tell us
-            // so — take the creature back now, or it stays suspended for good with its brain
-            // switched off, which is a knockdown that never ends.
-            if (!rig.IsLimp)
-            {
-                Restore();
-                return;
-            }
-
-            // The shared floor first, then this machine's own body. A creature still in the air
-            // when the floor expires keeps tumbling; one that landed early lies there for the rest
-            // of the beat, which is what stops a glancing blast reading as a stumble
-            // (GDC-L1-FEEL-0007 — what is being tuned is the sensation, and a body that pops up the
-            // instant it stops moving has none).
-            if (Time.time < downUntil || !rig.IsSettled) return;
-
-            Restore();
-        }
-
         // ── Handing the body over and back ────────────────────────────────────
 
-        /// <summary>
-        /// Stop every layer that writes this creature's transform or its bones.
-        ///
-        /// Idempotent: a creature blasted twice while already down must not record the suspended
-        /// state a second time, or resuming restores the values captured mid-ragdoll.
-        /// </summary>
-        private void Suspend()
+        /// <summary>Stop every layer that writes this creature's transform or its bones.</summary>
+        protected override void SuspendLayers(bool standing)
         {
-            if (suspended) return;
-            suspended = true;
-
             // Recorded rather than assumed, for the reason NavMeshAgentMotor.SuspendSelfDrive
             // spells out: "enabled" is not every layer's resting state. On a machine that is only
             // watching this creature, NetAuthority has already switched its brain and its
@@ -428,19 +212,19 @@ namespace SpaceGame.Gameplay.Ragdoll
             {
                 bodyWasKinematic = body.isKinematic;
                 body.isKinematic = true;
+
+                // Interpolation would write a lagged root over the one the rig sets, dragging
+                // every bone with it.
+                bodyInterpolation = body.interpolation;
+                body.interpolation = RigidbodyInterpolation.None;
             }
         }
 
         /// <summary>
         /// Give the body back to the layers that drive it, at the place it actually came to rest.
         /// </summary>
-        private void Restore()
+        protected override void RestoreLayers(in TeleportMove move)
         {
-            if (!suspended) return;
-            suspended = false;
-
-            TeleportMove move = rig.Recover();
-
             // Only ever switched back ON, never off — restoring the recorded flag verbatim would
             // make this a race with HealthReactionModule, which disables the AgentController on
             // death and re-enables it on revive off the same two events. Whichever of the two
@@ -449,6 +233,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // component itself switched off has no such ordering to get wrong.
             if (bodyCollider != null && colliderWasEnabled) bodyCollider.enabled = true;
             if (body != null) body.isKinematic = bodyWasKinematic;
+            if (body != null) body.interpolation = bodyInterpolation;
 
             if (locomotion != null && locomotionWasEnabled) locomotion.enabled = true;
             SelfDrivingMotor?.ResumeSelfDrive();

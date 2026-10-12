@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 4258798772351780254}
   - component: {fileID: 9049281300047906044}
   - component: {fileID: 8963427072308006259}
+  - component: {fileID: 349958834009605175}
   m_Layer: 0
   m_Name: Tool_Harpoon_Iron
   m_TagString: Untagged
@@ -334,6 +335,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 11400000, guid: 95e62f705ec4149df85d0baa87d49d5c, type: 2}
+--- !u!114 &349958834009605175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700742283695869877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &4773113867708562490
 GameObject:
   m_ObjectHideFlags: 0

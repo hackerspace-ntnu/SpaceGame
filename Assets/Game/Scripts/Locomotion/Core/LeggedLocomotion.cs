@@ -202,6 +202,15 @@ namespace SpaceGame.Locomotion
         public bool IsReady => ready;
         public int LegCount => legs.Count;
 
+        /// The feet that came down during the most recent Step, on every machine: the legs
+        /// simulate everywhere, owning the body or following it. Valid until the next Step;
+        /// compare <see cref="StepCount"/> to read each one once.
+        public IReadOnlyList<Footfall> Footfalls => footfalls;
+
+        /// How many Steps this machine has taken: a reader that remembers it knows whether
+        /// <see cref="Footfalls"/> is new since it last looked.
+        public int StepCount { get; private set; }
+
         /// <summary>
         /// Stop owning the body's transform and follow whoever else is writing it.
         ///
@@ -431,6 +440,7 @@ namespace SpaceGame.Locomotion
         {
             if (!ready) return;
             float dt = Mathf.Max(deltaTime, 1e-5f);
+            StepCount++;
 
             if (externallyPosed)
             {

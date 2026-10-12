@@ -47,6 +47,10 @@ namespace SpaceGame.Core
             yield return new WaitForSeconds(8f);
 
             Report("CLIENT_SPAWNED", NetworkManager.Singleton.SpawnManager.SpawnedObjects.Count);
+            // The walking city seen from afar replicates as state on the session object (DistantGroups):
+            // a client that has the list draws the city exactly where the host does.
+            DistantGroups distant = FindAnyObjectByType<DistantGroups>();
+            Report("CLIENT_DISTANT_GROUPS", distant != null ? distant.Count : -1);
 
             // THE question this whole process exists to answer: on a machine that owns nothing,
             // does NetAuthority actually stop the entity simulating itself?

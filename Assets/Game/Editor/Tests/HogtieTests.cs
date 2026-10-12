@@ -109,25 +109,37 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A body <c>RagdollRig</c> can really build a skeleton out of, without a skinned mesh.
+        /// A five-bone hard-surface body: a chain of empty bones, each carrying one collider-less cube.
         ///
-        /// Five equal rigid parts clear both the weight floor and the four-bone minimum, so
-        /// <c>GoLimp</c> keeps bones and <c>IsLimp</c> goes true — the difference between a test of
-        /// a hold that took and a test of a hold that could never have taken. The primitives' own
-        /// colliders go, because <c>BuildBone</c> adds a box around each part's mesh.
+        /// <para>
+        /// The bones have to be EMPTY. RagdollRig puts bodies on the rig — nodes that draw nothing and
+        /// lead to geometry — and never on the root, so cubes parented straight under the root are
+        /// meshes with no skeleton and the body silently refuses to go limp. That is how this fixture
+        /// used to be built, and every hold test measured a body that never went down.
+        /// </para>
+        /// <para>
+        /// Five bones clear both the weight floor and the four-bone minimum, so <c>GoLimp</c> keeps
+        /// bones and <c>IsLimp</c> goes true. The primitives' own colliders go, because
+        /// <c>BuildBone</c> adds a box around each part's mesh.
+        /// </para>
         /// </summary>
         private GameObject NewRagdollBody(string name)
         {
             GameObject root = NewObject(name);
+            Transform parent = root.transform;
 
             for (int i = 0; i < 5; i++)
             {
+                var bone = new GameObject($"Bone{i}").transform;
+                bone.SetParent(parent, false);
+                bone.localPosition = new Vector3(0f, 0.5f, 0f);
+
                 GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 part.name = $"Part{i}";
-                part.transform.SetParent(root.transform);
-                part.transform.localPosition = new Vector3(0f, i * 0.5f, 0f);
-
+                part.transform.SetParent(bone, false);
                 Object.DestroyImmediate(part.GetComponent<Collider>());
+
+                parent = bone;
             }
 
             return root;
@@ -218,10 +230,11 @@ namespace SpaceGame.EditorTools
             public readonly List<InventoryItem> Dropped = new List<InventoryItem>();
             public Transform LastOrigin;
 
-            public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
+            public GameObject DropItem(Transform origin, InventoryItem item, ItemState state = null)
             {
                 Dropped.Add(item);
                 LastOrigin = origin;
+                return null;
             }
         }
 

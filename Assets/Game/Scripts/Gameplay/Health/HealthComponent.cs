@@ -90,6 +90,22 @@ namespace SpaceGame.Gameplay
         public bool IsRestoring { get; private set; }
 
         /// <summary>
+        /// True only while <see cref="LoadHealth"/> is applying a value read from a SAVE — a narrower
+        /// question than <see cref="IsRestoring"/>, which is also true on a client whenever the
+        /// server's value arrives through <c>NetworkedHealthComponent</c>.
+        ///
+        /// <para>
+        /// Most listeners want the broad answer: loot, a death sound and a despawn timer belong to
+        /// the machine that decided the death, so a client must not repeat them either. What only
+        /// this one answers is whether the death is OLD. A corpse arriving from a save is already
+        /// lying where it fell and must not be thrown again; a death arriving over the wire happened
+        /// a moment ago, and a client that treated it as a load froze its own player standing and
+        /// dropped every creature it watched as a stiff plank.
+        /// </para>
+        /// </summary>
+        public bool IsLoading { get; private set; }
+
+        /// <summary>
         /// True only while <see cref="RestoreHealth"/> is applying a LIVE change replicated from the
         /// server — never a save, and never the snapshot a late joiner reads on spawn. Always read
         /// together with <see cref="IsRestoring"/>, which is also true then.
@@ -251,6 +267,26 @@ namespace SpaceGame.Gameplay
                 // the session looking like a restore — which would silently stop all loot dropping.
                 IsRestoring = false;
                 IsReplicating = false;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="RestoreHealth"/> for a value read from a save — the one caller that is a
+        /// load rather than a replication. See <see cref="IsLoading"/>.
+        /// </summary>
+        public void LoadHealth(int value)
+        {
+            IsLoading = true;
+
+            // In a finally block for RestoreHealth's own reason: a throwing listener must not leave
+            // every later replicated death looking like a load.
+            try
+            {
+                RestoreHealth(value);
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 

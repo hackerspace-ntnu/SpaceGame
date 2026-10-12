@@ -35,5 +35,11 @@ namespace SpaceGame.Vehicles
 
         /// <summary>The starboard gun.</summary>
         Gun = 6,
+
+        /// <summary>
+        /// The long-range transmitter, salvaged off the satellite dish's feed cabin — the one
+        /// module that is not off this hull. Its socket is in the cockpit.
+        /// </summary>
+        Transmitter = 7,
     }
 }

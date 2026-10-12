@@ -75,7 +75,7 @@ This is the fun part. Everything below exists and works today.
 
 **Ordinary weapons**
 
-Alongside the gadgets there is a small conventional arsenal: a **basic gun** that spawns a straight-line bullet, an **energy rifle** that is hitscan with configurable rays per shot, spread and falloff, and **ball lightning**, the one charging weapon — the first press spawns the orb and charges it, the second press launches it, and it wanders on noise with its own light while it flies.
+Alongside the gadgets there is a small conventional arsenal: a **basic gun** — a hitscan rifle that shares the gravel blaster's machinery but fires one long, precise round instead of a fistful of gravel — an **energy rifle** that is hitscan with configurable rays per shot, spread and falloff, and **ball lightning**, the one charging weapon — the first press spawns the orb and charges it, the second press launches it, and it wanders on noise with its own light while it flies.
 
 All of them, gadget or gun, funnel damage through a single route. Every machine draws its own bullet and plays its own impact sound and sparks; exactly one of those bullets is the one that actually bills the target. When that gate is missing, the symptom is unmistakable and is the first thing anyone checks: **damage multiplied by the number of players in the session.**
 

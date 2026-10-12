@@ -227,10 +227,10 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void EscalationCaps_AtTheRostersLastTier()
+        public void EscalationClimbs_ToTheRostersLastTier()
         {
             War war = AtWarWithAParty();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 2; i++)
             {
                 Move(-24f);   // keep the war going despite the credits
                 if (!war.HasParty) Invoke(director, "Raise", war, Vector3.zero);
@@ -238,6 +238,42 @@ namespace SpaceGame.EditorTools
             }
 
             Assert.AreEqual(2, war.Tier);
+            Assert.AreSame(war, director.Book.Find(sand, Player), "beating a lower tier only escalates");
+        }
+
+        [Test]
+        public void Defeated_AtTheLastTier_EndsTheWar_HoweverDeepTheHostility()
+        {
+            Move(-85f);
+            director.Book.RestoreTier(sand, Player, 2);   // the roster's last tier (three rows)
+            War war = director.Book.Find(sand, Player);
+            Invoke(director, "Raise", war, Vector3.zero);
+            string partyId = war.PartyGroupId;
+            Move(-15f);   // -100: far deeper than defeatedCredit alone could lift
+
+            Invoke(director, "Resolve", war, Reckoning.Defeated);
+
+            Assert.IsNull(director.Book.Find(sand, Player), "the strongest party beaten and the war goes on");
+            Assert.AreEqual(GoodwillBand.HostileOnSight, ledger.BandFor(sand, Player),
+                            "goodwill must leave AtWar too, or Reconcile reopens the war on the next step");
+            Assert.AreEqual(-69f, ledger.ValueFor(sand, Player), 0.001f, "just past AtWar's sticky edge (-70)");
+            Assert.IsNull(sim.FindGroup(partyId));
+            Assert.AreEqual(0, director.Book.TierFor(sand, Player), "peace resets escalation");
+        }
+
+        [Test]
+        public void Defeated_AtTheLastTier_StillCreditsAtLeastTheDefeat()
+        {
+            Move(-85f);
+            director.Book.RestoreTier(sand, Player, 2);
+            War war = director.Book.Find(sand, Player);
+            Invoke(director, "Raise", war, Vector3.zero);
+            Move(14f);   // -71: one point inside the sticky edge
+
+            Invoke(director, "Resolve", war, Reckoning.Defeated);
+
+            Assert.AreEqual(-67f, ledger.ValueFor(sand, Player), 0.001f, "the defeat's own 4 points, not less");
+            Assert.IsNull(director.Book.Find(sand, Player));
         }
     }
 }

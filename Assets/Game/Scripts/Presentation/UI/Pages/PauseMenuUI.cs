@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Voice;
 
 namespace SpaceGame.Presentation
 {
@@ -72,6 +73,24 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI menuButtonLabel;
         private ScrollRect scroll;
 
+        // The microphone test is a loose GameObject rather than a component on the menu, because
+        // it owns FMOD handles that must die the moment the page goes away — tying it to its own
+        // object makes that one Destroy instead of a teardown path per exit.
+        private MicrophoneTest micTest;
+        private SettingsWidgets.Row micTestRow;
+        private SettingsWidgets.Row micMeterRow;
+
+        // Key rebinding: the row waiting for a key, and the rows whose state the voice keys can
+        // change behind the page's back while it is open.
+        private SettingsWidgets.Row capturingRow;
+        private SettingsWidgets.Row selfMuteRow;
+        private SettingsWidgets.Row muteKeyRow;
+        private SettingsWidgets.Row talkModeRow;
+        private SettingsWidgets.Row talkKeyRow;
+        private bool voiceRowsSynced;
+        private bool shownSelfMuted;
+        private bool shownPushToTalk;
+
         private float confirmExpiry;
 
         private struct TabWidgets
@@ -118,6 +137,9 @@ namespace SpaceGame.Presentation
         {
             if (instance == this) instance = null;
 
+            StopMicrophoneTest();
+            KeyCapture.Cancel();
+
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
 
             if (inputs != null)
@@ -137,7 +159,7 @@ namespace SpaceGame.Presentation
         {
             // A name being typed owns the keyboard: M is a letter first and a shortcut second, and
             // Escape is the field's own "undo my edit".
-            if (IsTypingInField()) return;
+            if (TextEntry.IsTyping) return;
 
             // The artifact browser opens on top of this menu, so the pause key has to peel the top
             // screen off first. Without this it would close the menu underneath and leave the
@@ -150,17 +172,6 @@ namespace SpaceGame.Presentation
 
             if (open) Close();
             else Open();
-        }
-
-        private static bool IsTypingInField()
-        {
-            GameObject selected = EventSystem.current != null
-                ? EventSystem.current.currentSelectedGameObject
-                : null;
-
-            return selected != null
-                   && selected.TryGetComponent(out TMP_InputField field)
-                   && field.isFocused;
         }
 
         // ----------------------------------------------------------------- open/close
@@ -200,6 +211,9 @@ namespace SpaceGame.Presentation
             // then hit M on is the name that ends up published.
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
 
+            StopMicrophoneTest();
+            KeyCapture.Cancel();
+
             GameSettings.Save();
             GameplayMenuScope.Exit(this);
         }
@@ -220,6 +234,8 @@ namespace SpaceGame.Presentation
                 group.interactable = false;
             }
 
+            StopMicrophoneTest();
+            KeyCapture.Cancel();
             GameplayMenuScope.Abandon();
         }
 
@@ -244,6 +260,12 @@ namespace SpaceGame.Presentation
 
             if (open && confirmExpiry > 0f && Time.unscaledTime > confirmExpiry)
                 DisarmConfirm();
+
+            // A level meter is a live signal, so it repaints per frame — but only while there is
+            // actually a test running to read a level from.
+            if (open && micTest != null) micMeterRow?.Refresh();
+
+            if (open) SyncVoiceRows();
         }
 
         // --------------------------------------------------------------------- build
@@ -577,6 +599,208 @@ namespace SpaceGame.Presentation
                 () => GameSettings.AmbienceVolume, v => GameSettings.AmbienceVolume = v, Percent, 0.01f));
 
             SettingsWidgets.Caption(page, "Levels apply live to the FMOD buses — drag one and listen.");
+
+            SettingsWidgets.Heading(page, "Voice");
+
+            Track(SettingsWidgets.Cycler(page, "Microphone",
+                DescribeMicrophone,
+                () => StepMicrophone(1),
+                () => StepMicrophone(-1)));
+
+            Track(SettingsWidgets.Slider(page, "Voice volume", 0f, 1f,
+                () => GameSettings.VoiceVolume, v => GameSettings.VoiceVolume = v, Percent, 0.01f));
+
+            selfMuteRow = SettingsWidgets.Toggle(page, "Mute microphone",
+                () => GameSettings.VoiceSelfMuted, v => GameSettings.VoiceSelfMuted = v);
+            Track(selfMuteRow);
+
+            muteKeyRow = SettingsWidgets.Action(page, "Mute key", string.Empty,
+                () => BeginRebind(muteKeyRow, allowClear: true, path => GameSettings.VoiceMuteBinding = path),
+                null, () => DescribeBinding(muteKeyRow, GameSettings.VoiceMuteBinding));
+            Track(muteKeyRow);
+
+            // Names both choices, which a switch labelled "Push to talk" would not: its off state
+            // reads as "not push to talk", when what it means is "open mic".
+            Track(SettingsWidgets.Cycler(page, "Mic mode", DescribeMicMode,
+                () => GameSettings.VoicePushToTalk = !GameSettings.VoicePushToTalk,
+                () => GameSettings.VoicePushToTalk = !GameSettings.VoicePushToTalk));
+
+            // Shown only while push-to-talk is on (SyncVoiceRows): a mode and a key for a feature
+            // that is switched off are two rows of noise (GDC-L1-UX-0002).
+            talkModeRow = SettingsWidgets.Cycler(page, "Push-to-talk mode", DescribeTalkMode,
+                () => GameSettings.VoicePushToTalkToggle = !GameSettings.VoicePushToTalkToggle,
+                () => GameSettings.VoicePushToTalkToggle = !GameSettings.VoicePushToTalkToggle);
+            Track(talkModeRow);
+
+            talkKeyRow = SettingsWidgets.Action(page, "Push-to-talk key", string.Empty,
+                () => BeginRebind(talkKeyRow, allowClear: true, path => GameSettings.VoicePushToTalkBinding = path),
+                null, () => DescribeBinding(talkKeyRow, GameSettings.VoicePushToTalkBinding));
+            Track(talkKeyRow);
+
+            Track(SettingsWidgets.Slider(page, "Mic threshold",
+                GameSettings.MinVoiceGateThreshold, GameSettings.MaxVoiceGateThreshold,
+                () => GameSettings.VoiceGateThreshold, v => GameSettings.VoiceGateThreshold = v,
+                Percent, 0.005f));
+
+            // Not Tracked: this one repaints per frame from Update, not on the page's Refresh.
+            micMeterRow = SettingsWidgets.Meter(page, "Input level",
+                () => micTest != null ? micTest.InputLevel : 0f,
+                () => micTest != null && micTest.GateOpen);
+
+            micTestRow = SettingsWidgets.Action(page, "Microphone test", "TEST",
+                ToggleMicrophoneTest, null, DescribeMicrophoneTest);
+            Track(micTestRow);
+
+            SettingsWidgets.Caption(page,
+                "The test plays your microphone back through the voice codec — what everyone else hears.");
+            SettingsWidgets.Caption(page,
+                "Set the threshold so the bar lights when you speak, but not when you type.");
+            SettingsWidgets.Caption(page,
+                "To change a key, click it and press the new one. Esc cancels; Backspace unbinds it.");
+        }
+
+        // ---------------------------------------------------------------- microphone
+
+        private static string DescribeMicrophone() =>
+            string.IsNullOrEmpty(GameSettings.VoiceInputDevice)
+                ? "System default"
+                : GameSettings.VoiceInputDevice;
+
+        /// <summary>
+        /// Steps through the connected microphones, with the system default as the first choice.
+        /// <para>
+        /// The stored value is a NAME, and an empty one means "whatever the OS considers default" —
+        /// which is why that entry is an empty string in this list rather than a device of its own.
+        /// </para>
+        /// </summary>
+        private void StepMicrophone(int direction)
+        {
+            var names = new List<string> { string.Empty };
+            foreach (VoiceDevices.Device device in VoiceDevices.Connected())
+                names.Add(device.Name);
+
+            if (names.Count <= 1) return;
+
+            int current = Mathf.Max(0, names.IndexOf(GameSettings.VoiceInputDevice ?? string.Empty));
+            int next = ((current + direction) % names.Count + names.Count) % names.Count;
+
+            GameSettings.VoiceInputDevice = names[next];
+
+            // A test already running is listening to the old device; reopen it on the new one.
+            // Deliberately not `micTest?.Restart()`: ?. tests for a real null, while a destroyed
+            // GameObject is only null to Unity's overloaded ==, so ?. would call into it.
+            if (micTest != null) micTest.Restart();
+        }
+
+        // ------------------------------------------------------------------- voice keys
+
+        private static string DescribeMicMode() =>
+            GameSettings.VoicePushToTalk ? "Push to talk" : "Open mic";
+
+        private static string DescribeTalkMode() =>
+            GameSettings.VoicePushToTalkToggle ? "Toggle" : "Hold";
+
+        /// <summary>
+        /// The key a row is bound to, or the prompt while that row is waiting for one. The null
+        /// check matters: this first runs while the row is still being built, before its field is
+        /// assigned, and null == null would read as "this row is capturing".
+        /// </summary>
+        private string DescribeBinding(SettingsWidgets.Row row, string path) =>
+            capturingRow != null && capturingRow == row ? "PRESS A KEY" : KeyCapture.Describe(path);
+
+        private void BeginRebind(SettingsWidgets.Row row, bool allowClear, System.Action<string> apply)
+        {
+            if (row == null) return;
+
+            KeyCapture.Begin(allowClear, apply, () =>
+            {
+                capturingRow = null;
+                VoiceKeys.Suspended = false;
+
+                // The page can be going away underneath the capture; Unity's == on the rect.
+                if (row.Rect != null) row.Refresh();
+            });
+
+            capturingRow = row;
+            VoiceKeys.Suspended = true;
+            row.Refresh();
+        }
+
+        /// <summary>
+        /// Keeps the rows the voice keys can change behind the page's back in step with them: the
+        /// mute key flips self-mute while this page is open, and the push-to-talk rows only exist
+        /// while push-to-talk is on. Checked every frame, acted on only on a change.
+        /// </summary>
+        private void SyncVoiceRows()
+        {
+            bool muted = GameSettings.VoiceSelfMuted;
+            if (!voiceRowsSynced || muted != shownSelfMuted)
+            {
+                shownSelfMuted = muted;
+                selfMuteRow?.Refresh();
+            }
+
+            bool pushToTalk = GameSettings.VoicePushToTalk;
+            if (!voiceRowsSynced || pushToTalk != shownPushToTalk)
+            {
+                shownPushToTalk = pushToTalk;
+                SetRowVisible(talkModeRow, pushToTalk);
+                SetRowVisible(talkKeyRow, pushToTalk);
+            }
+
+            voiceRowsSynced = true;
+        }
+
+        private static void SetRowVisible(SettingsWidgets.Row row, bool visible)
+        {
+            if (row?.Rect != null && row.Rect.gameObject.activeSelf != visible)
+                row.Rect.gameObject.SetActive(visible);
+        }
+
+        private string DescribeMicrophoneTest()
+        {
+            if (micTest == null) return "TEST";
+            return string.IsNullOrEmpty(micTest.Error) ? "STOP" : "FAILED";
+        }
+
+        private void ToggleMicrophoneTest()
+        {
+            if (micTest != null)
+            {
+                StopMicrophoneTest();
+                return;
+            }
+
+            micTest = MicrophoneTest.Create();
+
+            // A microphone that will not open is the commonest voice problem there is, and a test
+            // that silently does nothing is the worst possible way to report it.
+            if (!string.IsNullOrEmpty(micTest.Error))
+                Debug.LogWarning($"[Voice] Microphone test could not start: {micTest.Error}");
+
+            micTestRow?.Refresh();
+        }
+
+        /// <summary>
+        /// Ends the test and releases the microphone. Called from every exit — closing, forced
+        /// close, leaving the Audio tab and destruction — because each is a different path and a
+        /// microphone left open is a recording light that never goes out.
+        /// </summary>
+        private void StopMicrophoneTest()
+        {
+            // == also catches a test whose GameObject was destroyed under us by a scene load;
+            // clearing the field there is what stops a stale reference lingering forever.
+            if (micTest == null)
+            {
+                micTest = null;
+                return;
+            }
+
+            Destroy(micTest.gameObject);
+            micTest = null;
+
+            micMeterRow?.Refresh();
+            micTestRow?.Refresh();
         }
 
         private void BuildVideoPage(RectTransform page)
@@ -777,6 +1001,14 @@ namespace SpaceGame.Presentation
 
         private void SelectTab(Tab tab)
         {
+            // The test lives on the Audio page; walking away from it should not leave the
+            // microphone open behind a page nobody is looking at.
+            if (tab != Tab.Audio)
+            {
+                StopMicrophoneTest();
+                KeyCapture.Cancel();
+            }
+
             activeTab = tab;
 
             foreach (KeyValuePair<Tab, RectTransform> entry in pages)

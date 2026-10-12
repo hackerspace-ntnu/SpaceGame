@@ -55,6 +55,7 @@ GameObject:
   - component: {fileID: 5611010842139307600}
   - component: {fileID: 2928250347572000585}
   - component: {fileID: -620610454818329256}
+  - component: {fileID: -9150208226210353235}
   m_Layer: 0
   m_Name: SuckerPuncher
   m_TagString: Untagged
@@ -356,6 +357,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   reach: 2.4
   punchRadius: 0.45
   punchOriginHeight: 1.35
@@ -383,8 +385,8 @@ MonoBehaviour:
   ramOutTime: 0.07
   ramHoldTime: 0.1
   ramReturnTime: 0.55
-  punchAction: {fileID: 11400000, guid: a838a656a8314aa58950c2d74988a26c, type: 2}
   steamBurst: {fileID: 6241882462039540053}
+  punchAction: {fileID: 11400000, guid: a838a656a8314aa58950c2d74988a26c, type: 2}
   ringMaterial: {fileID: 2100000, guid: 649f848b509454974ac038f02bca93c0, type: 2}
   ringDuration: 0.3
   punchShake: {fileID: 11400000, guid: 39541a18367304ad48cbc806effbb1ba, type: 2}
@@ -404,6 +406,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-9150208226210353235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6096933643893021070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &7865690321402694380
 GameObject:
   m_ObjectHideFlags: 0

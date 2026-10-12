@@ -607,10 +607,11 @@ MonoBehaviour:
   acceleration: 2.5
   defaultStopDistance: 6
   turnInPlaceAngle: 50
-  repathInterval: 0.5
-  repathTolerance: 2
-  cornerArriveRadius: 6
-  navMeshSampleDistance: 20
+  route:
+    repathInterval: 0.5
+    repathTolerance: 2
+    cornerArriveRadius: 6
+    navMeshSampleDistance: 20
   detourHoldTime: 2
   lateralSteering: 0
 --- !u!114 &5328152956152328182

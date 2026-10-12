@@ -125,6 +125,13 @@ namespace SpaceGame.Characters
         /// </summary>
         public bool Winded => winded;
 
+        // Something moving the body for the player (a hatch crawl) holding them crouched, whatever
+        // the key and the ground say. Counted, so two holders cannot release each other's hold.
+        private int crouchHolds;
+
+        /// <summary>Owner side: hold the player crouched until released. Pair every true with a false.</summary>
+        public void HoldCrouch(bool hold) => crouchHolds = Mathf.Max(0, crouchHolds + (hold ? 1 : -1));
+
         private void Awake()
         {
             controller = GetComponent<PlayerController>();
@@ -180,7 +187,7 @@ namespace SpaceGame.Characters
             // Move Tree once IsGrounded is true, so a player who left the ground crouched would
             // stay folded up until they landed. Standing them up at take-off keeps the animator
             // and the collider telling the same story.
-            bool wantsCrouch = driving && inputs.CrouchHeld && movement.IsOnGround;
+            bool wantsCrouch = crouchHolds > 0 || (driving && inputs.CrouchHeld && movement.IsOnGround);
 
             // A ceiling outranks letting go of the key. Checked only when already down, because
             // that is the only direction the test can refuse.

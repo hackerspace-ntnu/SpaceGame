@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 1968539234860011068}
   - component: {fileID: 1422923931945672270}
   - component: {fileID: 472263149138698499}
+  - component: {fileID: -5261533572754474219}
   m_Layer: 0
   m_Name: Tool_SandBrush
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 0}
+--- !u!114 &-5261533572754474219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4060760879700487291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &957707760599036702
 PrefabInstance:
   m_ObjectHideFlags: 0

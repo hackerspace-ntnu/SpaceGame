@@ -482,6 +482,7 @@ GameObject:
   - component: {fileID: 2722198817411083946}
   - component: {fileID: 2074143829997192684}
   - component: {fileID: 4317094075425268078}
+  - component: {fileID: -5069488797750474692}
   m_Layer: 0
   m_Name: JumpingRod
   m_TagString: Untagged
@@ -641,6 +642,7 @@ MonoBehaviour:
   holdSize: 1.25
   packSize: 0
   sizeReference: {fileID: 4450486019506886745}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &4398259941001451163
 MonoBehaviour:
@@ -663,6 +665,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   deployedPrefab: {fileID: 1192368995801471334, guid: 534bc1dc8526d4a84a557fe62dd7d58d, type: 3}
   deployedSize: 1.45
   deployedOffset: {x: 0, y: 0, z: 0.22}
@@ -798,6 +801,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-5069488797750474692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3211768035117624506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &3275920632097854369
 GameObject:
   m_ObjectHideFlags: 0

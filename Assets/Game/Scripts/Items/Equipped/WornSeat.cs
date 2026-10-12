@@ -88,6 +88,25 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Seat torso gear on a body with no expedition rig — an NPC. An item with a folded pose is worn
+        /// as its folded (carried) model at that pose (D3: the wing pack's worn wings are authored onto
+        /// the rail's bar tips and hang off nothing without one); any other item wears its ordinary worn
+        /// model at the fit's offset. The caller pins it (WornAnchor.Pin): with no rail there is no
+        /// live mount to re-derive from.
+        /// </summary>
+        public static void ApplyWithoutRig(GameObject instance, Transform bone, WornFit fit)
+        {
+            if (fit == null || !fit.HasFoldedPose)
+            {
+                Apply(instance, bone, fit);
+                return;
+            }
+
+            Apply(instance, bone, fit, mount: null, WornVisual.Form.Carried);
+            instance.transform.SetLocalPositionAndRotation(fit.FoldedLocalPosition, fit.FoldedLocalRotation);
+        }
+
+        /// <summary>
         /// Put a already-seated item at the pose the fit and the mount currently call for.
         ///
         /// <para>

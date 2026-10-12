@@ -44,7 +44,7 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Agents
 {
     [DisallowMultipleComponent]
-    public class NpcPassenger : MonoBehaviour, ISeatOccupant
+    public class NpcPassenger : MonoBehaviour, ISeatOccupant, ICrewedSeats
     {
         [Header("Rider")]
         [Tooltip("Who rides this. Spawned at start when spawnOnStart is on; otherwise call " +
@@ -82,6 +82,9 @@ namespace SpaceGame.Agents
         /// <summary>Set when this passenger created the rider, so it knows to destroy it.</summary>
         private bool ownsRider;
 
+        /// <inheritdoc />
+        public bool IsStoodDown { get; private set; }
+
         // What was switched off to make them a passenger, so exactly that much can be switched back
         // on. Shared with every other NPC carrier; see NpcSeating.
         private readonly NpcSeating seating = new NpcSeating();
@@ -103,7 +106,7 @@ namespace SpaceGame.Agents
 
         private void Start()
         {
-            if (spawnOnStart) SpawnRider();
+            if (spawnOnStart && !IsStoodDown) SpawnRider();
             RefreshSeatedRider();
         }
 
@@ -275,6 +278,19 @@ namespace SpaceGame.Agents
         public void VacateSeat() => Dismount();
 
         /// <summary>
+        /// <see cref="ICrewedSeats"/>: the saddle stays empty for good. Taken by a player, whoever
+        /// still sits in it gets down; restoring, nobody has been seated yet (the rider waits for
+        /// <c>Start</c>), so there is nobody to take away.
+        /// </summary>
+        public void StandDown(bool restoring)
+        {
+            if (!Network.Simulates(this)) return;
+
+            IsStoodDown = true;
+            if (!restoring) Dismount();
+        }
+
+        /// <summary>
         /// Get <paramref name="rider"/> out of whatever saddle they are in, and answer whether they
         /// were in one.
         ///
@@ -314,13 +330,7 @@ namespace SpaceGame.Agents
             // despawns, so by the time this runs the rider is no longer destroyed along with the
             // mount — and a spawned one has to be despawned rather than destroyed, or every client
             // is left with its own copy standing in the desert.
-            if (Network.Server && Rider.TryGetComponent(out NetworkObject riderNetObj) && riderNetObj.IsSpawned)
-            {
-                riderNetObj.Despawn(destroy: true);
-                return;
-            }
-
-            Destroy(Rider);
+            NpcSpawn.Remove(Rider);
         }
 
         /// <summary>
@@ -378,6 +388,7 @@ namespace SpaceGame.Agents
             {
                 if (pose != null) pose.ReleaseRider(posedRider);
                 SetSeatedFlag(posedRider.gameObject, false);
+                NpcSeating.ParkPresentation(posedRider.gameObject, parked: false);
             }
 
             // Restoring a pair needs both colliders active, and a mount being deactivated or
@@ -397,6 +408,7 @@ namespace SpaceGame.Agents
             if (pose != null)
                 pose.PoseRider(posedRider);
             SetSeatedFlag(posedRider.gameObject, true);
+            NpcSeating.ParkPresentation(posedRider.gameObject, parked: true);
         }
 
         /// <summary>

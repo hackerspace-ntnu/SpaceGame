@@ -13,6 +13,7 @@
 // Runs ahead of AgentController (execution order 0) so the decision is already current when
 // modules tick. Optional: agents without it fall back to their own per-module resolution.
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 using SpaceGame.Gameplay;
 using SpaceGame.World.Weather;
@@ -190,9 +191,15 @@ namespace SpaceGame.Agents
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string ReevaluateMarkerName = "SpaceGame.Targeting.Reevaluate";
+        private static readonly ProfilerMarker ReevaluateMarker = new(ReevaluateMarkerName);
+        private const string RefreshMarkerName = "SpaceGame.Targeting.Refresh";
+        private static readonly ProfilerMarker RefreshMarker = new(RefreshMarkerName);
+
         private AgentAuthority authority;
 
-        // Read for AgentController.Offstage: an agent that is not in the scene's action acquires no one.
+        // Read for AgentController.IsParked: an agent that is not in the scene's action acquires no one.
         private AgentController controller;
 
         /// <summary>
@@ -243,9 +250,10 @@ namespace SpaceGame.Agents
             foreach (CloseCombatModule melee in GetComponents<CloseCombatModule>())
                 weaponRange = Mathf.Max(weaponRange, melee.AttackRange);
 
-            // The artifacts the agent is actually carrying: an NPC holding a looted rifle that
+            // The artifacts the agent is actually carrying or wearing: an NPC holding a looted rifle that
             // reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to join.
-            foreach (NpcItemUseModule item in GetComponents<NpcItemUseModule>())
+            // A module with nothing to fire reads 0 (ItemUseModuleBase.MaxRange): a bare forearm widens nothing.
+            foreach (ItemUseModuleBase item in GetComponents<ItemUseModuleBase>())
                 weaponRange = Mathf.Max(weaponRange, item.MaxRange);
 
             effectiveAcquisitionRange = Mathf.Max(settings.acquisitionRange, weaponRange + WeaponRangeMargin);
@@ -265,16 +273,35 @@ namespace SpaceGame.Agents
             HasLastKnownPosition = false;
             TimeSinceSeen = 0f;
             LastAttacker = null;
-            reevaluateTimer = 0f;
+
+            // Random phases, so a crowd enabled on one frame (a city unfolding) does not re-score and
+            // re-sample the weather on one frame every interval: the AgentController
+            // speedVariationPhase precedent. Not saved, for the reason that one is not.
+            EnsureSettings();
+            PhaseTimers();
             if (health != null)
                 health.OnDamage += HandleDamaged;
+
+            // Worn gear goes on after Awake (Start, the server's spawn) and comes off when looted, so
+            // the reach is re-read whenever a module's changes rather than only at startup.
+            itemUseModules = GetComponents<ItemUseModuleBase>();
+            foreach (ItemUseModuleBase item in itemUseModules)
+                item.ReachChanged += RecomputeEffectiveRanges;
+            RecomputeEffectiveRanges();
         }
 
         private void OnDisable()
         {
             if (health != null)
                 health.OnDamage -= HandleDamaged;
+
+            if (itemUseModules != null)
+                foreach (ItemUseModuleBase item in itemUseModules)
+                    if (item != null) item.ReachChanged -= RecomputeEffectiveRanges;
         }
+
+        // The modules subscribed to in OnEnable, so OnDisable unsubscribes from exactly those.
+        private ItemUseModuleBase[] itemUseModules;
 
         // The cached authority lookup walks up to the nearest NetworkObject, and reparenting is the
         // only thing that changes which one that is. See AgentAuthority.Invalidate.
@@ -296,7 +323,13 @@ namespace SpaceGame.Agents
             profile = newProfile;
             settings = newProfile;
             RecomputeEffectiveRanges();
-            reevaluateTimer = 0f;
+            PhaseTimers();
+        }
+
+        private void PhaseTimers()
+        {
+            reevaluateTimer = Random.Range(0f, settings.reevaluateInterval);
+            stormSampleTimer = Random.Range(0f, StormSampleInterval);
         }
 
         // Forced acquisition from outside the scoring loop — ally alerts and heard noises.
@@ -476,9 +509,9 @@ namespace SpaceGame.Agents
             if (!SimulatesHere)
                 return;
 
-            // Offstage (indoors, asleep): nobody to acquire and nothing to score — the same as the
+            // Parked (indoors, asleep, out of range): nobody to acquire and nothing to score — the same as the
             // controller starving its modules. The current target, if any, is left as it was.
-            if (controller != null && controller.Offstage)
+            if (controller != null && controller.IsParked)
                 return;
 
             float deltaTime = Time.deltaTime;
@@ -524,6 +557,8 @@ namespace SpaceGame.Agents
         // the held target's state is.
         private void RefreshTargetState(float deltaTime)
         {
+            using ProfilerMarker.AutoScope sample = RefreshMarker.Auto();
+
             if (!HasTarget)
             {
                 if (HasLastKnownPosition)
@@ -543,9 +578,11 @@ namespace SpaceGame.Agents
                 return;
             }
 
+            // Cached: the held target's sight line is re-cast on PerceptionModule's interval, not
+            // every frame (CanSeeCached).
             CanSeeTarget = perception == null
                            || DistanceToTarget <= settings.proximityAcquireRange
-                           || perception.IsVisible(Target);
+                           || perception.CanSeeCached(Target);
 
             if (CanSeeTarget)
             {
@@ -568,6 +605,8 @@ namespace SpaceGame.Agents
         // stays in metres and the numbers on the profile mean something readable.
         private void Reevaluate()
         {
+            using ProfilerMarker.AutoScope sample = ReevaluateMarker.Auto();
+
             if (selfFaction == null)
                 return;
 
@@ -631,6 +670,8 @@ namespace SpaceGame.Agents
             if (distance <= settings.proximityAcquireRange)
                 return true;
 
+            // IsVisible, not CanSeeCached: the cache holds one slot, for the held target, so scoring a
+            // crowd through it would re-cast every call and evict the held target's answer.
             return perception.IsVisible(candidate);
         }
 

@@ -86,6 +86,8 @@ namespace SpaceGame.Characters
         private bool gravityBeforeClimb;
         private bool jumpPressed;
 
+        private PlayerBodyShape Shape => new PlayerBodyShape(movement.BodyCapsule, body);
+
         /// <summary>The ladder being climbed, or null.</summary>
         public Ladder Climbing => ladder;
 
@@ -118,7 +120,7 @@ namespace SpaceGame.Characters
 
             if (inputs == null || movement.BodyCapsule == null || !Network.Owns(this)) return;
 
-            Vector3 feet = Feet();
+            Vector3 feet = Shape.Feet;
             if (ladder == null)
             {
                 TryTakeHold(feet, jumped);
@@ -130,7 +132,7 @@ namespace SpaceGame.Characters
 
         private void TryTakeHold(Vector3 feet, bool jumped)
         {
-            if (movement.IsGliding || movement.IsTethered) return;
+            if (movement.IsGliding || movement.IsTethered || movement.IsClimbing) return;
 
             Ladder at = Ladder.At(feet);
             if (at != null)
@@ -158,8 +160,8 @@ namespace SpaceGame.Characters
             // down, the way the climb-over came up.
             Vector3 onLine = below.Foot + below.TowardClimber * standoff;
             onLine.y = below.TopHeight - topEntryDrop;
-            if (BodyBlockedAt(onLine))
-                onLine.y = Mathf.Max(below.Foot.y, below.TopHeight - BodyHeight - mantleReach);
+            if (Shape.BlockedAt(onLine))
+                onLine.y = Mathf.Max(below.Foot.y, below.TopHeight - Shape.Height - mantleReach);
             body.position += onLine - feet;
             body.linearVelocity = Vector3.zero;
             TakeHold(below);
@@ -193,7 +195,7 @@ namespace SpaceGame.Characters
                 return;
             }
 
-            if (up && ladder.TopHeight - feet.y <= BodyHeight + mantleReach && BlockedAbove())
+            if (up && ladder.TopHeight - feet.y <= Shape.Height + mantleReach && BlockedAbove())
             {
                 StepOff(feet);
                 return;
@@ -240,16 +242,15 @@ namespace SpaceGame.Characters
         /// <summary>A teleport is never a climb: whatever moved the player took them off the ladder.</summary>
         public void OnTeleported(in TeleportMove move) => LetGo();
 
-        /// <summary>The body's world height: the capsule is authored 2 m on a transform stretched to 3.</summary>
-        private float BodyHeight => movement.BodyCapsule.height * movement.BodyCapsule.transform.lossyScale.y;
-
         /// <summary>
         /// Whether this step's climb would put the head into something. The player's own colliders
         /// (hitboxes, the ragdoll) ride the same rigidbody and are skipped.
         /// </summary>
         private bool BlockedAbove()
         {
-            BodyAt(Feet(), out Vector3 low, out Vector3 high, out float radius);
+            PlayerBodyShape shape = Shape;
+            shape.At(shape.Feet, out Vector3 low, out Vector3 high);
+            float radius = shape.Radius;
             float distance = climbSpeed * Time.fixedDeltaTime + headSkin;
 
             foreach (RaycastHit hit in Physics.CapsuleCastAll(low, high, radius, Vector3.up, distance,
@@ -257,36 +258,9 @@ namespace SpaceGame.Characters
                                                              QueryTriggerInteraction.Ignore))
                 // Distance 0 is a collider the body already touches -- the deck under the feet at the
                 // bottom, a rail brushed on the way up -- not something the head is climbing into.
-                if (hit.rigidbody != body && hit.distance > 0f && hit.point.y >= high.y)
+                if (!shape.IsSelf(hit.collider) && hit.distance > 0f && hit.point.y >= high.y)
                     return true;
             return false;
-        }
-
-        /// <summary>Whether the body standing with its feet at <paramref name="feet"/> would be inside something.</summary>
-        private bool BodyBlockedAt(Vector3 feet)
-        {
-            BodyAt(feet, out Vector3 low, out Vector3 high, out float radius);
-            foreach (Collider c in Physics.OverlapCapsule(low, high, radius, Physics.DefaultRaycastLayers,
-                                                          QueryTriggerInteraction.Ignore))
-                if (c.attachedRigidbody != body)
-                    return true;
-            return false;
-        }
-
-        /// <summary>The body's capsule, in world space, with its feet at <paramref name="feet"/>.</summary>
-        private void BodyAt(Vector3 feet, out Vector3 low, out Vector3 high, out float radius)
-        {
-            CapsuleCollider capsule = movement.BodyCapsule;
-            Vector3 scale = capsule.transform.lossyScale;
-            radius = capsule.radius * Mathf.Max(scale.x, scale.z);
-            low = feet + Vector3.up * radius;
-            high = feet + Vector3.up * Mathf.Max(radius, BodyHeight - radius);
-        }
-
-        private Vector3 Feet()
-        {
-            Bounds bounds = movement.BodyCapsule.bounds;
-            return new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
         }
     }
 }

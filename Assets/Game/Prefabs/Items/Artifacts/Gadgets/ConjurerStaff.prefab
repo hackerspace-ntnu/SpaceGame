@@ -233,6 +233,7 @@ GameObject:
   - component: {fileID: 5535267089666507733}
   - component: {fileID: 2595942159301193857}
   - component: {fileID: 1427425324315862850}
+  - component: {fileID: -9040572922155428156}
   m_Layer: 0
   m_Name: ConjurerStaff
   m_TagString: Untagged
@@ -410,10 +411,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 4528334390764493510}
   hand: 0
+  holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 1.9
+  packSize: 0
   sizeReference: {fileID: 8636605768275791614}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &1427425324315862850
 MonoBehaviour:
@@ -436,6 +440,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   castSeconds: 1.2
   cooldownSeconds: 4
   aimDistance: 500
@@ -455,6 +460,18 @@ MonoBehaviour:
   tip: {fileID: 3019848102060371400}
   aimRingPrefab: {fileID: 1448818096060804029, guid: 85b53e58b1c24614fa991cbe482bc813, type: 3}
   strikeSoundId: 206
+--- !u!114 &-9040572922155428156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3304215016121176040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &3716076664568839755
 GameObject:
   m_ObjectHideFlags: 0

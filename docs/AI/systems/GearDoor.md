@@ -98,8 +98,8 @@ lying flat on a bench beside the door. Five cogs in all. Same component, same it
 
 ## Multiplayer
 
-On the building's channel (the settlement wrapper, [Workshop.md](Workshop.md)): `GearDoorTake` 128 (taker → server;
-A = slot, or -1 to ask; B = the door) and `GearDoorState` 129 (server → all; A = slot, B = kind + 1, bit 8 = land in it,
+On the building's channel (the settlement wrapper, [Workshop.md](Workshop.md)): `GearDoorTake` 133 (taker → server;
+A = slot, or -1 to ask; B = the door) and `GearDoorState` 134 (server → all; A = slot, B = kind + 1, bit 8 = land in it,
 bits 9 up = the door). The door is its place among the entity's gear doors (`NetChannel.IndexOf`), the way a station's
 number is: every machine runs the same prefab. A late
 joiner asks once spawned and is answered with every slot that differs from the start. Placing rides the gear item's

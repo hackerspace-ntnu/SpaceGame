@@ -28,7 +28,7 @@ symptoms:
   - "expedition-host reports STAND_INS=0 though the band is Out, folded and 4/4 away; the console is clean"
   - "an unwatched band is handed off at ~415 m in a second instead of walking out to 150 m"
 reads_with: [Residents, AgentSystem, Persistence, Multiplayer, TerrainGeneration, HandTools]
-updated: 2026-10-04
+updated: 2026-10-06
 ---
 
 # Settlement expeditions
@@ -59,7 +59,7 @@ A settlement whose culture names an `ExpeditionProfile` keeps one band of 3–10
 | `RosterEntry.Of` | the one roster-row builder (baker and live report): key, archetype index, roles, bonds (`Resident.CloseTo`), source-prefab GUID, name |
 | `ExpeditionRules` | pure: quotas (`QuotaForBeds` core; `WarriorQuota`, `RoleQuotaCount`, `Quotas` = all of a profile's, warriors first), who moves in at Generate (`PlanMoveIn` over `MoveInCandidate`s), recruits (`PickRecruits`), goal draw, member picks, stages, `Advance`, `LegPoint`, hand-off and walk-in tests, rest, seeds (`System.Random` off `RosterDraw.Hash`) |
 | `ExpeditionRole` (flags on `ResidentArchetype.expeditionRoles`) · `StageKind` | Warrior, Hunter, Scout, Bearer, Builder, Healer · `Travel` (to `target`), `Search` (N ring waypoints round `target`), `Halt` (stand until dawn), `ReturnHome` (to `handoffPoint`) |
-| [`SettlementMuster`](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs) · [`WorldSiteCatalog`](Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs) | the rule placing a settlement's `MusterSpot` (Extending 6) · baked per world: sites + `SettlementEntry` (id, muster pose, `hasMuster`, beds, profile index, roster), what the director seeds from |
+| [`SettlementMuster`](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs) · [`WorldSiteCatalog`](Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs) | the rule placing a settlement's `MusterSpot` (Extending 6) · baked per world: sites + `SettlementEntry` (id, muster pose, `hasMuster`, beds, profile index, roster), what the director seeds from; plus `towns` (`TownEntry`: id, name, position, radius, owning `FactionDefinition`) for EVERY `Settlement` and stand-alone `SettlementPopulation`, read by the lander's signal ([ShipSignal.md](ShipSignal.md)) |
 | `ExpeditionCommands` / `ExpeditionCommandParser` | the `/exp` chat commands (Extending) |
 
 ### Tunables (`ExpeditionTuning`; game minutes and hours of the day unless marked)
@@ -140,7 +140,7 @@ Elsewhere: profile `warriorQuotaSmall` 6–8 (equal bed bands), `warriorQuotaLar
 6. **Place Muster Spots** — no settlement has a gate, so the spot is placed **by rule**: the street whose trail reaches farthest from the centre is the road out; the spot stands `musterInset` back along it from where its PAVING ends, +Z along the last metres of paving. Generate applies the same rule to new settlements; a spot brought by a prefab wins.
 7. **Back-fill Resident Source Prefabs** (open scenes) for residents generated before `sourcePrefab` existed.
 8. **Wire Expedition Director** — director, saver and the `settlement-expedition` template on `persistentScene`'s sim.
-9. **`Tools/SpaceGame/World/Bake Site Catalog`** — the world's catalog and `ExpeditionCatalog.prefabs`. Re-bake after any roster, muster or bed change.
+9. **`Tools/SpaceGame/World/Bake Site Catalog`** — the world's catalog and `ExpeditionCatalog.prefabs`. Re-bake after any roster, muster or bed change, and after placing, moving or re-peopling any settlement (the `towns` list: its faction is the population's owner, else its people's most common `EntityFaction`; a town with none is reported).
 10. `ResidentValidator` reports no expedition errors; `ExpeditionGenericityTests` and `ExpeditionAssetTests` are green.
 
 **A new goal** is an `ExpeditionGoal` asset appended to the profile (never rename its `id`). **A new stage kind** is code: append to `StageKind`, then `ExpeditionRules.Enter`/`Advance` and the director's `DestinationOf`.

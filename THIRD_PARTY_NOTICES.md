@@ -78,3 +78,40 @@ this data directly, even in converted form." Anyone we pass the takes on to must
 
 **Credit (requested by CMU):** "The data used in this project was obtained from mocap.cs.cmu.edu.
 The database was created with funding from NSF EIA-0196217." — goes on the credits screen.
+
+## Concentus — the Opus voice codec
+
+**What:** the portable C# implementation of the Opus audio codec, vendored as source under
+[`Assets/ThirdParty/Concentus/`](Assets/ThirdParty/Concentus/). Used by the proximity voice
+chat to encode and decode speech, and its Speex resampler port converts microphones that do
+not record at 48 kHz. Compiled as its own assembly (`Concentus.asmdef`).
+
+**From:** <https://github.com/lostromb/concentus>, version 2.2.2, commit
+`3885c4e46513ef0fc81fca100189e54f1714c6ca` (2025-09-27).
+
+**What was left out:** `AssemblyInfo.cs` (`InternalsVisibleTo` entries for the upstream test
+projects) and `Concentus.csproj`. Everything else is upstream — including `Native/`, which is
+never called: the voice code constructs `OpusEncoder`/`OpusDecoder` directly rather than going
+through `OpusCodecFactory`, so no native libopus is ever probed for or P/Invoked.
+
+**What was changed:** one line, in `Opus/Structs/OpusDecoder.cs` (`opus_decode_frame`), marked
+`SpaceGame patch`. When a frame's payload is 1 byte or less — a DTX frame, which the encoder
+sends during every pause in speech — libopus sets `data = NULL` and conceals. The port sets its
+span to empty but leaves the offset into it (`data_ptr`) unchanged, so the next
+`data.Slice(data_ptr)` throws `ArgumentOutOfRangeException`. The patch resets `data_ptr` to 0.
+Without it every pause in speech failed to decode, end of the last word included
+(`[Voice] Opus decode failed: public error during decoding: Specified argument was out of the
+range of valid values.`). `VoiceTests.PausesInSpeechDecodeCleanly` fails without the patch. **When
+updating Concentus,** check whether upstream has fixed this; if not, apply the patch again.
+
+**Licence:** BSD 3-Clause, © Xiph.Org Foundation, Skype Limited, CSIRO, Microsoft Corp.,
+Jean-Marc Valin, Gregory Maxwell, Mark Borgerding, Timothy B. Terriberry and Logan Stromberg.
+Full text in [`Assets/ThirdParty/Concentus/LICENSE.md`](Assets/ThirdParty/Concentus/LICENSE.md).
+
+**What the licence asks of us:**
+
+1. Keep the copyright notice and licence text with the source (done: the file above).
+2. Reproduce the notice in the documentation or materials shipped with a build (this file
+   ships with the game).
+3. Do not use the names of Xiph.Org, the IETF, the Internet Society or the contributors to
+   endorse this game without written permission.

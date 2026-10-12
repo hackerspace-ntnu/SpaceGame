@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Voice;
 
 namespace SpaceGame.Presentation
 {
@@ -20,6 +21,16 @@ namespace SpaceGame.Presentation
 
         [Tooltip("Canvas units above the projected head point.")]
         [SerializeField] private float verticalOffset = 8f;
+
+        [Header("Speaking")]
+        [Tooltip("The pip beside a name while that player is talking, where there are no teams. " +
+                 "In a versus match it takes the speaker's team colour instead. Matches UITheme.Accent.")]
+        [SerializeField] private Color speakingColor = new(0.239f, 0.549f, 0.949f);
+
+        [SerializeField] private float speakingPipSize = 14f;
+
+        [Tooltip("Canvas units between the pip and the first letter of the name.")]
+        [SerializeField] private float speakingPipGap = 16f;
 
         [Header("Range")]
         [Tooltip("Hide nameplates farther away than this (m). 0 = no limit.")]
@@ -54,6 +65,8 @@ namespace SpaceGame.Presentation
             public TextMeshProUGUI Text;
             public string Shown;        // last string pushed into TMP
             public float HeadOffset;    // metres above the player's origin
+            public VoicePip Pip;        // child of Text, so it is destroyed with it
+            public float HalfWidth;     // half the rendered name, for placing the pip beside it
         }
 
         private readonly Dictionary<PlayerIdentity, Plate> plates = new();
@@ -112,6 +125,7 @@ namespace SpaceGame.Presentation
                     HeadOffset = WorldOverlay.HeadOffset(player.gameObject),
                 };
                 plate.Text.color = nameColor;
+                plate.Pip = new VoicePip(plate.Text.rectTransform, speakingPipSize, speakingColor);
                 plates.Add(player, plate);
             }
 
@@ -120,19 +134,19 @@ namespace SpaceGame.Presentation
 
             if (maxDistance > 0f && distance > maxDistance)
             {
-                plate.Text.enabled = false;
+                Hide(plate);
                 return;
             }
 
             if (!overlay.Project(head, out Vector2 point) || !overlay.IsOnScreen(point, 120f))
             {
-                plate.Text.enabled = false;
+                Hide(plate);
                 return;
             }
 
             if (hideBehindGeometry && IsOccluded(eyePosition, head, distance))
             {
-                plate.Text.enabled = false;
+                Hide(plate);
                 return;
             }
 
@@ -141,11 +155,26 @@ namespace SpaceGame.Presentation
             {
                 plate.Text.text = name;
                 plate.Shown = name;
+
+                // Measured on change rather than every frame; the name is what decides it.
+                plate.HalfWidth = plate.Text.GetPreferredValues(name).x * 0.5f;
             }
 
             plate.Text.enabled = true;
             plate.Text.rectTransform.anchoredPosition = point + new Vector2(0f, verticalOffset);
             plate.Text.alpha = Fade(distance);
+
+            // The same client id voice relays under — OwnerClientId is what the netcode session
+            // numbers this player by, so no lookup table stands between the plate and the voice.
+            bool speaking = VoiceSession.IsSpeaking(player.OwnerClientId);
+            plate.Pip.Show(speaking);
+
+            if (!speaking) return;
+
+            // The same team colour as the speaking list, so one person reads as one team everywhere.
+            plate.Pip.SetColor(SpeakerTeams.TryColorOf(player.Team, out Color team) ? team : speakingColor);
+            plate.Pip.Rect.anchoredPosition = new Vector2(-(plate.HalfWidth + speakingPipGap), 0f);
+            plate.Pip.Animate(Time.unscaledTime, plate.Text.alpha);
         }
 
         private float Fade(float distance)
@@ -170,8 +199,18 @@ namespace SpaceGame.Presentation
 
         private void HideAll()
         {
-            foreach (Plate plate in plates.Values)
-                if (plate.Text != null) plate.Text.enabled = false;
+            foreach (Plate plate in plates.Values) Hide(plate);
+        }
+
+        /// <summary>
+        /// Hides a plate and its speaking pip together. Disabling the TMP component alone does not
+        /// reach the pip — it is a child GameObject, and would go on breathing over empty space
+        /// beside a name that is no longer drawn.
+        /// </summary>
+        private static void Hide(Plate plate)
+        {
+            if (plate.Text != null) plate.Text.enabled = false;
+            plate.Pip?.Show(false);
         }
 
         /// <summary>

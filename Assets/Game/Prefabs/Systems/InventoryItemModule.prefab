@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 6705885245223275545}
   - component: {fileID: 5918976122425878883}
   - component: {fileID: 6735742328201430346}
+  - component: {fileID: -8109972419134176157}
   m_Layer: 0
   m_Name: InventoryItemModule
   m_TagString: Untagged
@@ -271,3 +272,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-8109972419134176157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 799124515057323172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable

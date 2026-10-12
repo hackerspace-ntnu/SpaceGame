@@ -49,7 +49,6 @@ namespace SpaceGame.Items
         // plays its own fire sound, so anything non-None here would double up on every shot. Items
         // that want a use sound opt in, per item.
         [Tooltip("Sound this item makes when used. Leave at None for items whose own logic makes the noise.")]
-        [SerializeField] protected SfxId useSoundId = SfxId.None;
         [SerializeField] protected EventReference useSound;
 
         [Tooltip("What the holder's body does on every use — a gun's recoil, a spell's cast. " +
@@ -83,6 +82,27 @@ namespace SpaceGame.Items
         /// </summary>
         protected AimProvider aimProvider =>
             owner != null ? owner.GetComponent<AimProvider>() : null;
+
+        /// <summary>
+        /// Where the holder is pointing, whoever the holder is: a player's AimProvider, else an NPC's
+        /// INpcAim (EntityBodyEquipment aims its gauntlets), else this item's own forward — the old
+        /// fallback, which for a worn gauntlet is the line of a dangling forearm.
+        /// </summary>
+        protected Ray HolderAimRay()
+        {
+            if (aimProvider != null) return aimProvider.GetAimRay();
+
+            if (owner != null && owner.TryGetComponent(out INpcAim npc) && npc.HasAimPoint)
+            {
+                Vector3 toAim = npc.AimPoint - transform.position;
+                if (toAim.sqrMagnitude > MinAimDistanceSqr) return new Ray(transform.position, toAim.normalized);
+            }
+
+            return new Ray(transform.position, transform.forward);
+        }
+
+        /// <summary>An aim point closer than this (squared; a centimetre) names no direction.</summary>
+        public const float MinAimDistanceSqr = 1e-4f;
 
         /// <summary>
         /// What the owner reported about this use — chiefly where they were aiming.
@@ -197,7 +217,7 @@ namespace SpaceGame.Items
             owner = useOwner;
             UseArg = arg;
 
-            Sfx.Play(useSoundId, transform.position, useSound, GetInstanceID());
+            Sfx.Play(useSound, transform.position);
 
             Present();
             PlayOnHolder(useAction, UsingArm);

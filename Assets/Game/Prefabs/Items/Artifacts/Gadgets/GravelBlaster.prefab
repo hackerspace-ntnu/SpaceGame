@@ -9695,6 +9695,7 @@ GameObject:
   - component: {fileID: 2492240468184866230}
   - component: {fileID: 872829907653491541}
   - component: {fileID: 662022100823508025}
+  - component: {fileID: 573763544897522503}
   m_Layer: 0
   m_Name: GravelBlaster
   m_TagString: Untagged
@@ -9875,7 +9876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.GravelBlastFx
   muzzle: {fileID: 4660891221566522116}
-  gravelBurst: {fileID: 3158660943651511995}
+  muzzleBurst: {fileID: 3158660943651511995}
   muzzleDust: {fileID: 2001507832281773710}
   muzzleSparks: {fileID: 5048580823119423641}
   muzzleSmoke: {fileID: 6199313292526196410}
@@ -9924,9 +9925,11 @@ MonoBehaviour:
   pelletDamage: 5
   fullDamageRange: 15
   farDamageFraction: 0.25
+  refireSeconds: 0
   damageMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  gunshotNoiseRadius: 40
   fullHitKickSpeed: 13
   kickTilt: 18
   staggerDistance: 3.5
@@ -9934,10 +9937,6 @@ MonoBehaviour:
   staggerSeconds: 0.4
   itemMassReference: 14
   itemMassScaleRange: {x: 0.3, y: 1.6}
-  backfireChance: 10
-  backfireDamage: 25
-  backfireKickSpeed: 9
-  backfireKickTilt: 35
   fx: {fileID: 8846407582539752047}
   reportId: 304
   fleshImpactId: 300
@@ -9946,6 +9945,10 @@ MonoBehaviour:
   recoilUpwardBias: 0.12
   fovKick: 7
   fovKickSeconds: 0.18
+  backfireChance: 10
+  backfireDamage: 25
+  backfireKickSpeed: 9
+  backfireKickTilt: 35
 --- !u!114 &4771604442114945076
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10060,6 +10063,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &573763544897522503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708940380345936490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &812219031043780005
 GameObject:
   m_ObjectHideFlags: 0

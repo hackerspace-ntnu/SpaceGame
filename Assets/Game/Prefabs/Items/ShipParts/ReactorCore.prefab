@@ -53,6 +53,7 @@ GameObject:
   - component: {fileID: 1088031955992717081}
   - component: {fileID: 1243407041539164619}
   - component: {fileID: 742782044067465962}
+  - component: {fileID: -1111524532902865176}
   m_Layer: 0
   m_Name: ReactorCore
   m_TagString: Untagged
@@ -349,11 +350,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   kind: 2
   installRange: 30
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &-1111524532902865176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7356631529555803425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &777528898974394502
 PrefabInstance:
   m_ObjectHideFlags: 0

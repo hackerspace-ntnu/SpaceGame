@@ -53,6 +53,29 @@ namespace SpaceGame.Gameplay.Objectives
         /// <summary>SERVER, every frame while this is the current step, after it has begun.</summary>
         public abstract bool IsMet(ObjectiveWorld world);
 
+        // ── Remarks: one-off lines during the step ──────────────────────────────
+
+        /// <summary>The most remarks one step may have: they are bits in <see cref="ObjectiveProgress.Remarks"/>.</summary>
+        public const int MaxRemarks = 31;
+
+        /// <summary>
+        /// How many remarks this step has: lines the lander says once, partway through the step, when
+        /// something happens (the crew walk up to the tower, somebody takes the hook). Index order is
+        /// the save format: append only.
+        /// </summary>
+        public virtual int RemarkCount => 0;
+
+        /// <summary>EVERY machine: what remark <paramref name="index"/> says, one popup per line.</summary>
+        public virtual IReadOnlyList<string> RemarkLines(int index) => Array.Empty<string>();
+
+        /// <summary>
+        /// SERVER, every frame while this step is current and begun, for each remark not yet said:
+        /// true makes the lander say it to the whole crew, once. Said remarks are saved and replicated
+        /// with the progress, so it is once per world, and a reload or late joiner never hears it again.
+        /// A condition already true when the step begins is said straight after the briefing.
+        /// </summary>
+        public virtual bool IsRemarkDue(ObjectiveWorld world, int index) => false;
+
         // ── EVERY machine ───────────────────────────────────────────────────────
 
         /// <summary>

@@ -110,9 +110,9 @@ namespace SpaceGame.Core.Persistence
         /// for the player, arriving by a different route.
         /// </para>
         /// <para>
-        /// Runtime-only and deliberately one-way: an object whose record belongs to another system
-        /// never goes back to belonging to the world, and a prefab has no business shipping with an
-        /// opinion about which system spawned it.
+        /// Runtime-only, and a prefab has no business shipping with an opinion about which system
+        /// spawned it. The one way back is <see cref="ReclaimForWorld"/>, for an object the owning
+        /// system has let go of for good.
         /// </para>
         /// </summary>
         public void DisownToExternal()
@@ -132,6 +132,21 @@ namespace SpaceGame.Core.Persistence
 #endif
             scope = SaveScope.External;
         }
+
+        /// <summary>
+        /// The reverse of <see cref="DisownToExternal"/>: the system that owned this object's record
+        /// has given the object up, so the world store saves it like anything else again. The case it
+        /// was added for is a war party's monowheel a player drove off with — no longer rebuilt by its
+        /// group's record, so without this it would simply be gone after a load.
+        ///
+        /// <para>
+        /// Only for an object that was disowned at runtime (NpcSpawn); never for one authored
+        /// External, like a player, whose record another system owns by design. Not guarded against
+        /// edit mode like its counterpart: it puts back the serialized default rather than writing a
+        /// new opinion, and the tests that prove the round trip run in edit mode.
+        /// </para>
+        /// </summary>
+        public void ReclaimForWorld() => scope = SaveScope.World;
 
         /// <summary>
         /// Every live entity, so a save can find them without a scene-wide component search per

@@ -274,6 +274,29 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
+        /// Jump, pressed while knocked down: the player asks to get up now.
+        ///
+        /// <para>
+        /// Its own action for the reason written out on <see cref="SetPackYawEnabled"/>: a
+        /// knocked-down player has this whole component disabled (<c>PlayerRagdoll</c> kills input
+        /// at the source, or jump and dash would still fire), so Jump itself is not listening.
+        /// Off by default and switched on by the ragdoll for as long as the player is down.
+        /// </para>
+        /// </summary>
+        public event Action OnGetUpPressed;
+
+        private InputAction getUp;
+
+        /// <summary>Switches <see cref="OnGetUpPressed"/> on while the player is knocked down.</summary>
+        public void SetGetUpEnabled(bool on)
+        {
+            EnsureInputs();
+
+            if (on) getUp.Enable();
+            else getUp.Disable();
+        }
+
+        /// <summary>
         /// Hands the wheel to the pack-yaw action and takes it back off the hotbar, or the other
         /// way round.
         ///
@@ -370,6 +393,13 @@ namespace SpaceGame.Core
             packRack.AddBinding("<Keyboard>/r").WithGroup("Keyboard&Mouse");
             packRack.AddBinding("<Gamepad>/buttonNorth").WithGroup("Gamepad");
 
+            // Jump's own bindings, copied rather than restated, so the key that gets a player up is
+            // whatever Jump is bound to.
+            getUp = new InputAction("GetUp", InputActionType.Button);
+            foreach (InputBinding binding in inputs.Player.Jump.bindings)
+                if (!binding.isComposite && !binding.isPartOfComposite)
+                    getUp.AddBinding(binding.effectivePath).WithGroups(binding.groups);
+
             BindActions();
         }
 
@@ -430,6 +460,7 @@ namespace SpaceGame.Core
             }
 
             packRack.performed += _ => OnPackRackPressed?.Invoke();
+            getUp.performed += _ => OnGetUpPressed?.Invoke();
         }
 
         private void OnEnable()
@@ -450,6 +481,7 @@ namespace SpaceGame.Core
                 foreach (InputAction action in packStow) action?.Disable();
 
             packRack?.Disable();
+            getUp?.Disable();
 
             // Stale axes outlive the disable otherwise — MoveInput and LookInput are only written
             // by Update, so whatever the stick last read stays latched. On death that is a live
@@ -478,6 +510,9 @@ namespace SpaceGame.Core
 
             packRack?.Dispose();
             packRack = null;
+
+            getUp?.Dispose();
+            getUp = null;
         }
 
         /// <summary>

@@ -45,6 +45,10 @@
 //
 // A wave is a BAND, not a scatter: its members share a FormationModule id and the first one out
 // leads, so the reinforcements walk the town together the way the generated groups do.
+//
+// A settlement that MOVES -- the Sky City drifting between moorings -- has no NavMesh under its deck
+// while it is under way, so SettlementDeck sets SpawningSuspended for the voyage: the clock holds
+// exactly as it does for a raised alarm, and nobody is spawned onto a mesh the deck has left.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -119,6 +123,26 @@ namespace SpaceGame.Agents
         [SerializeField] private bool drawGizmos = true;
 
         public int Population { get; private set; }
+
+        /// <summary>Whose settlement this is.</summary>
+        public FactionDefinition Owner => owner;
+
+        /// <summary>Metres from this object inside which the owner's people count as living here.</summary>
+        public float CountRadius => countRadius;
+
+        /// <summary>
+        /// Hold the clock, as a raised alarm does. Set by whatever knows the settlement cannot take
+        /// new people right now (SettlementDeck, while a moving settlement is under way). Runtime
+        /// only: the owner re-derives it every session.
+        /// </summary>
+        public bool SpawningSuspended { get; set; }
+
+        /// <summary>
+        /// The owner's people out beyond countRadius on the settlement's own business — residents circling an airborne
+        /// city (SettlementLoiterFlights) — counted toward the cap, so they are not replaced while away and the town is
+        /// not over full when they land. Set by whoever sent them, at each of its looks.
+        /// </summary>
+        public int AwayResidents { get; set; }
 
         private SettlementPopulationLogic.State state;
         private SettlementAlarm alarm;
@@ -203,9 +227,9 @@ namespace SpaceGame.Agents
                 return;
             }
 
-            Population = CountInhabitants();
+            Population = CountInhabitants() + AwayResidents;
 
-            bool hold = holdWhileAlarmRaised && alarm != null && alarm.IsRaised;
+            bool hold = SpawningSuspended || (holdWhileAlarmRaised && alarm != null && alarm.IsRaised);
             int wanted = SettlementPopulationLogic.Step(ref state, Population, maxPopulation, spawnsPerWave,
                                                         hold, Time.time, spawnInterval,
                                                         initialWaves, initialWaveInterval);
@@ -228,19 +252,23 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// The owner's own people alive inside countRadius. The Allied query also answers with any
-        /// player the tribe's goodwill has made an ally, and each of those would otherwise take an
-        /// inhabitant's place and leave the town one short.
+        /// The owner's own people alive inside countRadius: everyone who counts toward this
+        /// settlement's cap. The Allied query also answers with any player the tribe's goodwill has
+        /// made an ally, and each of those would otherwise take an inhabitant's place and leave the
+        /// town one short — so players are dropped from <paramref name="into"/>.
         /// </summary>
-        public int CountInhabitants()
+        public void CollectPeople(List<EntityFaction> into)
         {
             EntityTargetRegistry.Query(owner, relationshipTable, FactionRelationship.Allied,
-                                       transform.position, countRadius, people);
-            int count = 0;
-            for (int i = 0; i < people.Count; i++)
-                if (!people[i].CompareTag(SpawnClearance.PlayerTag))
-                    count++;
-            return count;
+                                       transform.position, countRadius, into);
+            into.RemoveAll(person => person.CompareTag(SpawnClearance.PlayerTag));
+        }
+
+        /// <summary>How many of the owner's own people live here (<see cref="CollectPeople"/>).</summary>
+        public int CountInhabitants()
+        {
+            CollectPeople(people);
+            return people.Count;
         }
 
         // The ground under countRadius. With no streamer there are no chunks to wait for; a streamer

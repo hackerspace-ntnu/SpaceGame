@@ -52,7 +52,30 @@ namespace SpaceGame.World
             public RosterEntry[] roster;
         }
 
+        /// <summary>
+        /// One settlement of any culture, with whose it is: every <see cref="Settlement"/> and every
+        /// stand-alone <c>SettlementPopulation</c> in the world's chunk scenes. What the lander's intercepted
+        /// signal (<c>ShipSignal</c>) chooses its destination from, which must be known while the town's
+        /// chunk is unloaded.
+        /// </summary>
+        [Serializable]
+        public struct TownEntry
+        {
+            [Tooltip("The settlement's id (Settlement.SettlementId), else its derived authored id: what a save names it by.")]
+            public string id;
+            [Tooltip("The settlement's object name. For logs and tests; the player is never shown it.")]
+            public string name;
+            public Vector3 position;
+            [Tooltip("How far its buildings reach from its position, metres (its last Generate's extent, or a " +
+                     "population's count radius). 0 when unknown.")]
+            public float radius;
+            [Tooltip("Whose town it is: the population's owner, else the faction most of its people belong to. " +
+                     "Null when nobody in it has a faction.")]
+            public SpaceGame.Agents.FactionDefinition faction;
+        }
+
         public SiteEntry[] sites = Array.Empty<SiteEntry>();
         public SettlementEntry[] settlements = Array.Empty<SettlementEntry>();
+        public TownEntry[] towns = Array.Empty<TownEntry>();
     }
 }

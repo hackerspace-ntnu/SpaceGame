@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 5007671095008376071}
   - component: {fileID: 8899224603133668430}
   - component: {fileID: 3191774566155403474}
+  - component: {fileID: -8827754170513301043}
   m_Layer: 0
   m_Name: Tool_Spear_Stone
   m_TagString: Untagged
@@ -365,6 +366,18 @@ MonoBehaviour:
       Data4: 0
     Path: 
   useAction: {fileID: 11400000, guid: 04fb311137354dc999186529d7b23c27, type: 2}
+--- !u!114 &-8827754170513301043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3776186953131344347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &4557509216658768996
 PrefabInstance:
   m_ObjectHideFlags: 0

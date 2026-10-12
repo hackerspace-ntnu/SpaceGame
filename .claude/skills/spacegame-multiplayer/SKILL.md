@@ -227,7 +227,7 @@ namespace SpaceGame.Gameplay
         [SerializeField] private GameObject salvagePrefab;   // MUST be a registered network prefab
         [SerializeField] private ParticleSystem sparks;      // MUST NOT be networked — local cosmetic
         [SerializeField] private Transform muzzle;
-        [SerializeField] private SfxId drillSound = SfxId.None;
+        [SerializeField] private EventReference drillSound = SfxId.None;
 
         private bool running;
 
@@ -293,7 +293,7 @@ namespace SpaceGame.Gameplay
             running = true;
 
             if (sparks != null) sparks.Play();
-            Sfx.Play(drillSound, transform.position);   // an SfxId serialized on this component
+            Sfx.Play(drillSound, transform.position);   // an EventReference serialized on this component
         }
     }
 }

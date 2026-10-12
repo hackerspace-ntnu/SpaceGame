@@ -32,13 +32,13 @@ symptoms:
   - "the module the schematic had lit goes dark the moment the mouse button goes down"
   - "the wireframe draws every edge of every triangle"
 reads_with: [Terminal, PlayerShip, Multiplayer]
-updated: 2026-09-05
+updated: 2026-10-06
 ---
 
 # ShipSchematic
 
 The first page of the lander's cockpit terminal ([Terminal](Terminal.md)): the ship itself, drawn small
-and green behind the glass as a hidden-line wireframe. The eleven salvage modules it can be missing
+and green behind the glass as a hidden-line wireframe. The eleven salvage modules it can be missing (the twelfth socket, the transmitter, is not drawn: it is not in the hull model)
 glow red and pulse; the crew turn the hull with a drag, zoom with the wheel, and point at a module to
 read what it is and what the ship cannot do without it. Clicking one selects it, clicking it again
 clears it, a different one moves the selection across.

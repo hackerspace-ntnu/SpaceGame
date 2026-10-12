@@ -54,9 +54,12 @@ namespace SpaceGame.Audio
 
         private static void PlayInternal(EventReference eventRef, Vector3 position, GameObject attachTo, string paramName = null, float? parameter = null)
         {
-            if (eventRef.IsNull && Babying.Add(eventRef))
+            // Every unassigned reference returns here, not only the first: past this point FMOD throws
+            // for it, and an ornithopter's flap asked for one on every wing beat.
+            if (eventRef.IsNull)
             {
-                Debug.LogWarning($"FUCK YOU BITCH {eventRef.ToString()} IS NOTHING, QUIET, NADA");
+                if (Babying.Add(eventRef))
+                    Debug.LogWarning($"FUCK YOU BITCH {eventRef.ToString()} IS NOTHING, QUIET, NADA");
                 return;
             }
             

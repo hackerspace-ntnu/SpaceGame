@@ -70,7 +70,21 @@ namespace SpaceGame.Vehicles
         private Quaternion lastRot;
         private bool primed;
 
-        public int RiderCount => riders.Count;
+        // Set when a step skipped the census because the deck had not moved: see CarryRiders.
+        private bool censusStale = true;
+
+        /// <summary>
+        /// Everybody standing in the carry volume. Taken on demand while the deck is idle, so a
+        /// parked craft still reports its crew without paying for a census every physics step.
+        /// </summary>
+        public int RiderCount
+        {
+            get
+            {
+                if (censusStale) CollectRiders(Matrix4x4.identity);
+                return riders.Count;
+            }
+        }
 
         // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
         private const string FixedMarkerName = "SpaceGame.WalkerCarrier.Fixed";
@@ -196,13 +210,23 @@ namespace SpaceGame.Vehicles
         /// a client who boarded a moored craft was invisible to the host's census, the host went on
         /// holding the hull still, and the boat simply refused to sail for anybody but the player
         /// whose machine happened to own it.
+        ///
+        /// <para>
+        /// <paramref name="queryPose"/> moves the volume before asking — identity for where the deck
+        /// is now, a teleport's inverse transfer for where it was standing a moment ago.
+        /// </para>
         /// </summary>
-        private void CollectRiders()
+        private void CollectRiders(Matrix4x4 queryPose)
         {
             riders.Clear();
+            censusStale = false;
             if (carryVolume == null) return;
 
-            int count = Overlap();
+            int count = Overlap(queryPose);
+
+            // Footing is a raycast against the deck where it stands NOW; asked about a past pose it
+            // would find the deck gone from under everybody, so it only filters the present.
+            bool checkFooting = onlyThoseStandingOnIt && queryPose == Matrix4x4.identity;
             for (int i = 0; i < count; i++)
             {
                 Collider other = overlapBuffer[i];
@@ -217,7 +241,7 @@ namespace SpaceGame.Vehicles
                 // not own is kinematic here precisely BECAUSE it is somebody else's to simulate,
                 // which is the definition of another player standing on the deck.
                 if (rb.isKinematic && Network.Owns(rb)) continue;
-                if (onlyThoseStandingOnIt && !StandsOnIt(other, rb)) continue;
+                if (checkFooting && !StandsOnIt(other, rb)) continue;
 
                 riders.Add(rb);
             }
@@ -227,7 +251,7 @@ namespace SpaceGame.Vehicles
         /// Everything inside the volume. Boxes are queried in their own orientation rather than by
         /// world bounds, so a heeled or yawed hull does not sweep up the sand beside it.
         /// </summary>
-        private int Overlap()
+        private int Overlap(Matrix4x4 queryPose)
         {
             while (true)
             {
@@ -235,18 +259,18 @@ namespace SpaceGame.Vehicles
                 if (carryVolume is BoxCollider box)
                 {
                     Transform t = box.transform;
-                    Vector3 centre = t.TransformPoint(box.center);
+                    Vector3 centre = queryPose.MultiplyPoint3x4(t.TransformPoint(box.center));
                     Vector3 scale = t.lossyScale;
                     Vector3 half = new Vector3(Mathf.Abs(box.size.x * scale.x),
                                                Mathf.Abs(box.size.y * scale.y),
                                                Mathf.Abs(box.size.z * scale.z)) * 0.5f;
-                    count = Physics.OverlapBoxNonAlloc(centre, half, overlapBuffer, t.rotation,
+                    count = Physics.OverlapBoxNonAlloc(centre, half, overlapBuffer, queryPose.rotation * t.rotation,
                                                        ~0, QueryTriggerInteraction.Ignore);
                 }
                 else
                 {
                     Bounds b = carryVolume.bounds;
-                    count = Physics.OverlapBoxNonAlloc(b.center, b.extents, overlapBuffer,
+                    count = Physics.OverlapBoxNonAlloc(queryPose.MultiplyPoint3x4(b.center), b.extents, overlapBuffer,
                                                        Quaternion.identity, ~0,
                                                        QueryTriggerInteraction.Ignore);
                 }
@@ -293,9 +317,12 @@ namespace SpaceGame.Vehicles
         /// </summary>
         public void OnTeleported(in TeleportMove move)
         {
-            // The census from the last physics step. Re-collecting here would be worse, not better:
-            // the deck has already arrived and the riders have not, so an overlap of the carry
-            // volume at this instant finds nobody at all.
+            // The census from the last physics step. Re-collecting where the deck is now would be
+            // worse, not better: the deck has already arrived and the riders have not, so an overlap
+            // of the carry volume at this instant finds nobody at all. An idle deck skipped its
+            // census, so take it where the deck was standing before the jump.
+            if (censusStale) CollectRiders(move.Transfer.inverse);
+
             foreach (Rigidbody rb in riders)
             {
                 if (rb == null || claimed.Contains(rb)) continue;
@@ -329,13 +356,19 @@ namespace SpaceGame.Vehicles
             lastPos = transform.position;
             lastRot = transform.rotation;
 
-            // Refreshed every frame, whether or not the craft moved: RiderCount is what tells the
-            // rest of the game somebody is aboard, and a parked craft must still report its crew.
-            CollectRiders();
-            if (riders.Count == 0) return;
-
+            // An idle deck has nothing to carry, so it skips the census and leaves it to whoever
+            // asks: RiderCount for a parked craft's crew, OnTeleported for a jump. The overlap is
+            // the expensive part of this component — a volume over a hull meets every static
+            // collider around it — and most decks in the world are idle at any given step.
             bool moved = deltaPos.sqrMagnitude > 1e-10f || Quaternion.Angle(deltaRot, Quaternion.identity) > 1e-4f;
-            if (!moved) return;
+            if (!moved)
+            {
+                censusStale = true;
+                return;
+            }
+
+            CollectRiders(Matrix4x4.identity);
+            if (riders.Count == 0) return;
 
             foreach (Rigidbody rb in riders)
             {

@@ -25,7 +25,22 @@ namespace SpaceGame.Core
         [Tooltip("Wheel units that make up one slot step, or 0 to measure it from the device.")]
         [SerializeField] private float scrollUnitsPerSlot;
 
+        /// <summary>
+        /// What one mouse count is worth, in seconds of full stick. A pointer reports how far it
+        /// moved this frame and a stick how hard it is held, so only the stick is multiplied by the
+        /// frame time. Scaling the mouse by it too turned every slow frame further than the hand
+        /// moved — each hitch became a lurch of the view. A 60th keeps every look sensitivity
+        /// feeling the way it was tuned at 60 fps.
+        /// </summary>
+        public const float SecondsPerMouseCount = 1f / 60f;
+
         private InputControls inputs;
+
+        /// <summary>
+        /// This frame's look, in seconds of full stick — see <see cref="LookThisFrame"/>. Multiply
+        /// by a look sensitivity (degrees per second of full stick) for degrees, and never by
+        /// <c>Time.deltaTime</c> again: the frame time is already in it, for the stick only.
+        /// </summary>
         public Vector2 LookInput  { get; private set; }
         public Vector2 MoveInput  { get; private set; }
 
@@ -599,9 +614,21 @@ namespace SpaceGame.Core
             return notches;
         }
 
+        /// <summary>
+        /// A Look reading as this frame's look, the same at any frame rate. Shared by everything
+        /// that reads the Look action itself (mounts, the arrival seat), so a mouse turns every
+        /// camera in the game at one speed.
+        /// </summary>
+        public static Vector2 LookThisFrame(Vector2 reading, InputControl source)
+        {
+            bool isPointer = source != null && source.device is Pointer;
+            return reading * (isPointer ? SecondsPerMouseCount : Time.deltaTime);
+        }
+
         private void Update()
         {
-            LookInput = inputs.Player.Look.ReadValue<Vector2>();
+            InputAction look = inputs.Player.Look;
+            LookInput = LookThisFrame(look.ReadValue<Vector2>(), look.activeControl);
             MoveInput = inputs.Player.Move.ReadValue<Vector2>();
         }
     }

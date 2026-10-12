@@ -8,6 +8,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Core;
 using SpaceGame.Vehicles;
 using SpaceGame.World;
 
@@ -48,6 +49,12 @@ namespace SpaceGame.EditorTools
         private const float LampIntensity = 12f;
         private static readonly Color LampColour = new(1f, 0.78f, 0.52f);
 
+        // A lamp goes out where the rooms it lights are culled (WorkshopLodBuilder), plus the reach of its light.
+        private const float LampsOutBeyond = WorkshopLodBuilder.InsideCulledMetres + LampRange;
+
+        // Mesh LOD levels the importer generates for the drawn FBXs, each half the triangles of the one before.
+        private const int MeshLodLevels = 3;
+
         [MenuItem("Tools/SpaceGame/Workshop/Rebuild Workshop Prefab")]
         private static void RebuildMenu() => Debug.Log("[Workshop] " + Rebuild());
 
@@ -58,14 +65,17 @@ namespace SpaceGame.EditorTools
             WorkshopLayout layout = WorkshopLayout.Parse(File.ReadAllText(LayoutPath));
 
             ImportWithoutMaterials(ModelFolder + "workshop_collision.fbx");
+            ImportWithMeshLods(ModelFolder + "workshop.fbx");
+            ImportWithMeshLods(ModelFolder + "workshop_moving.fbx");
 
             var root = new GameObject("Workshop");
             List<string> homeProblems;
-            string gate;
+            string gate, lods;
             try
             {
                 gate = Compose(root, layout);
                 homeProblems = WorkshopHomeBuilder.Furnish(root);
+                lods = WorkshopLodBuilder.Attach(root);
                 Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             }
@@ -77,7 +87,7 @@ namespace SpaceGame.EditorTools
             string registered = NetworkPrefabRegistrar.Sync(out int added, out int total);
             AssetDatabase.SaveAssets();
             string home = homeProblems.Count == 0 ? "home furnished" : "HOME: " + string.Join("; ", homeProblems);
-            return Verify(layout) + $"; {gate}; {home}; network prefabs: {added} added of {total}. {registered}";
+            return Verify(layout) + $"; {gate}; {home}; {lods}; network prefabs: {added} added of {total}. {registered}";
         }
 
         /// <summary>Lay the workshop out under <paramref name="root"/>; returns what its gear doors, crane and mission were built with.</summary>
@@ -325,6 +335,7 @@ namespace SpaceGame.EditorTools
         private static void AddLamps(Transform root, WorkshopLayout layout)
         {
             Transform lamps = Child(root, "Lamps");
+            lamps.gameObject.AddComponent<DistanceCulledLights>().Configure(LampsOutBeyond);
             for (int i = 0; i < layout.lamps.Length; i++)
             {
                 Transform lamp = Child(lamps, $"Lamp_{i:00}");
@@ -345,6 +356,17 @@ namespace SpaceGame.EditorTools
             if (importer.materialImportMode == ModelImporterMaterialImportMode.None) return;
 
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.SaveAndReimport();
+        }
+
+        /// <summary>The drawn FBXs carry Mesh LOD levels, which WorkshopLodBuilder's lower tiers force.</summary>
+        private static void ImportWithMeshLods(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not ModelImporter importer) return;
+            if (importer.generateMeshLods && importer.maximumMeshLod == MeshLodLevels) return;
+
+            importer.generateMeshLods = true;
+            importer.maximumMeshLod = MeshLodLevels;
             importer.SaveAndReimport();
         }
 
@@ -380,13 +402,14 @@ namespace SpaceGame.EditorTools
             int wheels = saved.GetComponentsInChildren<WorkshopWheel>(true).Length;
             int colliders = saved.GetComponentsInChildren<MeshCollider>(true).Length;
             int lamps = saved.GetComponentsInChildren<Light>(true).Length;
+            int lodGroups = saved.GetComponentsInChildren<LODGroup>(true).Length;
 
             string verdict = wired == expected && turntables == layout.turntables.Length &&
                              wheels == layout.wheels.Length
                 ? "saved"
                 : "READ BACK WRONG";
             return $"{verdict}: {wired}/{expected} spinning parts, {turntables} turning rooms, {wheels} wheels, " +
-                   $"{colliders} mesh colliders, {lamps} lamps";
+                   $"{colliders} mesh colliders, {lamps} lamps, {lodGroups} LOD groups";
         }
     }
 }

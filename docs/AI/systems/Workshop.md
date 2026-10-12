@@ -43,8 +43,8 @@ symptoms:
   - "I am not carried by the turning floor / I am swung off a stair that stands in it"
   - "after a re-export the Shellbacks cannot reach their beds (island the settlement cannot walk to)"
   - "an old save loads with the rooms back at the start"
-reads_with: [Vehicles, InteractionSystem, Multiplayer, Persistence, Residents, Outposts, NavMeshSystem, ArtPipeline, Seats, GearDoor, WorkshopMission, WorkshopCrane]
-updated: 2026-10-11
+reads_with: [Vehicles, InteractionSystem, Multiplayer, Persistence, Residents, Outposts, NavMeshSystem, ArtPipeline, Seats, GearDoor, WorkshopMission, WorkshopCrane, LevelOfDetail]
+updated: 2026-10-12
 ---
 
 # Workshop
@@ -106,7 +106,7 @@ the main room turned away from the lane, the lane stair, the gallery over the wa
 
 - **Model to game.** `workshop_export.py` in a background Blender over a copy (`WORKSHOP_SRC`; it never saves
   the .blend) → `workshop.fbx` (static chunks), `workshop_moving.fbx` (a node per turning part and gate leaf, with their
-  collision), `workshop_collision.fbx`, `workshop_layout.json` → **Rebuild Workshop Prefab** (`GearDoorBuilder`, `WorkshopMissionBuilder` last) → read its line (`saved: 48/48 spinning parts, … gear door: 46 pegs, …; mission: …`) → Rebuild Workshop Test Scene → the walk check.
+  collision), `workshop_collision.fbx`, `workshop_layout.json` → **Rebuild Workshop Prefab** (`GearDoorBuilder`, `WorkshopMissionBuilder`, then `WorkshopHomeBuilder` and `WorkshopLodBuilder` last) → read its line (`saved: 48/48 spinning parts, … gear door: 46 pegs, …; mission: …`) → Rebuild Workshop Test Scene → the walk check.
 - **A hold.** Button down on the cog → `Interact` / `SecondaryInteract` → near enough? → `RequestClaim`
   (`NetMsg.StationClaim`) → the server mans it → `OnManned` on every machine (the owner's begins
   `StationFooting`) → which way travels as the station's request → `AdvanceOnServer` adds to the angle →
@@ -176,7 +176,7 @@ such a scene cannot save ([Scenes.md](Scenes.md)).
   island to a turning room or the outside, and **only `Bay_Stair_*` rails are collision** (with the upper stairs'
   rails in, the ledge was cut from every bed). A post on a pit floor would be "an island" to Generate.
 - **A scene with no running `DayNightCycle` stands at midnight** and every resident sleeps; the test scene's Sun carries one.
-- **Heavy, untuned:** 116 point lamps without shadows, 550 mesh colliders; the clay is a flat colour. **Old parts:** four spinners of the retired drive stand still (the export lists them); the rest, and the old engine hall's floor and test stand, are in `Cave_Retired`.
+- **Heavy:** 1.6 M triangles, ~1050 submeshes, 116 point lamps without shadows, 550 mesh colliders; the clay is a flat colour. Since 2026-10-12 every drawn piece has its own LODGroup and everything inside the rock is culled 150 m past its edge, and the lamps go out by distance (`WorkshopLodBuilder`, the last step of Rebuild; tiers and numbers in [LevelOfDetail.md](LevelOfDetail.md)). Re-export keeps it: the builder sets Mesh LOD on the FBX importers itself. Measured (simulated LODGroup + frustum + lamps; draws = submeshes): desert 700 m 843 draws / 1.58 M tris / 116 lamps → 61 / 42 k / 0; lane 911 / 1.59 M / 116 → 463 / 0.75 M / 45; inside 389–788 / 0.93–1.44 M → 389–615 / 0.77–1.18 M. Timed 1080p preview renders (editor floor ~14 ms, ±3): approach 28.9 → 16.0 ms; inside unchanged, every room being within its own full-detail reach — what remains there is draw calls (14–22 submeshes per room chunk). **Not measured:** a Play-mode frame, a client, script/physics cost. **Old parts:** four spinners of the retired drive stand still (the export lists them); the rest, and the old engine hall's floor and test stand, are in `Cave_Retired`.
 - **Verified 2026-10-11, offline host, Play in `WorkshopTest`, the cog taken by script with the mouse buttons
   fed to the Input System:** RMB held turned the main room at 11.5 degrees a second and LMB turned it back; the
   button up let go, the room coasted about 4 degrees and stood still; a small room turned 219 degrees, ceiling

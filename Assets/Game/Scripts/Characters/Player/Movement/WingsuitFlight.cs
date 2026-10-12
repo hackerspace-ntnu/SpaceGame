@@ -254,7 +254,7 @@ namespace SpaceGame.Characters
             // the speed of looking around, and every player read the difference as lag. A share
             // rather than a copy, so somebody can still make the wing heavier on purpose.
             float perUnit = (look != null ? look.LookDegreesPerUnit : 20f * GameSettings.MouseSensitivity)
-                            * lookSensitivityShare * Time.deltaTime;
+                            * lookSensitivityShare;
 
             float mouseY = GameSettings.InvertLookY ? -inputs.LookInput.y : inputs.LookInput.y;
 

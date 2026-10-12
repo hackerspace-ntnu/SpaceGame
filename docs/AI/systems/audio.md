@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Resources/AudioCatalog.asset
   - Assets/Game/Audio/
 symptoms:
+  - "the profiler shows LogStringToConsole under an audio Update every frame while the console looks quiet"
   - "no sound plays for the client but the host hears it"
   - "a sound went silent and only a single warning appeared in the console"
   - "I fixed the mapping mid-session and it is still silent"
@@ -99,6 +100,8 @@ Sound is **never replicated**. There is no audio message in `NetMsg`/`NetRelay`;
 Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/Core/Settings/GameSettings.cs) stores `MasterVolume` (1.0), `MusicVolume` (0.7), `SfxVolume` (1.0), `UiVolume` (0.85), `AmbienceVolume` (1.0) in **PlayerPrefs**, and raises `GameSettings.Changed`; `AudioManager.ApplySettings` pushes them onto the FMOD busses. No audio state is in world saves.
 
 ## Gotchas
+
+- **An unassigned `EventReference` must return before FMOD every time, not only the first.** `Sfx.PlayInternal` once read `if (eventRef.IsNull && Babying.Add(eventRef)) return;`, so the warning-once guard also made the early return happen once: every later play of an empty reference fell through to `RuntimeManager`, which threw (caught) and logged with a stack trace. An ornithopter with an empty `flapSound` did that on every wing beat — ~1.8 ms a frame, 15 ms spikes, in the settlement profile of 2026-10-12. Dedupe the *warning*, never the *return*.
 
 - **Two APIs, mid-migration (2026-10-12).** The NewSFX branch ("SOUND ID GENOCIDE") moves call sites to a plain `EventReference` and deleted `SfxId`/`AudioCatalog`/`SfxFile`/`LoopingEmitter` — while ~60 files still used them, so main stopped compiling. They were restored (main's newest copies, same GUIDs) and the `SfxId` half of `Sfx` lives on in `Sfx.Catalog.cs`. A call ported to the `EventReference` form plays NOTHING on a prefab whose field was never assigned (no catalog fallback) — check the prefab before porting. Delete the catalog half only once no caller is left.
 - **`Sfx` returns before FMOD outside Play Mode.** FMOD's `RuntimeManager` exists only in Play Mode and **logs an error** (not an exception) when reached outside it, and NUnit fails any test on an unexpected error log — so every EditMode test whose action made a sound (throwing a lasso) failed on audio. The `Application.isPlaying` check sits after the missing-event warning, so a missing catalog entry still reports in tests, and before the cooldown and cull. Pinned by `SfxEditModeTests`, which uses `Play2D`: a positioned play is culled before FMOD whenever the open scene has a listener out of range, and would pass without reaching the `RuntimeManager`.

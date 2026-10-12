@@ -18,7 +18,7 @@ symptoms:
   - "a gameplay hotkey still fires while a menu or the chat box is open"
   - "Camera.main is null while I ride a vehicle, so a distance LOD hides or never fades"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-10-06
+updated: 2026-10-12
 ---
 
 # Core Services
@@ -132,6 +132,7 @@ Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
 - Registry order matters: items **before** `SaveablePrefabRegistry.LoadAll()`, since half the prefab table is derived from items.
 - Playing directly from a world/menu scene skips Bootstrap's registry and audio; `NetworkBootstrap` patches only the NetworkManager and logs a warning that the rest are still absent.
 - `PlayerInputManager.OnEnable` can run before its own `Awake` (`PlayerController.Awake` toggles the component), hence `EnsureInputs()` at every entry point. Callbacks are bound once in `BindActions`, never in `OnEnable` — lambdas cannot be unsubscribed, and a death/respawn cycle would double-fire jump.
+- `LookInput` is this frame's look in seconds of full stick, already frame-rate independent (mouse counts × 1/60, stick × `deltaTime`) — see PlayerCharacter Gotchas.
 - `OnDisable` zeroes `MoveInput`/`LookInput`/`CrouchHeld` on purpose: axes are only written in `Update`, so a stale vector would outlive death.
 - `SceneReference` stores a scene **name**, not a path or index. NGO hashes scene *paths* case-sensitively — see [Multiplayer.md](Multiplayer.md).
 - `Bootstrapper.AfterSceneLoad` is `async void` with no error handling; an exception during the target load is swallowed. `ApplyEngineSettings` skips window mode in the editor deliberately (it would fullscreen the Game view every Play).

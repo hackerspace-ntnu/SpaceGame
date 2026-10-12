@@ -560,6 +560,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a wingman trails far behind its leader and never closes up | [NpcFlight](systems/NpcFlight.md) |
 | a worker stands at its spot doing nothing, with a clean console | [Stations](systems/Stations.md) |
+| a workshop room has no walls or ceiling when seen down a tunnel | [LevelOfDetail](systems/LevelOfDetail.md) |
 | a worn item is scaled to the size of the model it is carried as | [BodyEquipment](systems/BodyEquipment.md) |
 | a worn model came out lying on its face, or rotated ninety degrees | [BodyEquipment](systems/BodyEquipment.md) |
 | a wrecked monowheel disappears a few seconds after it is killed | [Striders](systems/Striders.md) |
@@ -1568,6 +1569,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
 | the prefab still renders the old materials after an FBX reimport | [ArtPipeline](systems/ArtPipeline.md) |
 | the printed bandit is nearly all dots and black | [WantedPosters](systems/WantedPosters.md) |
+| the profiler shows LogStringToConsole under an audio Update every frame while the console looks quiet | [audio](systems/audio.md) |
 | the project has no 'Ladder' NavMesh area | [Ladders](systems/Ladders.md) |
 | the projectile or rope is invisible to everyone except the shooter | [Artifacts](systems/Artifacts.md) |
 | the projectile works on the host but never appears for clients | [Combat](systems/Combat.md) |
@@ -1797,9 +1799,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wingsuit and the wing pack cannot both be carried | [Wingsuit](systems/Wingsuit.md) |
 | the wireframe draws every edge of every triangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the words on a worn gauntlet's screen read backwards | [Artifacts](systems/Artifacts.md) |
+| the workshop costs as much from the far desert as standing at its gate | [LevelOfDetail](systems/LevelOfDetail.md) |
 | the workshop gate is shut and I cannot get into the ship lane | [GearDoor](systems/GearDoor.md) |
 | the workshop prefab lost my hand edits | [Workshop](systems/Workshop.md) |
 | the workshop's gears do not turn, or turn through each other | [Workshop](systems/Workshop.md) |
+| the workshop's lamps are all lit while I am far outside the mountain | [LevelOfDetail](systems/LevelOfDetail.md) |
 | the world list only shows two saves before it has to be scrolled | [UI](systems/UI.md) |
 | the world renders through some camera that is not my player's | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the worn wing has a yoke and spars but no cloth between them | [Wingsuit](systems/Wingsuit.md) |
@@ -1839,6 +1843,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | throwing the bottle shoves the thrower sideways | [BottledSingularity](systems/BottledSingularity.md) |
 | throwing the pack down shoves me through the floor I am standing on | [Backpack](systems/Backpack.md) |
 | timing the jump on the pogo stick's landing makes the hop shorter instead of higher | [Artifacts](systems/Artifacts.md) |
+| turning my head feels laggy, and the view lurches further whenever the frame rate dips | [PlayerCharacter](systems/PlayerCharacter.md) |
 | two doors log a duplicate TransitionId and one loses its effects | [SceneTransitions](systems/SceneTransitions.md) |
 | two focus overlays outline things at each other's line thickness | [Backpack](systems/Backpack.md) |
 | two long buildings in a Settlement can never stand close along their long sides | [TerrainGeneration](systems/TerrainGeneration.md) |
@@ -2115,6 +2120,7 @@ Longest match wins.
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Agents/World/DistantGroupSilhouette.cs` | [SettlementLods](systems/SettlementLods.md) |
+| `Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Presentation/Feedback/SparkingCable.cs` | [Oxygen](systems/Oxygen.md) |
@@ -2305,6 +2311,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/WorkshopSaveableTests.cs` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Editor/Vehicles/StriderCityBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/StriderCityBuilder.cs` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Workshop/WorkshopLodBuilder.cs` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Editor/World/WorldSiteCatalogBaker.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
@@ -2670,4 +2677,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1867 symptoms, 777 paths, 99 docs -->
+<!-- 1872 symptoms, 779 paths, 99 docs -->

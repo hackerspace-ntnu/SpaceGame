@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.World;
+using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Agents
 {
@@ -26,13 +27,14 @@ namespace SpaceGame.Agents
 
         private void HandleLookInput(float deltaTime)
         {
-            Vector2 lookInput = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 reading = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 lookInput = PlayerInputManager.LookThisFrame(reading, lookAction?.activeControl);
 
             // The serialized sensitivity is this mount's own scale and the setting is a multiplier
             // on top, matching PlayerLook exactly. Mounted look used to read neither the player's
             // sensitivity preference nor their invert-Y — so every option in the menu silently
             // stopped applying the moment you climbed on something.
-            float scaled = lookSensitivity * GameSettings.MouseSensitivity * deltaTime;
+            float scaled = lookSensitivity * GameSettings.MouseSensitivity;
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
 
             bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
@@ -46,7 +48,7 @@ namespace SpaceGame.Agents
             // Any look input counts, not just yaw. Testing the x axis alone meant that tilting the
             // camera up at the ostrich's head while parked out on its flank left the yaw timer
             // running, and the side view you were holding crept out from under you mid-look.
-            if (lookInput.sqrMagnitude > 0.0001f)
+            if (reading.sqrMagnitude > 0.0001f)
                 timeSinceLastLookInput = 0f;
             else
                 timeSinceLastLookInput += deltaTime;

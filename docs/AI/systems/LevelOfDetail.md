@@ -1,7 +1,7 @@
 ---
 system: LevelOfDetail
 layer: presentation
-summary: Three-tier LODGroups on the nomad settlement (builds, decorations, kits) and every Raxy character
+summary: Three-tier LODGroups on the nomad settlement, every Raxy, and every piece of the mountain workshop
 paths:
   - Assets/Game/Editor/Agents/CharacterLodWiring.cs
   - Assets/Game/Editor/Agents/CharacterLodMeshes.cs
@@ -10,6 +10,8 @@ paths:
   - Assets/Game/Prefabs/Environment/Structures/NomadSettlement
   - Assets/Game/Prefabs/Environment/Decorations
   - Assets/Game/Prefabs/agents/Characters/Raxy
+  - Assets/Game/Editor/Workshop/WorkshopLodBuilder.cs
+  - Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs
 symptoms:
   - "a settlement piece's Mesh LODs never kick in in play mode, but forcing a level works on the prefab in the editor"
   - "a renderer with generated Mesh LODs still draws its full triangle count at 200 m"
@@ -29,8 +31,11 @@ symptoms:
   - "Fix Drifter Scale makes a hatted Raxy shorter"
   - "a distant Raxy's coat edge sits a couple of centimetres off its near-tier pose"
   - "a small crate or pot loses its contact shadow about 20 m away"
-reads_with: [ArtPipeline, CharacterClothes, SettlementStreets]
-updated: 2026-10-05
+  - "the workshop costs as much from the far desert as standing at its gate"
+  - "a workshop room has no walls or ceiling when seen down a tunnel"
+  - "the workshop's lamps are all lit while I am far outside the mountain"
+reads_with: [ArtPipeline, CharacterClothes, SettlementStreets, Workshop]
+updated: 2026-10-12
 ---
 
 # Level of detail
@@ -66,6 +71,17 @@ Four different reduction techniques are in use, each chosen for its slice:
 | `Tents/`, `Terrace/`, `Streets/`, `nomad_door.fbx` | importer Mesh LOD with **automatic** selection on the one renderer; the LODGroup only drops parts and culls |
 | 402 `Deco_*` prefabs | offline: `MeshLodUtility.GenerateMeshLods` on a copy, one level extracted to a plain mesh in `<fbx folder>/deco_<item>_lod.asset`; LOD children named **exactly like their part** |
 | 77 Raxy prefabs | `SkinnedMeshRenderer` copies under `Model/LODs` on compacted meshes in `<model folder>/LOD/`, same bones |
+| `Workshop.prefab` (`workshop.fbx`, `workshop_moving.fbx`) | importer Mesh LOD (`maximumMeshLod 3`, set by `WorkshopPrefabBuilder.ImportWithMeshLods`); a LODGroup **on every drawn renderer**, `<renderer>_LOD1`/`_LOD2` child copies with `forceMeshLod` 1 / 3 |
+
+**The workshop** (2026-10-12): tiers by metres past the piece's own edge (half its bounds' diagonal),
+via `SettlementLodBaker.ScreenHeightAt` at FOV 60; measured gains in [Workshop.md](Workshop.md) Gotchas.
+
+| Piece | LOD0 / LOD1 (level 1) / LOD2 (level 3) / cull, metres past its edge |
+| --- | --- |
+| Inside (rooms, tunnels, machinery, furniture, vault door) | 25 / to cull / — / 150 |
+| Outside (`Static_Mountain*`, `Static_ShipTunnel*`, everything under `GearDoor`) | 100 / 300 / beyond / 5000 (never on the map) |
+
+The 116 lamps go out by distance (`DistanceCulledLights`: 150 + 18 m lamp range, back 10 m nearer).
 
 ## Key types
 
@@ -76,6 +92,8 @@ Four different reduction techniques are in use, each chosen for its slice:
 | [CharacterLodMeshes.cs](Assets/Game/Editor/Agents/CharacterLodMeshes.cs) | builds compacted reduced meshes, stamped with the FBX's dependency hash so they regenerate after a re-export |
 | [SculptCharacterBuilder.cs](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) | `BuildAll` wires new prefabs; `UpdateBehaviourAll` calls `EnsureIfCovered`; `TryMeasure` skips LOD copies |
 | [NomadBuildPrefabTests.cs](Assets/Game/Editor/Tests/NomadBuildPrefabTests.cs) | `IsLowerDetailStandIn` exempts renderers listed only in non-LOD0 tiers from collider coverage |
+| [WorkshopLodBuilder.cs](Assets/Game/Editor/Workshop/WorkshopLodBuilder.cs) | `Attach(root)`, the last step of *Rebuild Workshop Prefab*: a group per enabled `MeshRenderer` not already in one (the Home's `Deco_*` keep theirs); reach tunables are its constants |
+| [DistanceCulledLights.cs](Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs) | runtime, presentation only: switches the lights under it (those authored on) off beyond `lightsOutBeyond` from `ViewCamera`, with hysteresis; all back on in `OnDisable` |
 
 The settlement passes (builds, decorations, kits) are **throw-away scripts, not builders**, like
 the rest of the model pipeline ([ArtPipeline.md](ArtPipeline.md)).
@@ -103,14 +121,20 @@ the rest of the model pipeline ([ArtPipeline.md](ArtPipeline.md)).
 
 ## Multiplayer
 
-N/A — client-local rendering only. No NetworkObject was added or changed; Raxy
+N/A — client-local rendering only (`DistanceCulledLights` reads its own `ViewCamera`). No NetworkObject was added or changed; Raxy
 `GlobalObjectIdHash` values are unchanged and still in `DefaultNetworkPrefabs.asset`.
 
 ## Persistence
 
-N/A — no runtime state. LOD is authored on prefabs.
+N/A — no runtime state. LOD is authored on prefabs; a lamp put out by distance is recomputed, not saved.
 
 ## Gotchas
+
+- **Workshop: Mesh LOD level 2+ sheds the thin clay walls and ceilings** (StoreHall's whole shell at
+  level 3); level 1 matches level 0. Inside pieces stop at level 1; only outside pieces reach level 3.
+- **Workshop: screen-size culling never culls a room inside the mountain** (a 30 m room stays above
+  1 % screen height to ~5 km), hence distance past its edge; from outside only the skin and gate show.
+- **Workshop LOD lives in the builder:** tune `WorkshopLodBuilder`'s constants, never the prefab.
 
 - **Batching Static silently removes Mesh LOD.** The batched renderer draws `Combined Mesh`
   (`lodCount 1`); `forceMeshLod` and `meshLodSelectionBias` are ignored. A renderer whose mesh has

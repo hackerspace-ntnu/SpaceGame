@@ -61,9 +61,10 @@ namespace SpaceGame.EditorTools
 
             var root = new GameObject("Workshop");
             List<string> homeProblems;
+            string gate;
             try
             {
-                Compose(root, layout);
+                gate = Compose(root, layout);
                 homeProblems = WorkshopHomeBuilder.Furnish(root);
                 Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -76,10 +77,11 @@ namespace SpaceGame.EditorTools
             string registered = NetworkPrefabRegistrar.Sync(out int added, out int total);
             AssetDatabase.SaveAssets();
             string home = homeProblems.Count == 0 ? "home furnished" : "HOME: " + string.Join("; ", homeProblems);
-            return Verify(layout) + $"; {home}; network prefabs: {added} added of {total}. {registered}";
+            return Verify(layout) + $"; {gate}; {home}; network prefabs: {added} added of {total}. {registered}";
         }
 
-        private static void Compose(GameObject root, WorkshopLayout layout)
+        /// <summary>Lay the workshop out under <paramref name="root"/>; returns what its gear doors, crane and mission were built with.</summary>
+        private static string Compose(GameObject root, WorkshopLayout layout)
         {
             GameObject model = Place(root, "workshop.fbx", "Model");
             foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>(true))
@@ -119,6 +121,8 @@ namespace SpaceGame.EditorTools
             int[] stops = layout.hoist.stops;
             round.FindPropertyRelative("stops").vector3IntValue = new Vector3Int(stops[0], stops[1], stops[2]);
             round.FindPropertyRelative("metresPerStop").vector3Value = WorkshopLayout.V(layout.hoist.metresPerStop);
+            round.FindPropertyRelative("liftStops").intValue = stops[3];
+            round.FindPropertyRelative("liftMetresPerStop").floatValue = layout.hoist.metresPerStop[3];
             SerializedProperty limits = round.FindPropertyRelative("hookLimits");
             limits.arraySize = layout.hoist.hookLimits.Length;
             for (int i = 0; i < limits.arraySize; i++)
@@ -132,6 +136,13 @@ namespace SpaceGame.EditorTools
 
             AddWheels(root.transform, layout, turntables);
             AddLamps(root.transform, layout);
+            string gate = GearDoorBuilder.Attach(root, layout, nodes, out GearDoor gateDoor);
+            string vault = GearDoorBuilder.AttachVault(root, layout, nodes, out GearDoor vaultDoor);
+            string hoist = WorkshopCraneBuilder.Attach(root, layout, nodes, machinery, out WorkshopCrane crane, out Transform console);
+            wiring.Update();
+            SerializedFields.Set(wiring, "crane", crane);
+            wiring.ApplyModifiedPropertiesWithoutUndo();
+            return $"{gate}; {vault}; {hoist}; " + WorkshopMissionBuilder.Attach(root, layout, gateDoor, vaultDoor, crane, console);
         }
 
         // ── Parts ────────────────────────────────────────────────────────────

@@ -66,6 +66,23 @@ namespace SpaceGame.Gameplay.Objectives
         /// <summary>The step the crew are on, or null when there is none — finished, or not a story world.</summary>
         public ObjectiveStep Current => IsRunning && !IsComplete ? chain.Steps[progress.Step] : null;
 
+        /// <summary>
+        /// The current step as the visor reads it, or null when there is none. A new object per step, so whoever
+        /// watches it can tell one step from the next.
+        /// </summary>
+        public ITrackedObjective Tracked
+        {
+            get
+            {
+                ObjectiveStep step = Current;
+                if (step == null) return null;
+                if (tracked == null || tracked.Step != step) tracked = new TrackedStep(step, World);
+                return tracked;
+            }
+        }
+
+        private TrackedStep tracked;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Instance = null;
 
@@ -233,6 +250,22 @@ namespace SpaceGame.Gameplay.Objectives
         {
             World.ForgetStep();
             reportedStep = -1;
+        }
+
+        private sealed class TrackedStep : ITrackedObjective
+        {
+            public readonly ObjectiveStep Step;
+            private readonly ObjectiveWorld world;
+
+            public TrackedStep(ObjectiveStep step, ObjectiveWorld world)
+            {
+                Step = step;
+                this.world = world;
+            }
+
+            public string Title => Step.Title;
+            public string Status => Step.Status(world);
+            public bool TryGetWaypoint(out Vector3 position) => Step.TryGetWaypoint(world, out position);
         }
     }
 }

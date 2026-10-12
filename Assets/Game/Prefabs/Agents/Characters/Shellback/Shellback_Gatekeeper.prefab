@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3430524435507391813
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 412316941071413429, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3128894313
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5578785125735702336, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: prefabId
+      value: 3c02432f518b84c5eb8593f0c06cb6b3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6320590716706008551, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_Name
+      value: Shellback_Gatekeeper
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6320590716706008551, guid: 61a687aabf79048128def9377edba74b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2807600766462087685}
+  m_SourcePrefab: {fileID: 100100000, guid: 61a687aabf79048128def9377edba74b, type: 3}
+--- !u!1 &8659458948632641698 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6320590716706008551, guid: 61a687aabf79048128def9377edba74b, type: 3}
+  m_PrefabInstance: {fileID: 3430524435507391813}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2807600766462087685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8659458948632641698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04c6d700cc67f4b749d07401c724530f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorkshopGatekeeper
+  arriveRadius: 1.2
+  greetRadius: 14
+  focusSeconds: 4
+  hearingRadius: 30
+  secondsPerLine: 4
+  callOut: Hey! You there! Over here - please!
+  plea:
+  - Thank the tides, somebody came! Raiders - a whole gang of them - broke into our
+    workshop last night!
+  - On their way out they smashed the gate's gear train and threw the gears all over
+    the sand. Now it won't open!
+  - My family's shut in there and I'm stuck out here. Please, help me get the gate
+    open!
+  - Put the loose gears back on the pegs. When the chain of gears reaches the lock,
+    it lets go.
+  hints:
+  - A gear that meshes with a turning one turns too. Follow the chain across to the
+    lock on the other leaf.
+  - '{gears} still lying in the sand. Every one of them belongs on that gate.'
+  - If a gear won't go on, it would hit its neighbour. Try another peg.
+  opened:
+  - It's moving - you did it! The gate's open!
+  - Come inside, quick - my family's in the main hall. I'll meet you in the middle!
+  gathering:
+  - Come on, come on - the middle of the main hall!
+  briefing:
+  - Everyone - this is the one who opened the gate!
+  - But the raiders took something worse than our gate. They stole the Heart Gear
+    - the big brass cog that drives this whole workshop.
+  - Without it nothing down here will run for long. They can't have got far with
+    a cog that heavy.
+  - They went out through the gate. Find their trail out there - your scanner will
+    pick up anything they dropped.
+  - Track them down and bring the Heart Gear home. We'll be waiting right here.
+  hunting:
+  - Start at the gate and follow what they dropped. Your scanner will pick it up.
+  - Careful. They're armed, and they won't hand it back nicely. If they spot you,
+    whoever has the gear will run.
+  carrying:
+  - Is that - the Heart Gear! Bring it here, quick!
+  thanks:
+  - The Heart Gear! You brought it home!
+  - We owe you more than we can say. Our workshop is yours to walk whenever you like.
+  vaultOffer:
+  - And that ship of yours - we can help you fix it.
+  - 'We kept one part that fits a ship like yours: a sealed reactor core, locked
+    away in our vault. We can install it for you.'
+  - But you'll have to find the vault. It's hidden deep in the caves, behind the
+    turning rooms.
+  - Turn this main room with its big hand cog and the hidden hallways open up. From
+    there, turn each room to find the way through.
+  - Bring the core back, take it up to the crane console on the third floor, hang
+    it on the hook and lower it onto your ship. We'll bolt it in.
+  vaultHints:
+  - The vault lies past the turning rooms. Turn the main room to face a new hallway,
+    and follow it in.
+  - Every room has its own hand cog. Hold it and the room turns; its doorway stays
+    wherever you leave it.
+  - The vault door has a little gear lock. The missing cogs are kept on the bench
+    beside it.
+  - That core is far too heavy to bolt on by hand. The hoist does it - work it from
+    the console on the third floor.
+  carryingCore:
+  - That's the core! Up to the crane console on the third floor - bring the hook
+    over and hang it on.
+  coreOnHook:
+  - Now lower it onto your ship's reactor mount. The console shows you where it goes
+    - then let go.
+  repaired:
+  - There - it's in! Your ship has its reactor core back.
+  - Safe travels, friend. Our workshop is yours whenever you need it.
+  afterwards:
+  - Thanks to you, the old place runs again.
+  - Come back any time, friend.
+  paceRadius: 2.5
+  paceSpeed: 1.4
+  callRadius: 14

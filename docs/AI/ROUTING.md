@@ -30,6 +30,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | [InteriorManager] Failed to load interior X: SceneEventInProgress | [SceneTransitions](systems/SceneTransitions.md) |
 | [Ladder] found no NavMesh within 1 m of its foot or exit | [Ladders](systems/Ladders.md) |
 | [Net] 'Colony_X' handled message 124 locally | [ColonyInterior](systems/ColonyInterior.md) |
+| [Posters] Font 'X' has no glyph for 'Y | [WantedPosters](systems/WantedPosters.md) |
+| [Posters] Wanted_X: FAILED VERIFY | [WantedPosters](systems/WantedPosters.md) |
 | [Pushable] 'X' and 'Y' derive the same id | [Pushables](systems/Pushables.md) |
 | [Residents] place N is a sit, but there is no Seat within 1.5 m of it | [Residents](systems/Residents.md) |
 | [Residents] place N is a sit, but there is no Seat within 1.5 m of it | [Seats](systems/Seats.md) |
@@ -42,7 +44,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | [WorldService] Spawn('Clanker') called on a client while playing | [AgentSystem](systems/AgentSystem.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
+| a baked poster's bandit has no eyes | [WantedPosters](systems/WantedPosters.md) |
 | a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
+| a bandit's skin prints in cream or in the poster colour instead of slate blue | [WantedPosters](systems/WantedPosters.md) |
 | a basket or crate in a settlement never moves, though haulers walk to it | [Errands](systems/Errands.md) |
 | a bell frame's deck cannot be walked on and its ladder leads nowhere | [Outposts](systems/Outposts.md) |
 | a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
@@ -260,6 +264,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a patch of fire fires all its flames sideways across the sand | [Flamethrower](systems/Flamethrower.md) |
 | a peaceful creature stands still and lets itself be shot instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a peaceful NPC attacks the robots on sight | [AgentSystem](systems/AgentSystem.md) |
+| a peg or a gear on the gate is a hundred times too big | [GearDoor](systems/GearDoor.md) |
 | a pickup placed in a chunk is stacked ten deep at its authored spot | [Persistence](systems/Persistence.md) |
 | a placed object is gone after a save and reload | [Placeables](systems/Placeables.md) |
 | a player being dragged breaks the rope by holding one movement key | [LeashSystem](systems/LeashSystem.md) |
@@ -272,6 +277,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a pose sheet shows the same figure in every cell | [AnimationCatalog](systems/AnimationCatalog.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
+| a poster on the wall is blank or shows last bake's picture | [WantedPosters](systems/WantedPosters.md) |
 | a pouch, ring or band on a nomad renders inside out in Unity but looks fine in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a prefab builder written as a Unity RunCommand fails with 'Regex could not be found' or 'ISet<> is defined in an assembly that is not referenced', or JsonUtility returns null arrays | [ArtPipeline](systems/ArtPipeline.md) |
 | a prefab has no SaveableEntity right after I rebuilt it from its own builder | [PlayerShip](systems/PlayerShip.md) |
@@ -376,10 +382,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a seated resident's body is dragged off its seat, or its NavMeshAgent is enabled while it sits | [Seats](systems/Seats.md) |
 | a seated resident's legs pass through the pot or cushion it sits on | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a seated resident's legs pass through the pot or cushion it sits on | [Seats](systems/Seats.md) |
+| a second band of thieves appeared after loading the world | [WorkshopMission](systems/WorkshopMission.md) |
 | a second belly turbine appears by the wreck after loading the world | [Objectives](systems/Objectives.md) |
 | a second copy of my gauntlet or jetpack appears at my feet and falls through the world | [BodyEquipment](systems/BodyEquipment.md) |
 | a second copy of the item I am holding appears at my feet and falls through the world | [Inventory](systems/Inventory.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
+| a second reactor core lies in the vault after loading the world | [WorkshopMission](systems/WorkshopMission.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a Settlement configured for several decorations of the same kind (e.g. tents) only ever places one, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a settlement decoration prefab has no collider and the player walks through it, or an agent paths straight through a wall or fence | [ArtPipeline](systems/ArtPipeline.md) |
@@ -394,6 +402,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a settlement watchtower or bell frame is a huge invisible block you bump into 10 m from it, or cannot be walked up to | [ArtPipeline](systems/ArtPipeline.md) |
 | a settlement's spawner logs Spawn called on a client and nothing appears | [AgentSystem](systems/AgentSystem.md) |
 | a shader compiles clean, reports isSupported and zero messages, and still draws as the magenta error shader | [StormFlask](systems/StormFlask.md) |
+| a shocked body shows no X-ray or skeleton, or stays invisible after the shock | [Artifacts](systems/Artifacts.md) |
 | a singularity opened at the world origin instead of where I threw it | [BottledSingularity](systems/BottledSingularity.md) |
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
 | a sky transport flies stern-first, its cockpit house trailing instead of leading | [SkyTribe](systems/SkyTribe.md) |
@@ -535,6 +544,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC's punch never lands although the arm visibly reaches you | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
 | an old save loads with the rooms back at the start | [Workshop](systems/Workshop.md) |
+| an old save with the story over now asks me to find the vault | [WorkshopMission](systems/WorkshopMission.md) |
 | an old save's provocation/resident record is ignored after the creature moved to a new saver | [Persistence](systems/Persistence.md) |
 | an outfit prefab is missing a piece of clothing | [CharacterClothes](systems/CharacterClothes.md) |
 | an Outpost generates but nobody moves in, with a clean console | [Outposts](systems/Outposts.md) |
@@ -610,6 +620,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every creature standing in one patch takes damage once per player in the session | [Flamethrower](systems/Flamethrower.md) |
 | every decoration in a settlement lies on its side | [ArtPipeline](systems/ArtPipeline.md) |
 | every eye colour variant looks like the same pale white blob in game | [StylizedEyes](systems/StylizedEyes.md) |
+| every gear is on the gate and it still does not open | [GearDoor](systems/GearDoor.md) |
 | every hull module is the same square on the mat and on the ship's gear wall | [PlayerShip](systems/PlayerShip.md) |
 | every item aims straight down, or at the vehicle itself, while I am riding | [Vehicles](systems/Vehicles.md) |
 | every item fires straight down while I am riding something, whatever I am pointing at | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -655,11 +666,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | gear placed on the pack is missing after a save and reload | [Backpack](systems/Backpack.md) |
 | gear stowed on an animal vanished when the saddle came off | [AgentSystem](systems/AgentSystem.md) |
 | gear stowed on an animal vanished when the saddle came off | [Saddles](systems/Saddles.md) |
+| gears float in the air after a re-export (the prefab was not rebuilt: new meshes at the old pivots) | [Workshop](systems/Workshop.md) |
 | Generate placed 1/4 characters in the workshop | [Workshop](systems/Workshop.md) |
 | Generate reports a spot residents cannot walk to | [Residents](systems/Residents.md) |
 | Generate says 40-odd places residents cannot use after the buildings were authored fine | [Residents](systems/Residents.md) |
 | Generate says beds stayed empty | [Residents](systems/Residents.md) |
 | Generate says copies made for a role with no place here stayed out | [Residents](systems/Residents.md) |
+| Generate says the beds and posts are an island at one rotation and fine at another | [Outposts](systems/Outposts.md) |
 | gliding into a cliff at full speed costs nothing | [Wingsuit](systems/Wingsuit.md) |
 | guards never patrol, or patrol alone, or one of the pair is left standing behind | [Errands](systems/Errands.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
@@ -685,6 +698,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I am stuck on a mount that is not there any more | [Diagnostics](systems/Diagnostics.md) |
 | I board the ship from outside by looking at its cockpit through the glass | [Vehicles](systems/Vehicles.md) |
 | I board the ship from outside by looking at the cockpit through the canopy | [PlayerShip](systems/PlayerShip.md) |
+| I brought the Heart Gear back and nothing happened | [WorkshopMission](systems/WorkshopMission.md) |
+| I brought the Heart Gear home and the Shellbacks said nothing about the vault | [WorkshopMission](systems/WorkshopMission.md) |
 | I can only ever carry one of any item on the pack | [SupplyCharge](systems/SupplyCharge.md) |
 | I can pick gear off the mat straight through the closed board, or off the rack while the mat is lying on top of it | [Backpack](systems/Backpack.md) |
 | I can see out of the caves through a gap over a tunnel mouth | [Workshop](systems/Workshop.md) |
@@ -695,12 +710,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I cannot come down without holding another key | [Jetpack](systems/Jetpack.md) |
 | I cannot fit through a workshop tunnel or doorway | [Workshop](systems/Workshop.md) |
 | I cannot get the crosshair onto a small item lying on the ship's floor | [Inventory](systems/Inventory.md) |
+| I cannot hang the core on the hook / the hook says nothing when I look at it | [WorkshopCrane](systems/WorkshopCrane.md) |
 | I cannot look around the cabin after the ship has landed | [PlayerShip](systems/PlayerShip.md) |
 | I cannot move after landing from a glide | [Wingsuit](systems/Wingsuit.md) |
 | I cannot move but the camera still works and nothing is on screen | [Diagnostics](systems/Diagnostics.md) |
 | I cannot put a reservoir on an artifact, one of the two UsableItems wins at random | [SupplyCharge](systems/SupplyCharge.md) |
 | I cannot see the pack, the flames or the tips while flying it | [Jetpack](systems/Jetpack.md) |
 | I cannot stand still inside the ship and slide down its deck whenever the hull is at an angle | [PlayerShip](systems/PlayerShip.md) |
+| I cannot take a gear back off the gate | [GearDoor](systems/GearDoor.md) |
 | I cannot tell how far a wind-up will reach until after I let go | [Lasso](systems/Lasso.md) |
 | I cannot tell how full a tank is without picking it up | [SupplyGauge](systems/SupplyGauge.md) |
 | I cannot tell two salvaged modules apart without picking one up | [PlayerShip](systems/PlayerShip.md) |
@@ -709,6 +726,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I click the lash rail and a gauntlet gets the click instead | [BodyEquipment](systems/BodyEquipment.md) |
 | I died in versus and respawned in the enemy team's ship | [GameModes](systems/GameModes.md) |
 | I edited the .inputactions asset and the new key binding does nothing | [CoreServices](systems/CoreServices.md) |
+| I examined a clue and the objective did not move on | [WorkshopMission](systems/WorkshopMission.md) |
 | I fall through the ship's floor or cannot climb the boarding stair | [PlayerShip](systems/PlayerShip.md) |
 | I fixed the mapping mid-session and it is still silent | [audio](systems/audio.md) |
 | I fly along running on the spot in mid-air | [Jetpack](systems/Jetpack.md) |
@@ -716,12 +734,19 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I get charged fall damage AND crash damage for one landing | [Wingsuit](systems/Wingsuit.md) |
 | I have an mp3 or wav and need it played by a creature or a prop | [audio](systems/audio.md) |
 | I keep the shelter of a building after walking out of it, or after the chunk unloads | [Visor](systems/Visor.md) |
+| I killed the last thief and the Heart Gear fell under the terrain | [WorkshopMission](systems/WorkshopMission.md) |
+| I killed the thieves and there is no Heart Gear | [WorkshopMission](systems/WorkshopMission.md) |
 | I leash another player and the jetpack cannot get either of us off the ground | [Jetpack](systems/Jetpack.md) |
+| I let go of the core over the ship and it fell on the floor instead | [WorkshopCrane](systems/WorkshopCrane.md) |
 | I let the button go and the room moved on / did not stay where I left it | [Workshop](systems/Workshop.md) |
+| I lowered the core onto the ship and the story did not end | [WorkshopMission](systems/WorkshopMission.md) |
 | I mount a new vehicle and nothing I press moves it, with a clean console | [Vehicles](systems/Vehicles.md) |
 | I moved the creature's transform and it snapped back next frame | [Locomotion](systems/Locomotion.md) |
+| I netted the runner and he still has the gear | [WorkshopMission](systems/WorkshopMission.md) |
+| I put a gear on a peg and it does not turn | [GearDoor](systems/GearDoor.md) |
 | I put my backpack down inside the ship and ended up under the ship | [Backpack](systems/Backpack.md) |
 | I put things on a new layer and they still collide with everything | [ProjectConfig](systems/ProjectConfig.md) |
+| I reached the thieves' camp and nobody is there | [WorkshopMission](systems/WorkshopMission.md) |
 | I reload a save and the pack has taken off on its own | [Jetpack](systems/Jetpack.md) |
 | I respawned and was still on fire | [Flamethrower](systems/Flamethrower.md) |
 | I respawned still hogtied | [Hogtie](systems/Hogtie.md) |
@@ -737,12 +762,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I shoot a settler and the people standing next to him do nothing | [Residents](systems/Residents.md) |
 | I shoot a villager and the people standing next to him do nothing | [AgentSystem](systems/AgentSystem.md) |
 | I spawn with no camera, no HUD and no controls, and ticking the camera on by hand fixes it | [PlayerCharacter](systems/PlayerCharacter.md) |
+| I stand in the middle of the main room and no mission is given | [WorkshopMission](systems/WorkshopMission.md) |
 | I take fall damage on every landing | [Jetpack](systems/Jetpack.md) |
 | I walk into a house and nobody is ever there | [HouseVisits](systems/HouseVisits.md) |
 | I want to add a new sound and cannot find where to author the FMOD event | [audio](systems/audio.md) |
 | interaction dies silently on the client while the host works fine | [InteractionSystem](systems/InteractionSystem.md) |
 | InvalidOperationException: This can only be used during play mode (EditorSceneManager.NewScene) | [BottledSingularity](systems/BottledSingularity.md) |
 | inventory_wall_scale.py refuses to run, saying shrinking is not what this pass is for | [Backpack](systems/Backpack.md) |
+| it is hard to see where the hook is from the console | [WorkshopCrane](systems/WorkshopCrane.md) |
 | it is very hard to walk onto either boarding ramp, or I step off the side door into a hole | [PlayerShip](systems/PlayerShip.md) |
 | it works when I host but the client sees nothing happen | [Multiplayer](systems/Multiplayer.md) |
 | items I left lying on the ground are not caught by the terrain when I load the world, they just fall for ever | [Persistence](systems/Persistence.md) |
@@ -773,6 +800,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my component is a bag of nulls in the test because Awake never ran | [Testing](systems/Testing.md) |
 | my feet are buried through the deck when seated in a chair | [PlayerShip](systems/PlayerShip.md) |
 | my forearms are bare — no bracer at all, on any player | [BodyEquipment](systems/BodyEquipment.md) |
+| my gun fires when I pull the crane's grab lever | [WorkshopCrane](systems/WorkshopCrane.md) |
 | my hand-added component disappeared after someone rebuilt the prefab | [AgentSystem](systems/AgentSystem.md) |
 | my health gauge shows another player's health | [Visor](systems/Visor.md) |
 | my jetpack is suddenly gone, though the gear screen still says I am wearing it | [BodyEquipment](systems/BodyEquipment.md) |
@@ -819,7 +847,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one rope is cut and the rope beside it is skipped | [RopeCutting](systems/RopeCutting.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
+| only the hook moves up and down; the crane never climbs its towers | [Workshop](systems/Workshop.md) |
 | only the residents who saw me hit somebody react; the ones next to them never hear about it | [ResidentReputation](systems/ResidentReputation.md) |
+| only the Shellback from outside is in the main hall | [WorkshopMission](systems/WorkshopMission.md) |
 | only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
 | other players do not see the items lying on my pack | [Backpack](systems/Backpack.md) |
 | Outpost: Generate says No config assigned | [Outposts](systems/Outposts.md) |
@@ -854,10 +884,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pressing Q over a placed object pockets it and fires the left gauntlet at the same time | [Placeables](systems/Placeables.md) |
 | pressing respawn does nothing and the console shows MissingReferenceException from RagdollRig.Recover | [Combat](systems/Combat.md) |
 | pulling back on the stick does not climb, or the craft drops like a brick | [Ornithopter](systems/Ornithopter.md) |
+| putting a gear on the vault door moved a gear on the gate (or the other way round) | [GearDoor](systems/GearDoor.md) |
 | Q or E does nothing even though a gauntlet is worn | [BodyEquipment](systems/BodyEquipment.md) |
 | raising the dab rate above 15 changes nothing | [FoamGun](systems/FoamGun.md) |
 | raycasts and ground probes pass straight through fresh foam | [FoamGun](systems/FoamGun.md) |
 | Rebuild Workshop Prefab says READ BACK WRONG | [Workshop](systems/Workshop.md) |
+| Rebuild Workshop Prefab stops with: no gate leaf stands at u = ... | [GearDoor](systems/GearDoor.md) |
+| Rebuild Workshop Prefab stops with: workshop_layout.json has no vault door leaf | [GearDoor](systems/GearDoor.md) |
 | rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
 | rebuilding the wing pack makes the folded craft stowable on the back panels | [Ornithopter](systems/Ornithopter.md) |
 | regenerating a settlement gives a different street layout each time with the same seed | [TerrainGeneration](systems/TerrainGeneration.md) |
@@ -885,6 +918,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | right after loading, a sky transport turns straight around, flies home and comes back about 20 s later | [SkyTribe](systems/SkyTribe.md) |
 | right mouse no longer brings the held item up to the eye | [PlayerCharacter](systems/PlayerCharacter.md) |
 | right-clicking a placed object does nothing | [Placeables](systems/Placeables.md) |
+| right-clicking a poster does nothing, or the prompt never appears | [WantedPosters](systems/WantedPosters.md) |
 | right-clicking a vehicle from outside seats me in its cockpit | [InteractionSystem](systems/InteractionSystem.md) |
 | right-clicking anywhere on the hull puts me in the pilot's chair | [PlayerShip](systems/PlayerShip.md) |
 | right-clicking anywhere on the hull puts me in the pilot's chair | [Vehicles](systems/Vehicles.md) |
@@ -1011,10 +1045,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the controls came back in the middle of being frozen, foamed or swallowed | [Diagnostics](systems/Diagnostics.md) |
 | the controls checklist does not tick while I am still strapped into the seat | [Objectives](systems/Objectives.md) |
 | the controls checklist is stuck on waiting for the rest of the crew | [Objectives](systems/Objectives.md) |
+| the core hanging on the hook is gone after loading the world | [WorkshopCrane](systems/WorkshopCrane.md) |
+| the core lands next to the ship's mount instead of on it | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
 | the craft grinds along a rock face forever instead of crashing | [Ornithopter](systems/Ornithopter.md) |
 | the craft is hauled into the cliff it was hooked to | [Ornithopter](systems/Ornithopter.md) |
 | the craft is invisible to everyone but the host after launching | [Ornithopter](systems/Ornithopter.md) |
+| the crane console says: Step up to the crane console | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the crash cutscene starts seconds earlier on the host than on the client | [Cutscenes](systems/Cutscenes.md) |
 | the crash-landing intro never plays and nobody spawns, with one error in the console | [PlayerShip](systems/PlayerShip.md) |
 | the crash-landing scene goes on too long before I get control | [PlayerShip](systems/PlayerShip.md) |
@@ -1048,6 +1085,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the entry burn is still blazing when the screen fades to black at the impact | [PlayerShip](systems/PlayerShip.md) |
 | the entry fire is drawn over the inside of the cabin as well as out of the window | [PlayerShip](systems/PlayerShip.md) |
 | the export stops with: Blender renamed N exported node(s) | [Workshop](systems/Workshop.md) |
+| the export stops with: X turns about (...), not about its gear | [Workshop](systems/Workshop.md) |
 | the exported FBX is nowhere in the project and nothing imports it | [ArtPipeline](systems/ArtPipeline.md) |
 | the exported skin is a sibling's texture, not the one painted in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | the eyelids are darker and more saturated than the face around them | [StylizedEyes](systems/StylizedEyes.md) |
@@ -1090,23 +1128,31 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the game is frozen behind a free cursor with no menu on screen | [Diagnostics](systems/Diagnostics.md) |
 | the game is laggy with five or six players but fine with two | [Multiplayer](systems/Multiplayer.md) |
 | the game stays frozen after I close the menu and nothing can unfreeze it | [UI](systems/UI.md) |
+| the gate is sunk into the ground: its bottom pegs are under the sand and I cannot walk into the lane | [GearDoor](systems/GearDoor.md) |
+| the gate opened but the Shellback stays outside / nobody comes to meet me | [WorkshopMission](systems/WorkshopMission.md) |
 | the gauge changes colour but the bar never moves | [SupplyGauge](systems/SupplyGauge.md) |
 | the gauge flickers where it meets the model | [SupplyGauge](systems/SupplyGauge.md) |
 | the gauntlet does not appear at all when I equip it | [BodyEquipment](systems/BodyEquipment.md) |
 | the gauntlet is on the underside of my arm, or its screen faces the palm | [BodyEquipment](systems/BodyEquipment.md) |
 | the gauntlet poses my arm as if I were holding it, or the held item and the gauntlet fight for the hand | [BodyEquipment](systems/BodyEquipment.md) |
+| the gear pile lies back in front of the gate after a reload / the gate is shut again after a reload | [GearDoor](systems/GearDoor.md) |
 | the gear screen holds my arms out when I am wearing nothing that needs it | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen rings a slot red and shakes it when I click | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen shows my character but no ghost device on the empty arm | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen will not open | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen's wings are a third of the size they should be | [BodyEquipment](systems/BodyEquipment.md) |
+| the gear thieves never appear | [WorkshopMission](systems/WorkshopMission.md) |
 | the gear wall clips the arch rib and the test that says so is documented as failing on purpose | [PlayerShip](systems/PlayerShip.md) |
 | the gear wall has one more bottle on it than there are people in the crew | [Oxygen](systems/Oxygen.md) |
 | the gear wall's headroom check names the gear wall itself as the thing overhead | [PlayerShip](systems/PlayerShip.md) |
 | the gear wall's readout vanishes when a deployed rig or my own worn gear is in front of it | [Backpack](systems/Backpack.md) |
+| the gear will not go on the peg: It would hit the gear beside it | [GearDoor](systems/GearDoor.md) |
+| the gears on the gate turn but their teeth pass through each other | [GearDoor](systems/GearDoor.md) |
+| the gears on the hoist or on the gear wall swing round through the room instead of turning in place | [Workshop](systems/Workshop.md) |
 | the ghost cells stay red and the item refuses to drop anywhere on the pack | [Backpack](systems/Backpack.md) |
 | the ghost on my arm is a flat solid colour with no see-through edge | [BodyEquipment](systems/BodyEquipment.md) |
 | the glide sinks so fast there is no time to aim it anywhere | [Wingsuit](systems/Wingsuit.md) |
+| the grab lever says: Nothing under the hook to take hold of | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the grappling hook draws its rope but pulls nothing while I am flying | [Ornithopter](systems/Ornithopter.md) |
 | the grappling hook hooks straight down instead of where I am pointing while flying | [Ornithopter](systems/Ornithopter.md) |
 | the ground does not appear when I look at it from far away, even though the chunks are loaded | [Environment](systems/Environment.md) |
@@ -1118,10 +1164,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the hand cog says: Step up to the hand cog | [Workshop](systems/Workshop.md) |
 | the hand cog turns but its pinion, the sleeve gear or the ring on the wall stands still | [Workshop](systems/Workshop.md) |
+| the harpoon's wire is a flat flickering stripe instead of a cable | [Artifacts](systems/Artifacts.md) |
 | the health bar is gone after I pressed H | [Visor](systems/Visor.md) |
 | the heat gauge never appears, or fills toward danger instead of emptying | [Jetpack](systems/Jetpack.md) |
 | the highlighted cell on the gear wall is not the one under the crosshair, or its board is bigger than the grid drawn on it | [Backpack](systems/Backpack.md) |
+| the hoist runs its round again after loading the world | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the hoist stands still / is in a different place on another machine / where are the crane levers | [Workshop](systems/Workshop.md) |
+| the hoist will not come any closer to the balcony | [WorkshopCrane](systems/WorkshopCrane.md) |
+| the hook stops in mid-air and will not go down any further | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the horizon rolls when I bank and it makes me ill | [Wingsuit](systems/Wingsuit.md) |
 | the horse kicks me instead of the Clanker riding it shooting me | [AgentSystem](systems/AgentSystem.md) |
 | the host can pick 8 teams of 12 in a 24-seat lobby | [GameModes](systems/GameModes.md) |
@@ -1250,9 +1300,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the pods do not move when I steer | [Jetpack](systems/Jetpack.md) |
 | the pods swing but the flames stay pointing straight down | [Jetpack](systems/Jetpack.md) |
 | the portal's glowing outline is drawn well clear of the hole it surrounds | [Portals](systems/Portals.md) |
+| the poster texture is square or squashed in the game | [WantedPosters](systems/WantedPosters.md) |
 | the power cell I fitted is gone after loading the world, and the plant is dark again | [Oxygen](systems/Oxygen.md) |
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
 | the prefab still renders the old materials after an FBX reimport | [ArtPipeline](systems/ArtPipeline.md) |
+| the printed bandit is nearly all dots and black | [WantedPosters](systems/WantedPosters.md) |
 | the project has no 'Ladder' NavMesh area | [Ladders](systems/Ladders.md) |
 | the projectile or rope is invisible to everyone except the shooter | [Artifacts](systems/Artifacts.md) |
 | the projectile works on the host but never appears for clients | [Combat](systems/Combat.md) |
@@ -1275,6 +1327,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the residents baseline observer moved hundreds of metres by the end | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | the residents baseline says conversations opened: 0 | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | the residents baseline shows every resident on Break at its door all day | [Residents](systems/Residents.md) |
+| the residents stand at the ledge rail over the main room instead of coming down | [WorkshopMission](systems/WorkshopMission.md) |
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
@@ -1321,9 +1374,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the server teleports a player and it snaps back within a frame | [Multiplayer](systems/Multiplayer.md) |
 | the settlement or cave comes out different every time I regenerate | [TerrainGeneration](systems/TerrainGeneration.md) |
 | the settlement turns on me neighbour by neighbour for a minute or two after one punch | [ResidentReputation](systems/ResidentReputation.md) |
+| the Shellback at the gate says the same thing whatever I do | [WorkshopMission](systems/WorkshopMission.md) |
+| the Shellback says nothing until I talk to him | [WorkshopMission](systems/WorkshopMission.md) |
 | the Shellbacks in the workshop are all asleep and never get up | [Workshop](systems/Workshop.md) |
 | the ship crash-lands normally but the screen never goes black and I keep my controls | [PlayerShip](systems/PlayerShip.md) |
 | the ship crash-lands on top of a building, an outpost or a rock instead of on open ground | [PlayerShip](systems/PlayerShip.md) |
+| the ship does not fit through the main room's entrance | [Workshop](systems/Workshop.md) |
 | the ship export exits naming a mesh that used to be in the .blend, or the build aborts saying the model is missing a part | [PlayerShip](systems/PlayerShip.md) |
 | the ship falls dead straight and steady, like a hull on rails rather than a wreck | [PlayerShip](systems/PlayerShip.md) |
 | the ship falls the whole way down with no sign of atmospheric heating | [PlayerShip](systems/PlayerShip.md) |
@@ -1337,6 +1393,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship's gear wall got smaller when I resized the backpack | [Backpack](systems/Backpack.md) |
 | the ship's gear wall holds the same stores however many players landed in it | [Backpack](systems/Backpack.md) |
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
+| the shock harpoon bites a body and nothing crackles, or the body never falls | [Artifacts](systems/Artifacts.md) |
 | the singularity eats things but they never go anywhere | [BottledSingularity](systems/BottledSingularity.md) |
 | the singularity is invisible — no sphere, no ring, just the bottle | [BottledSingularity](systems/BottledSingularity.md) |
 | the Sky roster only ever has four people even though a fifth recipe exists | [SkyTribe](systems/SkyTribe.md) |
@@ -1371,6 +1428,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the terminal's page changes for me but not for the other player | [Terminal](systems/Terminal.md) |
 | the terminal's SHIP page is a flat white rectangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the Test Runner reports nothing at all instead of a failing test | [Testing](systems/Testing.md) |
+| the thief with the gear runs away and I cannot catch him | [WorkshopMission](systems/WorkshopMission.md) |
 | the third-person camera on the mount jitters or doubles the vehicle's motion | [Vehicles](systems/Vehicles.md) |
 | the thrown loop passes over the animal I aimed at and lands well behind it | [Lasso](systems/Lasso.md) |
 | the tint I set to mark the selected entry disappears after one frame | [UI](systems/UI.md) |
@@ -1388,6 +1446,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the turret or NPC aims its weapon at the host's camera | [Combat](systems/Combat.md) |
 | the two rows of team plates land in the same band of screen and smear together | [Lobby](systems/Lobby.md) |
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
+| the vault is empty: there is no reactor core on the cradle | [WorkshopMission](systems/WorkshopMission.md) |
+| the vault's loose cogs lie on the floor instead of the bench | [GearDoor](systems/GearDoor.md) |
 | the vehicle drives fine for the host but a client steers a body that snaps back | [Vehicles](systems/Vehicles.md) |
 | the vehicle stops answering its pilot the moment a passenger takes another seat on it | [Vehicles](systems/Vehicles.md) |
 | the versus lobby's player names come out too small on an ultrawide and too large on a narrow window | [Lobby](systems/Lobby.md) |
@@ -1395,6 +1455,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the visor comes back offset to one side after a menu closes | [Visor](systems/Visor.md) |
 | the visor describes what another player is looking at | [Visor](systems/Visor.md) |
 | the visor is a flat overlay and does not feel like it is drawn on glass | [Visor](systems/Visor.md) |
+| the visor points at an empty patch of sand during the hunt | [WorkshopMission](systems/WorkshopMission.md) |
+| the visor shows the crash-site objective instead of the workshop's | [WorkshopMission](systems/WorkshopMission.md) |
 | the volume sliders in the settings menu do nothing | [audio](systems/audio.md) |
 | the walkability tests are green and I still get caught on something in the cabin | [PlayerShip](systems/PlayerShip.md) |
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
@@ -1421,6 +1483,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wingsuit and the wing pack cannot both be carried | [Wingsuit](systems/Wingsuit.md) |
 | the wireframe draws every edge of every triangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the words on a worn gauntlet's screen read backwards | [Artifacts](systems/Artifacts.md) |
+| the workshop gate is shut and I cannot get into the ship lane | [GearDoor](systems/GearDoor.md) |
 | the workshop prefab lost my hand edits | [Workshop](systems/Workshop.md) |
 | the workshop's gears do not turn, or turn through each other | [Workshop](systems/Workshop.md) |
 | the world list only shows two saves before it has to be scrolled | [UI](systems/UI.md) |
@@ -1451,6 +1514,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | there is an oxygen tank on the pack that nothing can take off | [Backpack](systems/Backpack.md) |
 | there is no ground under the ship for most of the descent, only sky | [PlayerShip](systems/PlayerShip.md) |
 | there is no smoke at all, however hot the pack gets | [Jetpack](systems/Jetpack.md) |
+| there is nobody outside the workshop gate | [WorkshopMission](systems/WorkshopMission.md) |
 | there is nothing to do with a roped animal except drag it around | [Lasso](systems/Lasso.md) |
 | there is nowhere near enough foam standing after a long spray | [FoamGun](systems/FoamGun.md) |
 | there is one spare oxygen tank on the ship's gear wall however many of us landed in it | [Oxygen](systems/Oxygen.md) |
@@ -1506,6 +1570,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.SettlementWork.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Config/SettlementStreetStyle.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetNetwork.cs` | [SettlementStreets](systems/SettlementStreets.md) |
+| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementLayoutResult.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetLayout.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementTerraceField.cs` | [SettlementStreets](systems/SettlementStreets.md) |
@@ -1522,19 +1587,23 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPlaza.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/astronaut_decorations_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart_Hover.prefab` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Gatekeeper.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Biomes/Outpost.cs` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/nomad_interiors_export.py` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart.prefab` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Prefabs/Environment/Structures/Workshop/WorkshopOutpost.prefab` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Art/Models/Environment/Structures/Outpost/OutpostLayouts.json` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/raxy_outposts_export.py` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/WorkshopMissionSaveable.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1574,6 +1643,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs` | [Environment](systems/Environment.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/SkyTribeFaction.asset` | [SkyTribe](systems/SkyTribe.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/GearDoorSaveable.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/WorkshopSaveable.cs` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Scripts/Items/Artifacts/NetGun/SnareStruggleReader.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
@@ -1585,6 +1655,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineCounts.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/gear_kit_export.py` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Astronaut/Exterior/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement/` | [ColonyInterior](systems/ColonyInterior.md) |
@@ -1603,12 +1674,14 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormCloud.mat` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/ScriptableObjects/Workshop/GearThiefCampSite.asset` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitPose.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/GearSaveCodec.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/LeashSaveable.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Scripts/Core/Safety/Guards/SingularityVoidGuard.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Scripts/Items/Placeables/Rules/GearPegPlacement.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineRun.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormVeil.mat` | [StormFlask](systems/StormFlask.md) |
@@ -1623,35 +1696,45 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackPlacement.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs` | [CharacterClothes](systems/CharacterClothes.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCraneMountGhost.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Prefabs/agents/Caravan/Raider_GearCarrier.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/ScriptableObjects/Settlements/NomadStreets.asset` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs` | [WorldStreaming](systems/WorldStreaming.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/TrackedObjectives.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ResidentPushing.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ResidentSeating.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Residents/Data/ChoreDefinition.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamBlob.prefab` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopCrane](systems/WorkshopCrane.md) |
+| `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/TalkingMouth.cs` | [TalkingMouth](systems/TalkingMouth.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Presentation/UI/Pages/PosterViewerUI.cs` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/StationTable.cs` | [StationTable](systems/StationTable.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FoamGun.prefab` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Prefabs/Items/Workshop/VaultReactorCore.prefab` | [WorkshopCrane](systems/WorkshopCrane.md) |
+| `Assets/Game/Prefabs/Items/Workshop/VaultReactorCore.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/agents/Caravan/Raider_GearThief.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCraneConsole.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Residents/Core/PerimeterRing.cs` | [Errands](systems/Errands.md) |
@@ -1659,6 +1742,7 @@ Longest match wins.
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Negative.png` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Textures/Effects/AirlockMist_Positive.png` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCraneCamera.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs` | [Seats](systems/Seats.md) |
@@ -1671,6 +1755,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Leash.prefab` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs` | [EntitySystem](systems/EntitySystem.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCraneReach.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Residents/Plan/ChoreRounds.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Models/Environment/Structures/Workshop/` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloudVolume.hlsl` | [StormFlask](systems/StormFlask.md) |
@@ -1678,6 +1763,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Appearance/EyeBlink.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Presentation/UI/Theme/VisorStyle.cs` | [Visor](systems/Visor.md) |
 | `Assets/Game/Scripts/Vehicles/Stations/StationFooting.cs` | [Workshop](systems/Workshop.md) |
+| `Assets/Game/Scripts/Vehicles/Stations/StationFooting.cs` | [Workshop](systems/Workshop.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCraneHook.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Residents/Core/Companions.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Astronaut/` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Resources/Items/Artifacts/StormFlask.asset` | [StormFlask](systems/StormFlask.md) |
@@ -1690,6 +1777,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Animation/ArmReach.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Art/Shaders/Effects/FlameBillboard.shader` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Shaders/Effects/FlashlightBeam.shader` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Editor/Workshop/WorkshopMissionBuilder.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Furniture` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1698,6 +1786,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Attitude.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Prefabs/Environment/Decorations/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BurningStatus.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1709,8 +1798,11 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/ActionReachMeasurer.cs` | [StationTable](systems/StationTable.md) |
 | `Assets/Game/Editor/AssetPipeline/CmuClipImporter.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Tests/WorkshopHoistRoundTests.cs` | [Workshop](systems/Workshop.md) |
+| `Assets/Game/Editor/Workshop/WorkshopCraneBuilder.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
+| `Assets/Game/Editor/Workshop/WorkshopGroundCutter.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Outpost/` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Prefabs/Items/Workshop/HeartGear.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs` | [Portals](systems/Portals.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
@@ -1718,6 +1810,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
+| `Assets/Game/Scripts/World/Workshop/WorkshopCrane.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader` | [FoamGun](systems/FoamGun.md) |
@@ -1726,6 +1819,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Tests/WorkshopTurntableTests.cs` | [Workshop](systems/Workshop.md) |
+| `Assets/Game/Editor/Workshop/GearThiefCampPlacer.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Prefabs/agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StrapOnBooster` | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -1760,6 +1854,8 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/LadderTraversalTests.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Tests/TerraceKitAssetTests.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
+| `Assets/Game/Editor/Tests/WorkshopMissionTests.cs` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Editor/Workshop/VaultDoorLayout.json` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/ScriptableObjects/Settlements/Spots/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
@@ -1780,6 +1876,9 @@ Longest match wins.
 | `Assets/Game/Editor/Environment/LookLabWindow.cs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Editor/Tests/AirlockTransitTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Editor/Tests/CartPoseSolverTests.cs` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/Editor/Tests/GearDoorLayoutTests.cs` | [GearDoor](systems/GearDoor.md) |
+| `Assets/Game/Editor/Workshop/CarriedGearItems.cs` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Editor/Workshop/GearDoorLayout.json` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Vehicles/ColonyRover.prefab` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/ScriptableObjects/Residents/Chores/` | [Errands](systems/Errands.md) |
@@ -1795,6 +1894,8 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/BoosterWiringTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/BurningStatusTests.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Editor/Tests/OutpostPrefabTests.cs` | [Outposts](systems/Outposts.md) |
+| `Assets/Game/Editor/Tests/WorkshopCraneTests.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
+| `Assets/Game/Editor/Workshop/GearDoorBuilder.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Editor/World/ColonyStandSnapper.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
@@ -1810,6 +1911,8 @@ Longest match wins.
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Editor/Tests/ColonyZFightTests.cs` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Editor/Tests/WantedPosterTests.cs` | [WantedPosters](systems/WantedPosters.md) |
+| `Assets/Game/Editor/Workshop/GearDoorLayout.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Editor/World/PushableAuthoring.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -1830,6 +1933,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Persistence/Editor/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Core/Persistence/Format/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Gameplay/Versus/Runtime/` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Scripts/Items/Core/LooseItems.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Presentation/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Presentation/UI/Widgets/` | [Lobby](systems/Lobby.md) |
@@ -1861,6 +1965,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Placement/` | [Cutscenes](systems/Cutscenes.md) |
 | `Assets/Game/Tests/EditMode/WalkerTestRig.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Editor/Tests/FoamFieldTests.cs` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Editor/Tests/GearTrainTests.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Ghosts` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/agents/Characters/Raxy` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/ScriptableObjects/Expeditions/` | [Expeditions](systems/Expeditions.md) |
@@ -1869,6 +1974,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/Vehicles/Rover/Patrol/` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/World/WorkshopMission/` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Art/Materials/Characters/Raxy` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Models/Items/squirter.fbx` | [FoamGun](systems/FoamGun.md) |
@@ -1906,12 +2012,14 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Editor/Tests/LassoTests.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Prefabs/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
+| `Assets/Game/ScriptableObjects/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Core/GameServices/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/World/Environment/` | [Environment](systems/Environment.md) |
 | `Assets/Game/Settings/PC_Renderer.asset` | [Environment](systems/Environment.md) |
 | `Assets/Game/Editor/Agents/EyeStyle.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Tests/SeatTests.cs` | [Seats](systems/Seats.md) |
+| `Assets/Game/Resources/Items/Workshop/` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/Core/Diagnostics/` | [Diagnostics](systems/Diagnostics.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Core/Teleporting/` | [SceneTransitions](systems/SceneTransitions.md) |
@@ -1938,10 +2046,13 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Streaming/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/ThirdParty/Motion Cast-FREE01` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Art/Animations/Humanoid` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| `Assets/Game/Art/Models/Props/Gears/` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Prefabs/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
+| `Assets/Game/Prefabs/Items/Workshop/` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/Gear/JumpingRod` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Inventory` | [Inventory](systems/Inventory.md) |
+| `Assets/Game/Scripts/World/GearDoor/` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/World/Workshop/` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Art/Models/Items/Tools` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Art/Shaders/Characters` | [StylizedEyes](systems/StylizedEyes.md) |
@@ -1955,9 +2066,11 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Scripts/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Items/Supplies` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/World/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/World/Seating/` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Entity/` | [EntitySystem](systems/EntitySystem.md) |
 | `ProjectSettings/NavMeshAreas.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Art/Textures/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Tools` | [HandTools](systems/HandTools.md) |
@@ -1980,6 +2093,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Input/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Items/Tools` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Scripts/Locomotion/` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Art/Fonts/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scenes/References/` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Scripts/Creatures/` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Scripts/Items/Body` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1997,6 +2111,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Weapons/` | [Combat](systems/Combat.md) |
 | `Assets/ThirdParty/Quaternius` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Editor/Backpack` | [Backpack](systems/Backpack.md) |
+| `Assets/Game/Editor/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Editor/Terrain/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Prefabs/Camera/` | [Environment](systems/Environment.md) |
 | `Assets/Game/Prefabs/agents/` | [AgentSystem](systems/AgentSystem.md) |
@@ -2009,6 +2124,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Prefabs/Items` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Tests/Editor/` | [Testing](systems/Testing.md) |
+| `tools/gear_door_layout.py` | [GearDoor](systems/GearDoor.md) |
 | `tools/palette_preview.py` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Art/Models` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Packages/manifest.json` | [ProjectConfig](systems/ProjectConfig.md) |
@@ -2022,4 +2138,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1477 symptoms, 519 paths, 82 docs -->
+<!-- 1541 symptoms, 571 paths, 86 docs -->

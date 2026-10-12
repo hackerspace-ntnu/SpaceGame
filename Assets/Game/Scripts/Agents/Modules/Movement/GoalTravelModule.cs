@@ -23,7 +23,7 @@ namespace SpaceGame.Agents
         [SerializeField] private float speedMultiplier = 1f;
 
         [Tooltip("Run rather than walk while travelling. Long hauls generally look better walked; " +
-                 "turn this on for anything chasing a lead.")]
+                 "turn this on for anything chasing a lead. A goal set to run (AgentGoal.Run) runs either way.")]
         [SerializeField] private bool run = false;
 
         [Tooltip("Extra margin added to the goal's own arrive radius before the motor is told to " +
@@ -157,7 +157,7 @@ namespace SpaceGame.Agents
                 goal.Position,
                 goal.ArriveRadius + stopDistanceMargin,
                 speedMultiplier * goal.SpeedMultiplier,
-                isRunning: run);
+                isRunning: run || goal.Run);
         }
     }
 }

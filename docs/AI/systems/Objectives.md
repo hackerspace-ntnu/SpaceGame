@@ -17,8 +17,8 @@ symptoms:
   - "the controls checklist is stuck on waiting for the rest of the crew"
   - "the controls checklist does not tick while I am still strapped into the seat"
   - "a second belly turbine appears by the wreck after loading the world"
-reads_with: [PlayerShip, Visor, Cutscenes, Multiplayer, Persistence]
-updated: 2026-09-28
+reads_with: [PlayerShip, Visor, Cutscenes, Multiplayer, Persistence, WorkshopMission]
+updated: 2026-10-11
 ---
 
 # Objectives
@@ -71,7 +71,7 @@ visor layer is [Visor](Visor.md).
 | `TryArtifactStep` | Drops `JumpingRod` 22 m off the nose; met on `UseChannel.UsedOnServer` for that asset |
 | `RepairShipStep` | `ShipPartRack.IsComplete`; `Status` = `Modules fitted n/total` |
 | [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays a step's lines through `NpcDialogPopupUI`, prefixed with the speaker, once the local player is present; `LookAtCutscene` to the focus |
-| [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading, title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a step change; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`) |
+| [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading, title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a change of objective; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`). Shows the newest open world mission (`TrackedObjectives.Newest`, e.g. [WorkshopMission](WorkshopMission.md)) and the chain step (`ObjectiveDirector.Tracked`, an `ITrackedObjective` per step) only when there is none |
 | `ObjectiveBeacon` | Placeholder light column over `TryGetBeacon` |
 
 ## Flows

@@ -15,7 +15,7 @@ symptoms:
   - "pressing Q over a placed object pockets it and fires the left gauntlet at the same time"
   - "Wire Saveable Prefabs reports success but the placed half's prefabId is still empty"
 reads_with: [Artifacts, InteractionSystem, Backpack, Saddles]
-updated: 2026-09-17
+updated: 2026-10-11
 ---
 
 # Placeables
@@ -49,6 +49,7 @@ press finds its target), [Saddles.md](Saddles.md) (the same verb on an animal).
 | --- | --- | --- |
 | `GroundPlacement` | ground no steeper than `maxGroundAngle` | spawn `placedPrefab`, facing away from the placer |
 | `SaddlePlacement` | the target has a free `SaddleSocket` | `socket.Fit()` — an `Instantiate` onto a bone, **not** a spawn |
+| `GearPegPlacement` | a free peg of a `GearDoor` near the aim **point** (the target resolves to the building on the server), and a gear of this size there would not hit another | `GearDoor.ServerSeat` — one slot set, **not** a spawn ([GearDoor.md](GearDoor.md)). Previews a green or red ghost on the peg |
 
 - **The system owns the loop; a rule owns the meaning.** Every placeable does the same four things
   — aim on the holder's machine, ask whether it may go there, place it on the server, spend the item
@@ -158,6 +159,7 @@ one (`PlacedObject` + collider + `NetworkObject` + `SaveableEntity` + `Transform
 **A placeable that attaches to something** — write a `PlacementRule` instead. `CanPlace` is the
 criteria, `Place` returns whether the world changed, and no other file needs to know it exists.
 `SaddlePlacement` is 60 lines and is the worked example.
+To show where it would go before the press, override `Preview`/`EndPreview` (every frame, holder's machine only, same aim and `CanPlace` as the press; `PlacementTint`'s green/red, as `GearPegPlacement` does).
 
 **A new ground placeable, fast** — a builder on `PlaceablePairBuilder` (`EnsureItemAsset` → placed half via `Instantiate` + your components + `AddPlacedWiring` → `BuildHeld` → `Link`), as `StormWardBuilder` does; then Sync Network Prefabs, Wire Saveable Prefabs, Generate All Item Icons.
 

@@ -24,6 +24,9 @@ namespace SpaceGame.World
         HoistBridge = 16,
         HoistTrolley = 17,
 
+        /// <summary>Metres the hoist's runways, and all they carry, have climbed its tower beams from where they are modelled.</summary>
+        HoistLift = 18,
+
         /// <summary>
         /// Degrees the first turning room has turned from the pose it is modelled in. The rooms follow one another
         /// from here in the layout's order, as many as the workshop has: room i is <c>Room + i</c>, which is why
@@ -89,7 +92,8 @@ namespace SpaceGame.World
         /// </summary>
         public void Apply(IReadOnlyList<float> values)
         {
-            bool first = shown == null;
+            // The editor's reload hands back an empty array, not null: anything of the wrong length is remembered afresh.
+            bool first = shown == null || shown.Length != values.Count;
             if (first) Remember(values.Count);
 
             for (int i = 0; i < spinners.Length; i++)

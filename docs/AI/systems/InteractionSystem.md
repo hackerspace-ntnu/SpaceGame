@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation, Pushables]
-updated: 2026-10-09
+updated: 2026-10-11
 ---
 
 # Interaction
@@ -87,9 +87,8 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `SettlementProp` | [World/…/Settlement/Props/SettlementProp.cs](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/SettlementProp.cs) | **Not interactable** — a settlement basket, crate or bucket that residents move on errands (state in its building's `SettlementPropSync`); players cannot take it. |
 | `DoorInteraction` on `NomadFenceGate` | [Prefabs/…/NomadSettlement/Props/NomadFenceGate.prefab](Assets/Game/Prefabs/Environment/Structures/NomadSettlement/Props/NomadFenceGate.prefab) | The animal keep's gates: one leaf on a `LeftDoors` hinge, authored shut, a carving `NavMeshObstacle` on the leaf. Replicates through the NetworkObject wrapper `Settlement.Generate` puts round the building; a hand-placed keep has none and swings per machine. |
 | `BackpackObject` | [Items/Backpack/BackpackObject.cs](Assets/Game/Scripts/Items/Backpack/BackpackObject.cs) | Grounded pack: open lid, or reshoulder it (server-decided). `IInteractionReadout`: prompt says *which* of the two verbs the press is on, `ValueText` says how much is stowed. No bar — a pack's limit is surface AREA, so there is no honest 0-1. |
-| `MountModule` | [agents/Modules/Riding/MountModule.cs](Assets/Game/Scripts/agents/Modules/Riding/MountModule.cs) | Mounts, via `MountNetworkSync.RequestMount`. Gated by `mountableByDirectInteraction`. |
+| `MountModule` · `MountStation` | [agents/Modules/Riding/MountModule.cs](Assets/Game/Scripts/agents/Modules/Riding/MountModule.cs) · [Vehicles/Stations/MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Mounts, via `MountNetworkSync.RequestMount`, gated by `mountableByDirectInteraction`. `MountStation` is the same seat, but only from an authored control (cockpit, wheel). |
 | `Seat` | [World/Seating/Seat.cs](Assets/Game/Scripts/World/Seating/Seat.cs) | Asks the server to sit the presser on it (`PlayerSeating.RequestSit`); refused while taken or while the presser already sits. `IInteractionReadout`: "Seat" / "RMB: sit". See [Seats.md](Seats.md). A `Pushable` cart is the same shape (`PlayerPushing.RequestGrip`, "RMB: push", within `gripReach`; [Pushables.md](Pushables.md)). |
-| `MountStation` | [Vehicles/Stations/MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Same seat, but only from an authored control (cockpit, wheel). |
 | `VehicleStation` (abstract) | [Vehicles/Stations/VehicleStation.cs](Assets/Game/Scripts/Vehicles/Stations/VehicleStation.cs) | Claim/work/stand-down over `NetMsg.StationClaim`/`StationState`, addressed to the **vehicle's** channel. |
 | `DuneFoilHelm` | [Vehicles/Stations/DuneFoilHelm.cs](Assets/Game/Scripts/Vehicles/Stations/DuneFoilHelm.cs) | Take the wheel / stand down; steers the foil. `IInteractionReadout`. |
 | `DuneFoilRiggingStation` | [Vehicles/Stations/DuneFoilRiggingStation.cs](Assets/Game/Scripts/Vehicles/Stations/DuneFoilRiggingStation.cs) | RMB = more, LMB = less (`ISecondaryInteractable`), predicted locally then confirmed. |
@@ -97,6 +96,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | `ArticulatedPartInteraction` | [Vehicles/Parts/ArticulatedPartInteraction.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPartInteraction.cs) | Toggles a group of hinged parts via `NetMsg.PartToggle`. |
 | `SpaceshipLaunchInteract` | [Spaceship/SpaceshipLaunchInteract.cs](Assets/Game/Scripts/Spaceship/SpaceshipLaunchInteract.cs) | Launches the ship; `NetLatch` (`ILatchHost`). |
 | `InteriorEntrance` | [Core/SceneManagement/Interiors/InteriorEntrance.cs](Assets/Game/Scripts/Core/SceneManagement/Interiors/InteriorEntrance.cs) | `InteriorManager.EnterInterior`, unless lock-out is active. |
+| `WantedPoster` | [World/Posters/WantedPoster.cs](Assets/Game/Scripts/World/Posters/WantedPoster.cs) | Holds the poster up full-screen ([`PosterViewerUI`](Assets/Game/Scripts/Presentation/UI/Pages/PosterViewerUI.cs)) on the presser's machine. "Wanted: <name>" / "RMB: read". No netcode, nothing saved. See [WantedPosters.md](WantedPosters.md). |
 | `CaveExitCover` | [World/…/CaveExitCover.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveExitCover.cs) | Leaves the cave (also a walk-in volume). Exits whichever body `InteriorManager.ResolveOccupant` names — a rider's press-E leaves on the **mount's** record. |
 
 ## Flows
@@ -157,7 +157,7 @@ All five are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persis
 - **`NetLatch` state starts `false`**: fixtures must be authored in their off pose (door shut, lever at rest).
 - **`TraderProfile.CloneOffers()` rebuilds the live list in `Awake` every session**, so a restore has to *replace* the list (`RestoreOffers`), not nudge it. Mutating the asset directly empties every trader sharing it — and persists to disk in the editor.
 - **Trading is code-complete but unauthored**: no `TraderProfile` asset exists and no prefab or scene references `TraderInteraction`. It also needs a `DialogInteraction` on the same GameObject (that is the only entry point) and an `EntityInventoryComponent` if payment should land anywhere.
-- **Nomad settlements allow exactly three interactables: building doors (`InteractableTrigger` → `SceneTransition`), pen gates (`DoorInteraction`) and `Seat`s.** Props and fixtures are scenery; `SettlementInteractableTests` scans the NomadSettlement prefabs for any other `IInteractable`. A seat is a trigger on its own root, so the crosshair reaches it from any side; it answers only a player who may sit ([Seats.md](Seats.md)).
+- **Nomad settlements allow exactly five interactables: building doors (`InteractableTrigger` → `SceneTransition`), pen gates (`DoorInteraction`), `Seat`s, `Pushable` carts and `WantedPoster`s.** Props and fixtures are scenery; `SettlementInteractableTests` scans the NomadSettlement prefabs for any other `IInteractable`. A seat is a trigger on its own root, so the crosshair reaches it from any side; it answers only a player who may sit ([Seats.md](Seats.md)).
 - **A second `IInteractable` on the same collider is ambiguous** — `GetComponent<IInteractable>()` picks by component order. That is why `TraderInteraction` routes through `DialogInteraction`.
 - **Menus gate input via `GameplayMenuScope`**, which puts the player in cutscene mode; right mouse stops reaching `Interactor` while `TradeUI` (or any scoped panel) is open. `TradeUI` fades on `unscaledDeltaTime` because the scope freezes the clock solo.
 - **Right mouse is shared with the UI map and with the lasso.** `UI/RightClick` is bound to the same physical button and stays enabled during play, so a lasso rope reels in on the same press that interacts. Harmless in practice — interact does nothing without a hovered target — but a new right-mouse gameplay verb has to reckon with it rather than assume the button is free.

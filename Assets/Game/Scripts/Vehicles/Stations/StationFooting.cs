@@ -27,6 +27,14 @@ namespace SpaceGame.Vehicles
         private Action letGo;
         private int beganFrame = -1;
 
+        private static int planted;
+
+        /// <summary>
+        /// This machine's player is planted at some station: their hands are on its controls, so the item in them must
+        /// not also go off when a control shares its button (the console's grab lever is Use).
+        /// </summary>
+        public static bool LocalPlanted => planted > 0;
+
         /// <summary>Somebody is planted here, on this machine.</summary>
         public bool Held { get; private set; }
 
@@ -38,6 +46,12 @@ namespace SpaceGame.Vehicles
 
         /// <summary>Whether the planted player still has Use down; false with nobody planted.</summary>
         public bool UseHeld => Held && input != null && input.UseHeld;
+
+        /// <summary>Whether the planted player has Jump down; false with nobody planted.</summary>
+        public bool JumpHeld => Held && input != null && input.JumpHeld;
+
+        /// <summary>Whether the planted player has Sprint down; false with nobody planted.</summary>
+        public bool SprintHeld => Held && input != null && input.SprintHeld;
 
         /// <summary>
         /// Plant <paramref name="player"/> where they stand, no further than <paramref name="reach"/> from
@@ -67,6 +81,7 @@ namespace SpaceGame.Vehicles
             if (input != null) input.OnInteractPressed += OnInteract;
 
             Held = true;
+            planted++;
             return true;
         }
 
@@ -89,6 +104,7 @@ namespace SpaceGame.Vehicles
         {
             if (input != null) input.OnInteractPressed -= OnInteract;
             if (restoreMovement && movement != null) movement.enabled = true;
+            if (Held) planted--;
 
             body = null;
             input = null;

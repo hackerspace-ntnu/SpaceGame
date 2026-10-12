@@ -6,9 +6,10 @@ namespace SpaceGame.World
 {
     /// <summary>
     /// Keeps every moving part of a workshop where it belongs: turns each cog, shaft and gear at the rate the room
-    /// or motor it belongs to demands, and runs the hoist round the main room by itself. Runs on every machine and
-    /// decides nothing: each <see cref="WorkshopWheel"/> decides its own room, and the hoist is a place for every
-    /// second on a clock all machines share (<see cref="WorkshopHoistRound"/>).
+    /// or motor it belongs to demands, and runs the hoist round the main room by itself until somebody takes its
+    /// console. Runs on every machine and decides nothing: each <see cref="WorkshopWheel"/> decides its own room, the
+    /// idle hoist is a place for every second on a clock all machines share (<see cref="WorkshopHoistRound"/>), and a
+    /// driven one stands where its <see cref="WorkshopCrane"/> says.
     ///
     /// <para>
     /// A room's angle is read straight off its <see cref="WorkshopTurntable"/> every frame, so its hand cog and the
@@ -28,7 +29,11 @@ namespace SpaceGame.World
         [SerializeField, Min(0f)] private float idlePerSecond = 5f;
 
         [Header("Hoist")]
+        [Tooltip("The round the hoist runs by itself until somebody takes its console.")]
         [SerializeField] private WorkshopHoistRound hoistRound = new();
+
+        [Tooltip("The hoist under a driver's hand, once somebody has taken its console.")]
+        [SerializeField] private WorkshopCrane crane;
 
         private float[] values;
 
@@ -41,6 +46,9 @@ namespace SpaceGame.World
         private static double Clock =>
             Network.IsNetworked && NetworkManager.Singleton != null ? NetworkManager.Singleton.ServerTime.Time : Time.timeAsDouble;
 
+        /// <summary>Where the round has the hoist now: bridge, trolley, hook let down, lift up, in metres.</summary>
+        public Vector4 RoundPose => hoistRound.At(Clock);
+
         private void Update()
         {
             float dt = Time.deltaTime;
@@ -51,13 +59,17 @@ namespace SpaceGame.World
             Set(WorkshopChannel.Idle, Get(WorkshopChannel.Idle) + (idlePerSecond * dt));
             Set(WorkshopChannel.Ambient, Get(WorkshopChannel.Ambient) + dt);
 
-            Vector3 hoist = hoistRound.At(Clock);
+            Vector4 hoist = crane != null && crane.IsDriven ? Driven(crane.Pose) : RoundPose;
             Set(WorkshopChannel.HoistBridge, hoist.x);
             Set(WorkshopChannel.HoistTrolley, hoist.y);
             Set(WorkshopChannel.Crane, hoist.z);
+            Set(WorkshopChannel.HoistLift, hoist.w);
 
             if (gearTrain != null) gearTrain.Apply(Values);
         }
+
+        private static Vector4 Driven(WorkshopCranePose pose) => new(pose.bridge, pose.trolley,
+            WorkshopCraneReach.HookDropOf(pose.height), WorkshopCraneReach.LiftOf(pose.height));
 
         private float Get(WorkshopChannel channel) => Values[(int)channel];
 

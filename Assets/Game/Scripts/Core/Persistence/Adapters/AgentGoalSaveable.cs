@@ -63,6 +63,9 @@ namespace SpaceGame.Core.Persistence
             public bool hasFacePoint;
 
             public Vector3 facePoint;
+
+            /// <summary>Run rather than walk there. Absent in older saves: walk, which is what they meant.</summary>
+            public bool run;
         }
 
         public object CaptureState()
@@ -84,6 +87,7 @@ namespace SpaceGame.Core.Persistence
                 hold = Goal.HoldOnArrival,
                 hasFacePoint = Goal.FacePoint.HasValue,
                 facePoint = Goal.FacePoint ?? Vector3.zero,
+                run = Goal.Run,
             };
         }
 
@@ -101,7 +105,7 @@ namespace SpaceGame.Core.Persistence
 
             Goal.RestoreGoal(restored.hasGoal, restored.position, restored.arriveRadius,
                              restored.reason, restored.siteId, restored.speedMultiplier,
-                             restored.hold, restored.hasFacePoint ? restored.facePoint : (Vector3?)null);
+                             restored.hold, restored.hasFacePoint ? restored.facePoint : (Vector3?)null, restored.run);
         }
     }
 }

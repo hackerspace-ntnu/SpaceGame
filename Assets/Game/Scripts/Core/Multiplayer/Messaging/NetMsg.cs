@@ -714,5 +714,42 @@ namespace SpaceGame.Core
         // hand cog, a VehicleStation (StationClaim / StationState).
         public const ushort WorkshopOperate = 126; // burned
         public const ushort WorkshopState   = 127; // burned
+
+        // ── Gear doors ──
+        // On the BUILDING's channel (the settlement wrapper's NetworkObject, or the building's root when it has none).
+        // One GearDoor per entity. A slot is a peg on the door (0 .. pegs-1) or a spot in the pile of loose gears
+        // beside it (pegs .. pegs+pile-1). Placing a gear is not a message here: it is the gear item's own use, and the
+        // server seats it through GearPegPlacement.
+        //   GearDoorTake  A = slot to take the gear from, Target = the taker's body; A = -1 asks for the state (a late
+        //                 joiner), and is answered with one GearDoorState per slot that differs from the start.
+        //   GearDoorState A = slot, B = the gear kind's index + 1 (0 empty), plus bit 8 when it is the answer to an
+        //                 ask or a restore (land in it: no sound, a solved door stands open at once).
+        public const ushort GearDoorTake  = 128; // taker → server
+        public const ushort GearDoorState = 129; // server → everyone
+
+        // ── Workshop mission ──
+        // On the BUILDING's channel, like the gear door. One WorkshopMission per entity: the gate's Shellback, the
+        // meeting in the main room, the gear thieves. The server decides; everything else on every machine (the
+        // Shellback's lines, the visor's objective) follows from this state.
+        //   WorkshopMissionAsk     a late joiner, or a client streaming the workshop in, asks for the state.
+        //   WorkshopMissionState   A = WorkshopMissionState.WithLive: phase, a player carries the gear, the thieves' camp
+        //                          is chosen (P is it), the thieves' carrier has the gear, clues examined, and whether it
+        //                          just happened (a briefing or a thanks may be spoken; off for an ask, restore or clue).
+        //   WorkshopMissionExamine A = the clue of the thieves' trail examined, Target = the examiner's body.
+        public const ushort WorkshopMissionAsk     = 130; // asker → server
+        public const ushort WorkshopMissionState   = 131; // server → everyone
+        public const ushort WorkshopMissionExamine = 132; // examiner → server
+
+        // ── Workshop crane ──
+        // On the BUILDING's channel. One WorkshopCrane per entity: the main room's hoist once somebody has taken its
+        // console. Who drives it is the console's VehicleStation claim (StationClaim / StationState, the levers packed
+        // into the request); these carry where the hoist is and what hangs on its hook.
+        //   WorkshopCraneOperate A = -1 asks for the state (a late joiner); 1 the grab lever (take hold of the loose core
+        //                        under the hook, or let go of the one on it), Target = the driver; 2 hang the core in
+        //                        the hands on the hook, Target = the hanger.
+        //   WorkshopCraneState   P = bridge, trolley, height (WorkshopCranePose); B bit 0 driven, bit 1 loaded, bit 2
+        //                        land in it (an answer or a restore), bit 3 the let-go just fitted it into a ship.
+        public const ushort WorkshopCraneOperate = 133; // driver / hanger → server
+        public const ushort WorkshopCraneState   = 134; // server → everyone
     }
 }

@@ -38,6 +38,7 @@ namespace SpaceGame.EditorTools
             ["CryoSprayer"]         = "freezes whatever it is pointed at",
             ["ConjurerStaff"]       = "calls down a bolt where it is aimed",
             ["BottledSingularity"]  = "thrown, and it takes whoever is nearby with it",
+            ["ShockHarpoon"]        = "fires a wired harpoon that tases whoever it bites",
         };
 
         private static IEnumerable<(string Name, InventoryItem Item, SerializedObject So)> AllItems() =>

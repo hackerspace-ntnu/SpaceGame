@@ -2,7 +2,7 @@
 
 Every piece a gear puzzle needs, from power source to the thing it drives: puzzle gears,
 decoys, decorative gears, shafts and transmission parts, sources, outputs, and four gear
-boxes (3 / 5 / 8 / 12 pegs, Easy → Very hard). 41 assets, catalog **Puzzles/Gears**.
+boxes (3 / 5 / 8 / 12 pegs, Easy → Very hard), and a door peg. 42 assets, catalog **Puzzles/Gears**.
 Built 2026-10-07. Generated once by script; from here on the `.blend` is the source of truth.
 
 ## Conventions (read before using or extending)
@@ -38,6 +38,12 @@ Built 2026-10-07. Generated once by script; from here on the `.blend` is the sou
 Stacked gears carry `Seat_Back` and `Seat_Front` (rotated 180° about Z): mount by
 `Seat_Front` to put them on back-to-front. Carryable gears are brass/copper; everything fixed
 to a machine is iron or rust, so players can tell what they can pick up.
+
+## Fixed cogs (`Puzzles/Gears/Decor`)
+
+`Coll_Gear_Fixed_S` (14 t, iron rim, rust spokes) and `Coll_Gear_Fixed_M` (20 t, rust-orange rim): the puzzle S and M
+made again without size dots, for the small drive and lock on the workshop vault's door (2026-10-11). Same meshes,
+so they mesh with the puzzle gears exactly.
 
 ## Decor, transmission, sources, outputs
 
@@ -86,6 +92,17 @@ input): the weight sign by the drum is the clue that the train must be geared do
 port empty. Ship these with `export(src, dst, keep_collection="Coll_Gear_…", keep_empties=True)`
 (and move by the collection's `instance_offset` in `prepare`, since the contact sheet keeps
 items off-origin).
+
+**What the game ships (2026-10-11):** `gear_kit_export.py` writes the five puzzle gears, the
+flywheel, the skeleton gear and `Coll_Gear_Peg` to `Assets/Game/Art/Models/Props/Gears/` with
+`export_collections` — meshes only is enough there, because every part's origin is its gear's seat, which lands on
+the FBX origin; a gear turns about Unity Z, its front facing +Z. They are the workshop gate's gear puzzle
+(docs/AI/systems/GearDoor.md), drawn at 1.5x.
+
+`Coll_Gear_Peg` (added 2026-10-11, row `Gear_Puzzle`): a door peg — iron flange with four bolt heads, brass collar,
+galvanized shaft with a chamfered tip; origin on the face it is bolted to, front −Y, the gear's seat at y = −0.05.
+Its parts sit at their root's origin with no parent inverse, like every other kit gear's: a part parented with an
+inverse taken before the root moved sits at twice the offset and exports 22.5 m off its origin.
 
 ## Judgement calls
 

@@ -73,5 +73,16 @@ namespace SpaceGame.Items
         /// — a lantern over a cliff face needs none, a saddle aimed at a rock might.
         /// </summary>
         public virtual string RefusalHint(in PlacementAim aim) => null;
+
+        /// <summary>
+        /// What the holder sees where they aim before pressing: a ghost of the thing, green where it would go and red
+        /// where it is refused, the backpack's and the hull's own colours (<c>PlacementTint</c>). Called every frame
+        /// on the holder's machine only, with <paramref name="placeable"/> as <see cref="CanPlace"/> answered. Purely
+        /// local and cosmetic. Nothing by default.
+        /// </summary>
+        public virtual void Preview(in PlacementAim aim, bool placeable) { }
+
+        /// <summary>Take down whatever <see cref="Preview"/> put up: the holder aims at nothing, or put it away.</summary>
+        public virtual void EndPreview() { }
     }
 }

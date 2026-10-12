@@ -48,10 +48,9 @@ namespace SpaceGame.EditorTools
         private const float WallRoomRing = 2.6f;
 
         // The layout's names for the two places that are not turning rooms.
-        private const string MainId = "Main";
         private const string FinalId = "Final";
         private const string LaneTunnel = "Lane";
-        private const string FinalRoom = "RoomC";
+        private const string FinalRoom = "Vault";
 
         // Prefab space: where a visitor first stands, in the ship lane.
         private static readonly Vector3 LaneStart = new(24f, 0.2f, 0f);
@@ -139,7 +138,7 @@ namespace SpaceGame.EditorTools
             try
             {
                 // With the main room turned to rock, so the one way out of the mountain (the lane) is shut.
-                if (rooms.TryGetValue(MainId, out Room main)) Turn(main, AwayFromAll(main));
+                if (rooms.TryGetValue(WorkshopLayout.MainWheelId, out Room main)) Turn(main, AwayFromAll(main));
                 Physics.SyncTransforms();
                 holes = Holes(root, layout, rooms, report, out wallRays);
             }
@@ -188,7 +187,7 @@ namespace SpaceGame.EditorTools
             foreach (WorkshopLayout.Tunnel tunnel in layout.tunnels) yield return tunnel;
             yield return new WorkshopLayout.Tunnel
             {
-                id = LaneTunnel, pos = new[] { LaneStart.x, LaneStart.y, LaneStart.z }, rooms = new[] { MainId },
+                id = LaneTunnel, pos = new[] { LaneStart.x, LaneStart.y, LaneStart.z }, rooms = new[] { WorkshopLayout.MainWheelId },
             };
         }
 
@@ -231,14 +230,14 @@ namespace SpaceGame.EditorTools
                     Vector3 end = isRoom ? WorkshopLayout.V(member.layout.centre) : StandOf(layout, rooms, id);
                     float length = Vector3.Distance(hub, end);
                     float walkable = id == FinalId ? Mathf.Min(length, WallHallReach)
-                        : length - (id == MainId ? WallClearOfPit : WallClearOfRoom);
+                        : length - (id == WorkshopLayout.MainWheelId ? WallClearOfPit : WallClearOfRoom);
                     for (float along = WallStep; along < walkable; along += WallStep)
                         eyes.Add(($"{tunnel.id} to {id}", Vector3.Lerp(hub, end, along / length)));
                 }
             }
             foreach (Room room in rooms.Values)
             {
-                if (room.layout.id == MainId) continue;
+                if (room.layout.id == WorkshopLayout.MainWheelId) continue;
                 Vector3 centre = WorkshopLayout.V(room.layout.centre);
                 for (int k = 0; k < 6; k++)
                     eyes.Add((room.layout.id, centre + Quaternion.Euler(0f, k * 60f, 0f) * Vector3.forward * WallRoomRing));
@@ -294,16 +293,19 @@ namespace SpaceGame.EditorTools
                 bounds.Encapsulate(stand);
             }
             // The main room is as wide as the whole pit, and the way from the lane to its wheel may go over the wall.
-            if (tunnel.rooms.Contains(MainId)) bounds.Encapsulate(root.position);
+            if (tunnel.rooms.Contains(WorkshopLayout.MainWheelId)) bounds.Encapsulate(root.position);
             bounds.Expand(new Vector3(2f * BoundsMargin, 0f, 2f * BoundsMargin));
             bounds.SetMinMax(new Vector3(bounds.min.x, root.position.y - 1f, bounds.min.z),
                              new Vector3(bounds.max.x, root.position.y + BoundsHeight, bounds.max.z));
 
+            GearDoor[] gearDoors = root.GetComponentsInChildren<GearDoor>(true);
             var sources = new List<NavMeshBuildSource>();
             foreach (Collider collider in Physics.OverlapBox(bounds.center, bounds.extents))
             {
-                // Triggers and whatever walks are out; a turned wall is IN (doorsShut): that is the question.
+                // Triggers and whatever walks are out; a turned wall is IN (doorsShut): that is the question. A gear
+                // door's leaf is out: its lock is a puzzle of its own (GearDoor.md), walked here as if it stood open.
                 if (!NavMeshSources.IsBakeable(collider, ~0, doorsShut: true)) continue;
+                if (System.Array.Exists(gearDoors, door => door.IsLeafPart(collider.transform))) continue;
                 if (!collider.transform.IsChildOf(root) && collider.GetComponentInParent<Rigidbody>() != null) continue;
                 if (NavMeshSources.TryColliderToSource(collider, out NavMeshBuildSource source)) sources.Add(source);
             }

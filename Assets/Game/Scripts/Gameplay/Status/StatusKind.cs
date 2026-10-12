@@ -34,6 +34,12 @@ namespace SpaceGame.Gameplay.Status
         /// it is the body not being in the world — see <see cref="SwallowedStatus"/>.
         /// </summary>
         Swallowed = 5,
+
+        /// <summary>
+        /// Tased: down on the ground, twitching, for a few seconds. Helpless like
+        /// <see cref="Frozen"/>, limp like <see cref="Foamed"/>, and never lethal on its own.
+        /// </summary>
+        Shocked = 6,
     }
 
     /// <summary>
@@ -49,6 +55,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 6;
+        public const int Count = 7;
     }
 }

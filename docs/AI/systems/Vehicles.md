@@ -33,7 +33,7 @@ symptoms:
   - "NPCs stand frozen where a despawned sky transport was, never walking again"
   - "a sky transport flies stern-first, its cockpit house trailing instead of leading"
 reads_with: [Ornithopter, PlayerShip, AgentSystem, Persistence, Diagnostics, SkyTribe]
-updated: 2026-10-03
+updated: 2026-10-12
 ---
 
 # Vehicles & Mounts
@@ -69,6 +69,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 | `MountLookMath` | [MountLookMath.cs](Assets/Game/Scripts/agents/Modules/Riding/MountLookMath.cs) | `WrapAngle` / `ClampYaw` / `StepRecentre` — pure, tested. |
 | `MountStation` | [MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Cockpit control that calls `RequestMount` directly, so `mountableByDirectInteraction = false` can close the hull. |
 | `VehicleStation` | [VehicleStation.cs](Assets/Game/Scripts/Vehicles/Stations/VehicleStation.cs) | Claim protocol (`NetMsg.StationClaim` 65 / `StationState` 66, addressed to the *vehicle*): server owns the claim table and the control's absolute value; the occupant drives locally and ignores its own echo. Both directions are change-gated: a request or announcement goes out at `PublishInterval` (0.1 s) only when it moved past `ValueDeadband`, and otherwise every `KeepAliveInterval` (1 s). |
+| `StationFooting` | [StationFooting.cs](Assets/Game/Scripts/Vehicles/Stations/StationFooting.cs) | A standing station's hold on its occupant (the workshop's hand cogs, its crane console): movement off, feet pinned, their keys (`Keys`, `InteractHeld`, `UseHeld`, `JumpHeld`, `SprintHeld`) read by the station, Interact lets go. While anyone is planted on this machine `StationFooting.LocalPlanted` is true and `EquipmentController` does not fire the held item on Use: the hands are on the controls. |
 | `DeckBoarding` | [DeckBoarding.cs](Assets/Game/Scripts/Vehicles/Stations/DeckBoarding.cs) | Look at the hull, right-click, get placed on the deck. Deliberately *not* a mount. |
 | `WalkerPlatformCarrier` | [WalkerPlatformCarrier.cs](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs) | Transform-driven hulls impart no friction; this re-applies the hull's per-frame delta (incl. rotation about the pivot) to bodies in the carry volume. Exec order 200, `ITeleportAware`. `CarryOnlyThoseStandingOnIt(reach)` leaves whoever is in the volume over ground that is not the platform's (the workshop's turning floors, which have fixed stairs inside them). |
 | Moving parts | [ArticulatedPart.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPart.cs) · [ArticulatedPartInteraction.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPartInteraction.cs) · [ShellVariantSwitcher.cs](Assets/Game/Scripts/Vehicles/Parts/ShellVariantSwitcher.cs) · [VehicleDeploymentController.cs](Assets/Game/Scripts/Vehicles/Systems/VehicleDeploymentController.cs) | Rotate/slide about own origin (put it on the hinge pivot); a switch that toggles several; hull mesh swap while any panel is off closed; deploy/stow off `Mounted`/`Dismounted`. |

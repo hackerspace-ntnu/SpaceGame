@@ -245,6 +245,33 @@ MonoBehaviour:
   - Name: 
     Value: 1882
   Exists: 1
+--- !u!114 &-8062877092606248487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Antigravity
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Antigravity
+  Guid:
+    Data1: -932380174
+    Data2: 1261117791
+    Data3: 1296317367
+    Data4: 440159795
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 2526
 --- !u!114 &-8062282346354419712
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -327,6 +354,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 106703
+--- !u!114 &-7723400318297820260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Explosion
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Explosion
+  Guid:
+    Data1: -257776272
+    Data2: 1083245490
+    Data3: -1733396809
+    Data4: 1766842722
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 2947
 --- !u!114 &-7335693294430194715
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -415,6 +469,112 @@ MonoBehaviour:
   lastModified: 639117991238091162
   FileSizes: []
   Exists: 1
+--- !u!114 &-6326669269103757544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Pickup
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Pickup
+  Guid:
+    Data1: 1684328206
+    Data2: 1268091554
+    Data3: 34304681
+    Data4: -849877735
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 817
+--- !u!114 &-5962442932953565102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Implosion/HasImploded
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: HasImploded
+  StudioPath: 
+  Min: 0
+  Max: 1
+  Default: 0
+  ID:
+    data1: 3563409803
+    data2: 4282069859
+  Type: 1
+  IsGlobal: 0
+  Labels: []
+  Exists: 1
+--- !u!114 &-5498108509353157547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Wham
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Wham
+  Guid:
+    Data1: 1209704560
+    Data2: 1259274395
+    Data3: -1562606685
+    Data4: 1967096403
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 553
+--- !u!114 &-5014680048507481010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Footstep
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Footstep
+  Guid:
+    Data1: 2109535426
+    Data2: 1125007156
+    Data3: -1137650264
+    Data4: 1632573456
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters:
+  - {fileID: 6180124336320848610}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 284
 --- !u!114 &-4394254363817061841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -443,6 +603,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 373
+--- !u!114 &-4220970922213699334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Thunder
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Thunder
+  Guid:
+    Data1: 1963259774
+    Data2: 1243697119
+    Data3: 286972041
+    Data4: -972918384
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 4953
 --- !u!114 &-4207338791247706476
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -545,7 +732,7 @@ MonoBehaviour:
   Path: Assets/Game/Audio/Master.strings.bank
   Name: Master.strings
   StudioPath: bank:/Master.strings
-  lastModified: 639117991237898767
+  lastModified: 639273312661578563
   FileSizes:
   - Name: 
     Value: 1882
@@ -606,6 +793,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 328
+--- !u!114 &-3286705901514282939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/ElectricHum
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/ElectricHum
+  Guid:
+    Data1: 244983765
+    Data2: 1082068725
+    Data3: 1235189431
+    Data4: -2011481048
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 1
+  Is3D: 1
+  IsOneShot: 0
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 28131
 --- !u!114 &-3136958567805230045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -706,6 +920,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 284
+--- !u!114 &-2561041142522721744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/MetalPickup
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/MetalPickup
+  Guid:
+    Data1: 1785186576
+    Data2: 1245510835
+    Data3: -1836278379
+    Data4: 1511765510
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 467
 --- !u!114 &-2541732045305016822
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -725,6 +966,33 @@ MonoBehaviour:
   FileSizes: []
   Exists: 1
 --- !u!114 &-2401942323100192817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Slurp
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Slurp
+  Guid:
+    Data1: -1179107196
+    Data2: 1337426091
+    Data3: -1864092773
+    Data4: 339326117
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 5000
+--- !u!114 &-2328333182137736078
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -805,6 +1073,61 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 328
+--- !u!114 &-1658902787913381739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Takeoff
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Takeoff
+  Guid:
+    Data1: 125610606
+    Data2: 1097649424
+    Data3: 1756199559
+    Data4: -145066629
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 1
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 12631
+--- !u!114 &-1491430411059706352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Implosion
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Implosion
+  Guid:
+    Data1: 984865563
+    Data2: 1210358750
+    Data3: 1245207699
+    Data4: 1455594882
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters:
+  - {fileID: -5962442932953565102}
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 3901
 --- !u!114 &-1362527973828780380
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -847,7 +1170,7 @@ MonoBehaviour:
   Path: Assets/Game/Audio/UI.bank
   Name: UI
   StudioPath: bank:/UI
-  lastModified: 639113552601147362
+  lastModified: 639273312661731474
   FileSizes: []
   Exists: 1
 --- !u!114 &-1236595942624417327
@@ -1116,70 +1439,312 @@ MonoBehaviour:
   - {fileID: -1355194908148389193}
   EditorEvents:
   - {fileID: -8733076022761394907}
-  - {fileID: -4161452001020482859}
-  - {fileID: -8432204915815062126}
-  - {fileID: -1236595942624417327}
-  - {fileID: 8470943313543677278}
-  - {fileID: -8741544012772288588}
-  - {fileID: 8388916557394555132}
-  - {fileID: 2076731935764766447}
-  - {fileID: -9012460591474017514}
-  - {fileID: 1092917524838792086}
-  - {fileID: -2401942323100192817}
-  - {fileID: -7979809775141181857}
-  - {fileID: -8743548690731637845}
-  - {fileID: -2788937267455155257}
-  - {fileID: 6955555755958630065}
-  - {fileID: 5610357529637980437}
-  - {fileID: -3053228392218295400}
   - {fileID: -8474120609708239640}
   - {fileID: -2929997013415708455}
+  - {fileID: 1229483283423335918}
+  - {fileID: -6326669269103757544}
+  - {fileID: -2561041142522721744}
+  - {fileID: -1491430411059706352}
+  - {fileID: 2588899529828976529}
+  - {fileID: -1658902787913381739}
+  - {fileID: -5498108509353157547}
+  - {fileID: -7723400318297820260}
+  - {fileID: -4220970922213699334}
+  - {fileID: -2328333182137736078}
+  - {fileID: 5037784105619827267}
+  - {fileID: 4397947846304820022}
+  - {fileID: -5014680048507481010}
+  - {fileID: -3286705901514282939}
+  - {fileID: 8758877811675245216}
+  - {fileID: -8062877092606248487}
   EditorParameters: []
   MasterBanks:
   - {fileID: 4156312120208546540}
   StringsBanks:
   - {fileID: -3939571416620995897}
   cacheVersion: 131858
-  cacheTime: 639117991238091162
+  cacheTime: 639273312661731474
   SerializableEventsDict:
   - key: event:/Music/TestSong
     index: 0
-  - key: event:/SFX/Wind Howling
-    index: 1
-  - key: event:/SFX/Pickup
-    index: 2
-  - key: event:/SFX/MetalPickup
-    index: 3
-  - key: event:/SFX/Implosion
-    index: 4
-  - key: event:/SFX/PlayerDie
-    index: 5
-  - key: event:/SFX/Takeoff
-    index: 6
-  - key: event:/SFX/Wham
-    index: 7
-  - key: event:/SFX/Explosion
-    index: 8
-  - key: event:/SFX/Thunder
-    index: 9
-  - key: event:/SFX/Slurp
-    index: 10
-  - key: event:/SFX/Jump
-    index: 11
-  - key: event:/SFX/Hit
-    index: 12
-  - key: event:/SFX/Footstep
-    index: 13
-  - key: event:/SFX/ElectricHum
-    index: 14
-  - key: event:/SFX/ShipHumLoop
-    index: 15
-  - key: event:/SFX/Antigravity
-    index: 16
   - key: event:/UI/No
-    index: 17
+    index: 1
   - key: event:/UI/Yes
+    index: 2
+  - key: event:/SFX/Impact/Explosion
+    index: 3
+  - key: event:/SFX/Item/Rifle/Shot
+    index: 4
+  - key: event:/SFX/Ambience/Wind Howling
+    index: 5
+  - key: event:/SFX/Ship/Workstation/Workin
+    index: 6
+  - key: event:/SFX/Interact/Pickup
+    index: 7
+  - key: event:/SFX/Item/Energy/Fire
+    index: 8
+  - key: event:/SFX/Player/Respawn
+    index: 9
+  - key: event:/SFX/Interact/MetalPickup
+    index: 10
+  - key: event:/SFX/NPC/Robot/Attack
+    index: 11
+  - key: event:/SFX/Interact/Denied
+    index: 12
+  - key: event:/SFX/Item/Flashlight/Clack
+    index: 13
+  - key: event:/SFX/Misc/Implosion
+    index: 14
+  - key: event:/SFX/Impact/Shield
+    index: 15
+  - key: event:/SFX/Item/Grappler/Reel
+    index: 16
+  - key: event:/SFX/Item/Lightning Spell/Discharge
+    index: 17
+  - key: event:/SFX/Item/Lightning Spell/Equip
     index: 18
+  - key: event:/SFX/Player/Death
+    index: 19
+  - key: event:/SFX/Impact/Projectile
+    index: 20
+  - key: event:/SFX/Item/Rifle/Equip
+    index: 21
+  - key: event:/SFX/Item/Leash/ClipOn
+    index: 22
+  - key: event:/SFX/Interact/ScannerDiscovery
+    index: 23
+  - key: event:/SFX/Vehicles/Vehicle/EngineLoop
+    index: 24
+  - key: event:/SFX/Item/Shotgun/Reload
+    index: 25
+  - key: event:/SFX/Item/Rocket/Equip
+    index: 26
+  - key: event:/SFX/Ship/Alarm
+    index: 27
+  - key: event:/SFX/Impact/Flesh
+    index: 28
+  - key: event:/SFX/NPC/Robot/Hurt
+    index: 29
+  - key: event:/SFX/Player/Hurt
+    index: 30
+  - key: event:/SFX/Item/Scanner/Reveal
+    index: 31
+  - key: event:/SFX/Vehicles/Aircraft/Deploy
+    index: 32
+  - key: event:/SFX/Vehicles/Vehicle/Start
+    index: 33
+  - key: event:/SFX/Item/Rifle/Empty
+    index: 34
+  - key: event:/SFX/Item/Wings/Pickup
+    index: 35
+  - key: event:/SFX/Player/Land
+    index: 36
+  - key: event:/SFX/Player/Dash
+    index: 37
+  - key: event:/SFX/Player/Footstep
+    index: 38
+  - key: event:/SFX/Item/Energy/ChargeLoop
+    index: 39
+  - key: event:/SFX/NPC/Robot/Footstep
+    index: 40
+  - key: event:/SFX/Ambience/Relay outpost Loop
+    index: 41
+  - key: event:/SFX/Vehicles/Aircraft/WindLoop
+    index: 42
+  - key: event:/SFX/Interact/Open
+    index: 43
+  - key: event:/SFX/Misc/Meteor Impact
+    index: 44
+  - key: event:/SFX/Item/Grappler/Attach
+    index: 45
+  - key: event:/SFX/Ambience/Lattice outpost Loop
+    index: 46
+  - key: event:/SFX/Item/Pistol/Empty
+    index: 47
+  - key: event:/SFX/Item/Jetpack/Pickup
+    index: 48
+  - key: event:/SFX/NPC/Robot/SearchLoop
+    index: 49
+  - key: event:/SFX/Ambience/Outpost3 Loop
+    index: 50
+  - key: event:/SFX/Item/Rocket/Deploy
+    index: 51
+  - key: event:/SFX/NPC/Robot/Death
+    index: 52
+  - key: event:/SFX/Ambience/RefineryTower Loop
+    index: 53
+  - key: event:/SFX/Interact/WorkstationRepair
+    index: 54
+  - key: event:/SFX/Item/Jetpack/Boost Loop
+    index: 55
+  - key: event:/SFX/Item/Backpack/Open
+    index: 56
+  - key: event:/SFX/Item/Pistol/Equip
+    index: 57
+  - key: event:/SFX/Ambience/HulkSettlement Loop
+    index: 58
+  - key: event:/SFX/Ambience/Sandstorm Roar
+    index: 59
+  - key: event:/SFX/Item/Pistol/Shot
+    index: 60
+  - key: event:/SFX/Player/BreathingLoop
+    index: 61
+  - key: event:/SFX/Item/Generic/Use
+    index: 62
+  - key: event:/SFX/Ship/Workstation/Reject
+    index: 63
+  - key: event:/SFX/Ship/Takeoff
+    index: 64
+  - key: event:/SFX/Item/Generic/Pickup
+    index: 65
+  - key: event:/SFX/Ambience/Mining rig derelict Loop
+    index: 66
+  - key: event:/SFX/NPC/Nomad/Open
+    index: 67
+  - key: event:/SFX/Misc/Wham
+    index: 68
+  - key: event:/SFX/Misc/Explosion
+    index: 69
+  - key: event:/SFX/Ship/EngineLoop
+    index: 70
+  - key: event:/SFX/NPC/NPCFootstep
+    index: 71
+  - key: event:/SFX/Item/Ball Lightning/Arc
+    index: 72
+  - key: event:/SFX/Ship/Workstation/Clunk
+    index: 73
+  - key: event:/SFX/NPC/Robot/HumLoop
+    index: 74
+  - key: event:/SFX/Misc/Thunder
+    index: 75
+  - key: event:/SFX/Item/Ball Lightning/Fire
+    index: 76
+  - key: event:/SFX/Item/Leash/Pickup
+    index: 77
+  - key: event:/SFX/Interact/Drop
+    index: 78
+  - key: event:/SFX/Misc/Slurp
+    index: 79
+  - key: event:/SFX/Item/Wings/Unfurl
+    index: 80
+  - key: event:/SFX/Item/Wings/Fold
+    index: 81
+  - key: event:/SFX/Player/CriticalHealthLoop
+    index: 82
+  - key: event:/SFX/Interact/Lever
+    index: 83
+  - key: event:/SFX/Ship/Repair
+    index: 84
+  - key: event:/SFX/Vehicles/Enter
+    index: 85
+  - key: event:/SFX/Item/Shotgun/Shot
+    index: 86
+  - key: event:/SFX/Item/Shotgun/Empty
+    index: 87
+  - key: event:/SFX/Item/Lasso/Whip
+    index: 88
+  - key: event:/SFX/Vehicles/Aircraft/Flap
+    index: 89
+  - key: event:/SFX/Item/Scanner/Hum
+    index: 90
+  - key: event:/SFX/Item/Shotgun/Equip
+    index: 91
+  - key: event:/SFX/NPC/Nomad/Blip
+    index: 92
+  - key: event:/SFX/Interact/Close
+    index: 93
+  - key: event:/SFX/Ship/Workstation/Accept
+    index: 94
+  - key: event:/SFX/Impact/Metal
+    index: 95
+  - key: event:/SFX/Impact/Critical
+    index: 96
+  - key: event:/SFX/Item/AntiGrav Potion/Pickup
+    index: 97
+  - key: event:/SFX/Player/Jump
+    index: 98
+  - key: event:/SFX/Ambience/AmbWind Loop
+    index: 99
+  - key: event:/SFX/Item/Melee/Swing
+    index: 100
+  - key: event:/SFX/Item/Flashlight/Click
+    index: 101
+  - key: event:/SFX/Ship/Landing
+    index: 102
+  - key: event:/SFX/Vehicles/Aircraft/Fold
+    index: 103
+  - key: event:/SFX/Item/Ball Lightning/ChargeLoop
+    index: 104
+  - key: event:/SFX/Misc/Hit
+    index: 105
+  - key: event:/SFX/Item/ProjectileWhoosh
+    index: 106
+  - key: event:/SFX/DefaultFootstep
+    index: 107
+  - key: event:/SFX/Player/CriticalOxygenLoop
+    index: 108
+  - key: event:/SFX/NPC/Nomad/Mumble
+    index: 109
+  - key: event:/SFX/Item/Jetpack/Thrust
+    index: 110
+  - key: event:/SFX/Vehicles/Exit
+    index: 111
+  - key: event:/SFX/Item/Backpack/Close
+    index: 112
+  - key: event:/SFX/Item/Rifle/Reload
+    index: 113
+  - key: event:/SFX/NPC/Robot/Alert
+    index: 114
+  - key: event:/SFX/Item/Melee/Impact
+    index: 115
+  - key: event:/SFX/Item/Lasso/Pickup
+    index: 116
+  - key: event:/SFX/Item/Backpack/Pickup
+    index: 117
+  - key: event:/SFX/Ambience/InteriorHum Loop
+    index: 118
+  - key: event:/SFX/Misc/ElectricHum
+    index: 119
+  - key: event:/SFX/Vehicles/Vehicle/Stop
+    index: 120
+  - key: event:/SFX/Item/Equip
+    index: 121
+  - key: event:/SFX/Misc/CracklingLoop
+    index: 122
+  - key: event:/SFX/Item/Wings/Flap
+    index: 123
+  - key: event:/SFX/Item/Grappler/Launch
+    index: 124
+  - key: event:/SFX/Item/Pistol/Reload
+    index: 125
+  - key: event:/SFX/Interact/Prompt
+    index: 126
+  - key: event:/SFX/Ship/HumLoop
+    index: 127
+  - key: event:/SFX/NPC/Robot/Aggro
+    index: 128
+  - key: event:/SFX/Item/Lasso/Catch
+    index: 129
+  - key: event:/SFX/Item/AntiGrav Potion/Antigravity
+    index: 130
+  - key: event:/SFX/Interact/POI Discovered
+    index: 131
+  - key: event:/SFX/Vehicles/Aircraft/Stall
+    index: 132
+  - key: event:/SFX/NPC/Robot/Search
+    index: 133
+  - key: event:/SFX/Item/Scanner/Pulse
+    index: 134
+  - key: event:/UI/Click
+    index: 135
+  - key: event:/UI/Back
+    index: 136
+  - key: event:/UI/Error
+    index: 137
+  - key: event:/UI/Hover
+    index: 138
+  - key: event:/UI/Notify
+    index: 139
 --- !u!114 &269003114712172267
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1318,6 +1883,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 4953
+--- !u!114 &1229483283423335918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Wind Howling
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Wind Howling
+  Guid:
+    Data1: -161778425
+    Data2: 1151011309
+    Data3: -584404083
+    Data4: -984381549
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 1
+  Is3D: 1
+  IsOneShot: 0
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 106703
 --- !u!114 &1255411144893165803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1483,6 +2075,33 @@ MonoBehaviour:
   lastModified: 639113552601042891
   FileSizes: []
   Exists: 1
+--- !u!114 &2588899529828976529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/PlayerDie
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/PlayerDie
+  Guid:
+    Data1: -1486019807
+    Data2: 1229043757
+    Data3: -1953646154
+    Data4: -696340387
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 1090
 --- !u!114 &2871495621519753876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1711,6 +2330,33 @@ MonoBehaviour:
   IsGlobal: 0
   Labels: []
   Exists: 1
+--- !u!114 &4397947846304820022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Hit
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Hit
+  Guid:
+    Data1: 568073404
+    Data2: 1232003800
+    Data3: -533523275
+    Data4: -1075932117
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 0
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 373
 --- !u!114 &4738800604985442278
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1739,6 +2385,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 1090
+--- !u!114 &5037784105619827267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/Jump
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/Jump
+  Guid:
+    Data1: 1659851435
+    Data2: 1275323911
+    Data3: -1264550998
+    Data4: -596900393
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 0
+  Is3D: 1
+  IsOneShot: 1
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 631
 --- !u!114 &5209937108168314413
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1868,6 +2541,34 @@ MonoBehaviour:
   lastModified: 639117991237896086
   FileSizes: []
   Exists: 1
+--- !u!114 &6180124336320848610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fecb8ef7f94ca804a8ab72049b86782e, type: 3}
+  m_Name: parameter:/Footstep/Floor
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorParamRef
+  Name: Floor
+  StudioPath: 
+  Min: 0
+  Max: 3
+  Default: 0
+  ID:
+    data1: 1130056587
+    data2: 108364843
+  Type: 2
+  IsGlobal: 0
+  Labels:
+  - Default
+  - Concrete
+  - Sand
+  - Water
+  Exists: 1
 --- !u!114 &6418952744040418217
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1985,7 +2686,7 @@ MonoBehaviour:
   Path: Assets/Game/Audio/SFX.bank
   Name: SFX
   StudioPath: bank:/SFX
-  lastModified: 639117991238091162
+  lastModified: 639273312661711064
   FileSizes: []
   Exists: 1
 --- !u!114 &8091641039807597573
@@ -2171,6 +2872,33 @@ MonoBehaviour:
   MinDistance: 1
   MaxDistance: 20
   Length: 631
+--- !u!114 &8758877811675245216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb653cd98e289a4e8697a1af55201f2, type: 3}
+  m_Name: event:/SFX/ShipHumLoop
+  m_EditorClassIdentifier: FMODUnityEditor::FMODUnity.EditorEventRef
+  Path: event:/SFX/ShipHumLoop
+  Guid:
+    Data1: -1680716055
+    Data2: 1212484651
+    Data3: -328738423
+    Data4: -1838393582
+  Banks:
+  - {fileID: 7234909035407358972}
+  IsStream: 1
+  Is3D: 1
+  IsOneShot: 0
+  Parameters: []
+  MinDistance: 1
+  MaxDistance: 20
+  Length: 34289
 --- !u!114 &9012770456098388916
 MonoBehaviour:
   m_ObjectHideFlags: 0

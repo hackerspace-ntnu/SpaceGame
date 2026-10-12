@@ -25,10 +25,7 @@ namespace SpaceGame.EditorTools
         public const string ScenePath = "Assets/Game/Scenes/Tests/WorkshopTest.unity";
         public const string NavMeshPath = "Assets/Game/Scenes/Tests/WorkshopTest_NavMesh.asset";
         private const string PlayerPath = "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
-        private const string ResidentPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Villager.prefab";
-        private const string CulturePath = "Assets/Game/ScriptableObjects/Residents/ShellbackCulture.asset";
         private const string WorldNavMeshPath = "Assets/Game/Settings/WorldNavMesh.asset";
-        private const int ResidentCount = 4;
 
         // In the workshop's own space: the main room's pit-floor centre is the origin. The pit opens toward +X (the
         // ship tunnel), and the lane there, outside the main room's turning wall, is where a visitor first stands.
@@ -51,12 +48,10 @@ namespace SpaceGame.EditorTools
         /// <summary>Write the scene beside whatever is open, without disturbing it. Returns what was read back.</summary>
         public static string Rebuild()
         {
-            var workshop = AssetDatabase.LoadAssetAtPath<GameObject>(WorkshopPrefabBuilder.PrefabPath);
+            var outpostPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(WorkshopOutpostBuilder.PrefabPath);
             var player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
-            var resident = AssetDatabase.LoadAssetAtPath<GameObject>(ResidentPath);
-            var culture = AssetDatabase.LoadAssetAtPath<SettlementCulture>(CulturePath);
-            if (workshop == null || player == null || resident == null || culture == null)
-                return "missing the workshop, player or Shellback prefab, or the Shellback culture";
+            if (outpostPrefab == null || player == null)
+                return "missing the workshop outpost or the player prefab: Rebuild Workshop Outpost Prefab";
             if (SceneManager.GetSceneByPath(ScenePath).isLoaded) return $"close {ScenePath} first: it is rebuilt from nothing";
 
             Scene previous = SceneManager.GetActiveScene();
@@ -67,7 +62,8 @@ namespace SpaceGame.EditorTools
                 SceneManager.SetActiveScene(scene);
 
                 AddGround();
-                Outpost outpost = AddOutpost(workshop, resident, culture);
+                // The prefab a chunk scene gets, placed the same way, so this scene proves what the world will hold.
+                Outpost outpost = ((GameObject)PrefabUtility.InstantiatePrefab(outpostPrefab)).GetComponent<Outpost>();
                 SettlementEditor.Generate(outpost);
                 settled = Settled(outpost);
 
@@ -114,23 +110,6 @@ namespace SpaceGame.EditorTools
             slab.isStatic = true;
         }
 
-        private static Outpost AddOutpost(GameObject workshop, GameObject resident, SettlementCulture culture)
-        {
-            var outpost = new GameObject("WorkshopOutpost").AddComponent<Outpost>();
-            var so = new SerializedObject(outpost);
-            SerializedFields.Set(so, "outpostPrefab", workshop);
-            SerializedFields.Set(so, "culture", culture);
-
-            SerializedProperty residents = so.FindProperty("residents");
-            residents.arraySize = 1;
-            SerializedProperty entry = residents.GetArrayElementAtIndex(0);
-            entry.FindPropertyRelative("prefab").objectReferenceValue = resident;
-            entry.FindPropertyRelative("count").intValue = ResidentCount;
-            entry.FindPropertyRelative("spawnChance").floatValue = 1f;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            return outpost;
-        }
-
         /// <summary>Who moved in and as what, read back off the generated residents.</summary>
         private static string Settled(Outpost outpost)
         {
@@ -140,7 +119,7 @@ namespace SpaceGame.EditorTools
             var roles = new List<string>();
             foreach (Resident resident in generated.GetComponentsInChildren<Resident>(true))
                 roles.Add($"{resident.displayName} ({(resident.archetype != null ? resident.archetype.roleName : "no role")})");
-            return $"{roles.Count}/{ResidentCount} residents: {string.Join(", ", roles)}";
+            return $"{roles.Count}/{WorkshopOutpostBuilder.ResidentCount} residents: {string.Join(", ", roles)}";
         }
 
         private static void Place(GameObject prefab, Vector3 position, Quaternion rotation)

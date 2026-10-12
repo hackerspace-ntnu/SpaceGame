@@ -226,7 +226,7 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>The workshop's own floor under a point: the highest of its colliders within reach below it.</summary>
-        private static Vector3 OnFloor(GameObject root, float x, float z, float nearY, string what, List<string> problems)
+        internal static Vector3 OnFloor(GameObject root, float x, float z, float nearY, string what, List<string> problems)
         {
             var from = new Vector3(x, nearY + FloorProbeUp, z);
             float best = float.NegativeInfinity;

@@ -27,6 +27,11 @@ namespace SpaceGame.Core
         private const float TossForward = 1.5f;
         private const float TossUp = 1f;
 
+        // An item is never born in the ground: it starts at least this far clear of whatever is under its middle, looked
+        // for down to this far below its bottom.
+        private const float GroundClearance = 0.1f;
+        private const float GroundProbeBelow = 3f;
+
         public void DropItem(Transform origin, InventoryItem item, ItemState state = null)
         {
             if (origin == null || item == null || item.itemPrefab == null) return;
@@ -69,12 +74,37 @@ namespace SpaceGame.Core
         /// rifle born at the palm is a rifle born half inside the dropper's chest, and the physics
         /// step that untangles it is a shove, not a drop.
         /// </para>
+        /// <para>
+        /// And clear of the ground by its own half-size. A dead agent's origin is its pivot, which stands on its feet:
+        /// an item born there with its middle at ground height starts half inside the terrain, and the physics step that
+        /// resolves the overlap can push it straight through (a gear thief's Heart Gear went under the dunes that way).
+        /// </para>
         /// </summary>
         private static Vector3 SpawnPoint(Transform origin, InventoryItem item)
         {
             float reach = 0.5f * ItemWorldScale.SizeOf(item.itemPrefab);
+            Vector3 at = origin.position + origin.forward * reach;
 
-            return origin.position + origin.forward * reach;
+            if (TryFindGround(at, reach, origin.root, out float groundY))
+                at.y = Mathf.Max(at.y, groundY + reach + GroundClearance);
+            return at;
+        }
+
+        /// <summary>
+        /// The highest solid surface under the item, not counting the one dropping it. Looked for from the item's top,
+        /// never above it: a ceiling or a shelf overhead is not ground. From the top rather than the middle because the
+        /// middle of a thing dropped at a dead agent's feet is ON the ground, and a ray that starts on a surface misses it.
+        /// </summary>
+        private static bool TryFindGround(Vector3 at, float reach, Transform dropper, out float groundY)
+        {
+            groundY = float.MinValue;
+            foreach (RaycastHit hit in Physics.RaycastAll(at + Vector3.up * reach, Vector3.down, 2f * reach + GroundProbeBelow,
+                                                          Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (dropper != null && hit.transform.IsChildOf(dropper)) continue;
+                groundY = Mathf.Max(groundY, hit.point.y);
+            }
+            return groundY > float.MinValue;
         }
 
         /// <summary>

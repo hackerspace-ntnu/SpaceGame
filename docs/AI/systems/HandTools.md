@@ -31,7 +31,7 @@ symptoms:
   - "a tool vanishes from a resident's hand and appears on its belt in one frame"
   - "no bone 'Jaw' on Drifter_RaxyClassic when a garment is put on"
 reads_with: [Inventory, Artifacts, AgentSystem, ArtPipeline, HumanoidAnimation, Pushables, Expeditions]
-updated: 2026-10-04
+updated: 2026-10-11
 ---
 
 # Hand tools
@@ -95,7 +95,7 @@ Nothing of its own: the bag is `EntityInventorySaveable`, the hand slot `EntityE
 - **Offsets are baked from a pose.** Change a hold clip, a stance, or the Raxy rig and the stored `rotationOffset` is stale until **Build All** runs again. `HandToolGripTests` checks the built pose matches the stance; the residual check in the build checks the aim.
 - **Only `Push` and the harpoon gun use two hands.** `HandToolGripTests` fails if another tool does. Growing the list is a decision.
 - **The cart item is scaled up on purpose** (the real cart is [Pushables.md](Pushables.md)). A Raxy is ~1.5× a human, so a hand cart at its honest 2.4 m puts the wheels in the air at hand height; `Carry_Cart_Hand` holds at 3.5 m and `Carry_Cart_Hover` at 3.0 m with a 0.18 m `Nudge` so the shafts meet the hands. `packSize` stays 0.9.
-- The electric harpoon gun is a model and an inert item; it fires nothing. No tool is `menacing` — nothing here fires a shot, which `MenaceSensor` requires.
+- The electric harpoon gun is a model and an inert item; it fires nothing. Its model is reused by a separate, working artifact, the **Shock Harpoon** ([Artifacts.md](Artifacts.md)); the Raxy hunter still carries the inert tool. No tool is `menacing` — nothing here fires a shot, which `MenaceSensor` requires.
 - Tools longer than ~1.4 m carry `packSize` 0.9 so they can be stowed; `PackSizeTests` skips the `Items/Tools` folder for that reason.
 - `export_collections` makes parts flat siblings; sheaths, wire and loaded harpoon are separate renderers, not hidden automatically.
 - **A garment's own transform is meaningless once worn.** A skinned garment's root sits at an arbitrary FBX offset that differs per Raxy prefab, so mount points are read through the bind pose, never through the root's world position. `BakeMesh` plus `TransformPoint` over-scales garments with a non-1 root scale; measure by skinning the dominant bone by hand.

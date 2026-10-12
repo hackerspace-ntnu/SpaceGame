@@ -1,0 +1,297 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &1424229653391210291
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2004684566920829571, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 8086703956110559402}
+    - target: {fileID: 3741329838375744614, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: clothRenderers.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3741329838375744614, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: 'clothRenderers.Array.data[0]'
+      value: 
+      objectReference: {fileID: 5840138263933361287}
+    - target: {fileID: 3741329838375744614, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: 'clothRenderers.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2790350620212897030}
+    - target: {fileID: 3961206757850229952, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2367786692
+      objectReference: {fileID: 0}
+    - target: {fileID: 6422558704290403622, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: MotorComponent
+      value: 
+      objectReference: {fileID: 5740424821813422021}
+    - target: {fileID: 6422558704290403622, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: animatorDriver
+      value: 
+      objectReference: {fileID: 581510452240182704}
+    - target: {fileID: 6520826408304708626, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6520826408304708626, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_AutoTraverseOffMeshLink
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_Name
+      value: Raider_GearThief
+      objectReference: {fileID: 0}
+    - target: {fileID: 6659122513365422326, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: agent
+      value: 
+      objectReference: {fileID: 5313473792478608161}
+    - target: {fileID: 6813884207500491755, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: prefabId
+      value: 6332ffd26c128478c8e3da57ad26de90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6813884207500491755, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: instanceId
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6823720881843986292, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8044504987028852032, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: agent
+      value: 
+      objectReference: {fileID: 5313473792478608161}
+    - target: {fileID: 8044504987028852032, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: motor
+      value: 
+      objectReference: {fileID: 5740424821813422021}
+    - target: {fileID: 8044504987028852032, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: bodyRoot
+      value: 
+      objectReference: {fileID: 4297556655335879684}
+    - target: {fileID: 8492121069652068770, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 8086703956110559402}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6556550044386041865}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2737323903992251379}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4806422011639665901}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7400625483242385876}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7496427407832353042}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4255484557135339109}
+  m_SourcePrefab: {fileID: 100100000, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+--- !u!114 &581510452240182704 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2004684566920829571, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
+--- !u!137 &2790350620212897030 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3853586254526501429, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4297556655335879684 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2909356492888785719, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5313219942120696332 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6556550044386041865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+    reigniteDelay: 3
+  frozen:
+    seconds: 10
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  swallowed:
+    seconds: 6
+  shocked:
+    seconds: 3
+    immunity: 2
+  inflationTarget: {fileID: 0}
+--- !u!114 &2737323903992251379
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a8fca9270ca94624888ffc847cdb97e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.Speech.Speaker
+--- !u!114 &4806422011639665901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 367cf5f3e59d24fe392cb3df23b3c420, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityInventoryComponent
+  inventorySize: 4
+  startingItems: []
+--- !u!114 &7400625483242385876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98e55432afa09477a97a6a6ee4302297, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityLootTable
+  lootEntries: []
+  dropInventoryContents: 1
+  dropOnDespawn: 0
+--- !u!114 &7496427407832353042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15c9c61659d834ef3b21a62c5ea5801a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityInventorySaveable
+--- !u!114 &4255484557135339109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37cb92a399d94474bb476b1b952f02db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.GearThief
+  isCarrier: 0
+  carrySlot: 1
+  postArriveRadius: 1
+--- !u!195 &5313473792478608161 stripped
+NavMeshAgent:
+  m_CorrespondingSourceObject: {fileID: 6520826408304708626, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5740424821813422021 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6659122513365422326, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+--- !u!137 &5840138263933361287 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4814268415581612980, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &8086703956110559402 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 7204175238580584345, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+  m_PrefabInstance: {fileID: 1424229653391210291}
+  m_PrefabAsset: {fileID: 0}

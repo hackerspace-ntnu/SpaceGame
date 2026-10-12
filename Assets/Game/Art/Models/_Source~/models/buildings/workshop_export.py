@@ -7,9 +7,10 @@ Writes to Assets/Game/Art/Models/Environment/Structures/Workshop/:
 
   workshop.fbx            every part that never moves, joined into chunks of <= ~45k vertices
   workshop_moving.fbx     one node per thing game code moves: every turning room (with its convex collision
-                          pieces as COLT_* children), every shaft / gear / wheel ("spinner"), the bridge, trolley
-                          and hook of the hoist and of the engine hall gantry ("slider"), the hoist cables, the
-                          gantry chain and the control levers
+                          pieces as COLT_* children), every shaft / gear / wheel ("spinner"), the lift, bridge,
+                          trolley and hook of the hoist and of the engine hall gantry ("slider"), the hoist cables,
+                          the gantry chain, the control levers and the gate's two leaves ("hinge", each with one
+                          COLT_ hull)
   workshop_collision.fbx  static collision as COL_* chunks: structure only, stairs as ramps (the pit stairs with
                           their rails and posts), gratings as plates
   workshop_layout.json    what the meshes cannot say: which node spins about which axis at what ratio of which
@@ -48,12 +49,32 @@ MESH_UNITS = ('Fan_Rotor', 'Hoist_Cable_L', 'Hoist_Cable_R')
 CABLES = {'Hoist_Cable_L': 'Crane', 'Hoist_Cable_R': 'Crane'}
 # The main room's hoist, in the order game code counts its axes: pivot -> (channel, the pivot's own axis it travels
 # along, metres between stops, stops counting the modelled one). The model stands at stop 0 of all three. It is the
-# only crane, and nobody works it: the game runs it round by itself. Its hook step is read off the model.
+# only crane: the game runs it round its stops by itself until somebody takes its console on the third-floor balcony,
+# and then it goes wherever it is driven, as far as its runs allow (`travel`). Its hook step is read off the model.
 HOIST = (('Hoist_Pivot_Bridge', 'HoistBridge', (-1, 0, 0), 2.0, 8),
          ('Hoist_Pivot_Trolley', 'HoistTrolley', (0, 1, 0), 2.0, 8),
          ('Hoist_Pivot_HookBlock', 'Crane', (0, 0, -1), None, 5))
-TRAVEL = {name: (channel, axis) for name, channel, axis, _, _ in HOIST[:2]}
+# The runways ride up the four tower beams with all they carry, like a printer's gantry. The model stands at the
+# lowest stop; the tower caps stop the carriages' rollers 4.69 m higher. The model has no pivot for this: the export
+# makes one (`add_lift`) and hangs the runways, their carriages (auto-named in the model) and the bridge from it.
+LIFT = ('Hoist_Pivot_Lift', 'HoistLift', (0, 0, 1), 1.5, 4)
+RUNWAYS = tuple('Cube.%03d' % i for i in (422, 423, 428, 429) + tuple(range(434, 442))) \
+    + tuple('Cylinder.%03d' % i for i in range(22, 46))
+TRAVEL = {name: (channel, axis) for name, channel, axis, _, _ in HOIST[:2] + (LIFT,)}
+# How far the hoist runs when driven by hand: the bridge until its trucks meet the tower carriages at the runways' ends,
+# the trolley until its frame meets the bridge's trucks at the girders' ends. (bodies, stops) as name patterns.
+DRIVEN_TRAVEL = {
+    'Hoist_Pivot_Bridge': (r'^Hoist_Bridge_Truck(North|South)_\w+$', r'^Cube\.(43[4-9]|44[01])$'),
+    'Hoist_Pivot_Trolley': (r'^Hoist_(TrolleyFrame|Motor|WheelHangers|Wheel_\d|Output_WinchDrum_Frame)$',
+                            r'^Hoist_Bridge_Truck(North|South)_Plate\d$'),
+}
+TRAVEL_CLEARANCE = 0.15                    # a driven bridge or trolley stops this far short of what ends its run
+# Marker empties the game builds things at, exported by name with their pose (layout `marks`): the vault's door face,
+# its cog bench and the core's cradle (vault_build.py), and the crane console's panel, stance and loading gap
+# (crane_build.py).
+MARKS = re.compile(r'^(VaultDoor_(Face|Centre|CogTray)|Vault_CoreRest|CraneConsole_(Panel|Stance)|Crane_LoadingSpot)$')
 HOOK_CLEARANCE = 0.2                       # the hook stops this far above whatever stands under it
+MAIN_FLOOR_GROOVE_R = 14.70                # metres out where the main floor's slope meets the flat groove
 LEVERS = ()                                # no crane is worked by hand any more
 GRATES = (('Floor_GrateBars', 'Floor_Subfloor'), ('Bay_Floor_GrateBars', 'Bay_Floor_Subfloor'))
 COL_INCLUDE = re.compile(
@@ -61,17 +82,44 @@ COL_INCLUDE = re.compile(
     r'|ClayPlatforms$|^Mountain$|^Rock_|_Ring(\.\d+)?$|^Cube\.|^TopPlatform_(Deck|Curb)|^Tunnel_\d+_(Clay|Rock)$'
     r'|^Tunnel_Floor$|^Tunnel_Walkway|Slab$|^Fence_|_Fence_|GrateFrame$|_Board$|^GearWall_(Plate|Motor)$|_Motor$'
     r'|^Tank_._(Body|Dome)$|^RoomC_(Floor|TestStand_\w+|Gantry_Columns)$|Towers_And_RingEdgeBeam$'
-    r'|Plinth$|^Cave_Shell$|^Bay_Stair_\w+_(Rails|Posts)$)')
+    r'|Plinth$|^Cave_Shell$|^Bay_Stair_\w+_(Rails|Posts)$|_Solid$)')
 # Only the pit stairs' rails: a post on a stair foot closes that stair to the world NavMesh bake (0.33 m voxels), and
 # the stairs above the ledge are the residents' only way between their levels (seen 2026-10-10: 10 unusable places).
 
 bpy.ops.wm.open_mainfile(filepath=SRC)
-bpy.context.view_layer.update()
+
+
+def add_lift():
+    """An empty at the bridge's pivot, under the bridge's parent, carrying the bridge and the runways where they are."""
+    missing = [n for n in RUNWAYS if n not in bpy.data.objects]
+    if missing:
+        raise SystemExit('the hoist\'s runways are not in the model as named: %s' % ', '.join(missing))
+    bridge = bpy.data.objects[HOIST[0][0]]
+    lift = bpy.data.objects.new(LIFT[0], None)
+    for c in bridge.users_collection:
+        c.objects.link(lift)
+    lift.parent = bridge.parent
+    lift.matrix_parent_inverse = Matrix.Identity(4)
+    lift.matrix_world = Matrix.Translation(bridge.matrix_world.translation)
+    bpy.context.view_layer.update()
+    for name in (bridge.name,) + RUNWAYS:
+        o = bpy.data.objects[name]
+        world = o.matrix_world.copy()
+        o.parent = lift
+        o.matrix_parent_inverse = Matrix.Identity(4)
+        o.matrix_world = world
+    bpy.context.view_layer.update()
+
+
+add_lift()
 dg = bpy.context.evaluated_depsgraph_get()
 D = bpy.data.objects
 TURN = {o.name: turn_node(o.name) for o in D if o.name.endswith('_Pivot_Turn') and o.visible_get()}
 WHEELS = {name: json.loads(D[name]['workshop_wheel']) for name in TURN if 'workshop_wheel' in D[name].keys()}
 ROOM_CHANNEL = {name: 'Room%d' % i for i, name in enumerate(sorted(WHEELS, key=lambda n: (n != 'MainRoom_Pivot_Turn', n)))}
+# A swinging leaf (the gate at the ship tunnel's mouth): a mesh whose origin is its hinge, carrying the angles it is
+# shut and open at about its own `spin_axis`. It ships as its own node, modelled pose and all, so the game can swing it.
+HINGES = {o.name for o in D if o.type == 'MESH' and 'open_angle_deg' in o.keys() and o.visible_get()}
 
 ORIGIN = D['MainRoom_Pivot_Turn'].matrix_world.translation.copy()
 SHIFT = Matrix.Translation(-ORIGIN)
@@ -180,7 +228,7 @@ def is_unit(o):
             return 'HookSwivel' not in n
         kids = [c.name for c in o.children if c.type == 'MESH']
         return any(k.endswith('_Bar') or k.endswith('_Rim') for k in kids)
-    return n in MESH_UNITS
+    return n in MESH_UNITS or n in HINGES
 
 
 def unit_of(o):
@@ -201,6 +249,8 @@ def unit_kind(n):
         return 'cable'
     if n.endswith('Pivot_Lever'):
         return 'lever'
+    if n in HINGES:
+        return 'hinge'
     return 'spinner'
 
 
@@ -431,15 +481,22 @@ for u, tag in sorted(((D[name], TURN[name].replace('Turntable_', '').replace('Tu
             c = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
             piece('Deck', [v.co - c for v in bm.verts], Matrix.Translation(c))
         elif name == 'MainRoom_Drum_Floor':
-            # The dished floor between the cog ring and the wall: a convex wedge every 15 degrees, down to under
-            # the pit floor so a thin plate is never all that holds somebody up.
+            # The floor between the cog ring and the wall: a convex wedge every 15 degrees, down to under the pit
+            # floor so a thin plate is never all that holds somebody up. Two bands, the slope off the cog ring and
+            # the flat groove the main pinion runs over: one hull across both would fill the groove in.
             columns = defaultdict(list)
             for v in bm.verts:
-                columns[round(math.degrees(polar(v.co)[1]) / 5.0) % 72].append(v.co.copy())
-            for k in range(24):
-                pts = [p for c in range(3 * k, 3 * k + 4) for p in columns[c % 72]]
-                pts += [Vector((p.x, p.y, -0.6)) for p in pts]
-                piece('Floor', pts, Matrix.Identity(4))
+                r, a = polar(v.co)
+                k = round(math.degrees(a) / 5.0) % 72
+                if r <= MAIN_FLOOR_GROOVE_R + 0.05:
+                    columns[(0, k)].append(v.co.copy())
+                if r >= MAIN_FLOOR_GROOVE_R - 0.05:
+                    columns[(1, k)].append(v.co.copy())
+            for band in (0, 1):
+                for k in range(24):
+                    pts = [p for c in range(3 * k, 3 * k + 4) for p in columns[(band, c % 72)]]
+                    pts += [Vector((p.x, p.y, -0.6)) for p in pts]
+                    piece('Floor', pts, Matrix.Identity(4))
         elif name.endswith('_Drum_HubSleeve'):
             # The post, its hand cog and its gears: one drum as wide as the hand cog's teeth reach and taller than
             # its grip, so nobody walks through them. Measured off the sleeve: the main room's is twice the others'.
@@ -459,6 +516,18 @@ for u, tag in sorted(((D[name], TURN[name].replace('Turntable_', '').replace('Tu
                 piece('Ring', pts, m)
         bm.free()
     print('turntable %s: %s' % (tag, dict(n)))
+
+# A gate leaf is a flat slab: one hull round all of it, so a shut gate is a wall and an open one is bumped into.
+for name in sorted(HINGES):
+    u = D[name]
+    inv = frame_of(u).inverted()
+    pts = []
+    for orig, ob, world in unit_members[u]:
+        bm, _ = eval_bm(ob, inv @ world)
+        pts += [v.co.copy() for v in bm.verts]
+        bm.free()
+    colt_specs.append(('COLT_%s' % name, pts, frame_of(u), u))
+    print('hinge %s: one hull of %d points' % (name, len(pts)))
 
 
 # ---------------------------------------------------------------- static collision
@@ -563,6 +632,11 @@ class Node:
             mn = orig.data.name
             k = re.match(r'Mesh_Gear_Puzzle_(XS|S|M|L|XL)_Rim', mn)
             if k:
+                # A unit turns about its own origin and Y axis: a gear off them swings round the room instead.
+                d = world.translation - self.p
+                if (d - self.a * d.dot(self.a)).length > 0.05 or abs(world.col[1].to_3d().normalized().dot(self.a)) < 0.999:
+                    raise SystemExit('%s turns about %s, not about its gear %s: put the pivot on the gear'
+                                     % (self.name, tuple(round(c, 2) for c in self.p), orig.name))
                 rl = max(math.hypot(v.co.x, v.co.z) for v in orig.data.vertices)
                 self.teeth = round((rl - 0.04) / 0.02)
                 self.rp = self.teeth * 0.02 * orig.matrix_world.to_scale().x
@@ -658,7 +732,7 @@ def pos(name):
 
 
 layout = {'origin_blender': [round(c, 4) for c in ORIGIN], 'turntables': [], 'spinners': [], 'sliders': [],
-          'cables': [], 'levers': [], 'wheels': [], 'tunnels': [], 'controls': [], 'rooms': [], 'lamps': []}
+          'cables': [], 'levers': [], 'hinges': [], 'wheels': [], 'tunnels': [], 'controls': [], 'rooms': [], 'lamps': []}
 for u in unit_join:
     kind, node = unit_kind(u.name), unit_node_name(u)
     if kind == 'turntable':
@@ -676,6 +750,13 @@ for u in unit_join:
     elif kind == 'lever':
         channel = next(c for prefix, c in LEVERS if u.name.startswith(prefix))
         layout['levers'].append({'node': node, 'channel': channel, 'axis': U3(frame_of(u).col[1].to_3d()), 'degrees': -22.0})
+    elif kind == 'hinge':
+        # The leaf is modelled standing open. `shut` is how far it turns from there, in degrees about `axis` (Unity,
+        # prefab space), to stand shut. A turn of +a about a Blender axis is -a about the converted one.
+        spin = frame_of(u).col['XYZ'.index(u['spin_axis'][-1])].to_3d().normalized()
+        layout['hinges'].append({'node': node, 'axis': U3(spin),
+                                 'shut': round(float(u['open_angle_deg']) - float(u['closed_angle_deg']), 3),
+                                 'door': str(u.get('gear_door', ''))})
 for n in sorted(nodes.values(), key=lambda n: n.name):
     if n.channel:
         layout['spinners'].append({'node': n.name, 'channel': n.channel, 'axis': U3(n.a), 'ratio': round(-n.ratio, 5)})
@@ -715,13 +796,39 @@ def hook_limits(machine, hook_mesh, hook_step):
     return limits
 
 
+def driven_travel(pivot, axis):
+    """How far `pivot` may be driven along its own `axis`, least and most, in metres from where it is modelled: its
+    body (DRIVEN_TRAVEL) runs until it meets the first stop on either side."""
+    bodies, stops = (re.compile(x) for x in DRIVEN_TRAVEL[pivot])
+    along = (D[pivot].matrix_world.to_3x3() @ Vector(axis)).normalized()
+    at = D[pivot].matrix_world.translation
+
+    def span(o):
+        ds = [(o.matrix_world @ Vector(c) - at).dot(along) for c in o.bound_box]
+        return min(ds), max(ds)
+
+    body = [span(o) for o in D if o.type == 'MESH' and bodies.match(o.name)]
+    ends = [span(o) for o in D if o.type == 'MESH' and stops.match(o.name)]
+    if not body or not ends:
+        raise SystemExit('cannot measure how far %s runs: no %s or no %s in the model' % (pivot, bodies.pattern, stops.pattern))
+    low, high = min(b[0] for b in body), max(b[1] for b in body)
+    before = [e[1] for e in ends if e[1] <= low + 1e-3]
+    after = [e[0] for e in ends if e[0] >= high - 1e-3]
+    if not before or not after:
+        raise SystemExit('%s has nothing to stop it on one side of its run' % pivot)
+    return [round(max(before) - low + TRAVEL_CLEARANCE, 3), round(min(after) - high - TRAVEL_CLEARANCE, 3)]
+
+
 def travel_block(machine, hook_mesh, hook_step, label):
-    (bridge, _, _, step_b, bridge_stops), (_, _, _, step_t, trolley_stops), (_, _, _, _, hook_stops) = machine
+    (bridge, _, a_b, step_b, bridge_stops), (trolley, _, a_t, step_t, trolley_stops), (_, _, _, _, hook_stops) = machine
     limits = hook_limits(machine, hook_mesh, hook_step)
     print('  %s hook limits (rows: bridge stops):' % label,
           [limits[b * trolley_stops:(b + 1) * trolley_stops] for b in range(bridge_stops)])
-    return {'node': bridge, 'metresPerStop': [step_b, step_t, round(hook_step, 4)],
-            'stops': [bridge_stops, trolley_stops, hook_stops], 'hookLimits': limits}
+    bridge_travel, trolley_travel = driven_travel(bridge, a_b), driven_travel(trolley, a_t)
+    print('  %s driven travel: bridge %s m, trolley %s m' % (label, bridge_travel, trolley_travel))
+    return {'node': bridge, 'metresPerStop': [step_b, step_t, round(hook_step, 4), LIFT[3]],
+            'stops': [bridge_stops, trolley_stops, hook_stops, LIFT[4]], 'hookLimits': limits,
+            'bridgeTravel': bridge_travel, 'trolleyTravel': trolley_travel}
 
 
 if all(name in D for name, _, _, _, _ in HOIST) and 'Hoist_Hook' in D:
@@ -729,8 +836,14 @@ if all(name in D for name, _, _, _, _ in HOIST) and 'Hoist_Hook' in D:
     hook_mesh = D['Hoist_Hook']
     low = min((SHIFT @ hook_mesh.matrix_world @ Vector(c)).z for c in hook_mesh.bound_box)
     layout['hoist'] = travel_block(HOIST, hook_mesh, (low - 2.4) / (HOIST[2][4] - 1), 'hoist')
+layout['marks'] = []
+for o in sorted((o for o in D if o.type == 'EMPTY' and MARKS.match(o.name)), key=lambda o: o.name):
+    m = SHIFT @ o.matrix_world
+    layout['marks'].append({'name': o.name, 'pos': U3(m.translation), 'fwd': U3(m.to_3x3().normalized().col[1]),
+                            'up': U3(m.to_3x3().normalized().col[2])})
+print('marks:', [k['name'] for k in layout['marks']])
 for orig, ob, world in items:
-    k = (re.match(r'^(Room)_(.+?)_Floor$', orig.name) or re.match(r'^(RoomC)_()Floor$', orig.name)
+    k = (re.match(r'^(Room)_(.+?)_Floor$', orig.name) or re.match(r'^(RoomC|Vault)_()Floor$', orig.name)
          or re.match(r'^(WheelRoom)_(\d+)_Drum_Floor$', orig.name))
     if k:
         pts = [world @ Vector(c) for c in orig.bound_box]

@@ -11,6 +11,7 @@ paths:
   - Assets/Game/Art/Models/_Source~/models/buildings/raxy_outposts_export.py
   - Assets/Game/Editor/Tests/OutpostPrefabTests.cs
 symptoms:
+  - "Generate says the beds and posts are an island at one rotation and fine at another"
   - "an Outpost generates but nobody moves in, with a clean console"
   - "Outpost: Generate says No config assigned"
   - "residents stand at the foot of an outpost ladder and never climb it"
@@ -20,7 +21,7 @@ symptoms:
   - "a bell frame's deck cannot be walked on and its ladder leads nowhere"
   - "an outpost prefab renders at the wrong place or mirrored compared to the .blend"
 reads_with: [Residents, Seats, Ladders, Errands, TerrainGeneration, NavMeshSystem, ArtPipeline]
-updated: 2026-10-09
+updated: 2026-10-11
 ---
 
 # Outposts
@@ -80,6 +81,7 @@ Nothing generated is saved ([TerrainGeneration.md](TerrainGeneration.md)); resid
 - **A resident's deck is reached by ladder only if both link ends have mesh.** `Scaffold_Tower`'s top deck is 2.5 x 1.4 m, too small: its ladder is `navigable = false` (the player climbs it); without that the link retries for 30 s and warns on every load. Run **Check Walkability** after changing a prefab: it counts each ladder's exit floor.
 - **A listed character stays out where its role has no place** (a farmer with no farm bed, a drover with no pen): the summary counts only those that moved in, so `4/4 characters` can follow a list of six. Give a prefab with a role a post of that role, or list roleless `Raxy_Casual_*` characters.
 - **Generate's throwaway bake has no ladder links**, so a spot on a deck is reported unusable ("an island") there although the world NavMesh at runtime has the link ([Ladders.md](Ladders.md)).
+- **Generate's check bake takes colliders from every loaded scene.** `SettlementWalkableArea.Bake` is a physics `OverlapBox`, so a building in another open scene overlapping the outpost (`WorkshopTest`'s workshop at the origin) is baked in with it, and its spots come back "an island" at most turns and heights, which reads exactly like a fragile model. The workshop outpost was clean at all ten placements tried clear of it (2026-10-11). Close other scenes, or place well away, before believing such a warning.
 - **Verified 2026-10-04, edit mode only** (scratch scene, flat ground, the settlement's throwaway bake): all eleven prefabs build and `OutpostPrefabTests` pass; **Check Walkability** finds both ends of 13 of the 14 ladders on mesh (floors of 10-26 m2; the 14th is the non-navigable scaffold tower) and 86 of 89 spots usable, 3 of them up a ladder, the other three being the grindstone of `Outpost_Raxy_04` and a seat and a cauldron post of `Outpost_Raxy_07` in tight clutter; a real `Generate` of `Outpost_Raxy_01` with Raxy residents ran clean (1/1 building, 4/4 characters as residents, no problem listed). **Not run:** Play with residents on an outpost, a client, a save/reload, or the world NavMesh bake with an outpost placed in a chunk scene.
 - **A new `.cs` can be dropped from the compile** and the console says nothing: check `Library/ScriptAssemblies` or `~/Library/Logs/Unity/Editor.log`.
 

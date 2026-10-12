@@ -44,6 +44,12 @@ namespace SpaceGame.Agents
         public float SpeedMultiplier { get; private set; } = 1f;
 
         /// <summary>
+        /// Run rather than walk there. Like <see cref="SpeedMultiplier"/>, a property of the errand: the
+        /// same NPC strolls to its post and runs to somebody shouting for it.
+        /// </summary>
+        public bool Run { get; private set; }
+
+        /// <summary>
         /// Horizontal distance to the goal, or infinity when there is none.
         ///
         /// Flat deliberately: the vertical component over a heightmap is noise, and an agent
@@ -113,6 +119,7 @@ namespace SpaceGame.Agents
             Reason = reason ?? string.Empty;
             SiteId = siteId ?? string.Empty;
             SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+            Run = false;
             HoldOnArrival = false;
             ExactStand = false;
             FacePoint = null;
@@ -126,11 +133,13 @@ namespace SpaceGame.Agents
         /// so it reads the same as <see cref="TrySetSampled(Vector3, float, string, bool, Vector3?, float)"/>
         /// at a call site that chooses between them. <paramref name="exactStand"/> asks for the body to
         /// end on the point (<see cref="ExactStand"/>); the point must already be on the NavMesh.
+        /// <paramref name="run"/> runs there (<see cref="Run"/>).
         /// </summary>
         public bool Set(Vector3 position, float arriveRadius, string reason, bool hold, Vector3? facePoint,
-                        float speedMultiplier = 1f, bool exactStand = false)
+                        float speedMultiplier = 1f, bool exactStand = false, bool run = false)
         {
             Set(position, arriveRadius, reason, null, speedMultiplier);
+            Run = run;
             HoldOnArrival = hold;
             ExactStand = hold && exactStand;
             FacePoint = facePoint;
@@ -158,12 +167,12 @@ namespace SpaceGame.Agents
         /// not walked to.
         /// </summary>
         public bool TrySetSampled(Vector3 position, float arriveRadius, string reason, bool hold, Vector3? facePoint,
-                                  float speedMultiplier = 1f)
+                                  float speedMultiplier = 1f, bool run = false)
         {
             if (!NavMesh.SamplePosition(position, out NavMeshHit hit, DefaultSampleDistance, NavMesh.AllAreas))
                 return false;
 
-            return Set(hit.position, arriveRadius, reason, hold, facePoint, speedMultiplier);
+            return Set(hit.position, arriveRadius, reason, hold, facePoint, speedMultiplier, run: run);
         }
 
         /// <summary>How far off the NavMesh a sampled goal may start. The default of the other overload.</summary>
@@ -175,6 +184,7 @@ namespace SpaceGame.Agents
             Reason = string.Empty;
             SiteId = string.Empty;
             SpeedMultiplier = 1f;
+            Run = false;
             HoldOnArrival = false;
             ExactStand = false;
             FacePoint = null;
@@ -188,7 +198,8 @@ namespace SpaceGame.Agents
         /// loaded yet) and an absent goal must come back absent rather than as a goal at the origin.
         /// </summary>
         public void RestoreGoal(bool hasGoal, Vector3 position, float arriveRadius, string reason,
-                                string siteId, float speedMultiplier, bool hold = false, Vector3? facePoint = null)
+                                string siteId, float speedMultiplier, bool hold = false, Vector3? facePoint = null,
+                                bool run = false)
         {
             if (!hasGoal)
             {
@@ -203,6 +214,7 @@ namespace SpaceGame.Agents
             Reason = reason ?? string.Empty;
             SiteId = siteId ?? string.Empty;
             SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+            Run = run;
             HoldOnArrival = hold;
             ExactStand = false;
             FacePoint = facePoint;

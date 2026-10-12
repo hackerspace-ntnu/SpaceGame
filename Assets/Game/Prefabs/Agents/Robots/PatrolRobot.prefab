@@ -399,24 +399,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 641
   eyeHeight: 1.6
-<<<<<<< HEAD
-  memoryDuration: 6
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 20
-  playSpotSound: 1
-  spotSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-=======
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
   sightRecheckInterval: 0.2
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
 --- !u!114 &4607886519339218409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -506,53 +492,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3aa84eac4a1ad44cda3a8ef8b0e164c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NoiseEmitter
-<<<<<<< HEAD
-  receiverLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
---- !u!114 &1130429238043732256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 056784ad4e16d46cfa8fbc9ad9b7a182, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityAudioModule
-  footstepSound:
-    Guid:
-      Data1: 2109535426
-      Data2: 1125007156
-      Data3: -1137650264
-      Data4: 1632573456
-    Path: event:/SFX/DefaultFootstep
-  footstepInterval: 0.45
-  movementThreshold: 0.3
-  footstepNoiseRadius: 8
-  emitFootstepNoise: 1
-  aggroSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  aggroNoiseRadius: 14
-  ambientSound:
-    Guid:
-      Data1: 244983765
-      Data2: 1082068725
-      Data3: 1235189431
-      Data4: -2011481048
-    Path: event:/SFX/Misc/ElectricHum
-  ambientMinInterval: 5
-  ambientMaxInterval: 12
-=======
   selfRoot: {fileID: 0}
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
 --- !u!114 &4847805356889917065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -588,13 +528,8 @@ MonoBehaviour:
       Data2: 1229043757
       Data3: -1953646154
       Data4: -696340387
-<<<<<<< HEAD
     Path: event:/SFX/Player/Death
-  despawnDelay: 12
-=======
-    Path: event:/SFX/PlayerDie
   corpseLifetime: 180
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &5659964076644315265

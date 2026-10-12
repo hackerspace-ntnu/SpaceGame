@@ -77,10 +77,16 @@ namespace SpaceGame.Core
         /// rifle born at the palm is a rifle born half inside the dropper's chest, and the physics
         /// step that untangles it is a shove, not a drop.
         /// </para>
+        /// <para>
+        /// And clear of the ground by its own half-size. A dead agent's origin is its pivot, which stands on its feet:
+        /// an item born there with its middle at ground height starts half inside the terrain, and the physics step that
+        /// resolves the overlap can push it straight through (a gear thief's Heart Gear went under the dunes that way).
+        /// </para>
         /// </summary>
         private static Vector3 SpawnPoint(Transform origin, InventoryItem item)
         {
             float reach = 0.5f * ItemWorldScale.SizeOf(item.itemPrefab);
+            Vector3 at = origin.position + origin.forward * reach;
 
             return ClearOfGround(origin.position, origin.position + origin.forward * reach, reach);
         }

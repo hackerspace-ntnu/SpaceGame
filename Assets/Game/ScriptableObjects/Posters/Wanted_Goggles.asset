@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4874757a2c7d24d0398622ffaca91a21, type: 3}
+  m_Name: Wanted_Goggles
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Posters.WantedPosterDefinition
+  subject: {fileID: 6320590716706008551, guid: e7579f2f4198441b3941b7342ef79045, type: 3}
+  displayName: Unknown
+  reward: 2,000 credits
+  status: 0
+  accent: {r: 0.76862746, g: 0.34117648, b: 0.23529412, a: 1}
+  heightLabel: --
+  portraitSpan: 0.5
+  headroom: 0.03
+  poster: {fileID: 2800000, guid: 4fb9afa477be3447a91b4132c53fff48, type: 3}

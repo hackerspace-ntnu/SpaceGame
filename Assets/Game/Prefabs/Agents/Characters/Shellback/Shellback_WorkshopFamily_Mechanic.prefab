@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2463920295357174074
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 412316941071413429, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2331548244
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5578785125735702336, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: prefabId
+      value: 1c98a3c7d39ba49bfbe78874a1613ec6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6320590716706008551, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_Name
+      value: Shellback_WorkshopFamily_Mechanic
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6320590716706008551, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7802360828412978801}
+  m_SourcePrefab: {fileID: 100100000, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+--- !u!1 &8468638327070227677 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6320590716706008551, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+  m_PrefabInstance: {fileID: 2463920295357174074}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7802360828412978801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8468638327070227677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 724695e00d25c4e36b4a29b53f66a005, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorkshopFamilyMember
+  arriveRadius: 1.2
+  greetRadius: 14
+  focusSeconds: 4
+  hearingRadius: 30
+  secondsPerLine: 4
+  gathering:
+  - You opened it! We thought we'd never see the sky again.
+  - They came in the night - we hid in the loft while they tore the place apart.
+  hunting:
+  - Please, bring our Heart Gear back. The engines won't turn without it.
+  - One of them had a limp. Can't have got far with a cog that heavy.
+  - They went out the ship lane. Look for what they dropped - that old cart of theirs
+    was falling apart.
+  carrying:
+  - You've got it! Take it to the middle of the hall!
+  vault:
+  - Our vault's past the turning rooms. Grandmother hid it well - you'll have to
+    turn a few to find it.
+  - Mind the hoist when you lower the core. Gently does it, or you'll dent your own
+    ship.
+  afterwards:
+  - Hear that hum? That's the Heart Gear turning again.
+  - You're a friend of this workshop now. Never forget it.

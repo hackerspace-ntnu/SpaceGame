@@ -134,12 +134,8 @@ namespace SpaceGame.Items
             powered = !powered;
 
             if (screen != null) screen.SetOn(powered);
-<<<<<<< HEAD
-            Sfx.Play(toggleSound, transform.position);
-=======
             PoseArm(powered);
-            Sfx.Play(toggleId, transform.position, toggleSound, GetInstanceID());
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
+            Sfx.Play(toggleSound, transform.position);
 
             if (powered)
             {

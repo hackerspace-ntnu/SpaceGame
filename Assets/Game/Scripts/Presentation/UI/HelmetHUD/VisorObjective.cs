@@ -7,7 +7,7 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The crew's current objective on the visor: a panel in the top-right corner under the
-    /// integrity gauge — heading, title, the step's status lines, range — and a waypoint mark on
+    /// integrity gauge — heading, title, the objective's status lines, range — and a waypoint mark on
     /// the place it points at.
     ///
     /// <para>
@@ -26,8 +26,9 @@ namespace SpaceGame.Presentation
     /// </para>
     /// <para>
     /// On the Annotations layer: it describes the world, so it goes quiet with the middle H level
-    /// along with the reticle. Reads <see cref="ObjectiveDirector"/> on this machine every frame and
-    /// holds nothing of its own, so a late joiner and a reloaded world draw it with no catching up.
+    /// along with the reticle. Shows the newest open world mission (<see cref="TrackedObjectives"/>),
+    /// else the crew's chain step (<see cref="ObjectiveDirector"/>), read on this machine every frame;
+    /// it holds nothing of its own, so a late joiner and a reloaded world draw it with no catching up.
     /// </para>
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
@@ -39,7 +40,7 @@ namespace SpaceGame.Presentation
         /// <summary>Room for "1234 m" under the diamond.</summary>
         private const float MarkerLabelWidth = 120f;
 
-        /// <summary>How often the title and status are recomposed while the step stays the same.</summary>
+        /// <summary>How often the title and status are recomposed while the objective stays the same.</summary>
         private const float TextRefreshSeconds = 0.1f;
 
         [Header("Panel")]
@@ -112,7 +113,7 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI markerRange;
 
         private float panelAlpha;
-        private ObjectiveStep shownStep;
+        private ITrackedObjective shown;
         private float announcedAt = float.NegativeInfinity;
         private float nextTextRefresh;
         private int shownMetres = -1;
@@ -127,39 +128,39 @@ namespace SpaceGame.Presentation
         private void LateUpdate()
         {
             ObjectiveDirector director = ObjectiveDirector.Instance;
-            ObjectiveStep step = director != null ? director.Current : null;
+            ITrackedObjective objective = TrackedObjectives.Newest ?? (director != null ? director.Tracked : null);
             float now = Time.unscaledTime;
 
-            panelAlpha = Mathf.MoveTowards(panelAlpha, step != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
+            panelAlpha = Mathf.MoveTowards(panelAlpha, objective != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
             panelGroup.alpha = panelAlpha;
 
-            if (step == null)
+            if (objective == null)
             {
                 markerGroup.alpha = 0f;
                 return;
             }
 
-            if (step != shownStep)
+            if (objective != shown)
             {
-                shownStep = step;
+                shown = objective;
                 announcedAt = now;
                 nextTextRefresh = now;
             }
 
-            ShowText(director.World, step, now);
+            ShowText(objective, now);
             Announce(now);
-            ShowWaypoint(director.World, step);
+            ShowWaypoint(objective);
         }
 
-        private void ShowText(ObjectiveWorld world, ObjectiveStep step, float now)
+        private void ShowText(ITrackedObjective objective, float now)
         {
             // Status can change every frame (a checklist ticking) but composing it every frame
             // would allocate a string a frame for nothing.
             if (now < nextTextRefresh) return;
             nextTextRefresh = now + TextRefreshSeconds;
 
-            SetText(titleLabel, step.Title);
-            SetText(statusLabel, step.Status(world));
+            SetText(titleLabel, objective.Title);
+            SetText(statusLabel, objective.Status);
         }
 
         private void Announce(float now)
@@ -186,11 +187,11 @@ namespace SpaceGame.Presentation
             if (shown && label.text != text) label.text = text;
         }
 
-        private void ShowWaypoint(ObjectiveWorld world, ObjectiveStep step)
+        private void ShowWaypoint(ITrackedObjective objective)
         {
             Camera view = referenceCamera != null ? referenceCamera : Camera.main;
 
-            if (view == null || !step.TryGetWaypoint(world, out Vector3 waypoint))
+            if (view == null || !objective.TryGetWaypoint(out Vector3 waypoint))
             {
                 markerGroup.alpha = 0f;
                 ShowRange(-1);

@@ -546,6 +546,36 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(OxygenGeneratorSaveable));
             }
 
+            // The key gear on a transfer board is an item out of somebody's hotbar, and the rooms' stops are
+            // which doors of the mountain are open. Neither may come back at its authored start.
+            if (go.GetComponent<SpaceGame.World.Workshop>() != null &&
+                go.GetComponent<WorkshopSaveable>() == null)
+            {
+                go.AddComponent<WorkshopSaveable>();
+                parts.Add(nameof(WorkshopSaveable));
+            }
+
+            // A gear on a gate's peg, and one gone from the pile in front of it, are items out of somebody's hotbar,
+            // and the gate they opened must not stand shut again. On the persistent root the door hangs below (the
+            // workshop's), and only there, so a wrapper above that root does not grow a second saver for it.
+            if (go.GetComponent<IPersistentEntity>() != null &&
+                go.GetComponentInChildren<SpaceGame.World.GearDoor>(true) != null &&
+                go.GetComponent<GearDoorSaveable>() == null)
+            {
+                go.AddComponent<GearDoorSaveable>();
+                parts.Add(nameof(GearDoorSaveable));
+            }
+
+            // How far the workshop's story has got: without it the gate's Shellback is back outside a gate the players
+            // opened, and a hunt under way spawns its thieves a second time. On the persistent root, like the gate.
+            if (go.GetComponent<IPersistentEntity>() != null &&
+                go.GetComponentInChildren<SpaceGame.World.WorkshopMission>(true) != null &&
+                go.GetComponent<WorkshopMissionSaveable>() == null)
+            {
+                go.AddComponent<WorkshopMissionSaveable>();
+                parts.Add(nameof(WorkshopMissionSaveable));
+            }
+
             if (go.GetComponent<HoloProjectorInteraction>() != null &&
                 go.GetComponent<ProjectorSaveable>() == null)
             {

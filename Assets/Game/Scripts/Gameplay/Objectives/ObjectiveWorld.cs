@@ -19,12 +19,8 @@ namespace SpaceGame.Gameplay.Objectives
     /// </summary>
     public sealed class ObjectiveWorld
     {
-        /// <summary>How many loose contacts one search considers. Far more than a crash site holds.</summary>
-        private const int LooseSearchLimit = 64;
-
         private readonly HashSet<InventoryItem> used = new();
         private readonly HashSet<ulong> finished = new();
-        private readonly List<ScanContact> contacts = new(LooseSearchLimit);
 
         /// <summary>
         /// The crew's hull. A story world has exactly one ship with module sockets, and the
@@ -87,29 +83,8 @@ namespace SpaceGame.Gameplay.Objectives
         /// of <paramref name="near"/>. False when every copy is in somebody's hands or pack — or
         /// lies in a chunk that has not streamed in, which is the same thing to a waypoint.
         /// </summary>
-        public bool TryFindLoose(InventoryItem item, Vector3 near, float radius, out Vector3 position)
-        {
-            position = default;
-            if (item == null) return false;
-
-            ScannerRegistry.Collect(near, radius, contacts, LooseSearchLimit);
-
-            // Collect sorts nearest first, so the first match is the answer.
-            foreach (ScanContact contact in contacts)
-            {
-                if (contact.Target is not PickupableItem pickup || pickup.Item != item) continue;
-
-                // The copy in a hand is an Instantiate of the same prefab, pickup and all, and it
-                // registers like any other — without this the waypoint follows the player carrying
-                // the thing it is pointing them at. The mark is what every equip path puts on it.
-                if (BodyAttachment.Covers(pickup.transform, null)) continue;
-
-                position = contact.Position;
-                return true;
-            }
-
-            return false;
-        }
+        public bool TryFindLoose(InventoryItem item, Vector3 near, float radius, out Vector3 position) =>
+            LooseItems.TryFind(item, near, radius, out position);
 
         /// <summary>
         /// The centre of the first empty module socket on the crew's hull that takes

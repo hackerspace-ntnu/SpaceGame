@@ -2,16 +2,16 @@
 system: StatusEffects
 status: implemented
 layer: items
-summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed — owned by the server, presented everywhere"
-consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity]
-updated: 2026-09-13
+summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked — owned by the server, presented everywhere"
+consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity, Artifacts]
+updated: 2026-10-12
 ---
 
 # Status effects
 
 Read [../Artifacts.md](../Artifacts.md) first.
 
-Six of the artifacts leave a timed condition on whatever they hit. Without a shared system that is
+Seven of the artifacts leave a timed condition on whatever they hit. Without a shared system that is
 six copies of the same timer, the same replication, and the same "what does a creature do about it"
 question. This is that system, written once.
 
@@ -41,7 +41,7 @@ question. This is that system, written once.
   concern; the receiver raises `StatusChanged` and a single `StatusReactionModule` on the agent
   translates it into a flee, a stagger or nothing. Five artifacts do not each learn about AI.
 - **"Cannot act" is the KIND's answer, not a per-creature row.** `StatusBehaviour.Suppresses` is
-  true for `Frozen` and `Foamed`, and `StatusReceiver.Suppressed` is the one question everything
+  true for `Frozen`, `Foamed` and `Shocked`, and `StatusReceiver.Suppressed` is the one question everything
   else asks: `AgentController` refuses to run any module at all while it holds (handing the motor
   `MoveIntent.Idle()`), `StatusReactionModule` answers `IsHelpless` from it, and `BodyHold` takes a
   player's body with it. Derived every frame, written nowhere — a suppression stored on the agent is
@@ -56,6 +56,7 @@ question. This is that system, written once.
 | `Slick` | 20 s | Grip 0.03 of normal. Ropes, lassos and nets slide off. Laid by the cryo sprayer on the first touch, ten seconds longer than the `Frozen` that follows |
 | `Inflated` | While pumped, deflates when not | Scale and mass driven by one signed scalar |
 | `Foamed` | 10 s | Held in place (ragdolled, unlike `Frozen`). Broken early by damage |
+| `Shocked` | 3 s default (the Shock Harpoon applies 5 s), not extendable, 2 s immunity after | Helpless and on the floor: a player limp through `BodyHold.Take`, a creature through `AgentRagdoll.HoldDown` (the net's claim), both on every machine off the replicated flag, released the frame it clears. No damage of its own. Applied by the Shock Harpoon ([Artifacts.md](../Artifacts.md)). Drawn by `ShockedVisual`: the body flashes to an X-ray (a ghost of each renderer in `SpaceGame/XRayShell`) with a cartoon skeleton inside (`BodySkeleton`: a bone between every pair of the rig's joints, a skull with eye sockets, ribs), arcs jump along and across the bones, and a blue point light wavers over it. Tuned in `Resources/Effects/ShockLook.asset` |
 | `Swallowed` | Named by the caller (the singularity's is ~3 s) | A flag and a clock, and nothing else — it does **not** suppress. The body has been moved into an interior by whatever ate it; this is how everything else knows. Never extended by a second source |
 
 **`Swallowed` is the odd one and worth reading before reusing it.** The other five change what a
@@ -91,6 +92,12 @@ frozen at the moment of a save reloads thawed and free, which is a small gift ra
   the camera in the helmet, which is what `Frozen` uses — a statue that collapses into a heap is not
   a statue. Both take a claim on the same `PlayerRagdoll` claim set, so two captors cannot free each
   other's captive.
+- **A stun must not be chainable.** `Shocked` refuses a refresh while it runs and refuses a new shock for `immunity` (2 s) after it ends, on the deciding machine (`CanApply`). Without it two shooters taking turns keep a victim on the floor for good (GDC-L1-BAL-0004). A creature's fall goes through `AgentRagdoll.HoldDown`/`ReleaseHold` from `OnApplied`/`OnCleared` — not `NetMsg.Knockdown` — so an early clear stands it up at once rather than when a knock-down timer runs out.
+- **The shocked X-ray never touches the body's materials.** `XRayGhost` adds a second renderer bound to the same mesh and bones (marked `BodyAttachment`, so the ragdoll and the skeleton skip it) and hides the original with `Renderer.forceRenderingOff` — a flag nothing else in the game writes (the singularity's `BodyVeil` uses `enabled`, first person's head hide uses `shadowCastingMode`). Write it from another system and a shock that ends will show that body again behind its back. A `LODGroup` body is ghosted by LOD 0 only, with every level hidden; a ghost per level would draw them all at once, additively.
+- **`BodyFrame` measures which way the face points while the body still stands.** The rigs here face +Z, -Y or whatever their .blend did, so a head bone's axes say nothing; the root's forward does, until the body is limp. The harpoon adds `ShockedVisual` in `Present`, a flight time before the shock lands, for exactly this. A future shock source that adds it to a body already on the floor gets the skull's eye sockets on whatever side the body faced as it lay.
+- **The X-ray strobe is held under three flashes a second** (`ShockLook.xraySeconds` + `normalSeconds`, pinned by `ShockHarpoonTests.TheXRayStrobesUnderThePhotosensitivityLimit`). The game has no reduce-flashing setting, so a full-body flash faster than that would be unsafe as shipped (GDC-L1-FEEL-0006). The light wavers with noise instead of strobing.
+- **A condition's default duration is serialized into every body that carries a receiver.** `StatusReceiver` holds each behaviour as a serialized field, so a prefab saved after `Shocked` existed (`Raider_GearThief`) keeps `seconds: 3` even if `ShockedStatus.DefaultDuration` changes. A source that needs a definite length passes it to `Apply` — the Shock Harpoon does (5 s).
+- **`ShockLook` numbers live in the asset, not in code.** The field initialisers only seed a NEW asset; once `ShockLook.asset` exists, changing a default in `ShockLook.cs` changes nothing on screen.
 - **A condition that must not be lethal must not be a `DamageWatchingStatus`.** `Frozen` used to
   watch damage and kill above a threshold; a victim who can see it coming and can do nothing once it
   lands is exactly the case that must not be an execution (GDC-L1-MP-0002).

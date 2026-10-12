@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using FMOD.Studio;
 using FMODUnity;
-using Mono.Cecil.Cil;
 using UnityEngine;
 
 namespace SpaceGame.Audio
 {
-    public static class Sfx
+    /// <summary>
+    /// Plays an <see cref="EventReference"/> directly. The <see cref="SfxId"/> overloads that go through the
+    /// <see cref="AudioCatalog"/> live in Sfx.Catalog.cs, for the callers not yet moved to an EventReference.
+    /// </summary>
+    public static partial class Sfx
     {
         
         private static HashSet<EventReference> Babying = new HashSet<EventReference>();

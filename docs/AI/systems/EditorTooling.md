@@ -20,7 +20,7 @@ symptoms:
   - "a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "the menu item a doc names is not in the Tools menu"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-10-04
+updated: 2026-10-11
 ---
 # Editor Tooling
 
@@ -84,6 +84,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Tools/SpaceGame/Multiplayer/Sync Network Prefabs | [NetworkPrefabRegistrar.cs](Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs) | Adds every prefab with a root `NetworkObject` to the list `NetworkManager.prefab` references |
 | Tools/SpaceGame/Multiplayer/Wire Agent Netcode | [Assets/Game/Editor/Multiplayer/](Assets/Game/Editor/Multiplayer) | Adds the netcode stack across agent prefabs |
 | Tools/SpaceGame/Animation/{Generate Recoil Clips, Rebuild Humanoid Controller, Audit Humanoid Controller, Wire Humanoid Prefabs, Create Actions From Selected Clips, Animation Library} | [Editor/Animation/](Assets/Game/Editor/Animation) | Generates the ONE humanoid controller (every layer, mask and action state) from the profile and the action assets; Audit writes nothing but a scratch copy and lists unused clips and unanswered cues; Wire adds `CharacterActions`/`BodyLanguage`/`IdleVariation`/`HurtReaction` (and `SpeechGestures` on NPCs) to humanoid prefabs; Generate Recoil Clips writes the additive recoil clips from `RecoilProfile.asset` and rebuilds; the Library window browses actions, cues and the moment table and plays any of them on the selected body in play mode. See [HumanoidAnimation.md](HumanoidAnimation.md) |
+| Tools/SpaceGame/Posters/{Bake Wanted Posters, Bake Selected Wanted Posters} · Export Portrait Passes (Selected) | [WantedPosterBaker.cs](Assets/Game/Editor/Posters/WantedPosterBaker.cs) | Renders each `WantedPosterDefinition`'s subject and prints the poster; writes PNG, material and placeable prefab variant, then verifies. *Export* is read-only: the renders behind one portrait to `Temp/PosterPasses/`. See [WantedPosters](docs/AI/systems/WantedPosters.md) |
 | Tools/SpaceGame/Ragdoll/Wire Prefabs | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Adds `AgentRagdoll`/`PlayerRagdoll` across creature + player prefabs |
 | Tools/SpaceGame/Ragdoll/{Report Candidates, Audit Skeletons, Diagnose Wired Prefabs} | [RagdollWiring.cs](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) | Read-only: felling candidates, skinned vs rigid-part rigs, broken joints on wired prefabs |
 | Tools/Tests/Run EditMode Tests (headless) | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Runs the EditMode suite, writes a result file |
@@ -109,6 +110,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | [WorldChunkerEditor](Assets/Game/Editor/World/WorldChunkerEditor.cs) · [MapMeshBaker](Assets/Game/Editor/Map/MapMeshBaker.cs) | `Scenes/World/Chunks/*`, `Terrain/ChunkData/*`, `Settings/WorldStreamingConfig.asset`, `Resources/MapMeshes/*` |
 | [StaticPropBuilder](Assets/Game/Editor/Support/StaticPropBuilder.cs) · [DoubleSidedMaterials](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) (libraries, no menu) | The four steps every static-model builder shares — import settings, fitted colliders, a cull LODGroup, static flags — and `Art/Materials/{Vehicles,Settlement}/* (DoubleSided).mat`, refreshed from source on every build |
 | [SaveableWiring](Assets/Game/Scripts/Core/Persistence/Editor/SaveableWiring.cs) · [RagdollWiring](Assets/Game/Editor/AssetPipeline/RagdollWiring.cs) · [ItemPackOrientation](Assets/Game/Editor/Backpack/ItemPackOrientation.cs) · [ItemWorldPresence](Assets/Game/Editor/Items/ItemWorldPresence.cs) | Additive `LoadPrefabContents` edits — safe to hand-edit except the fields they own |
+| [WantedPosterBaker](Assets/Game/Editor/Posters/WantedPosterBaker.cs) | `Art/Textures/Posters/<name>.png`, `Art/Materials/Posters/<name>.mat`, the `poster` field of each definition, and only the `definition` field + sheet material of `Prefabs/…/Posters/<name>.prefab` (created once as a variant of `WantedPoster.prefab`) |
 | [LibraryExporter](Assets/Game/Editor/AssetPipeline/LibraryExporter.cs) | `docs/library/` PNGs + `library.json` — outside `Assets/`, deliberately |
 
 ## Importers & postprocessors

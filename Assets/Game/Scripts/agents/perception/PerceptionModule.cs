@@ -46,28 +46,10 @@ namespace SpaceGame.Agents
                  "top grazes a ceiling or an overhang the head itself would be under.")]
         [SerializeField] private float headInset = 0.15f;
 
-<<<<<<< HEAD
-        [Header("Memory")]
-        [Tooltip("How long the entity remembers the last known position after losing sight.")]
-        [SerializeField] private float memoryDuration = 5f;
-
-        [Header("Noise on Spot")]
-        [SerializeField] private bool emitNoiseOnSpot = true;
-        [SerializeField] private float spotNoiseRadius = 12f;
-
-        [Header("Audio")]
-        [SerializeField] private bool playSpotSound = true;
-        [SerializeField] private EventReference spotSound;
-
-        public Vector3 LastKnownPosition { get; private set; }
-        public bool HasLastKnownPosition { get; private set; }
-        public float TimeSinceLastSeen { get; private set; }
-=======
         [Tooltip("Seconds between line-of-sight re-checks of the target the agent is tracking " +
                  "(CanSeeCached). A new target is checked at once. Each check is up to two rays, " +
                  "every agent pays it, and a target does not dodge behind cover in a fifth of a second.")]
         [SerializeField, Min(0f)] private float sightRecheckInterval = 0.2f;
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
 
         public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
         public float SightRecheckInterval => sightRecheckInterval;
@@ -361,21 +343,6 @@ namespace SpaceGame.Agents
             return FlattenHorizontal(head).sqrMagnitude > FlattenHorizontal(forward).sqrMagnitude ? head : forward;
         }
 
-<<<<<<< HEAD
-        // Call when a target is spotted for the first time to alert nearby allies.
-        public void NotifySpotted(Transform target)
-        {
-            if (emitNoiseOnSpot && noiseEmitter)
-                noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
-
-            if (playSpotSound)
-                Sfx.Play(spotSound, transform.position);
-        }
-
-        private Vector3 GetForward() => transform.forward;
-
-=======
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
         private static Vector3 FlattenHorizontal(Vector3 v)
         {
             v.y = 0f;

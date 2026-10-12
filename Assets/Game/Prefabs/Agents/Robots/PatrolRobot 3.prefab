@@ -111,367 +111,6 @@ CapsuleCollider:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-<<<<<<< HEAD
-  eyeHeight: 1.6
-  memoryDuration: 6
-  emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
-  playSpotSound: 1
-  spotSound:
-    Guid:
-      Data1: 984865563
-      Data2: 1210358750
-      Data3: 1245207699
-      Data4: 1455594882
-    Path: event:/SFX/Misc/Implosion
---- !u!114 &4607886519339218409
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 964062057219e4a3997db46a5be5c38e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SearchModule
-  priority: 19
-  active: 1
-  searchDuration: 4
-  stopDistance: 0.6
-  speedMultiplier: 1.1
-  searchSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
---- !u!114 &3284140899480240915
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e501cf3505a64868973d1f808316135, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AlertBroadcaster
-  alertRadius: 28
-  receiverLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  alliedOnly: 1
---- !u!114 &5908861010385855324
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d09780d6ca994f72bbfa92dd9d42446, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AlertReceiverModule
-  priority: 20
-  active: 1
-  alertDuration: 8
-  stopDistance: 0.5
---- !u!114 &9147787627596365367
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9a9a2f15cbe84ef0a550be60f101221, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NoiseReceiverModule
-  priority: 18
-  active: 1
-  investigateOn: -1
-  aggroOn: 6
-  investigateDuration: 5
-  stopDistance: 0.5
-  speedMultiplier: 1.1
-  OnHearNoise:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &443577289899592234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3aa84eac4a1ad44cda3a8ef8b0e164c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NoiseEmitter
-  receiverLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
---- !u!114 &1130429238043732256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 056784ad4e16d46cfa8fbc9ad9b7a182, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityAudioModule
-  footstepSound:
-    Guid:
-      Data1: 2109535426
-      Data2: 1125007156
-      Data3: -1137650264
-      Data4: 1632573456
-    Path: event:/SFX/DefaultFootstep
-  footstepInterval: 0.45
-  movementThreshold: 0.3
-  footstepNoiseRadius: 8
-  emitFootstepNoise: 1
-  aggroSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  aggroNoiseRadius: 14
-  ambientSound:
-    Guid:
-      Data1: 244983765
-      Data2: 1082068725
-      Data3: 1235189431
-      Data4: -2011481048
-    Path: event:/SFX/Misc/ElectricHum
-  ambientMinInterval: 5
-  ambientMaxInterval: 12
---- !u!114 &8005158377296034571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 367cf5f3e59d24fe392cb3df23b3c420, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityInventoryComponent
-  inventorySize: 4
-  startingItems: []
---- !u!114 &7903389983572529390
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98e55432afa09477a97a6a6ee4302297, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityLootTable
-  lootEntries: []
-  dropInventoryContents: 1
---- !u!114 &4847805356889917065
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5bdb2dfd50e904a02822de43186a02e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthReactionModule
-  thresholdReactions: []
-  hurtAnimTrigger: 
-  dieAnimTrigger: 
-  emitNoiseOnDamage: 1
-  damageNoiseRadius: 15
-  hurtSound:
-    Guid:
-      Data1: 1785186576
-      Data2: 1245510835
-      Data3: -1836278379
-      Data4: 1511765510
-    Path: event:/SFX/Interact/MetalPickup
-  onDeath:
-    m_PersistentCalls:
-      m_Calls: []
-  emitNoiseOnDeath: 1
-  deathNoiseRadius: 20
-  deathSound:
-    Guid:
-      Data1: -1486019807
-      Data2: 1229043757
-      Data3: -1953646154
-      Data4: -696340387
-    Path: event:/SFX/Player/Death
-  despawnDelay: 12
-  disableAgentOnDeath: 1
---- !u!114 &5659964076644315265
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0031ebc413ac54c45a42e4d406d16035, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KeepDistanceModule
-  priority: 10
-  active: 1
-  requiredRelationship: 2
-  detectRadius: 10
-  preferredDistance: 6
-  speedMultiplier: 1.25
-  stopDistance: 0.2
-  navMeshSampleDistance: 4
---- !u!114 &4092899636993295912
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
-  animator: {fileID: 164182178236826577}
-  animationSpeedMultiplier: 1.5
-  walkAnimBoost: 1.1
-  animatorSpeedScale: 1
-  measuredRunSpeed: 3.5
---- !u!95 &164182178236826577
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 33b6b3aa0156c6146b8db27ca2dff66b, type: 3}
-  m_Controller: {fileID: 9100000, guid: 4c70d2a0c51a84648b6c62ea3aba7f0d, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
---- !u!114 &7198681263245389541
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbb87cf2ffb7543aa9517dec3d2102a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HerdModule
-  priority: 15
-  active: 1
-  herdId: herd2
-  settleRadius: 4
-  settleStopDistance: 0.6
-  settleTimeoutSeconds: 5
-  combatSpreadRadius: 2.5
---- !u!114 &2749094970167761448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 421edd01c56ce43e49db60c5c7a6caed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WanderModule
-  priority: 0
-  active: 1
-  limitWanderRadius: 0
-  wanderRadius: 100
-  freeRoamRadius: 100
-  sampleDistance: 15
-  minDestinationDistance: 1.5
-  maxSampleAttempts: 10
-  minWaitTime: 0.5
-  maxWaitTime: 2
-  stopDistance: 0.2
-  speedMultiplier: 1
---- !u!114 &5826178671301965293
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a76ab2054f26424dafb39fa6cc20c14, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentRangedCombatModule
-  priority: 22
-  active: 1
-  rangeExitFactor: 1.1
-  weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
-  fireProfile: {fileID: 11400000, guid: c19bbadfc9fe54b1eb3de0bedf171d10, type: 2}
-  aimProfile: {fileID: 11400000, guid: 7aa884b8ef85942f18fb0a63102ea09c, type: 2}
-  muzzleSocket: {fileID: 0}
-  muzzleForwardOffset: 0.4
-  spawnWeaponModel: 0
-  weaponMount: {fileID: 0}
-  animator: {fileID: 164182178236826577}
-  shootAnimTrigger: AssaultShoot
-  aimAnimBool: IsAiming
-  OnFire:
-    m_PersistentCalls:
-      m_Calls: []
-  OnMiss:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &551177450576191230
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  maxHealth: 100
-  currentHealth: 100
-=======
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
@@ -481,34 +120,6 @@ MonoBehaviour:
   m_Height: 3.0451317
   m_Direction: 1
   m_Center: {x: 0, y: 1.5225658, z: 0}
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
---- !u!54 &3336273521187348112
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 0
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 80
-  m_CollisionDetection: 0
 --- !u!195 &7520083281846648822
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -575,24 +186,6 @@ MonoBehaviour:
   riderLookaheadSeconds: 0.5
   riderStopDistance: 0.15
   riderNavMeshSampleDistance: 4
---- !u!114 &4092899636993295912
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
-  animator: {fileID: 4302392831519831060}
-  animationSpeedMultiplier: 1.5
-  walkAnimBoost: 1.1
-  animatorSpeedScale: 1.3958142
-  measuredRunSpeed: 3.4197447
-  strideEndPhases: []
 --- !u!114 &8986471758657315100
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -609,7 +202,7 @@ MonoBehaviour:
   animatorDriver: {fileID: 4092899636993295912}
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
---- !u!114 &551177450576191230
+--- !u!114 &6054718628419241840
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -618,66 +211,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 971402422321702955}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
+  m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.HealthComponent
-  maxHealth: 160
-  currentHealth: 160
---- !u!114 &4847805356889917065
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5bdb2dfd50e904a02822de43186a02e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HealthReactionModule
-  thresholdReactions: []
-  hurtAnimTrigger: 
-  dieAnimTrigger: 
-  emitNoiseOnDamage: 1
-  damageNoiseRadius: 15
-  hurtId: 409
-  hurtSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  onDeath:
-    m_PersistentCalls:
-      m_Calls: []
-  emitNoiseOnDeath: 1
-  deathNoiseRadius: 20
-  deathId: 410
-  deathSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
-  corpseLifetime: 180
-  disableAgentOnDeath: 1
-  logDamage: 0
---- !u!114 &1291748066986471420
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
-  faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
-  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
+  priority: 20
+  active: 1
+  chaseStopDistance: 6
+  chaseSpeedMultiplier: 1.3
 --- !u!114 &3153956235504603033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -720,79 +260,6 @@ MonoBehaviour:
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
   drawGizmos: 1
---- !u!114 &2223574198907494807
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9446d8881c4d04935940a413f3fba41e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.PatrolModule
-  priority: 0
-  active: 1
-  mode: 0
-  radiusCenter: {fileID: 0}
-  patrolRadius: 35
-  minMoveDistance: 3
-  patrolPoints: []
-  selectionMode: 0
-  minWaitTime: 2
-  maxWaitTime: 6
-  stopDistance: 0.5
-  holdPositionWhileWaiting: 1
---- !u!114 &6493527537113538156
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
-  priority: 15
-  active: 1
-  formationId: 
-  isLeader: 0
-  shape:
-    Lanes: 2
-    RowSpacing: 4.5
-    LaneSpacing: 3
-    LateralJitter: 0.9
-    LongitudinalJitter: 1.2
-    DriftAmplitude: 0.7
-    DriftRate: 0.08
-  slotTolerance: 1.6
-  catchUpGain: 0.12
-  minSpeedMultiplier: 0.85
-  maxSpeedMultiplier: 1.35
-  leaderMovingSpeed: 0.4
-  restRadius: 6
-  holdSlotAtRest: 0
-  regroupDistance: 40
-  navSampleDistance: 6
---- !u!114 &6054718628419241840
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
-  priority: 20
-  active: 1
-  chaseStopDistance: 6
-  chaseSpeedMultiplier: 1.3
 --- !u!114 &4607886519339218409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -810,7 +277,6 @@ MonoBehaviour:
   searchDuration: 4
   stopDistance: 0.6
   speedMultiplier: 1.1
-  searchId: 408
   searchSound:
     Guid:
       Data1: 0
@@ -818,7 +284,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
---- !u!114 &5659964076644315265
+--- !u!114 &3284140899480240915
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -827,17 +293,91 @@ MonoBehaviour:
   m_GameObject: {fileID: 971402422321702955}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0031ebc413ac54c45a42e4d406d16035, type: 3}
+  m_Script: {fileID: 11500000, guid: 9e501cf3505a64868973d1f808316135, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.KeepDistanceModule
-  priority: 10
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertBroadcaster
+  alertRadius: 60
+  announceSightings: 1
+  callForHelpEvery: 0
+--- !u!114 &5908861010385855324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d09780d6ca994f72bbfa92dd9d42446, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertReceiverModule
+  priority: 19
   active: 1
-  requiredRelationship: 2
-  detectRadius: 8
-  preferredDistance: 4
-  speedMultiplier: 1.2
-  stopDistance: 0.2
-  navMeshSampleDistance: 4
+  alertDuration: 15
+  stopDistance: 0.5
+--- !u!114 &6811344697718480988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2dd9811b69a34a4c83ca0e719373f3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ProvocationModule
+  leashRange: 140
+  calmDownDelay: 45
+  damageThreshold: 0
+  aggressionSettings:
+    hitGain: 1200
+    allyHurtGain: 40
+    gunshotGain: 15
+    menaceGainPerSecond: 20
+    menaceRange: 12
+    menaceDelay: 1.5
+    trespassGainPerSecond: 10
+    calmRate: 10
+    attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
+  drawGizmos: 1
+--- !u!114 &9147787627596365367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9a9a2f15cbe84ef0a550be60f101221, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NoiseReceiverModule
+  priority: 18
+  active: 1
+  investigateOn: 49
+  aggroOn: 6
+  investigateDuration: 5
+  stopDistance: 0.5
+  speedMultiplier: 1.1
+  OnHearNoise:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &443577289899592234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3aa84eac4a1ad44cda3a8ef8b0e164c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NoiseEmitter
+  selfRoot: {fileID: 0}
 --- !u!114 &8005158377296034571
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1003,7 +543,7 @@ MonoBehaviour:
   maxInterval: 4.5
   turnAngle: 70
   lookDuration: 0.75
---- !u!114 &3284140899480240915
+--- !u!114 &4847805356889917065
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1012,91 +552,186 @@ MonoBehaviour:
   m_GameObject: {fileID: 971402422321702955}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e501cf3505a64868973d1f808316135, type: 3}
+  m_Script: {fileID: 11500000, guid: 5bdb2dfd50e904a02822de43186a02e6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertBroadcaster
-  alertRadius: 60
-  announceSightings: 1
-  callForHelpEvery: 0
---- !u!114 &5908861010385855324
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d09780d6ca994f72bbfa92dd9d42446, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AlertReceiverModule
-  priority: 19
-  active: 1
-  alertDuration: 15
-  stopDistance: 0.5
---- !u!114 &6811344697718480988
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2dd9811b69a34a4c83ca0e719373f3b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ProvocationModule
-  leashRange: 140
-  calmDownDelay: 45
-  damageThreshold: 0
-  aggressionSettings:
-    hitGain: 1200
-    allyHurtGain: 40
-    gunshotGain: 15
-    menaceGainPerSecond: 20
-    menaceRange: 12
-    menaceDelay: 1.5
-    trespassGainPerSecond: 10
-    calmRate: 10
-    attackAt: 100
-    jostlesToFight: 0
-    settleSeconds: 0
-  drawGizmos: 1
---- !u!114 &443577289899592234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3aa84eac4a1ad44cda3a8ef8b0e164c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NoiseEmitter
-  selfRoot: {fileID: 0}
---- !u!114 &9147787627596365367
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9a9a2f15cbe84ef0a550be60f101221, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NoiseReceiverModule
-  priority: 18
-  active: 1
-  investigateOn: 49
-  aggroOn: 6
-  investigateDuration: 5
-  stopDistance: 0.5
-  speedMultiplier: 1.1
-  OnHearNoise:
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HealthReactionModule
+  thresholdReactions: []
+  hurtAnimTrigger: 
+  dieAnimTrigger: 
+  emitNoiseOnDamage: 1
+  damageNoiseRadius: 15
+  hurtSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  onDeath:
     m_PersistentCalls:
       m_Calls: []
+  emitNoiseOnDeath: 1
+  deathNoiseRadius: 20
+  deathSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  corpseLifetime: 180
+  disableAgentOnDeath: 1
+  logDamage: 0
+--- !u!114 &5659964076644315265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0031ebc413ac54c45a42e4d406d16035, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.KeepDistanceModule
+  priority: 10
+  active: 1
+  requiredRelationship: 2
+  detectRadius: 8
+  preferredDistance: 4
+  speedMultiplier: 1.2
+  stopDistance: 0.2
+  navMeshSampleDistance: 4
+--- !u!114 &4092899636993295912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
+  animator: {fileID: 4302392831519831060}
+  animationSpeedMultiplier: 1.5
+  walkAnimBoost: 1.1
+  animatorSpeedScale: 1.3958142
+  measuredRunSpeed: 3.4197447
+  strideEndPhases: []
+--- !u!114 &551177450576191230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.HealthComponent
+  maxHealth: 160
+  currentHealth: 160
+--- !u!54 &3336273521187348112
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 80
+  m_CollisionDetection: 0
+--- !u!114 &2223574198907494807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9446d8881c4d04935940a413f3fba41e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.PatrolModule
+  priority: 0
+  active: 1
+  mode: 0
+  radiusCenter: {fileID: 0}
+  patrolRadius: 35
+  minMoveDistance: 3
+  patrolPoints: []
+  selectionMode: 0
+  minWaitTime: 2
+  maxWaitTime: 6
+  stopDistance: 0.5
+  holdPositionWhileWaiting: 1
+--- !u!114 &6493527537113538156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: 
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  holdSlotAtRest: 0
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &1291748066986471420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
 --- !u!114 &7242606688758733194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1111,26 +746,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
   keepChunksLoaded: 0
   policy: 1
---- !u!114 &1221657839297735987
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
-  bodyRoot: {fileID: 0}
-  checkInterval: 0.25
-  depthTolerance: 0.5
-  surfaceClearance: 1.2
-  absoluteFloorY: -500
-  groundWaitTimeout: 20
-  structureFloorReach: 1.7
-  logRecoveries: 1
 --- !u!114 &5685396050959841165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1790,3 +1405,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 33b6b3aa0156c6146b8db27ca2dff66b, type: 3}
   m_PrefabInstance: {fileID: 7701083713306462597}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1221657839297735987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
+  logRecoveries: 1

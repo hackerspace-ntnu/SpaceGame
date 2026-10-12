@@ -1,5 +1,197 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2476850123095968237
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 904085669179168279}
+  - component: {fileID: 1991465917362057931}
+  - component: {fileID: 673409414250599385}
+  m_Layer: 0
+  m_Name: KegRack_KegC
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &904085669179168279
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2476850123095968237}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3023428813196382069}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1991465917362057931
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2476850123095968237}
+  m_Mesh: {fileID: -3953158161280536895, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &673409414250599385
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2476850123095968237}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2646484254976606946
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3009481579479039842}
+  - component: {fileID: 4880120394762726819}
+  - component: {fileID: 2994993030116652789}
+  m_Layer: 0
+  m_Name: KegRack_Tray
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3009481579479039842
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2646484254976606946}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8581923306218275547}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4880120394762726819
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2646484254976606946}
+  m_Mesh: {fileID: -3255725455610644371, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &2994993030116652789
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2646484254976606946}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -4754337993319788727, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 6697408153882380362, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -5452036839244897740, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 7259488003050952856, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -9116480052934087406, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -4496946338497967812, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -2201417444562209081, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3220044709462593468
 GameObject:
   m_ObjectHideFlags: 0
@@ -11,6 +203,7 @@ GameObject:
   - component: {fileID: 1109196959657909520}
   - component: {fileID: 2741119402417429469}
   - component: {fileID: 3876714643879664790}
+  - component: {fileID: 6055017642179628141}
   m_Layer: 0
   m_Name: Deco_KegRack
   m_TagString: Untagged
@@ -68,9 +261,714 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Keg rack
-  description: Barrels of beer and water.
   scanClass: 1
-  lookSeconds: 6
+--- !u!205 &6055017642179628141
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3220044709462593468}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.00036758184, y: 0.97505116, z: 0.27558902}
+  m_Size: 1.9562197
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2714246738224775191}
+    - renderer: {fileID: 2081571054608604293}
+    - renderer: {fileID: 51538089111838244}
+    - renderer: {fileID: 3237110571898959041}
+    - renderer: {fileID: 2959738043824170115}
+    - renderer: {fileID: 6193821616075915677}
+    - renderer: {fileID: 6342168634460738679}
+    - renderer: {fileID: 2211474956460652079}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 3006571434628230607}
+    - renderer: {fileID: 4950213133428417476}
+    - renderer: {fileID: 673409414250599385}
+    - renderer: {fileID: 3237110571898959041}
+    - renderer: {fileID: 2994993030116652789}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7377942709885066805}
+    - renderer: {fileID: 5122227182951162596}
+    - renderer: {fileID: 2620920576781048571}
+    - renderer: {fileID: 5922050989522116815}
+    - renderer: {fileID: 3621934393277785664}
+  m_Enabled: 1
+--- !u!1 &4876172469177019681
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5755259725524995384}
+  - component: {fileID: 6060317790548119980}
+  - component: {fileID: 5922050989522116815}
+  m_Layer: 0
+  m_Name: KegRack_Rack
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5755259725524995384
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4876172469177019681}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8163124506986429690}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6060317790548119980
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4876172469177019681}
+  m_Mesh: {fileID: 9135791354796908993, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+--- !u!23 &5922050989522116815
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4876172469177019681}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 2043506970664812740, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5179026818703464878
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6527815616226508524}
+  - component: {fileID: 3441516559890289324}
+  - component: {fileID: 3006571434628230607}
+  m_Layer: 0
+  m_Name: KegRack_KegA
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &6527815616226508524
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5179026818703464878}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4830301847628441932}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3441516559890289324
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5179026818703464878}
+  m_Mesh: {fileID: 4300000, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &3006571434628230607
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5179026818703464878}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -4496946338497967812, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6692857799942478779
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2315240936669008862}
+  - component: {fileID: 3305553061426324285}
+  - component: {fileID: 5122227182951162596}
+  m_Layer: 0
+  m_Name: KegRack_KegB
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &2315240936669008862
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6692857799942478779}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4184632414245711927}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3305553061426324285
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6692857799942478779}
+  m_Mesh: {fileID: -1205176988811486619, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &5122227182951162596
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6692857799942478779}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 3773740331645858578, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6895685512386493351
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 214676111144756244}
+  - component: {fileID: 7989065576842790191}
+  - component: {fileID: 2620920576781048571}
+  m_Layer: 0
+  m_Name: KegRack_KegC
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &214676111144756244
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6895685512386493351}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3023428813196382069}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7989065576842790191
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6895685512386493351}
+  m_Mesh: {fileID: -3953158161280536895, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &2620920576781048571
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6895685512386493351}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7028143392011606969
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6663723538767093900}
+  - component: {fileID: 1146437692224763094}
+  - component: {fileID: 4950213133428417476}
+  m_Layer: 0
+  m_Name: KegRack_KegB
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &6663723538767093900
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7028143392011606969}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4184632414245711927}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1146437692224763094
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7028143392011606969}
+  m_Mesh: {fileID: -1205176988811486619, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &4950213133428417476
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7028143392011606969}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 3773740331645858578, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &7703984297610413285
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6087989059723533022}
+  - component: {fileID: 8070065350271723035}
+  - component: {fileID: 7377942709885066805}
+  m_Layer: 0
+  m_Name: KegRack_KegA
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &6087989059723533022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7703984297610413285}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4830301847628441932}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8070065350271723035
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7703984297610413285}
+  m_Mesh: {fileID: 4300000, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &7377942709885066805
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7703984297610413285}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1817902785023152626, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8387001452365709565, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -4496946338497967812, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 8297594676762976574, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &9130423451935041537
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1014054208279139271}
+  - component: {fileID: 5993331948342040099}
+  - component: {fileID: 3621934393277785664}
+  m_Layer: 0
+  m_Name: KegRack_Tray
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1014054208279139271
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9130423451935041537}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8581923306218275547}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5993331948342040099
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9130423451935041537}
+  m_Mesh: {fileID: -1590189112209728054, guid: ec1879c1ef63f4728a8be7c24d486cfe, type: 2}
+--- !u!23 &3621934393277785664
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9130423451935041537}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -4754337993319788727, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7893694533828302414, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 6697408153882380362, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -5452036839244897740, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -7044892495452318600, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: 7259488003050952856, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -9116480052934087406, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -4496946338497967812, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  - {fileID: -2201417444562209081, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &1844741350135733559
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -161,11 +1059,103 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -2697238861320358789, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6527815616226508524}
+    - targetCorrespondingSourceObject: {fileID: -2697238861320358789, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6087989059723533022}
+    - targetCorrespondingSourceObject: {fileID: 2561171022210657536, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6663723538767093900}
+    - targetCorrespondingSourceObject: {fileID: 2561171022210657536, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2315240936669008862}
+    - targetCorrespondingSourceObject: {fileID: 3489363954416800322, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 904085669179168279}
+    - targetCorrespondingSourceObject: {fileID: 3489363954416800322, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 214676111144756244}
+    - targetCorrespondingSourceObject: {fileID: 7552791691282260429, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5755259725524995384}
+    - targetCorrespondingSourceObject: {fileID: 7962588152753414124, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3009481579479039842}
+    - targetCorrespondingSourceObject: {fileID: 7962588152753414124, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1014054208279139271}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+--- !u!23 &51538089111838244 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7408755751961148653, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2081571054608604293 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8828480633564118606, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2167197919737674460 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2211474956460652079 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 516060981098638104, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2714246738224775191 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4337854283743894816, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2959738043824170115 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3497832816900176308, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3023428813196382069 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3489363954416800322, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3237110571898959041 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -5371298393012147722, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4184632414245711927 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2561171022210657536, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4830301847628441932 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2697238861320358789, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6193821616075915677 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -3716303627572749142, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6342168634460738679 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4727159747864201536, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8163124506986429690 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7552791691282260429, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
+  m_PrefabInstance: {fileID: 1844741350135733559}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8581923306218275547 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7962588152753414124, guid: e6aa44699c05d408f975888a5ccac1c0, type: 3}
   m_PrefabInstance: {fileID: 1844741350135733559}
   m_PrefabAsset: {fileID: 0}

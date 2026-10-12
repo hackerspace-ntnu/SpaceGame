@@ -347,12 +347,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
-<<<<<<< HEAD:Assets/Game/Prefabs/Items/Pickups/Scraps.prefab
-  item: {fileID: 11400000, guid: ec5e14d2d262f2a47b547b9af33cc2f2, type: 2}
-=======
   item: {fileID: 11400000, guid: 795483d4e5d72a0479f752de5cf26dad, type: 2}
   pickupId: 503
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36:Assets/Game/Prefabs/Items/Artifacts/Gadgets/ConjurerStaff.prefab
   pickupSound:
     Guid:
       Data1: 0
@@ -366,58 +362,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-<<<<<<< HEAD:Assets/Game/Prefabs/Items/Pickups/Scraps.prefab
-  m_GameObject: {fileID: 5834385604199187947}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DropItemPhysics
-  rb: {fileID: 507767263568441081}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 128
---- !u!114 &3258442052646601349
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5834385604199187947}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a6610d2e704f1648819acc8d7460285, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: FMODUnity::FMODUnity.StudioEventEmitter
-  CollisionTag: 
-  EventReference:
-    Guid:
-      Data1: 1785186576
-      Data2: 1245510835
-      Data3: -1836278379
-      Data4: 1511765510
-    Path: event:/SFX/Interact/MetalPickup
-  Event: 
-  EventPlayTrigger: 2
-  EventStopTrigger: 0
-  AllowFadeout: 1
-  TriggerOnce: 0
-  Preload: 0
-  NonRigidbodyVelocity: 0
-  Params: []
-  OverrideAttenuation: 0
-  OverrideMinDistance: 1
-  OverrideMaxDistance: 20
---- !u!114 &1125058151839358675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5834385604199187947}
-=======
   m_GameObject: {fileID: 3304215016121176040}
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36:Assets/Game/Prefabs/Items/Artifacts/Gadgets/ConjurerStaff.prefab
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}

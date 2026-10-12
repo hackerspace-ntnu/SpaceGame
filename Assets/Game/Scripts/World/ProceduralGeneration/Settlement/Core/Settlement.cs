@@ -54,6 +54,9 @@ namespace SpaceGame.World
         private static readonly Vector2 DefaultFootprint = new Vector2(8f, 8f);
         // Tries per item before it is given up on; every miss is reported by Generate.
         private const int PlacementAttempts = 30;
+        // The seed of the second stream PlaceCharacters draws from: any fixed re-keying of the settlement's own seed.
+        private const int SpareStreamPrime = 31;
+        private const int SpareStreamOffset = 7919;
         // The heart counts as on the NavMesh when the mesh is this close, metres.
         private const float HeartOnMeshWithin = 2f;
         // Halvings when sliding a new building up to its neighbour: 2^-20 of the slide, far below visible.
@@ -670,19 +673,42 @@ namespace SpaceGame.World
             // Residents stand where the settlement's heart can walk to: a roof of a sealed building is walkable too, and a body put there
             // can never come down. Judged only once the heart is on the mesh (a settlement whose heart was not found places anywhere).
             bool reachableOnly = HasResidents && UnityEngine.AI.NavMesh.SamplePosition(walkableHeart, out _, HeartOnMeshWithin, UnityEngine.AI.NavMesh.AllAreas);
+            // Where the heart's own ground is a sliver of everything walkable -- a sealed mountain standing on open ground, whose
+            // people live on ledges inside it -- chance alone misses it thirty times running. Whoever chance left out is then put
+            // on that ground by name. From a stream of its own: the main one is spent exactly as before, so a settlement that
+            // never needed this generates as it always did.
+            SettlementWalkableArea.Patch heartGround = null;
+            var spare = new SettlementPlacementUtil.SeededRng(unchecked((Seed * SpareStreamPrime) + SpareStreamOffset));
             foreach (var (prefab, archetype, special) in newcomers)
             {
-                for (int attempt = 0; attempt < PlacementAttempts; attempt++)
+                bool placed = false;
+                for (int attempt = 0; attempt < PlacementAttempts && !placed; attempt++)
                 {
                     Vector3 spawnPos = walkable.Sample(ref rng);
                     if (IsCloserThan(spawnPos, taken, Config.characterSpacing)) continue;
                     if (reachableOnly && !NavMeshReach.CanWalk(walkableHeart, spawnPos)) continue;
 
+                    Spawn(spawnPos, ref rng);
+                    placed = true;
+                }
+                if (placed || !reachableOnly) continue;
+
+                heartGround ??= walkable.PatchWhere(point => NavMeshReach.CanWalk(walkableHeart, point));
+                for (int attempt = 0; attempt < PlacementAttempts && !placed && !heartGround.IsEmpty; attempt++)
+                {
+                    Vector3 spawnPos = heartGround.Sample(ref spare);
+                    if (IsCloserThan(spawnPos, taken, Config.characterSpacing)) continue;
+
+                    Spawn(spawnPos, ref spare);
+                    placed = true;
+                }
+
+                void Spawn(Vector3 spawnPos, ref SettlementPlacementUtil.SeededRng stream)
+                {
                     Vector2 localXZ = new Vector2(spawnPos.x - transform.position.x, spawnPos.z - transform.position.z);
-                    GameObject body = SettlementPlacementUtil.SpawnPrefab(prefab, parent, spawnPos, GetSpawnRotation(localXZ, ref rng));
+                    GameObject body = SettlementPlacementUtil.SpawnPrefab(prefab, parent, spawnPos, GetSpawnRotation(localXZ, ref stream));
                     spawned.Add(new ResidentAssignment.Newcomer(body, archetype, special, prefab));
                     taken.Add(spawnPos);
-                    break;
                 }
             }
             return spawned;

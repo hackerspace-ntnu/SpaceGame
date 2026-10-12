@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2141539860059858635}
   - component: {fileID: 1576726201415186240}
+  - component: {fileID: 7456925037875730381}
   m_Layer: 0
   m_Name: Deco_WindChimes_Stand
   m_TagString: Untagged
@@ -56,6 +57,783 @@ CapsuleCollider:
   m_Height: 2.6
   m_Direction: 1
   m_Center: {x: 0, y: 1.35, z: 0}
+--- !u!205 &7456925037875730381
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 894895666842459994}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.30437183, y: 1.3434995, z: -0.005955249}
+  m_Size: 2.686999
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 437889823081620168}
+    - renderer: {fileID: 2337951076852621713}
+    - renderer: {fileID: 1652995841704161170}
+    - renderer: {fileID: 1593576357511340633}
+    - renderer: {fileID: 1398398744425178538}
+    - renderer: {fileID: 2610044559964863910}
+    - renderer: {fileID: 776074036770276221}
+    - renderer: {fileID: 8161116371597725025}
+    - renderer: {fileID: 7118661450047136256}
+    - renderer: {fileID: 2545365535157951633}
+    - renderer: {fileID: 3197596141110421065}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 437889823081620168}
+    - renderer: {fileID: 9147406156154295468}
+    - renderer: {fileID: 149108161208166069}
+    - renderer: {fileID: 1593576357511340633}
+    - renderer: {fileID: 2430001178743745293}
+    - renderer: {fileID: 3510065764234199676}
+    - renderer: {fileID: 776074036770276221}
+    - renderer: {fileID: 209581403649567362}
+    - renderer: {fileID: 7118661450047136256}
+    - renderer: {fileID: 955737310035120099}
+    - renderer: {fileID: 3197596141110421065}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7491389767112762354}
+    - renderer: {fileID: 6004894854956928442}
+  m_Enabled: 1
+--- !u!1 &962350730701944744
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 226686528183373293}
+  - component: {fileID: 1845258318623549126}
+  - component: {fileID: 2430001178743745293}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Chime5
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &226686528183373293
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962350730701944744}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2981765346155875945}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1845258318623549126
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962350730701944744}
+  m_Mesh: {fileID: 4466455336444586019, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &2430001178743745293
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962350730701944744}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 6697408153882380362, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1483708910794650015
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3785280578205585154}
+  - component: {fileID: 4760321930335862151}
+  - component: {fileID: 9147406156154295468}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Chime2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3785280578205585154
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1483708910794650015}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4481879514855470190}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4760321930335862151
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1483708910794650015}
+  m_Mesh: {fileID: -5588761416494927016, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &9147406156154295468
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1483708910794650015}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 6697408153882380362, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2517153245778789340
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3666079913215816412}
+  - component: {fileID: 3898328999945261998}
+  - component: {fileID: 955737310035120099}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Disc
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3666079913215816412
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2517153245778789340}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3265375991974549022}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3898328999945261998
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2517153245778789340}
+  m_Mesh: {fileID: 8387594275219033671, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &955737310035120099
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2517153245778789340}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 1585442601813007834, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4214487914834669250
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2873875106182871850}
+  - component: {fileID: 2057330200606290951}
+  - component: {fileID: 7491389767112762354}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Clapper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &2873875106182871850
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4214487914834669250}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4178135531987655399}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2057330200606290951
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4214487914834669250}
+  m_Mesh: {fileID: -1656779673818661268, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &7491389767112762354
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4214487914834669250}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: -6703107486403147712, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 5942692113365732219, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4789359963183801628
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 186197651001137114}
+  - component: {fileID: 1598734763936672656}
+  - component: {fileID: 3510065764234199676}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Chime6
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &186197651001137114
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4789359963183801628}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1491181165890370467}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1598734763936672656
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4789359963183801628}
+  m_Mesh: {fileID: -586592370504531953, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &3510065764234199676
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4789359963183801628}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: -4787144493902718695, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5724593987607329395
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5192297338740057844}
+  - component: {fileID: 3044858364101959125}
+  - component: {fileID: 209581403649567362}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Chime8
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5192297338740057844
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5724593987607329395}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2807265293258803251}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3044858364101959125
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5724593987607329395}
+  m_Mesh: {fileID: -592031939974258687, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &209581403649567362
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5724593987607329395}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 6697408153882380362, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6585015346304054783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7063219176350402995}
+  - component: {fileID: 6332034845855293997}
+  - component: {fileID: 149108161208166069}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Chime3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7063219176350402995
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6585015346304054783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8648683614026119365}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6332034845855293997
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6585015346304054783}
+  m_Mesh: {fileID: 1113772267628215503, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &149108161208166069
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6585015346304054783}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -1180478136253105241, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: -4787144493902718695, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8391629578031786400
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7159415386852033987}
+  - component: {fileID: 7499625805319082660}
+  - component: {fileID: 6004894854956928442}
+  m_Layer: 0
+  m_Name: WindChimes_Stand_Stand
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7159415386852033987
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8391629578031786400}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1543129264912994290}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7499625805319082660
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8391629578031786400}
+  m_Mesh: {fileID: 8611679393164443597, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &6004894854956928442
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8391629578031786400}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 8387001452365709565, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  - {fileID: 974640710366444605, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &2194007646746022402
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -126,11 +904,130 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2323993715687220844, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3785280578205585154}
+    - targetCorrespondingSourceObject: {fileID: -1840593769015203129, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7063219176350402995}
+    - targetCorrespondingSourceObject: {fileID: 3968785748483202155, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 226686528183373293}
+    - targetCorrespondingSourceObject: {fileID: -8447887541366134367, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 186197651001137114}
+    - targetCorrespondingSourceObject: {fileID: 4073442905987013169, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5192297338740057844}
+    - targetCorrespondingSourceObject: {fileID: 2848832934231034085, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2873875106182871850}
+    - targetCorrespondingSourceObject: {fileID: -5538762898002492388, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3666079913215816412}
+    - targetCorrespondingSourceObject: {fileID: 799641509869624816, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7159415386852033987}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+--- !u!23 &437889823081620168 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1756716312626753738, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &776074036770276221 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7730563531827768961, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1398398744425178538 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8279108791579363416, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1491181165890370467 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8447887541366134367, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1543129264912994290 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 799641509869624816, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1593576357511340633 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8615620190439919525, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1652995841704161170 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8610266068101825136, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1871271114000627177 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2337951076852621713 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -4755594177859587181, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2545365535157951633 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4404619543823322771, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2610044559964863910 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4200191482355576740, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2807265293258803251 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4073442905987013169, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2981765346155875945 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3968785748483202155, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3197596141110421065 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3608098994418512971, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3265375991974549022 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5538762898002492388, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4178135531987655399 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2848832934231034085, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4481879514855470190 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2323993715687220844, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7118661450047136256 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8987001826571857922, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8161116371597725025 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -1211272255284404381, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
+  m_PrefabInstance: {fileID: 2194007646746022402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8648683614026119365 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1840593769015203129, guid: bf1c5626f808d42e48c024f32ec7eddc, type: 3}
   m_PrefabInstance: {fileID: 2194007646746022402}
   m_PrefabAsset: {fileID: 0}

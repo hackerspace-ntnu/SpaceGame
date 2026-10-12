@@ -1,5 +1,185 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3074204446994041698
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8653285349321389249}
+  - component: {fileID: 9082827656340464025}
+  - component: {fileID: 2429303807453951162}
+  m_Layer: 0
+  m_Name: FeedingTrough_Clay_Water
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8653285349321389249
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3074204446994041698}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1228323398286846648}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &9082827656340464025
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3074204446994041698}
+  m_Mesh: {fileID: -4054526082105154596, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+--- !u!23 &2429303807453951162
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3074204446994041698}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 3230756071487966642, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5408632828847318983
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1924598686653697520}
+  - component: {fileID: 5513717462366135641}
+  - component: {fileID: 455594658434062106}
+  m_Layer: 0
+  m_Name: FeedingTrough_Clay_Hay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1924598686653697520
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5408632828847318983}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5878590122788248923}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5513717462366135641
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5408632828847318983}
+  m_Mesh: {fileID: -1318529517865512337, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+--- !u!23 &455594658434062106
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5408632828847318983}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -9162918577661269544, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6578219212736323189
 GameObject:
   m_ObjectHideFlags: 0
@@ -47,6 +227,7 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: 9b542819bb3784f1a8d3c8905a8ef80e, type: 2}
   face: {fileID: 5474942921120007262}
   group: 
+  stationCue: {fileID: 0}
 --- !u!1 &8288451235845790376
 GameObject:
   m_ObjectHideFlags: 0
@@ -58,6 +239,7 @@ GameObject:
   - component: {fileID: 7988201410378406127}
   - component: {fileID: 2935022446632355656}
   - component: {fileID: 2972247043720891899}
+  - component: {fileID: 398990845251229013}
   m_Layer: 0
   m_Name: Deco_FeedingTrough_Clay
   m_TagString: Untagged
@@ -117,9 +299,131 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Feeding trough
-  description: The animals crowd it twice a day.
   scanClass: 2
-  lookSeconds: 6
+--- !u!205 &398990845251229013
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8288451235845790376}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.4615841, y: 0.28684872, z: -0.0902631}
+  m_Size: 3.0263796
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 6957551400967405254}
+    - renderer: {fileID: 3912670653238628432}
+    - renderer: {fileID: 5310394865944899915}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 6957551400967405254}
+    - renderer: {fileID: 3912670653238628432}
+    - renderer: {fileID: 5310394865944899915}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 455594658434062106}
+    - renderer: {fileID: 6365773013104954976}
+    - renderer: {fileID: 2429303807453951162}
+  m_Enabled: 1
+--- !u!1 &8695579909765504250
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5161111241938768762}
+  - component: {fileID: 8179860047580008153}
+  - component: {fileID: 6365773013104954976}
+  m_Layer: 0
+  m_Name: FeedingTrough_Clay_Trough
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5161111241938768762
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8695579909765504250}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6685022953031622572}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8179860047580008153
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8695579909765504250}
+  m_Mesh: {fileID: -8160550988548040828, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+--- !u!23 &6365773013104954976
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8695579909765504250}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -9116480052934087406, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  - {fileID: 3773740331645858578, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8853351684750963443
 GameObject:
   m_ObjectHideFlags: 0
@@ -221,11 +525,50 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -4429070699306592230, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1924598686653697520}
+    - targetCorrespondingSourceObject: {fileID: -3469515759093490963, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5161111241938768762}
+    - targetCorrespondingSourceObject: {fileID: -9072549109878706183, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8653285349321389249}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+--- !u!4 &1228323398286846648 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -9072549109878706183, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1483527355865096874 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3912670653238628432 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -6534533931449527023, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5310394865944899915 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2689076932714122230, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5878590122788248923 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -4429070699306592230, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6685022953031622572 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3469515759093490963, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
+  m_PrefabInstance: {fileID: 1377034102218458433}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6957551400967405254 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8327724273065687943, guid: 4fd3655e196ea49df99d88610c4b323d, type: 3}
   m_PrefabInstance: {fileID: 1377034102218458433}
   m_PrefabAsset: {fileID: 0}

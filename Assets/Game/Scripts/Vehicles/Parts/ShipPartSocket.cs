@@ -78,6 +78,9 @@ namespace SpaceGame.Vehicles
         /// <summary>Where a HUD marker or a ghost label would sit: the middle of the part itself.</summary>
         public Vector3 Centre => AimBounds.center;
 
+        /// <summary>Where the part's mesh is drawn on the hull, so a module brought to the mount can be shown sitting as it will.</summary>
+        public Transform Part => partRenderer != null ? partRenderer.transform : transform;
+
         /// <summary>
         /// The volume someone points at to fit this module — the part's own world bounds, which
         /// stay correct whether or not the renderer is currently drawing.

@@ -103,7 +103,7 @@ namespace SpaceGame.Agents
                     isSearching = true;
                     searchTimer = searchDuration;
 
-                    Sfx.Play(searchId, transform.position, searchSound, GetInstanceID());
+                    Sfx.Play(searchSound, transform.position);
                 }
             }
 

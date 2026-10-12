@@ -1,5 +1,186 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &821419305992426990
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8989838303922470229}
+  - component: {fileID: 2054951185615273388}
+  - component: {fileID: 6333126415058096727}
+  m_Layer: 0
+  m_Name: AnvilStone_Stump
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8989838303922470229
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 821419305992426990}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2559026695896222170}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2054951185615273388
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 821419305992426990}
+  m_Mesh: {fileID: 8923574380571392793, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!23 &6333126415058096727
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 821419305992426990}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2043506970664812740, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  - {fileID: -7893694533828302414, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2634453136547725292
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8619318760064758704}
+  - component: {fileID: 2052551568441005306}
+  - component: {fileID: 5213090631402531911}
+  m_Layer: 0
+  m_Name: AnvilStone_Block
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8619318760064758704
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2634453136547725292}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4235866398172696003}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2052551568441005306
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2634453136547725292}
+  m_Mesh: {fileID: 8791944244760654513, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!23 &5213090631402531911
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2634453136547725292}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 5571457084037410874, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2805779697701588901
 GameObject:
   m_ObjectHideFlags: 0
@@ -78,6 +259,97 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: 3ffeaa47a34e418ea7437552e78615db, type: 2}
   face: {fileID: 4112652194413876833}
   group: 
+  stationCue: {fileID: 0}
+--- !u!1 &4117605464560254755
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2900993343120556669}
+  - component: {fileID: 5522383277437609924}
+  - component: {fileID: 5075684934832663703}
+  m_Layer: 0
+  m_Name: AnvilStone_Scorch
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &2900993343120556669
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4117605464560254755}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1410284665178010023}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5522383277437609924
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4117605464560254755}
+  m_Mesh: {fileID: -424000560407047121, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!23 &5075684934832663703
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4117605464560254755}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 8297594676762976574, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6110237947702188735
 GameObject:
   m_ObjectHideFlags: 0
@@ -89,6 +361,7 @@ GameObject:
   - component: {fileID: 1984195261691405499}
   - component: {fileID: 1912338146762682455}
   - component: {fileID: 5486917237807522162}
+  - component: {fileID: 1730307466197260548}
   m_Layer: 0
   m_Name: Deco_AnvilStone
   m_TagString: Untagged
@@ -148,9 +421,221 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Anvil
-  description: Every tool in the settlement was beaten straight here.
   scanClass: 2
-  lookSeconds: 6
+--- !u!205 &1730307466197260548
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6110237947702188735}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.274875, y: 0.54202545, z: 0.12487441}
+  m_Size: 1.43575
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7338680903902412657}
+    - renderer: {fileID: 7278218159133081328}
+    - renderer: {fileID: 3112487344830159447}
+    - renderer: {fileID: 6012823188457109201}
+    - renderer: {fileID: 4494692409590741436}
+  - screenRelativeHeight: 0.035
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5213090631402531911}
+    - renderer: {fileID: 4405565037118901985}
+    - renderer: {fileID: 3888768049063608836}
+    - renderer: {fileID: 5075684934832663703}
+    - renderer: {fileID: 6333126415058096727}
+  m_Enabled: 1
+--- !u!1 &6858211220517085919
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4981745652164293553}
+  - component: {fileID: 222713523072644195}
+  - component: {fileID: 4405565037118901985}
+  m_Layer: 0
+  m_Name: AnvilStone_Hammer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4981745652164293553
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858211220517085919}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7284762116567611358}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &222713523072644195
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858211220517085919}
+  m_Mesh: {fileID: 5933054751745191933, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!23 &4405565037118901985
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6858211220517085919}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2043506970664812740, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  - {fileID: -7893694533828302414, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8795999779716452543
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7699611871688909519}
+  - component: {fileID: 1106353659051137974}
+  - component: {fileID: 3888768049063608836}
+  m_Layer: 0
+  m_Name: AnvilStone_QuenchBucket
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7699611871688909519
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8795999779716452543}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2723789377457015339}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1106353659051137974
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8795999779716452543}
+  m_Mesh: {fileID: 5361211637482480924, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!23 &3888768049063608836
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8795999779716452543}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 8387001452365709565, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  - {fileID: 3230756071487966642, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  - {fileID: -7893694533828302414, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &8599014317671165467
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -229,9 +714,74 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -3630736938357398568, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8619318760064758704}
+    - targetCorrespondingSourceObject: {fileID: 1318843831461190085, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4981745652164293553}
+    - targetCorrespondingSourceObject: {fileID: 5951803740024955952, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7699611871688909519}
+    - targetCorrespondingSourceObject: {fileID: 7261917613206544316, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2900993343120556669}
+    - targetCorrespondingSourceObject: {fileID: 6113259150759389121, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8989838303922470229}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+--- !u!4 &1410284665178010023 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7261917613206544316, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2559026695896222170 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6113259150759389121, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2723789377457015339 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5951803740024955952, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3112487344830159447 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6657467355625010252, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4235866398172696003 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3630736938357398568, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4494692409590741436 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -3948092162410457177, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6012823188457109201 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -6619162101413963574, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7278218159133081328 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1320884193577996523, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7284762116567611358 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1318843831461190085, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7338680903902412657 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7886385069369978518, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}
+  m_PrefabInstance: {fileID: 8599014317671165467}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8133338796880349680 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 32ee51b747f8b4dbdb9432b6b5cf2edf, type: 3}

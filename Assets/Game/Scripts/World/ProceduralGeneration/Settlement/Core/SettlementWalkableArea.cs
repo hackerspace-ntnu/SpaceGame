@@ -151,7 +151,27 @@ namespace SpaceGame.World
             return patch;
         }
 
-        /// <summary>A sampleable part of the walkable surface; see <see cref="PatchWithin"/>.</summary>
+        /// <summary>
+        /// The part of the area <paramref name="keep"/> accepts, asked of each triangle's middle: the ground one place can
+        /// walk to, say. Costs one call per triangle, so build it once and sample it many times.
+        /// </summary>
+        public Patch PatchWhere(Func<Vector3, bool> keep)
+        {
+            var patch = new Patch(this);
+            float total = 0f;
+            foreach (int i in triangles)
+            {
+                Vector3 a = vertices[triangleIndices[i]], b = vertices[triangleIndices[i + 1]], c = vertices[triangleIndices[i + 2]];
+                if (!keep((a + b + c) / 3f)) continue;
+
+                total += Vector3.Cross(b - a, c - a).magnitude * 0.5f;
+                patch.triangles.Add(i);
+                patch.cumulativeArea.Add(total);
+            }
+            return patch;
+        }
+
+        /// <summary>A sampleable part of the walkable surface; see <see cref="PatchWithin"/> and <see cref="PatchWhere"/>.</summary>
         public sealed class Patch
         {
             private readonly SettlementWalkableArea owner;

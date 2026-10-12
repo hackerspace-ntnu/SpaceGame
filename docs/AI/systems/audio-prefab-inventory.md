@@ -84,13 +84,8 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 | Hurt | `EntityHurt` 409 | Per-creature pain | catalog |
 | Death | `EntityDeath` 410 | Per-creature death | catalog |
 
-<<<<<<< HEAD:docs/architecture/audio-prefab-inventory.md
-> All three share ids with the robots, so a single catalog slot is currently doing stone, rodent,
-> insect and machine. **These want per-creature pins or their own EventReference numbers.**
-=======
 > All three share the generic entity ids, so a single catalog slot is currently doing stone, rodent
 > and insect. **These want per-creature pins or their own SfxId numbers.**
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36:docs/AI/systems/audio-prefab-inventory.md
 
 ### `agents/Caravan/NomadOstrich.prefab`, `agents/Caravan/BountyHunter.prefab`
 

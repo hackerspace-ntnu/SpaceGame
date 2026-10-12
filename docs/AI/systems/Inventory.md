@@ -42,7 +42,7 @@ symptoms:
   - "I can't pick up the wing pack a Sky nomad dropped"
   - "the pickup prompt shows but RMB does nothing, and the console is clean"
 reads_with: [Artifacts, Backpack, BodyEquipment, Persistence, Combat, Oxygen]
-updated: 2026-10-07
+updated: 2026-10-12
 ---
 
 # Items & Inventory core
@@ -88,7 +88,7 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 | `WorldItem` | [Core/WorldItem.cs](Assets/Game/Scripts/Items/Core/WorldItem.cs) | The world instance's own component: sizes it, tunes the body, adds a grab volume. `Suppress` undoes it for a copy going into a hand |
 | `ItemWorldPresence` | [Editor/Items/](Assets/Game/Editor/Items/ItemWorldPresence.cs) | The editor half: the collider, body and netcode block every item prefab needs. Called by every builder; `Tools/SpaceGame/Items/Fix World Item Bodies` runs it over the roster |
 | `HotbarNavigation` | [Inventory/Core/HotbarNavigation.cs](Assets/Game/Scripts/Items/Inventory/Core/HotbarNavigation.cs) | Scroll target, clamped, `NoChange = -1` |
-| `PlayerDropService` | [Core/GameServices/Implementations/](Assets/Game/Scripts/Core/GameServices/Implementations/PlayerDropService.cs) | `IItemDropService`: spawn a reach ahead of the origin and clear of the ground under it (`ClearOfGround`) + `SaveableEntity.EnsureRuntime(obj, item.ID)` + impulse |
+| `PlayerDropService` | [Core/GameServices/Implementations/](Assets/Game/Scripts/Core/GameServices/Implementations/PlayerDropService.cs) | `IItemDropService`: spawn a reach ahead of the origin and clear of the ground under it (`ClearOfGround`) + `SaveableEntity.EnsureRuntime(obj, item.ID)` + impulse. The spawn point is raised so the item's bottom clears the highest surface under it (cast down from the item's top, the dropper's own colliders skipped): a dead agent's origin is its feet, and an item born half in the terrain was pushed through it (the gear thief's Heart Gear, 2026-10-12) |
 | `DevInventoryUI` | [Presentation/UI/Pages/DevInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/DevInventoryUI.cs) | Dev item browser — **O** key, gated on `GameSettings.DevMode`; lists every registered item except those with `InventoryItem.showInDevBrowser` off (the [hand tools](HandTools.md)) |
 
 ## Flows

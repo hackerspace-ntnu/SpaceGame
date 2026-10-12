@@ -1,5 +1,101 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2473822614431058057
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4492917316827729053}
+  - component: {fileID: 5054011799006790969}
+  - component: {fileID: 6645350379340364488}
+  m_Layer: 0
+  m_Name: BarStools_StoolDrum
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4492917316827729053
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2473822614431058057}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9093093447314010433}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5054011799006790969
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2473822614431058057}
+  m_Mesh: {fileID: -2822791211896974253, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+--- !u!23 &6645350379340364488
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2473822614431058057}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 57736386240201018, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: 6947914750725671505, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -8325877282032782631, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -7893694533828302414, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -5315575720903457691, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -459685565890933269, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -7044892495452318600, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2560529148579984418
 GameObject:
   m_ObjectHideFlags: 0
@@ -197,6 +293,99 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: de9a4075d0ab4b7080414dd9c74d43cc, type: 2}
   face: {fileID: 7971261530715271224}
   group: 
+  stationCue: {fileID: 0}
+--- !u!1 &4722100615238945114
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7534915420056041598}
+  - component: {fileID: 2498849696626204121}
+  - component: {fileID: 2423134977305753198}
+  m_Layer: 0
+  m_Name: BarStools_StoolBone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7534915420056041598
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4722100615238945114}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 756255509951895177}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2498849696626204121
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4722100615238945114}
+  m_Mesh: {fileID: 4300000, guid: 426e049c1a6e048b4bd8b58283a9ed41, type: 2}
+--- !u!23 &2423134977305753198
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4722100615238945114}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 1585442601813007834, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: 4828741692213396955, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -8142929037515239768, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6854187939709487653
 GameObject:
   m_ObjectHideFlags: 0
@@ -207,6 +396,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2226956167169850867}
   - component: {fileID: 2201646253411305816}
+  - component: {fileID: 939042025422939486}
   m_Layer: 0
   m_Name: Deco_BarStools
   m_TagString: Untagged
@@ -248,6 +438,133 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Bar stools
   scanClass: 2
+--- !u!205 &939042025422939486
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6854187939709487653}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.0050998926, y: 0.45169988, z: 0.04457715}
+  m_Size: 2.3998015
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 63407882677090597}
+    - renderer: {fileID: 6886113457633773088}
+    - renderer: {fileID: 3485851873233310727}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 63407882677090597}
+    - renderer: {fileID: 6886113457633773088}
+    - renderer: {fileID: 3485851873233310727}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2423134977305753198}
+    - renderer: {fileID: 6645350379340364488}
+    - renderer: {fileID: 8870234557143661691}
+  m_Enabled: 1
+--- !u!1 &9029628167627533159
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3302919796802304966}
+  - component: {fileID: 4195659416054282737}
+  - component: {fileID: 8870234557143661691}
+  m_Layer: 0
+  m_Name: BarStools_StoolWoven
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3302919796802304966
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9029628167627533159}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2427911861832641190}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4195659416054282737
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9029628167627533159}
+  m_Mesh: {fileID: -1819291665985773855, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+--- !u!23 &8870234557143661691
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9029628167627533159}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2043506970664812740, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -1180478136253105241, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -9162918577661269544, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: -4117553388204323661, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  - {fileID: 7501732813323251334, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1001 &1732100475677443808
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -259,6 +576,10 @@ PrefabInstance:
     - target: {fileID: 955507193893999388, guid: a2b6ca10bccd24553ae15abe603c48e6, type: 3}
       propertyPath: m_Name
       value: Seat_Spot_Seat
+      objectReference: {fileID: 0}
+    - target: {fileID: 4118879143658359918, guid: a2b6ca10bccd24553ae15abe603c48e6, type: 3}
+      propertyPath: m_Mesh
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 4385392390799350784, guid: a2b6ca10bccd24553ae15abe603c48e6, type: 3}
       propertyPath: m_LocalPosition.x
@@ -380,11 +701,50 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3309827774451323216, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7534915420056041598}
+    - targetCorrespondingSourceObject: {fileID: -2764870550534965608, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4492917316827729053}
+    - targetCorrespondingSourceObject: {fileID: -8781543959080718977, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3302919796802304966}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+--- !u!23 &63407882677090597 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2842151315379109628, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &756255509951895177 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3309827774451323216, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2313343668213555250 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2427911861832641190 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8781543959080718977, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3485851873233310727 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7498449959897115682, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6886113457633773088 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8647050950994133497, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
+  m_PrefabInstance: {fileID: 2850810115995060185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &9093093447314010433 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2764870550534965608, guid: 83e709ad481a242eaab8ba18a768a33f, type: 3}
   m_PrefabInstance: {fileID: 2850810115995060185}
   m_PrefabAsset: {fileID: 0}

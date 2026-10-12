@@ -28,7 +28,9 @@ namespace SpaceGame.World
                 bool hasNetworked = building.GetComponentInChildren<NetworkBehaviour>(true) != null;
                 // A colony airlock is clicked and decided on the server, over the building's channel.
                 bool hasAirlocks = building.GetComponentInChildren<AirlockChamber>(true) != null;
-                if (!hasProps && !hasLatches && !hasNetworked && !hasAirlocks) continue;
+                // A workshop's rooms, gear and hoist are pressed and decided the same way.
+                bool hasWorkshop = building.GetComponentInChildren<Workshop>(true) != null;
+                if (!hasProps && !hasLatches && !hasNetworked && !hasAirlocks && !hasWorkshop) continue;
 
                 var wrapper = new GameObject(building.name).transform;
                 wrapper.SetParent(building.parent, false);

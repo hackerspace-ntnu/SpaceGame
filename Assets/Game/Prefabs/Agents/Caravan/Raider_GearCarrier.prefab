@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &6241812987500621680
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2682713667669056499, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1983856945
+      objectReference: {fileID: 0}
+    - target: {fileID: 2682713667669056499, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2682713667669056499, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4255484557135339109, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: isCarrier
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5313219942120696332, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_Name
+      value: Raider_GearCarrier
+      objectReference: {fileID: 0}
+    - target: {fileID: 5569869476234530008, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: prefabId
+      value: b8c19aee9010943928af344f9ef10b9a
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5580338925694363719, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5313219942120696332, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4936661871575479943}
+    - targetCorrespondingSourceObject: {fileID: 5313219942120696332, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5135254007409972941}
+  m_SourcePrefab: {fileID: 100100000, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+--- !u!1 &2243644416197969276 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5313219942120696332, guid: 6332ffd26c128478c8e3da57ad26de90, type: 3}
+  m_PrefabInstance: {fileID: 6241812987500621680}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4936661871575479943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2243644416197969276}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2830dbaae53b4fd78e0f12a321925cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FleeModule
+  priority: 30
+  active: 1
+  threat: {fileID: 0}
+  fleeFromCurrentTarget: 0
+  fleeFromRelationship: 2
+  triggerRadius: 0.1
+  safeRadius: 70
+  fleeSpeedMultiplier: 1.35
+  stopDistance: 0.2
+  navMeshSampleDistance: 4
+--- !u!114 &5135254007409972941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2243644416197969276}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6498d0fe3110a413a8dc956386c62373, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FleeSaveable

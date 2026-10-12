@@ -1,36 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1545732165632686201
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 962401279485943264}
-  m_Layer: 0
-  m_Name: GripPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &962401279485943264
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1545732165632686201}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1820120538609973244}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9108599743836721641
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,14 +95,9 @@ MonoBehaviour:
       Data2: 1210358750
       Data3: 1245207699
       Data4: 1455594882
-<<<<<<< HEAD
     Path: event:/SFX/Misc/Implosion
-  muzzle: {fileID: 8884324833336084954}
-=======
-    Path: event:/SFX/Implosion
   useAction: {fileID: 0}
   muzzle: {fileID: 2155490413205418092}
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
   coneHalfAngleDegrees: 45
   maxBeamDistance: 20
   minBeamDistance: 2
@@ -489,3 +453,34 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: edacbd7a384c248a5bac93aff2862534, type: 3}
   m_PrefabInstance: {fileID: 8945880574929783872}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1545732165632686201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 962401279485943264}
+  m_Layer: 0
+  m_Name: GripPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &962401279485943264
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1545732165632686201}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1820120538609973244}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

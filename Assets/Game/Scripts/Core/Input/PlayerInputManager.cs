@@ -102,6 +102,16 @@ namespace SpaceGame.Core
         /// </summary>
         public bool JumpHeld { get; private set; }
 
+        /// <summary>
+        /// Whether Interact, and whether Use, is DOWN. For a control that works for as long as its button is held
+        /// (the workshop's hand cogs turn a room that way), which has to be able to ask rather than rebuild the
+        /// answer from a press and a release. Cleared in <see cref="OnDisable"/> like the other held keys.
+        /// </summary>
+        public bool InteractHeld { get; private set; }
+
+        /// <inheritdoc cref="InteractHeld"/>
+        public bool UseHeld { get; private set; }
+
         public event Action OnJumpPressed;
 
         /// <summary>
@@ -418,7 +428,8 @@ namespace SpaceGame.Core
             inputs.Hotbar.HotbarScroll.performed += HandleHotbarScroll;
 
             // World interaction
-            inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
+            inputs.Player.Interact.performed += _ => { InteractHeld = true; OnInteractPressed?.Invoke(); };
+            inputs.Player.Interact.canceled  += _ => InteractHeld = false;
             inputs.Player.Jump.performed     += _ => { JumpHeld = true; HandleJump(); };
             inputs.Player.Jump.canceled      += _ => JumpHeld = false;
             inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
@@ -426,8 +437,8 @@ namespace SpaceGame.Core
             inputs.Player.GauntletRight.performed += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.GauntletRight.canceled  += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
-            inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
-            inputs.Player.Use.canceled    += _ => OnUseReleased?.Invoke();
+            inputs.Player.Use.performed   += _ => { UseHeld = true; OnUsePressed?.Invoke(); };
+            inputs.Player.Use.canceled    += _ => { UseHeld = false; OnUseReleased?.Invoke(); };
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
             inputs.Player.Crouch.performed += _ => { CrouchHeld = true;  OnCrouchPressed?.Invoke(); };
             inputs.Player.Crouch.canceled  += _ => { CrouchHeld = false; OnCrouchReleased?.Invoke(); };
@@ -480,6 +491,8 @@ namespace SpaceGame.Core
             CrouchHeld = false;
             SprintHeld = false;
             JumpHeld = false;
+            InteractHeld = false;
+            UseHeld = false;
         }
 
         private void OnDestroy()

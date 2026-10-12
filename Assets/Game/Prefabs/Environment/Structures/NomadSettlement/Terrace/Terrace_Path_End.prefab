@@ -43,11 +43,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0.001087904, y: -0.089999884, z: 0.89713675}
   m_Size: 3.5866008
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.0248487
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 94134607702342011}
@@ -110,7 +110,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 74cab8082f50e481cb18b98472b10374, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

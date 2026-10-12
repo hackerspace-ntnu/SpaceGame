@@ -218,7 +218,7 @@ namespace SpaceGame.Agents
             if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
                 animator.SetTrigger(dieAnimTrigger);
 
-            Sfx.Play(deathId, transform.position, deathSound, GetInstanceID());
+            Sfx.Play(deathSound, transform.position);
         }
 
         /// <summary>

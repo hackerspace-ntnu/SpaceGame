@@ -1,5 +1,465 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &630026314334704906
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8772019606074387663}
+  - component: {fileID: 9005847955915624528}
+  - component: {fileID: 2588303812968260924}
+  m_Layer: 0
+  m_Name: GrillBrazier_Coals
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &8772019606074387663
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630026314334704906}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2991981983465985107}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &9005847955915624528
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630026314334704906}
+  m_Mesh: {fileID: -507811494507933475, guid: fd606eddd3d0b495c85ec6cb0a3f0aa8, type: 2}
+--- !u!23 &2588303812968260924
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630026314334704906}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -5464143896136656499, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -1595973800188585706, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -6703107486403147712, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1983099889042826279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7427290094263745510}
+  - component: {fileID: 8105770008796879444}
+  - component: {fileID: 752629877156440897}
+  m_Layer: 0
+  m_Name: GrillBrazier_Food
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &7427290094263745510
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983099889042826279}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 346729216955529893}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8105770008796879444
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983099889042826279}
+  m_Mesh: {fileID: 2129657439401171286, guid: fd606eddd3d0b495c85ec6cb0a3f0aa8, type: 2}
+--- !u!23 &752629877156440897
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983099889042826279}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: 1441586145382523133, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -4012923706112314514, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -3758885404443450540, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: 1585442601813007834, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: 7739824280857827319, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2371554485860342544
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1141055387567099260}
+  - component: {fileID: 4600518565996767154}
+  - component: {fileID: 9014412652130161209}
+  m_Layer: 0
+  m_Name: GrillBrazier_Bowl
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1141055387567099260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2371554485860342544}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1515517581497025368}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4600518565996767154
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2371554485860342544}
+  m_Mesh: {fileID: 4300000, guid: fd606eddd3d0b495c85ec6cb0a3f0aa8, type: 2}
+--- !u!23 &9014412652130161209
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2371554485860342544}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: 6947914750725671505, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -1595973800188585706, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2373586888555481603
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 156584655804900493}
+  - component: {fileID: 1672950213159017581}
+  - component: {fileID: 1074836744395978831}
+  m_Layer: 0
+  m_Name: GrillBrazier_Grate
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &156584655804900493
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2373586888555481603}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8288743227363406593}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1672950213159017581
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2373586888555481603}
+  m_Mesh: {fileID: 7408333034797966654, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+--- !u!23 &1074836744395978831
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2373586888555481603}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2803648000627685629
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1777805080172776869}
+  - component: {fileID: 8784079037752966345}
+  - component: {fileID: 4336678794537955366}
+  m_Layer: 0
+  m_Name: GrillBrazier_Tongs
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1777805080172776869
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2803648000627685629}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 23530853042111305}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8784079037752966345
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2803648000627685629}
+  m_Mesh: {fileID: 1668639690657206930, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+--- !u!23 &4336678794537955366
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2803648000627685629}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  - {fileID: -459685565890933269, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2806219839774774118
 GameObject:
   m_ObjectHideFlags: 0
@@ -48,6 +508,96 @@ MonoBehaviour:
   face: {fileID: 4681046906207767538}
   group: 
   stationCue: {fileID: 11400000, guid: 43f8d73d0dabf497e9ee98f38e52b08c, type: 2}
+--- !u!1 &3369826041769362927
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1478405954672449725}
+  - component: {fileID: 896037551905216632}
+  - component: {fileID: 4961166920244683793}
+  m_Layer: 0
+  m_Name: GrillBrazier_Legs
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1478405954672449725
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3369826041769362927}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7488879448747338142}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &896037551905216632
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3369826041769362927}
+  m_Mesh: {fileID: -8283086408214184600, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+--- !u!23 &4961166920244683793
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3369826041769362927}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -7893694533828302414, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3927758520875891287
 GameObject:
   m_ObjectHideFlags: 0
@@ -59,6 +609,7 @@ GameObject:
   - component: {fileID: 8008979708606392384}
   - component: {fileID: 4723789714594726748}
   - component: {fileID: 8278720275381559258}
+  - component: {fileID: 9016969443880128124}
   m_Layer: 0
   m_Name: Deco_GrillBrazier
   m_TagString: Untagged
@@ -122,9 +673,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
   displayName: Grill
-  description: Meat and roots over glowing coals.
   scanClass: 2
-  lookSeconds: 6
+--- !u!205 &9016969443880128124
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3927758520875891287}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.025563568, y: 0.5105001, z: -0.026112884}
+  m_Size: 1.2982256
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 3844873102511516403}
+    - renderer: {fileID: 6470495760605715677}
+    - renderer: {fileID: 6214945477546961980}
+    - renderer: {fileID: 8444591885427004350}
+    - renderer: {fileID: 7149788464430889406}
+    - renderer: {fileID: 601783458327686852}
+  - screenRelativeHeight: 0.035
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 9014412652130161209}
+    - renderer: {fileID: 2588303812968260924}
+    - renderer: {fileID: 752629877156440897}
+    - renderer: {fileID: 1074836744395978831}
+    - renderer: {fileID: 4961166920244683793}
+    - renderer: {fileID: 4336678794537955366}
+  m_Enabled: 1
 --- !u!1 &5429401562558152947
 GameObject:
   m_ObjectHideFlags: 0
@@ -234,6 +816,7 @@ MonoBehaviour:
   use: {fileID: 11400000, guid: f9f30753adba34825b57920790da9e08, type: 2}
   face: {fileID: 8674364861952360785}
   group: 
+  stationCue: {fileID: 0}
 --- !u!1001 &7272503626479739270
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -316,11 +899,89 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8207015037423706846, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1141055387567099260}
+    - targetCorrespondingSourceObject: {fileID: -3645461281818053163, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8772019606074387663}
+    - targetCorrespondingSourceObject: {fileID: -2296048668786910429, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7427290094263745510}
+    - targetCorrespondingSourceObject: {fileID: -7500015615277854073, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 156584655804900493}
+    - targetCorrespondingSourceObject: {fileID: -9006979721373792232, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1478405954672449725}
+    - targetCorrespondingSourceObject: {fileID: 7259387722606240463, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1777805080172776869}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+--- !u!4 &23530853042111305 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7259387722606240463, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &346729216955529893 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2296048668786910429, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &601783458327686852 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7833142223138148162, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1515517581497025368 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8207015037423706846, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2991981983465985107 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3645461281818053163, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3844873102511516403 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5888074103624534901, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6214945477546961980 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3662258275913289146, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6470495760605715677 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4406435891787316571, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7149788464430889406 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8659233242969925576, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7162877321449162349 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7488879448747338142 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -9006979721373792232, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8288743227363406593 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7500015615277854073, guid: 3180f616024894cf888b59d50e179ead, type: 3}
+  m_PrefabInstance: {fileID: 7272503626479739270}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8444591885427004350 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7936424393073921480, guid: 3180f616024894cf888b59d50e179ead, type: 3}
   m_PrefabInstance: {fileID: 7272503626479739270}
   m_PrefabAsset: {fileID: 0}

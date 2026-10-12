@@ -24,6 +24,7 @@ namespace SpaceGame.EditorTools
     {
         private GameObject platform;
         private GameObject rider;
+        private GameObject fixedGround;
         private SimulationMode originalSimulationMode;
 
         /// Physics is stepped by hand so a test can watch a carry land. Riders are dynamic bodies,
@@ -42,6 +43,7 @@ namespace SpaceGame.EditorTools
             Physics.simulationMode = originalSimulationMode;
             if (platform != null) Object.DestroyImmediate(platform);
             if (rider != null) Object.DestroyImmediate(rider);
+            if (fixedGround != null) Object.DestroyImmediate(fixedGround);
         }
 
         private const float Step = 0.02f;
@@ -213,6 +215,66 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(0, carrier.RiderCount, "rider who left the deck is still being carried");
             Assert.AreEqual(60f, body.position.z, 1e-3f, "rider off the deck was still moved");
+        }
+    
+        /// A platform that carries only whoever stands on it, with a deck to stand on: a turning floor.
+        private WalkerPlatformCarrier BuildFootedPlatform()
+        {
+            WalkerPlatformCarrier carrier = BuildPlatform(withRigidbody: true);
+            carrier.CarryOnlyThoseStandingOnIt(2.5f);
+
+            GameObject deck = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            deck.transform.SetParent(platform.transform, false);
+            deck.transform.localPosition = new Vector3(0f, -0.25f, 0f);
+            deck.transform.localScale = new Vector3(4f, 0.5f, 16f);
+            return carrier;
+        }
+
+        private float CarriedBy(WalkerPlatformCarrier carrier, Rigidbody body)
+        {
+            Physics.SyncTransforms();
+            float before = body.position.z;
+
+            carrier.Prime();
+            platform.transform.position += new Vector3(0f, 0f, 5f);
+            Physics.SyncTransforms();
+            carrier.CarryRiders();
+            StepPhysics();
+            return body.position.z - before;
+        }
+
+        [Test]
+        public void AFootedPlatformCarriesTheRiderStandingOnItsDeck()
+        {
+            WalkerPlatformCarrier carrier = BuildFootedPlatform();
+            Rigidbody body = BuildRider(new Vector3(0f, 0.9f, 2f));
+
+            Assert.AreEqual(5f, CarriedBy(carrier, body), 1e-3f);
+            Assert.AreEqual(1, carrier.RiderCount);
+        }
+
+        [Test]
+        public void AFootedPlatformLeavesTheRiderStandingOnFixedGroundInsideItsVolume()
+        {
+            WalkerPlatformCarrier carrier = BuildFootedPlatform();
+
+            // A stair that stands in the turning room without turning: over the deck, and no part of it.
+            fixedGround = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            fixedGround.transform.position = new Vector3(0f, 0.5f, 2f);
+            fixedGround.transform.localScale = new Vector3(1f, 0.2f, 1f);
+            Rigidbody body = BuildRider(new Vector3(0f, 1.5f, 2f));
+
+            Assert.AreEqual(0f, CarriedBy(carrier, body), 1e-3f, "swung off the stair it was standing on");
+            Assert.AreEqual(0, carrier.RiderCount);
+        }
+
+        [Test]
+        public void AFootedPlatformStillCarriesARiderInTheAirOverItsDeck()
+        {
+            WalkerPlatformCarrier carrier = BuildFootedPlatform();
+            Rigidbody body = BuildRider(new Vector3(0f, 2f, 2f));   // feet 1.1 m up: mid-jump
+
+            Assert.AreEqual(5f, CarriedBy(carrier, body), 1e-3f);
         }
     }
 }

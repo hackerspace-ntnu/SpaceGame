@@ -416,6 +416,9 @@ namespace SpaceGame.Items
             // and neither is something to hang a weapon discharge on.
             if (WallAimController.Aiming != null) return;
 
+            // Planted at a station, the hands are on its controls: a hand cog turns on Use, the crane console grabs.
+            if (Vehicles.StationFooting.LocalPlanted) return;
+
             hand?.Press();
         }
 

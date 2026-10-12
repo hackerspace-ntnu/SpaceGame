@@ -261,17 +261,10 @@ namespace SpaceGame.Agents
             // having, and chatter is said to whoever is in earshot.
             Speaker.Of(transform).Say(line, channel, showPopup: false, popupDuration);
 
-<<<<<<< HEAD
-            // At this transform, not through the popup: the popup is screen-space and has no
-            // position, so a mumble emitted there would come from nowhere and would not fall off as
-            // the player walks away — the same reason DialogInteraction.SpeakLine does it here.
-            Sfx.Play(voiceSound, transform.position);
-=======
             // At this transform: a mumble from the screen-space UI would come from nowhere and
             // would not fall off as the player walks away — the same reason
             // DialogInteraction.SpeakLine does it here.
-            Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
->>>>>>> b78d1c410ab909266dd0fc3ec91eafee02aedf36
+            Sfx.Play(voiceSound, transform.position);
         }
 
         private float RollInterval() =>

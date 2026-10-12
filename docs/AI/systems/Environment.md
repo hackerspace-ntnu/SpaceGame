@@ -40,7 +40,7 @@ symptoms:
   - "an authored interior fog volume fades out as soon as I step into the room it is in"
   - "high up during the intro descent the skybox still shows ground-level mountains at eye level"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-10-01
+updated: 2026-10-05
 ---
 
 # Environment

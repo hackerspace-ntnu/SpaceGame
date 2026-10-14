@@ -16,7 +16,7 @@ namespace SpaceGame.Presentation
     /// proper smoke plume or distress flare.
     /// </para>
     /// <para>
-    /// Per machine, drawn from <see cref="ObjectiveStep.TryGetBeacon"/> every frame. The item it
+    /// Per machine, drawn from the active quest's (<see cref="QuestLog.Active"/>) <see cref="ObjectiveStep.TryGetBeacon"/> every frame. The item it
     /// marks replicates on its own, so the column follows it with nothing added to the wire, and
     /// goes out the moment somebody picks it up.
     /// </para>
@@ -79,11 +79,12 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            ObjectiveDirector director = ObjectiveDirector.Instance;
-            ObjectiveStep step = director != null ? director.Current : null;
+            // The active quest only: a column for every quest would leave the player choosing between lights.
+            Quest quest = QuestLog.Active as Quest;
+            ObjectiveStep step = quest?.Current;
 
             Vector3 at = default;
-            bool shown = step != null && step.TryGetBeacon(director.World, out at);
+            bool shown = step != null && step.TryGetBeacon(quest.World, out at);
 
             if (column.gameObject.activeSelf != shown) column.gameObject.SetActive(shown);
             if (shown) Place(at);

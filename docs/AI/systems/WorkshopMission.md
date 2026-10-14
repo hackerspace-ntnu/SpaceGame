@@ -5,7 +5,7 @@ summary: "The workshop's story: a Shellback at the gate, a thieves' camp, then t
 paths:
   - Assets/Game/Scripts/World/WorkshopMission/
   - Assets/Game/Scripts/Core/Persistence/Adapters/WorkshopMissionSaveable.cs
-  - Assets/Game/Scripts/Gameplay/Objectives/TrackedObjectives.cs
+  - Assets/Game/Scripts/Gameplay/Objectives/QuestLog.cs
   - Assets/Game/Scripts/Items/Core/LooseItems.cs
   - Assets/Game/Editor/Workshop/WorkshopMissionBuilder.cs
   - Assets/Game/Editor/Workshop/CarriedGearItems.cs
@@ -45,7 +45,7 @@ symptoms:
   - "I lowered the core onto the ship and the story did not end"
   - "an old save with the story over now asks me to find the vault"
 reads_with: [Workshop, GearDoor, Residents, Objectives, AgentSystem, Outposts, Artifacts, Multiplayer, Persistence, PlayerShip]
-updated: 2026-10-12
+updated: 2026-10-14
 ---
 
 # WorkshopMission
@@ -85,7 +85,7 @@ it on the hook and lowers it onto their ship parked in the pit; letting go over 
 | The gear comes home | Server, every think while hunting: a player whose hotbar holds the gear within `homeRadius` of `Meeting` has it taken (`IPlayerInventory.TryRemoveItem`), or a loose copy lying there is despawned → `Vault`, live: the gatekeeper speaks `thanks` then `vaultOffer` (find the vault behind the turning rooms, turn the main room to open the hidden hallways, bring the core to the crane console on the third floor) |
 | The core lies in the vault from the start | Server, on its first think in any phase: `LayCore` spawns `VaultReactorCore` on `CoreRest` (the model's `Vault_CoreRest`, on the cradle), a saved pickup like the Heart Gear (`SaveableEntity.EnsureRuntime`), once per world (`coreSpawned`, saved). So the vault is never found empty, even before the Shellbacks offer it. It is a plain carried item, not a `ShipPartItem`: it cannot be pointed into a socket by hand, only lowered on by the hoist |
 | The crane ends it | The `WorkshopCrane`'s `Installed` event (server) → `Repaired`, live: `repaired` lines. Fitted before the gear came home (the vault can be opened any time) it is remembered as `coreFitted` (saved), and the `Vault` phase then ends at once |
-| The visor tracks the newest mission | `TrackedObjectives` (any open world mission, newest last) beats `ObjectiveDirector.Tracked` (the crew's chain step) in `VisorObjective`. `WorkshopMissionObjective` is tracked while `Gathering`/`Hunting`/`Vault`, and while `Locked` once this machine's player heard the plea. Steps: open the gate (gate) → meet (meeting) → find the trail (gate; only with no camp placed) → follow it (a search area `searchRadius * 0.6` off the next clue, never the clue: the scanner finds it) → raid the camp (camp) → catch the runner (him) → pick up the gear (it, once dropped outside the camp) → bring it home (meeting) → turn the main room (its hand cog, `MainWheel`, while the lock is shut and `MainRoomFacesLane`: the room within `laneSlack` 20 degrees of the lane, where no hidden hallway is open) → find the vault (its door, while its lock is shut; status counts its loose cogs) → take the core (it, on the cradle) or pick it up (it, dropped elsewhere) → take it to the crane console (the console) → lower it onto the ship (the nearest empty reactor mount), or bring the ship in (meeting) when no ship has one |
+| A quest in the quest log | `WorkshopMissionObjective` is an `IQuestEntry` ("The Heart Gear") on this machine's `QuestLog` ([Objectives.md](Objectives.md)) while `Gathering`/`Hunting`/`Vault`, and while `Locked` once this machine's player heard the plea; closed at `Repaired` and when the workshop streams out. `Track(acquired)`: opened by the plea or a live phase change it becomes the **active** quest (the visor follows it); opened by streaming back in or a late join it is listed without taking the visor. The player can switch to any other quest with J. Steps: open the gate (gate) → meet (meeting) → find the trail (gate; only with no camp placed) → follow it (a search area `searchRadius * 0.6` off the next clue, never the clue: the scanner finds it) → raid the camp (camp) → catch the runner (him) → pick up the gear (it, once dropped outside the camp) → bring it home (meeting) → turn the main room (its hand cog, `MainWheel`, while the lock is shut and `MainRoomFacesLane`: the room within `laneSlack` 20 degrees of the lane, where no hidden hallway is open) → find the vault (its door, while its lock is shut; status counts its loose cogs) → take the core (it, on the cradle) or pick it up (it, dropped elsewhere) → take it to the crane console (the console) → lower it onto the ship (the nearest empty reactor mount), or bring the ship in (meeting) when no ship has one |
 
 ## Key types
 
@@ -100,8 +100,8 @@ it on the hook and lowers it onto their ship parked in the pit; letting go over 
 | `GearThief` / `GearThiefCamp` / `GearThiefCampSite` | On each thief: `IsCarrier`, `Guard`, `Holds`, `Take`, `Drop`, `Run`, `IsAlarmed`, `IsDown`; on the camp outpost: `GearRest`, `Posts()`, `Nearest`; the asset: `Position`, `ChunkScenePath`, `Record` (editor) |
 | `WorkshopClueTrail` / `WorkshopClue` | The trail's places and lines; one local clue |
 | `WorkshopMissionState` | The packed state |
-| `WorkshopMissionObjective` | `ITrackedObjective` over the mission's state |
-| `TrackedObjectives` / `ITrackedObjective` (Gameplay/Objectives) | What the visor's panel can show, and the open world missions |
+| `WorkshopMissionObjective` | `ITrackedObjective` and `IQuestEntry` over the mission's state |
+| `QuestLog` / `IQuestEntry` / `ITrackedObjective` (Gameplay/Objectives) | The quests open on this machine and the one the visor follows; see [Objectives.md](Objectives.md) |
 | `LooseItems` (Items/Core) | `TryFind(item, near, radius, …)`: the nearest loose copy, not one in a hand. `ObjectiveWorld.TryFindLoose` delegates to it |
 | `WorkshopMissionSaveable` | key `"workshopMission"`: `phase` by name, `bandSpawned`, `clues`, `coreSpawned`, `coreFitted`; null at the start (before the first think lays the core) |
 | `WorkshopMissionBuilder` (editor) | Called by `WorkshopPrefabBuilder.Compose` after the doors and the crane: `Mission`, `GateStand` (18 m out from the gate's face, checked clear of the pile and both leaves' sweep), `Meeting` (first open floor from the main room's centre towards the lane), `CoreRest` (the `Vault_CoreRest` mark), the vault door, crane, console and core from the builders before it, `mainWheel` (the hand cog with id `WorkshopLayout.MainWheelId`), and the three assets |
@@ -195,4 +195,4 @@ covered by `WorkshopMissionTests`; **not run through a save file and a reload** 
   row live on `Workshop/Mission`; change their defaults in code, since Rebuild makes a fresh component.
 - **Another camp site:** change `GearThiefCampPlacer.Site`/`ChunkPath`, run it (it moves the camp and the site asset),
   re-bake.
-- **Another mission in the world:** implement `ITrackedObjective`, `TrackedObjectives.Track` it while open.
+- **Another mission in the world:** prefer a quest (skill `spacegame-objectives`); one with its own state machine like this implements `IQuestEntry` + `ITrackedObjective` and is `QuestLog.Open`ed while open.

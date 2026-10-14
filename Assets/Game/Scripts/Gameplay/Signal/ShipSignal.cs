@@ -149,8 +149,7 @@ namespace SpaceGame.Gameplay
         /// <summary>SERVER: the transmitter has just started working. Choose where its signal leads, once.</summary>
         private void Listen()
         {
-            WorldStreamer streamer = FindFirstObjectByType<WorldStreamer>();
-            WorldSiteCatalog catalog = streamer != null && streamer.Config != null ? streamer.Config.siteCatalog : null;
+            WorldSiteCatalog catalog = WorldStreamer.FindSiteCatalog();
             if (catalog == null)
             {
                 // Not "nowhere": that would be saved, and this world would never hear a signal even once the

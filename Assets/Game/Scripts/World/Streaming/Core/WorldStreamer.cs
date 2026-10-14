@@ -23,6 +23,13 @@ namespace SpaceGame.World
         /// <summary>The world this streamer is running, for code that needs the world's identity.</summary>
         public WorldStreamingConfig Config => config;
 
+        /// <summary>The running world's baked site catalog (its towns, settlements and sites), or null before one is baked.</summary>
+        public static WorldSiteCatalog FindSiteCatalog()
+        {
+            WorldStreamer streamer = FindFirstObjectByType<WorldStreamer>();
+            return streamer != null && streamer.config != null ? streamer.config.siteCatalog : null;
+        }
+
         [Header("NavMesh")]
         [Tooltip("How far to search when snapping an agent onto the pre-baked world NavMesh as its " +
                  "chunk loads. The NavMesh is always present (see WorldNavMeshProvider), so this " +

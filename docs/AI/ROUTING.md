@@ -458,7 +458,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a seated resident's legs pass through the pot or cushion it sits on | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a seated resident's legs pass through the pot or cushion it sits on | [Seats](systems/Seats.md) |
 | a second band of thieves appeared after loading the world | [WorkshopMission](systems/WorkshopMission.md) |
-| a second belly turbine appears by the wreck after loading the world | [Objectives](systems/Objectives.md) |
+| a second belly turbine appears by the wreck after loading the world | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | a second copy of my gauntlet or jetpack appears at my feet and falls through the world | [BodyEquipment](systems/BodyEquipment.md) |
 | a second copy of the item I am holding appears at my feet and falls through the world | [Inventory](systems/Inventory.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
@@ -480,6 +480,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a settlement's spawner logs Spawn called on a client and nothing appears | [AgentSystem](systems/AgentSystem.md) |
 | a shader compiles clean, reports isSupported and zero messages, and still draws as the magenta error shader | [StormFlask](systems/StormFlask.md) |
 | a shocked body shows no X-ray or skeleton, or stays invisible after the shock | [Artifacts](systems/Artifacts.md) |
+| a side quest is gone after loading the world | [Objectives](systems/Objectives.md) |
+| a side quest never starts when I walk into the settlement | [Objectives](systems/Objectives.md) |
+| a side quest starts on the host but a client never sees it | [Objectives](systems/Objectives.md) |
 | a singularity opened at the world origin instead of where I threw it | [BottledSingularity](systems/BottledSingularity.md) |
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
 | a Sky nomad I killed on foot kept its wing pack | [SkyTribe](systems/SkyTribe.md) |
@@ -1064,6 +1067,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pressing F5 in a disposable session says the save was ignored | [GameModes](systems/GameModes.md) |
 | pressing F5 warns that this is a disposable session and is never saved | [Persistence](systems/Persistence.md) |
 | pressing H does nothing at all — no gauges, no bracket, no message-stack change | [Visor](systems/Visor.md) |
+| pressing J does nothing | [Objectives](systems/Objectives.md) |
 | pressing Jump at a wall does an ordinary jump instead of climbing | [LedgeClimbing](systems/LedgeClimbing.md) |
 | pressing jump does not get a knocked-down player up | [Combat](systems/Combat.md) |
 | pressing Jump next to another player or an NPC climbs onto their head | [LedgeClimbing](systems/LedgeClimbing.md) |
@@ -1263,8 +1267,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the console warns that a hull module measures more than any surface on the pack | [PlayerShip](systems/PlayerShip.md) |
 | the console warns that HoloProjector or RepairStation carries a SaveableEntity nested inside PlayerShip | [PlayerShip](systems/PlayerShip.md) |
 | the controls came back in the middle of being frozen, foamed or swallowed | [Diagnostics](systems/Diagnostics.md) |
-| the controls checklist does not tick while I am still strapped into the seat | [Objectives](systems/Objectives.md) |
-| the controls checklist is stuck on waiting for the rest of the crew | [Objectives](systems/Objectives.md) |
+| the controls checklist does not tick while I am still strapped into the seat | [CrashSiteQuest](systems/CrashSiteQuest.md) |
+| the controls checklist is stuck on waiting for the rest of the crew | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | the core hanging on the hook is gone after loading the world | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the core lands next to the ship's mount instead of on it | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
@@ -1338,8 +1342,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the fire looks like a raft of orange bubbles rather than flames | [Flamethrower](systems/Flamethrower.md) |
 | the fire on a burning creature is a fireball wider than the creature itself | [Flamethrower](systems/Flamethrower.md) |
 | the fire on a burning creature is the same size as the fire on a burning crate | [Flamethrower](systems/Flamethrower.md) |
-| the first objective completes before I have pressed any keys | [Objectives](systems/Objectives.md) |
-| the first objective completes on its own while the ship is still falling | [Objectives](systems/Objectives.md) |
+| the first objective completes before I have pressed any keys | [CrashSiteQuest](systems/CrashSiteQuest.md) |
+| the first objective completes on its own while the ship is still falling | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | the first-person camera creeps forward out of the helmet as I look at my feet | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the flame grows back up into the fuel tank | [Jetpack](systems/Jetpack.md) |
 | the flame is a few dim specks and the console is clean | [Flamethrower](systems/Flamethrower.md) |
@@ -1762,6 +1766,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the visor is a flat overlay and does not feel like it is drawn on glass | [Visor](systems/Visor.md) |
 | the visor points at an empty patch of sand during the hunt | [WorkshopMission](systems/WorkshopMission.md) |
 | the visor shows the crash-site objective instead of the workshop's | [WorkshopMission](systems/WorkshopMission.md) |
+| the visor shows the wrong quest after I picked up a new one | [Objectives](systems/Objectives.md) |
 | the volume sliders in the settings menu do nothing | [audio](systems/audio.md) |
 | the walk animation barely moves the legs; the creature glides along crouched with its paws hardly lifting | [ArtPipeline](systems/ArtPipeline.md) |
 | the walkability tests are green and I still get caught on something in the cabin | [PlayerShip](systems/PlayerShip.md) |
@@ -2063,6 +2068,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StormFlask.prefab` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/SkyTribe.asset` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/Striders.asset` | [Striders](systems/Striders.md) |
+| `Assets/Game/ScriptableObjects/Objectives/CrashSiteChain.asset` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | `Assets/Game/ScriptableObjects/Residents/Lines/ColonyLines.txt` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackPose.cs` | [Jetpack](systems/Jetpack.md) |
@@ -2085,7 +2091,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Movement/LedgeProbe.cs` | [LedgeClimbing](systems/LedgeClimbing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs` | [WorldStreaming](systems/WorldStreaming.md) |
-| `Assets/Game/Scripts/Gameplay/Objectives/TrackedObjectives.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/ResidentPushing.cs` | [Pushables](systems/Pushables.md) |
@@ -2177,6 +2182,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/StriderCityLevelGroundTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderMonowheelPrefabTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/EyeBlink.cs` | [StylizedEyes](systems/StylizedEyes.md) |
+| `Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Presentation/UI/Theme/VisorStyle.cs` | [Visor](systems/Visor.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelLean.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/Vehicles/Motors/TrackedHullDrive.cs` | [Vehicles](systems/Vehicles.md) |
@@ -2259,6 +2265,8 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Prefabs/Items/Workshop/HeartGear.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs` | [Portals](systems/Portals.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/CrewGear.cs` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/QuestLog.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/Hogtie.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitWings.cs` | [Wingsuit](systems/Wingsuit.md) |
@@ -2383,6 +2391,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Agents/Characters/SkyTribe/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Agents/Characters/Striders/` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Vehicles/ColonyRover.prefab` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/ScriptableObjects/Objectives/Steps/` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | `Assets/Game/ScriptableObjects/Residents/Chores/` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BodyVeil.cs` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Locomotion/Core/Footfall.cs` | [VehicleDust](systems/VehicleDust.md) |
@@ -2410,6 +2419,7 @@ Longest match wins.
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/Steps/` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StormFlask` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Scripts/Items/Equipped/WornSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -2509,6 +2519,7 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/EyelidWiring.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Tests/ArmReachTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Editor/Tests/PushableTests.cs` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/ScriptableObjects/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Lasso` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash` | [LeashSystem](systems/LeashSystem.md) |
@@ -2541,6 +2552,7 @@ Longest match wins.
 | `Assets/Game/Settings/WorldNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Editor/Agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Editor/Tests/LassoTests.cs` | [Lasso](systems/Lasso.md) |
+| `Assets/Game/Editor/Tests/QuestTests.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Prefabs/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/ScriptableObjects/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -2677,4 +2689,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1872 symptoms, 779 paths, 99 docs -->
+<!-- 1877 symptoms, 786 paths, 100 docs -->

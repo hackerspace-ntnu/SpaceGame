@@ -12,6 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7165aa3601d3264682078335aaed4d1, type: 3}
   m_Name: CrashSiteChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
+  id: crash-site
+  title: Crash Site
+  summary: The ship came down hard in the desert. Get the crew breathing, get the hull
+    talking, and get it flying again.
+  speaker: 
+  trigger: {fileID: 0}
   steps:
   - {fileID: 11400000, guid: 7d3b5c9e981b1414db78e3230d242719, type: 2}
   - {fileID: 11400000, guid: 46d8e276024e9534c875ec5129feff0e, type: 2}

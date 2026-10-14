@@ -1,168 +1,174 @@
 ---
 system: Objectives
 layer: presentation
-summary: The crew's shared quest chain after the crash: one asset per step, briefings, visor panel, waypoint
+summary: The crew's quests: the crash-site story and triggered side quests, steps, quest log, visor, waypoint
 paths:
   - Assets/Game/Scripts/Gameplay/Objectives/
   - Assets/Game/Scripts/Presentation/Objectives/
   - Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs
+  - Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs
+  - Assets/Game/ScriptableObjects/Objectives/
+  - Assets/Game/Editor/Tests/QuestTests.cs
   - Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs
 symptoms:
   - "the objective line never appears on the visor after the crash"
   - "the lander's briefing plays again every time the world is loaded"
   - "a client sees the objective but never hears the lander's briefing"
-  - "the first objective completes on its own while the ship is still falling"
-  - "the first objective completes before I have pressed any keys"
-  - "the controls checklist is stuck on waiting for the rest of the crew"
-  - "the controls checklist does not tick while I am still strapped into the seat"
-  - "a second belly turbine appears by the wreck after loading the world"
   - "the lander says the same remark again after a reload"
-reads_with: [PlayerShip, Visor, Cutscenes, Multiplayer, Persistence, WorkshopMission, ShipSignal, ShipTransmitterFire]
-updated: 2026-10-11
+  - "a side quest never starts when I walk into the settlement"
+  - "a side quest starts on the host but a client never sees it"
+  - "a side quest is gone after loading the world"
+  - "the visor shows the wrong quest after I picked up a new one"
+  - "pressing J does nothing"
+reads_with: [CrashSiteQuest, Visor, UI, Multiplayer, Persistence, WorkshopMission, Expeditions]
+updated: 2026-10-14
 ---
 
 # Objectives
 
-The start-of-game loop: an ordered chain of steps the whole crew works through after the crash —
-try the basic controls, carry the oxygen plant the crash threw out back into the ship and solder its cracks, fill a bottle
-and seat it before the suit reserve runs out, read the damage at the terminal, recover and fit a module, try an artifact,
-get the long-range transmitter working, answer the signal it hears, repair the ship. The lander's computer briefs each step; the visor names it, lists its status and
-points at it.
+The crew's **quests**. A quest is an ordered chain of steps the whole crew works through together; any number can be
+running at once, each keeping its own progress, and the visor follows one of them (the **active** quest). The story
+quest begins on landing; every other quest begins when its trigger fires (the crew walk into a settlement, another
+quest finishes) or something in the world gives it. The quest most recently taken on becomes active; the quest log
+(**J**) lists them all and lets each player follow another.
 
-**Scope:** the chain, its steps and their presentation. The modules and sockets are
-[PlayerShip](PlayerShip.md); the dialog popup is [InteractionSystem](InteractionSystem.md); the
-visor layer is [Visor](Visor.md).
+**Scope:** the quest machinery — quests, steps, triggers, quest log, presentation. The story's steps are
+[CrashSiteQuest](CrashSiteQuest.md); the dialog popup is [InteractionSystem](InteractionSystem.md); the visor is [Visor](Visor.md).
 
 ## Model
 
-- **One shared place in one chain.** [`ObjectiveProgress`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveProgress.cs)
-  — step index and `Begun` — is the whole of the shared state. The crew share it; there is no
-  per-player progress. `default` is a fresh world.
-- **One asset per step; its class is its rule.** [`ObjectiveChain`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveChain.cs)
-  orders [`ObjectiveStep`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveStep.cs) assets. The
-  base holds the words (id, visor title, briefing lines, `lookAtFocus`); each subclass under
-  [`Steps/`](Assets/Game/Scripts/Gameplay/Objectives/Steps/) says what finishes it and what to
-  show. The shipped chain is `Assets/Game/ScriptableObjects/Objectives/CrashSiteChain.asset`.
-- **Steps are stateless and split across the authority line.** `TryBegin` / `IsMet` run on the
-  SERVER; `TrackLocalPlayer` / `Status` / `TryGetWaypoint` / `TryGetFocus` / `TryGetBeacon` run on
-  EVERY machine. Anything remembered lives in [`ObjectiveWorld`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveWorld.cs),
-  whose per-step memory is wiped by `ForgetStep` whenever the step changes.
-- **A step every player must do themselves** overrides `TrackLocalPlayer` (watch this machine's
-  player, return true when done) and meets on `world.EveryoneFinished`. The director reports the
-  local player once per step; the server counts reports per `OwnerClientId`. `LearnControlsStep` is
-  the only one today.
+- **A quest is an `ObjectiveChain` asset.** [`ObjectiveChain`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveChain.cs)
+  carries the quest's permanent `id` (save + wire key, at most 61 UTF-8 bytes), `title` and `summary` (quest log,
+  visor heading), optional `speaker` (who reads its briefings; empty = the lander) and optional `trigger`. The story
+  quest is the director's `chain` (`CrashSiteChain`, id `crash-site`); every other quest must be in the director's
+  `quests` catalog to begin, save or replicate.
+- **One shared place per quest.** A begun quest is a runtime [`Quest`](Assets/Game/Scripts/Gameplay/Objectives/Quest.cs):
+  its chain, its `Order` (0 = story, then 1, 2, … in the order taken on), its own `ObjectiveWorld` and its
+  [`ObjectiveProgress`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveProgress.cs) — step index, `Begun`,
+  `Remarks`. The crew share it; there is no per-player progress. **Every begun quest advances every frame**, active or
+  not.
+- **Which quest the visor follows is per machine.** [`QuestLog`](Assets/Game/Scripts/Gameplay/Objectives/QuestLog.cs)
+  (static) lists the `IQuestEntry`s open on this machine: every director `Quest`, plus world missions such as
+  [WorkshopMission](WorkshopMission.md). `Open(entry, acquired: true)` — a quest taken on just now, in play — makes it
+  the chosen one; restored, joined or streamed-in quests are listed quietly. `Active` = the chosen quest while it is
+  open and unfinished, else the newest open unfinished one. `SetActive` is the quest log's click. Not saved: after a
+  load the newest quest is active.
+- **Quests begin on the server.** A [`QuestTrigger`](Assets/Game/Scripts/Gameplay/Objectives/QuestTrigger.cs) asset on
+  the quest (stateless, SERVER, asked every `triggerCheckSeconds` once landed), or a
+  [`QuestGiver`](Assets/Game/Scripts/Gameplay/Objectives/QuestGiver.cs) component in a scene (`Give()` from any
+  UnityEvent on any machine, or a `radius` judged on the server), or `ObjectiveDirector.Give/StartQuest` from code.
+- **One asset per step; its class is its rule.** [`ObjectiveStep`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveStep.cs)
+  holds the words (id, visor title, briefing lines, `lookAtFocus`); each subclass under
+  [`Steps/`](Assets/Game/Scripts/Gameplay/Objectives/Steps/) says what finishes it and what to show.
+- **Steps are stateless and split across the authority line.** `TryBegin` / `IsMet` / `IsRemarkDue` run on the
+  SERVER; `TrackLocalPlayer` / `Status` / `TryGetWaypoint` / `TryGetFocus` / `TryGetBeacon` on EVERY machine.
+  Memory lives in the quest's [`ObjectiveWorld`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveWorld.cs), wiped by
+  `ForgetStep` whenever that quest's step changes.
+- **A step every player must do themselves** overrides `TrackLocalPlayer` (true when this machine's player is done)
+  and meets on `world.EveryoneFinished`; the server counts reports per `OwnerClientId` (`LearnControlsStep`).
 - **What a step spawns is an ordinary pickup.** [`PlacedItemStep`](Assets/Game/Scripts/Gameplay/Objectives/Steps/PlacedItemStep.cs)
-  drops its item through `GameServices.World.Spawn` in `TryBegin` and afterwards finds it again
-  through `ScannerRegistry` (`PickupableItem.Item`) — nothing records where it went.
-- **Remarks: one-off lines partway through a step.** A step overrides `RemarkCount`, `RemarkLines(i)` and
-  `IsRemarkDue(world, i)` (SERVER, each frame while current and begun). The director sets bit i of
-  `ObjectiveProgress.Remarks` (replicated, saved as `objectives.remarks`, cleared per step) and `ObjectiveBriefing`
-  plays the lines to the whole crew once; a remark due as the step begins follows its briefing; a restore or a
-  join never replays one. Indices are the save format: append only. `FitTransmitterStep` is the example.
-- **Guidance is explicit, with an environmental half.** The visor waypoint is the
-  `GDC-L1-LEVEL-0001` open-world exception (4 km desert, few landmarks); the light-column beacon is
-  something in the world to walk toward. The controls are taught by doing, with each line
-  confirming itself on use (`GDC-L1-UX-0001`, `GDC-L1-UX-0003`).
+  drops it via `GameServices.World.Spawn` in `TryBegin` and finds it again through `ScannerRegistry`.
+- **Remarks: one-off lines partway through a step.** `RemarkCount`, `RemarkLines(i)`, `IsRemarkDue(world, i)`; the
+  quest sets bit i of `ObjectiveProgress.Remarks` (replicated, saved, cleared per step) and `ObjectiveBriefing` plays
+  it once; never replayed on restore or join. Indices are the save format: append only (`FitTransmitterStep`).
+- **Guidance is explicit, with an environmental half.** Visor waypoint (`GDC-L1-LEVEL-0001`, a 4 km desert) plus a
+  light-column beacon in the world.
 
 ## Key types
 
 | Type | Role |
 | --- | --- |
-| `ObjectiveDirector` | `persistentScene`, `[DefaultExecutionOrder(-100)]`. Holds the progress. Every machine: `TrackLocalPlayer` → `LocalPlayerFinished(step)`. Server: begins and judges steps. `Adopt` (wire) / `Restore` (save) elsewhere. `Changed(bool live)`. Story worlds only (`!VersusSession.IsActive`) |
-| `ObjectiveNetwork` | On `NetworkGameManager.prefab`, beside `ChatNetwork`. One server-write `NetworkVariable<ObjectiveProgress>`, read on spawn for late joiners; `ReportFinishedRpc(step)` client → server, sender taken from `RpcParams` |
-| [`ObjectiveSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs) | Global saver, key `objectives`: step **id**, `complete`, `begun` |
-| `LearnControlsStep` | Checklist of `lessons` (move, sprint, jump, crouch) in `Status`; only counts input while out of the seat and every cutscene; met when every player has finished |
-| `RecoverOxygenPlantStep` | Second step (`recover-oxygen-plant`). Met by `OxygenPlantMount.Running` (in its mount, soldered, powered). Status: `Thrown out of the back door. Lift it by the handle` / `Carrying: n m to its mount` / `Damaged: solder the seams k/3` / `Fit a power cell`. Waypoint and beacon: the loose plant, the mount while it is carried; cracked, the gear wall's torch while no crew member carries one (`CrewGear`), then the glowing seam; the mount for the cell; focus: the burst door. **Remark 0** (2026-10-06): the torch tutorial ("on the gear wall… RMB… hold LMB on the glowing seam"), due the first time the plant stands in its mount cracked |
-| `RefillAirStep` | Third step (`refill-air`, 2026-10-06, `09_RefillAir.asset`). The crash vented every crew bottle (Oxygen.md): take an empty bottle off the gear wall (RMB), fill it at the plant's collar, press **B** (the `Backpack` action) and seat it. Status walks THIS machine's player through it from their hotbar, pack and socket (take / fill / seat / done); waypoint: the gear wall, then the plant. **Met when ANY crew member has a filled bottle seated** (`OxygenPlantMount.AirRefilled`), so a late joiner, an idle or a dead player never blocks it. Remark 0: "reserve running low", due when any suit on reserve is under 35 % |
-| `UseTerminalStep` | The hull's `TerminalConsole.Occupied`; focus = first empty socket |
-| `RecoverModuleStep` | Drops `SmallMotor` 90–130 m out; met by any socket fitted beyond `AuthoredMask`; waypoint = loose module, else the empty socket |
-| `TryArtifactStep` | Drops `JumpingRod` 22 m off the nose; met on `UseChannel.UsedOnServer` for that asset |
-| `FitTransmitterStep` | `fit-transmitter`, after `first-artifact`. Met by a WORKING transmitter in the rack (`ShipSignal.IsTransmitterFitted`). Status from the socket and the fire. **One marker per phase**: the socket while broken; the transmitter itself in its cradle while it is on the dish (the only marker on the tower: nothing for the hook, ladder or console); then the loose transmitter, else the empty socket. Beacon only on a loose transmitter. Remarks: `TowerRemark` (a crew member within 60 m of the dish: "I wonder if we can turn it…") and `HookRemark` (the drives wake: "Press I … then Q or E", the real `BodyInventory`/`GauntletLeft`/`GauntletRight` keys, pinned by a test) |
-| `AnswerSignalStep` | `answer-signal`, right after it. Begins once `ShipSignal.Destination.Received`; waypoint + beacon on the destination; met when any crew member is within its radius + `arrivalMargin` (15 m); met at once if the signal leads nowhere. See [ShipSignal.md](ShipSignal.md) |
-| `RepairShipStep` | `ShipPartRack.IsComplete`; `Status` = `Modules fitted n/total` |
-| [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays a step's lines through `NpcDialogPopupUI`, prefixed with the speaker, once the local player is present; `LookAtCutscene` to the focus |
-| [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading, title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a change of objective; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`). Shows the newest open world mission (`TrackedObjectives.Newest`, e.g. [WorkshopMission](WorkshopMission.md)) and the chain step (`ObjectiveDirector.Tracked`, an `ITrackedObjective` per step) only when there is none |
-| `ObjectiveBeacon` | Placeholder light column over `TryGetBeacon` |
+| `ObjectiveDirector` | `persistentScene`, `[DefaultExecutionOrder(-100)]`. `chain` (story) + `quests` (catalog) + `triggerCheckSeconds`. Holds every begun `Quest` (`Quests`, `Story`, `Find`, `FindChain`). Every machine: `Quest.TrackLocalPlayer` → `LocalPlayerFinished(quest, step)`; lists its quests on `QuestLog`. Server, once landed: asks triggers, `Quest.Advance` for every quest. `Give` (any machine) / `StartQuest` (server). `Adopt(list, live)` (wire) / `Restore(saved)` (save). Events `Started(quest, live)`, `Changed(quest, live)`, `GiveRequested`. Validates ids at Awake. Story worlds only (`!VersusSession.IsActive`) |
+| `Quest` | One begun quest: `Chain`, `Order`, `World`, `Progress`, `Current`, `Objective` (`ITrackedObjective`, new object per step), `IsComplete`. `Advance`/`RecordFinished` SERVER; `TrackLocalPlayer`/`Adopt`/`Restore`/`ToSaved` everywhere |
+| `QuestLog` / `IQuestEntry` / `ITrackedObjective` | Per machine: open quests, `Active`, `Open(entry, acquired)`, `Close`, `SetActive`, `Changed` |
+| `QuestTrigger` | Abstract SO, `ShouldStart(director)` SERVER. `EnterSettlementTrigger` (a town in the baked `WorldSiteCatalog.towns` by GameObject name; reach = its radius or `fallbackRadius`, + `margin`), `EnterAreaTrigger` (fixed centre + radius), `QuestCompletedTrigger` (another quest finished). Under [`Triggers/`](Assets/Game/Scripts/Gameplay/Objectives/Triggers/) |
+| `QuestGiver` | Scene component: `Give()` for UnityEvents (a client's goes to the server), or `radius` > 0 to give on approach (server) |
+| `ObjectiveNetwork` | On `NetworkGameManager.prefab`, beside `ChatNetwork`. One server-write `NetworkList<QuestState>` (id, order, progress; one entry per begun quest, story first), read on spawn for late joiners; `ReportFinishedRpc(quest, step)` and `GiveQuestRpc(quest)` client → server, sender taken from `RpcParams` |
+| [`ObjectiveSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs) | Global saver, key `objectives`: the story quest's step **id**, `complete`, `begun`, `remarks` top-level (the pre-side-quest format, unchanged), plus `quests[]` = `{id, order, step, complete, begun, remarks}` for every other quest |
+| `ReachSettlementStep` | Generic: go to a town in the baked town list by name (`ObjectiveWorld.TryFindTown`); waypoint + beacon on it; met when any crew member is within its reach + `arrivalMargin` |
+| [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays every quest's step lines through `NpcDialogPopupUI`, prefixed with the quest's `speaker` (else `LANDER`), once the local player is present; `LookAtCutscene` to the focus. Remembers per quest what was heard |
+| [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading (the active quest's name, upper case), title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a new step or a switch of quest; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`). Shows `QuestLog.Active.Objective` |
+| `ObjectiveBeacon` | Placeholder light column over the **active** quest's `TryGetBeacon` only |
+| [`QuestLogUI`](Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs) | J (`UI/QuestLog` in `InputSystem_Actions`): every open quest newest first with its objective and summary, FOLLOWING on the active one, click another to follow it; finished quests struck through. See [UI.md](UI.md) |
 
 ## Flows
 
-**Advance (server).** `Update`: nothing until `ArrivalDirector.HasArrived` → `TryBeginCurrent`
-(once per step; false = retry next frame) → `IsMet` → next step (`ForgetStep`), and straight into
-its `TryBegin` so peers usually hear step and `Begun` in one change → `Changed(true)` →
-`ObjectiveNetwork` writes the variable.
+**Begin a quest (server).** Every `triggerCheckSeconds` once landed, each catalog quest not yet begun with a
+`trigger` is asked `ShouldStart`; a `QuestGiver` or code calls `Give` (a client's becomes `GiveQuestRpc`). `StartQuest`
+refuses a quest already begun or not in the catalog (loudly) → a `Quest` with the next `Order` →
+`QuestLog.Open(acquired: true)` (the host's visor switches to it) → `Started(quest, true)` → `ObjectiveNetwork`
+appends it to the list → every client adopts it live and its visor switches too. Its first step begins next frame.
 
-**Report (every machine, own player).** While the step has begun, `step.TrackLocalPlayer` each
-frame; the first true raises `LocalPlayerFinished(step)` → host records itself directly, a client
-sends `ReportFinishedRpc` → `ObjectiveDirector.RecordFinished`, which drops a report for a step the
-crew have already left.
+**Advance (server).** `Update`: nothing until `ArrivalDirector.HasArrived`; then, for **every** begun quest,
+`TryBeginCurrent` (once per step; false = retry next frame) → `IsMet` → next step (`ForgetStep`), and straight into
+its `TryBegin` so peers usually hear step and `Begun` in one change → `Changed(quest, true)` →
+`ObjectiveNetwork` rewrites that quest's entry.
 
-**Brief (every machine).** `ObjectiveBriefing` queues a step's lines when it sees `Begun` flip for a
-new step with `live == true` — step 0 begins only once the hull has landed, which is what makes it
-briefable at all. Lines wait until the player is spawned and out of every cutscene for
-`settleSeconds`, and for the popup to be free. The first line of a `lookAtFocus` step plays under
-the look; the rest wait for it to end.
+**Report (every machine, own player).** `step.TrackLocalPlayer` each frame; the first true raises
+`LocalPlayerFinished(quest, step)` → host records directly, a client sends `ReportFinishedRpc`; a report for a step
+the crew have left is dropped.
+
+**Follow (every machine).** The visor, beacon and quest log read `QuestLog.Active`. A quest taken on in play becomes
+active; a chosen quest that finishes or closes hands over to the newest unfinished one; J → click picks another.
+
+**Brief (every machine).** `ObjectiveBriefing` queues a step's lines when `Begun` flips for a new step of any quest
+with `live == true`. Lines wait for the player to be spawned, out of every cutscene for `settleSeconds`, and for the
+popup; the first line of a `lookAtFocus` step plays under the look, the rest after it.
 
 ## Multiplayer
 
 | What | Carrier | Authority |
 | --- | --- | --- |
-| Progress | `ObjectiveNetwork` `NetworkVariable` | Server |
+| Begun quests and their progress | `ObjectiveNetwork` `NetworkList<QuestState>` | Server |
+| "Give us this quest" (a client's `QuestGiver`) | `ObjectiveNetwork.GiveQuestRpc` | Server begins it |
+| Which quest each player follows | none (`QuestLog`) | Local, per player |
 | "My player has done their part" | `ObjectiveNetwork.ReportFinishedRpc` | Owner reports, server counts |
-| Placed module / artifact | Registered item prefabs via `World.Spawn` | Server |
-| Artifact use | `UseChannel.UsedOnServer`, raised in `OnUseRequested` after the peer broadcast | Server |
 | Briefing, visor panel and checklist, beacon | none | Local, derived |
 
-A late joiner adopts the progress `live: false` — no briefing replay, visor correct at once. A player
-who joins during the controls step must do it too; one who leaves stops counting.
+A late joiner adopts every quest `live: false` — no briefing replay, visor correct at once (newest quest active). A
+client whose build lacks a quest the server runs logs an error and skips it.
 
 ## Persistence
 
-`ObjectiveSaveable` (key `objectives`). What a step spawned persists as its own runtime entity. The
-per-step memory in `ObjectiveWorld` (uses, finished players, the local checklist) is **not** saved:
-a reload during the controls step asks everyone for the controls again. A step id the chain no
-longer has restarts the chain with a warning (`ObjectiveDirector.Resolve`). **Inserting a step is safe** because the
-record is the id: a save at `assess-damage` or later never sees the oxygen step; a save still at `learn-controls`
-moves on into it, and since that world never had its plant thrown out (no `oxygenMount` record), the step asks only
-for a power cell.
+`ObjectiveSaveable` (key `objectives`): the story quest in the top-level fields (a save from before side quests loads
+unchanged), every other quest in `quests[]` by **id** with its `order`. An unknown quest id is dropped with a warning;
+an unknown step id restarts that quest (`ObjectiveDirector.Resolve`); quests begun this session but absent from the
+save are dropped. Not saved: which quest a player follows (newest is active after a load) and per-step memory in
+`ObjectiveWorld`. What a step spawned persists as its own runtime entity. Inserting steps is safe (by id).
 
 ## Gotchas
 
-- **Nothing may be judged before the landing.** Bodies spawn at the hull and are seated a frame
-  later. The director waits for `HasArrived`, which a restored world already has.
-- **Input in the seat proves nothing.** `LearnControlsStep` ignores input while
-  `SeatedRider.LocalPlayerMayLeave` or a cutscene plays; the seat's own Esc prompt gets the player up.
-- **A per-player step needs every player.** One AFK player holds the controls step for the whole
-  crew; that is the price of every player being taught. The checklist tells a finished player they
-  are waiting on the others.
-- **`Begun` is saved on purpose.** Without it a load either spawns the wreck's module again or,
-  saved between step entry and setup, never spawns it.
-- **`World.Spawn` alone does not make a pickup persist.** `ObjectiveWorld.Spawn` stamps it with
-  `SaveableEntity.EnsureRuntime(obj, item.ID)`, as `PlayerDropService` does; without that the module
-  saves with no prefab id, `Compact` drops it, and `Begun` guarantees nothing places it again.
-- **Ship modules exist in no real world scene** (only `Ferdinand_Test_world`). The first one a player
-  ever sees is the one `RecoverModuleStep` drops.
-- **A loose item is only found while its chunk is loaded**, so a module dropped 600 m+ from the hull
-  drops off the waypoint until someone walks near it.
-- **Step assets are the step's class.** Changing a step's kind means a new asset of the new class (or
-  editing `m_Script`), not swapping a field.
-- **The chain order is the transmitter, then the signal, then the whole repair** (`fit-transmitter`,
-  `answer-signal`, `repair-ship`), because the signal must start when the transmitter goes in and that is
-  usually long before the hull is complete. A crew that fits the transmitter early meets `fit-transmitter` the
-  moment they reach it and walk straight into `answer-signal`; the COMMS page and the map marker do not wait
-  for the chain at all. **A save already at `repair-ship` resolves past both new steps** (by id) and keeps its
-  place: it never gets the signal objective, though its terminal and map still show the signal.
-- **Finishing the ship does not win the game** — `GameManager.WinGame` still has no caller.
+- **A quest not in the director's catalog never begins, saves or replicates.** `StartQuest` says so loudly; a trigger
+  on a quest outside the catalog is simply never asked. Add every side quest to `ObjectiveDirector.quests` in
+  `persistentScene`.
+- **Quest ids are the save and wire key.** Never rename one once a save exists (the quest is dropped on load); at most
+  61 UTF-8 bytes (`FixedString64Bytes`); unique across the story and the catalog. The director validates at Awake.
+- **`EnterSettlementTrigger` / `ReachSettlementStep` match the baked town list by GameObject name**
+  (`WorldSiteCatalog.towns[].name`, e.g. `ClankerSettlement`, `astronauts_settlement`). Rename or add a settlement and
+  re-run *Tools/SpaceGame/World/Bake Site Catalog*; an unknown name warns once (`ObjectiveWorld.TryFindTown`) and the
+  quest waits forever.
+- **Triggers are asked only after landing, only on the server** — one reading local-only state (UI, the local camera)
+  breaks with more than one player.
+- **Every quest briefs.** A background quest's step change plays its lines even while another quest is followed; give
+  side quests their own `speaker` so the player can tell who is talking.
+
+- **Nothing may be judged before the landing.** Bodies spawn at the hull and are seated a frame later; the director
+  waits for `HasArrived` (a restored world already has it).
+- **`Begun` is saved on purpose.** Without it a load spawns a step's item again, or never.
+- **`World.Spawn` alone does not make a pickup persist.** Use `ObjectiveWorld.Spawn`, which stamps
+  `SaveableEntity.EnsureRuntime(obj, item.ID)`; otherwise it is dropped at save and `Begun` never places it again.
+- **Step assets are the step's class.** Changing a step's kind means a new asset, not swapping a field.
 
 ## Extending
 
-1. **A new step of an existing kind:** create it from **Create ▸ SpaceGame ▸ Objectives**, give it a
-   new, permanent `id`, add it to the chain. Reordering is safe — saves resolve by id.
-2. **A new kind of step:** subclass `ObjectiveStep` (or `PlacedItemStep` to drop an item), keep it
-   stateless, put server work in `TryBegin`/`IsMet` only, add a `[CreateAssetMenu]`. Per-step memory
-   goes in `ObjectiveWorld` and is cleared in `ForgetStep`.
-3. **A lead to a settlement** is built: `AnswerSignalStep`. The town is chosen by the SHIP, not the step
-   (`ShipSignal`, from the baked `WorldSiteCatalog.towns`), and saved and replicated with the hull, so the
-   step stays stateless and `ObjectiveProgress` did not grow. A second lead reuses `SignalDestinationRule`.
-4. **Verify** on a client (briefing, visor panel, checklist and beacon on the second machine) and
-   after a reload (`objectives` in the save JSON; no second module).
+**Step-by-step recipes (new quest, new trigger, new step kind) live in the `spacegame-objectives` skill.**
+
+0. **A new quest:** *Create ▸ SpaceGame ▸ Objectives ▸ Quest*, set a new permanent `id`, `title`, `summary`, its steps
+   and (optionally) a `trigger` from *Create ▸ SpaceGame ▸ Objectives ▸ Triggers*; add it to `ObjectiveDirector.quests`
+   in `persistentScene`. Or leave `trigger` empty and give it with a `QuestGiver`.
+1. **A new step of an existing kind:** **Create ▸ SpaceGame ▸ Objectives**, a new permanent `id`, add it to the quest.
+2. **A new kind of step / trigger:** subclass `ObjectiveStep` (or `PlacedItemStep`) / `QuestTrigger`, stateless, server
+   work in `TryBegin`/`IsMet`/`ShouldStart` only, `[CreateAssetMenu]`. Per-step memory in `ObjectiveWorld` + `ForgetStep`.
+3. **Verify** on a client (quest begins, briefing, visor, J log on the second machine) and after a reload
+   (`objectives.quests` in the save JSON; nothing spawned twice). `QuestTests` covers the log, restore and saver.

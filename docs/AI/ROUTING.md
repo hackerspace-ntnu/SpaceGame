@@ -1587,6 +1587,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Q and E chips sit on the wrong arms | [BodyEquipment](systems/BodyEquipment.md) |
 | the Q and E chips stay on screen while I am looking at my own back | [BodyEquipment](systems/BodyEquipment.md) |
 | the quantizer turns a coloured sky or surface flat grey | [Environment](systems/Environment.md) |
+| the quest is stuck on a step that started another quest | [Objectives](systems/Objectives.md) |
 | the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart | [Combat](systems/Combat.md) |
 | the ragdoll is only the creature's neck, or a single body, and the rest of the animal is missing | [Combat](systems/Combat.md) |
 | the ragdoll jitters and vibrates instead of falling limp | [Combat](systems/Combat.md) |
@@ -2689,4 +2690,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1877 symptoms, 786 paths, 100 docs -->
+<!-- 1878 symptoms, 786 paths, 100 docs -->

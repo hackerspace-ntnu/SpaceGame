@@ -12,6 +12,7 @@ paths:
   - Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs
 symptoms:
+  - "the quest is stuck on a step that started another quest"
   - "the objective line never appears on the visor after the crash"
   - "the lander's briefing plays again every time the world is loaded"
   - "a client sees the objective but never hears the lander's briefing"
@@ -57,7 +58,8 @@ quest finishes) or something in the world gives it. The quest most recently take
 - **Quests begin on the server.** A [`QuestTrigger`](Assets/Game/Scripts/Gameplay/Objectives/QuestTrigger.cs) asset on
   the quest (stateless, SERVER, asked every `triggerCheckSeconds` once landed), or a
   [`QuestGiver`](Assets/Game/Scripts/Gameplay/Objectives/QuestGiver.cs) component in a scene (`Give()` from any
-  UnityEvent on any machine, or a `radius` judged on the server), or `ObjectiveDirector.Give/StartQuest` from code.
+  UnityEvent on any machine, or a `radius` judged on the server), a `StartQuestStep` in another quest, or
+  `ObjectiveDirector.Give/StartQuest` from code.
 - **One asset per step; its class is its rule.** [`ObjectiveStep`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveStep.cs)
   holds the words (id, visor title, briefing lines, `lookAtFocus`); each subclass under
   [`Steps/`](Assets/Game/Scripts/Gameplay/Objectives/Steps/) says what finishes it and what to show.
@@ -87,6 +89,7 @@ quest finishes) or something in the world gives it. The quest most recently take
 | `ObjectiveNetwork` | On `NetworkGameManager.prefab`, beside `ChatNetwork`. One server-write `NetworkList<QuestState>` (id, order, progress; one entry per begun quest, story first), read on spawn for late joiners; `ReportFinishedRpc(quest, step)` and `GiveQuestRpc(quest)` client → server, sender taken from `RpcParams` |
 | [`ObjectiveSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs) | Global saver, key `objectives`: the story quest's step **id**, `complete`, `begun`, `remarks` top-level (the pre-side-quest format, unchanged), plus `quests[]` = `{id, order, step, complete, begun, remarks}` for every other quest |
 | `ReachSettlementStep` | Generic: go to a town in the baked town list by name (`ObjectiveWorld.TryFindTown`); waypoint + beacon on it; met when any crew member is within its reach + `arrivalMargin` |
+| [`StartQuestStep`](Assets/Game/Scripts/Gameplay/Objectives/Steps/StartQuestStep.cs) | Gives a catalog `quest` in `TryBegin` (`ObjectiveWorld.StartQuest`). `completion`: `HandOff` = met at once, both quests run on; `WaitForQuest` = met when that quest `IsComplete` (a sub-quest), meanwhile `Status` = `waitingStatus` and waypoint/beacon forwarded from the sub-quest's current step. A refused or missing quest counts as done, never blocks |
 | [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays every quest's step lines through `NpcDialogPopupUI`, prefixed with the quest's `speaker` (else `LANDER`), once the local player is present; `LookAtCutscene` to the focus. Remembers per quest what was heard |
 | [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading (the active quest's name, upper case), title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a new step or a switch of quest; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`). Shows `QuestLog.Active.Objective` |
 | `ObjectiveBeacon` | Placeholder light column over the **active** quest's `TryGetBeacon` only |
@@ -148,14 +151,14 @@ save are dropped. Not saved: which quest a player follows (newest is active afte
   (`WorldSiteCatalog.towns[].name`, e.g. `ClankerSettlement`, `astronauts_settlement`). Rename or add a settlement and
   re-run *Tools/SpaceGame/World/Bake Site Catalog*; an unknown name warns once (`ObjectiveWorld.TryFindTown`) and the
   quest waits forever.
-- **Triggers are asked only after landing, only on the server** — one reading local-only state (UI, the local camera)
-  breaks with more than one player.
+- **Triggers are asked only after landing, only on the server**: one reading local-only state breaks multiplayer.
 - **Every quest briefs.** A background quest's step change plays its lines even while another quest is followed; give
   side quests their own `speaker` so the player can tell who is talking.
-
-- **Nothing may be judged before the landing.** Bodies spawn at the hull and are seated a frame later; the director
-  waits for `HasArrived` (a restored world already has it).
-- **`Begun` is saved on purpose.** Without it a load spawns a step's item again, or never.
+- **A `HandOff` `StartQuestStep` is never seen or briefed** — begun and met in one frame; brief on the new quest's first
+  step. A quest starting **itself** is an Awake error; a cycle (A waits for B, B waits for A) deadlocks silently.
+- **A finished sub-quest does not hand the visor back to its parent**: `Active` falls to the newest unfinished quest.
+- **Nothing may be judged before the landing** (bodies are seated a frame after spawning): the director waits for `HasArrived`.
+- **`Begun` is saved on purpose.** Without it a load spawns a step's item again (or starts a quest again), or never.
 - **`World.Spawn` alone does not make a pickup persist.** Use `ObjectiveWorld.Spawn`, which stamps
   `SaveableEntity.EnsureRuntime(obj, item.ID)`; otherwise it is dropped at save and `Begun` never places it again.
 - **Step assets are the step's class.** Changing a step's kind means a new asset, not swapping a field.
@@ -164,11 +167,10 @@ save are dropped. Not saved: which quest a player follows (newest is active afte
 
 **Step-by-step recipes (new quest, new trigger, new step kind) live in the `spacegame-objectives` skill.**
 
-0. **A new quest:** *Create ▸ SpaceGame ▸ Objectives ▸ Quest*, set a new permanent `id`, `title`, `summary`, its steps
-   and (optionally) a `trigger` from *Create ▸ SpaceGame ▸ Objectives ▸ Triggers*; add it to `ObjectiveDirector.quests`
-   in `persistentScene`. Or leave `trigger` empty and give it with a `QuestGiver`.
+0. **A new quest:** *Create ▸ SpaceGame ▸ Objectives ▸ Quest* (permanent `id`, `title`, `summary`, steps, optional
+   `trigger`), add it to `ObjectiveDirector.quests` in `persistentScene`; or give it with a `QuestGiver` / `StartQuestStep`.
 1. **A new step of an existing kind:** **Create ▸ SpaceGame ▸ Objectives**, a new permanent `id`, add it to the quest.
 2. **A new kind of step / trigger:** subclass `ObjectiveStep` (or `PlacedItemStep`) / `QuestTrigger`, stateless, server
    work in `TryBegin`/`IsMet`/`ShouldStart` only, `[CreateAssetMenu]`. Per-step memory in `ObjectiveWorld` + `ForgetStep`.
 3. **Verify** on a client (quest begins, briefing, visor, J log on the second machine) and after a reload
-   (`objectives.quests` in the save JSON; nothing spawned twice). `QuestTests` covers the log, restore and saver.
+   (`objectives.quests` in the save JSON; nothing spawned twice). `QuestTests` covers the log, restore, saver and `StartQuestStep`.

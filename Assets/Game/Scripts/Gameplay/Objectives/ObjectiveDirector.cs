@@ -374,7 +374,7 @@ namespace SpaceGame.Gameplay.Objectives
 
         // ── Authoring ───────────────────────────────────────────────────────────
 
-        /// <summary>Every quest needs an id that fits the wire and no other quest shares; said once, at load.</summary>
+        /// <summary>Every quest needs an id that fits the wire and no other quest shares, and none starts itself; said once, at load.</summary>
         private void ValidateCatalog()
         {
             var seen = new HashSet<string>();
@@ -397,6 +397,12 @@ namespace SpaceGame.Gameplay.Objectives
                                "so it does not fit on the wire.", quest);
             else if (!seen.Add(quest.Id))
                 Debug.LogError($"[Objectives] Two quests share the id '{quest.Id}'.", quest);
+
+            // A quest cannot be given from inside itself: it has already begun, so the step would hand off to nothing
+            // or, waiting, wait for itself forever.
+            foreach (ObjectiveStep step in quest.Steps)
+                if (step is StartQuestStep start && start.Gives == quest)
+                    Debug.LogError($"[Objectives] '{step.name}' in quest '{quest.name}' starts the quest it is in.", step);
         }
     }
 }

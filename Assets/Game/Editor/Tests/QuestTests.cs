@@ -1,5 +1,5 @@
 // Several quests at once: the quest log's choice of which one the visor follows, every quest advancing on its own,
-// quests begun by triggers and givers, and every quest saved and restored by id.
+// quests begun by triggers, givers and other quests' steps, and every quest saved and restored by id.
 //
 // In Editor/ rather than beside the other EditMode tests because these touch Assembly-CSharp types. Built
 // by hand: nothing runs Awake in EditMode, so the director's is invoked explicitly.
@@ -218,6 +218,70 @@ namespace SpaceGame.Tests
             Assert.IsTrue(director.Story.Progress.Begun);
         }
 
+        // ── Starting a quest from a step ────────────────────────────────────────
+
+        [Test]
+        public void AHandOffStepStartsTheQuestAndMovesStraightOn()
+        {
+            ObjectiveChain side = Chain("side", out _);
+            ObjectiveChain story = ChainOf("story", Starter(side, StartQuestStep.Completion.HandOff), Make<SwitchStep>());
+            ObjectiveDirector director = Director(story, side);
+
+            director.Story.Advance();
+
+            Assert.IsNotNull(director.Find(side), "the step gave the crew the quest");
+            Assert.AreEqual(1, director.Story.Progress.Step, "and the story moved on in the same breath");
+            Assert.IsTrue(director.Story.Progress.Begun);
+        }
+
+        [Test]
+        public void AWaitingStepHoldsItsQuestUntilTheQuestItGaveIsFinished()
+        {
+            ObjectiveChain side = Chain("side", out SwitchStep sideStep);
+            Set(side, typeof(ObjectiveChain), "title", "The Side Job");
+            StartQuestStep waiting = Starter(side, StartQuestStep.Completion.WaitForQuest);
+            ObjectiveDirector director = Director(ChainOf("story", waiting), side);
+
+            director.Story.Advance();
+            Quest given = director.Find(side);
+            Assert.IsNotNull(given);
+            Assert.AreEqual(0, director.Story.Progress.Step, "still waiting");
+            StringAssert.Contains("The Side Job", waiting.Status(director.Story.World));
+
+            given.Advance();
+            sideStep.Met = true;
+            given.Advance();
+            Assert.IsTrue(given.IsComplete);
+
+            director.Story.Advance();
+            Assert.IsTrue(director.Story.IsComplete, "the sub-quest done, the step is met");
+        }
+
+        [Test]
+        public void AQuestTheDirectorRefusesNeverBlocksTheQuestThatAskedForIt()
+        {
+            ObjectiveChain stranger = Chain("stranger", out _);
+            ObjectiveDirector director = Director(ChainOf("story", Starter(stranger, StartQuestStep.Completion.WaitForQuest)));
+
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("not in the ObjectiveDirector's quest catalog"));
+            director.Story.Advance();
+
+            Assert.IsNull(director.Find(stranger));
+            Assert.IsTrue(director.Story.IsComplete, "waiting on a quest that can never begin would hold the story forever");
+        }
+
+        [Test]
+        public void AQuestThatStartsItselfIsCalledOutAtLoad()
+        {
+            ObjectiveChain side = Make<ObjectiveChain>();
+            side.name = "loop";
+            Set(side, typeof(ObjectiveChain), "id", "loop");
+            Set(side, typeof(ObjectiveChain), "steps", new ObjectiveStep[] { Starter(side, StartQuestStep.Completion.WaitForQuest) });
+
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("starts the quest it is in"));
+            Director(Chain("story", out _), side);
+        }
+
         // ── Building ────────────────────────────────────────────────────────────
 
         private Entry Open(string name, bool acquired)
@@ -232,13 +296,27 @@ namespace SpaceGame.Tests
         private ObjectiveChain Chain(string id, out SwitchStep step)
         {
             step = Make<SwitchStep>();
-            Set(step, typeof(ObjectiveStep), "id", id + "-1");
+            return ChainOf(id, step);
+        }
+
+        /// <summary>A quest of <paramref name="steps"/>; step i's id is <c>{id}-{i + 1}</c>.</summary>
+        private ObjectiveChain ChainOf(string id, params ObjectiveStep[] steps)
+        {
+            for (int i = 0; i < steps.Length; i++) Set(steps[i], typeof(ObjectiveStep), "id", $"{id}-{i + 1}");
 
             var chain = Make<ObjectiveChain>();
             chain.name = id;
             Set(chain, typeof(ObjectiveChain), "id", id);
-            Set(chain, typeof(ObjectiveChain), "steps", new ObjectiveStep[] { step });
+            Set(chain, typeof(ObjectiveChain), "steps", steps);
             return chain;
+        }
+
+        private StartQuestStep Starter(ObjectiveChain quest, StartQuestStep.Completion completion)
+        {
+            var step = Make<StartQuestStep>();
+            Set(step, typeof(StartQuestStep), "quest", quest);
+            Set(step, typeof(StartQuestStep), "completion", completion);
+            return step;
         }
 
         private ObjectiveDirector Director(ObjectiveChain story, params ObjectiveChain[] catalog)

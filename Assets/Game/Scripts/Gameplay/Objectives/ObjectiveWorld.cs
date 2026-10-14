@@ -37,6 +37,20 @@ namespace SpaceGame.Gameplay.Objectives
         /// <summary>Every player in the session. Replicated by Netcode, so it is the same list on every machine.</summary>
         public IReadOnlyList<PlayerIdentity> Crew => PlayerIdentity.All;
 
+        /// <summary>
+        /// EVERY machine: the crew's begun quest of <paramref name="quest"/>, or null when they have not taken it on.
+        /// Replicated, so a client sees the same quests as the server.
+        /// </summary>
+        public Quest FindQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null ? ObjectiveDirector.Instance.Find(quest) : null;
+
+        /// <summary>
+        /// SERVER: gives the crew <paramref name="quest"/>, which becomes everyone's active quest. False when it is not
+        /// in the director's catalog (said loudly) or they already have it.
+        /// </summary>
+        public bool StartQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null && ObjectiveDirector.Instance.StartQuest(quest);
+
         // ── Per step ────────────────────────────────────────────────────────────
 
         /// <summary>

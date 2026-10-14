@@ -4,7 +4,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 using SpaceGame.Core.Persistence;
-using SpaceGame.Gameplay.Objectives;
 using SpaceGame.Persistence;
 using SpaceGame.World;
 
@@ -187,30 +186,6 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(mission.MainRoomFacesLane, "facing J5, the nearest hallway to the lane");
             wheel.Restore(-54.2f);
             Assert.IsFalse(mission.MainRoomFacesLane, "facing J1, the nearest the other way");
-        }
-
-        [Test]
-        public void TheVisorTracksTheNewestMission()
-        {
-            var first = new WorkshopMissionObjective(mission);
-            var second = new WorkshopMissionObjective(mission);
-            try
-            {
-                TrackedObjectives.Track(first);
-                TrackedObjectives.Track(second);
-                Assert.AreSame(second, TrackedObjectives.Newest);
-
-                TrackedObjectives.Track(first);
-                Assert.AreSame(first, TrackedObjectives.Newest, "tracking one again makes it the newest");
-
-                TrackedObjectives.Untrack(first);
-                Assert.AreSame(second, TrackedObjectives.Newest);
-            }
-            finally
-            {
-                TrackedObjectives.Untrack(first);
-                TrackedObjectives.Untrack(second);
-            }
         }
     }
 }

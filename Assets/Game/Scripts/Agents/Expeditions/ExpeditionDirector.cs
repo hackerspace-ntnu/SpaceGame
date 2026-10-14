@@ -152,8 +152,7 @@ namespace SpaceGame.Agents.Expeditions
             // Before any save is restored (SaveManager.Start), or the bands' group records are dropped on load.
             Sim.ClaimRuntimeOwner(NpcGroup.OwnerExpedition);
 
-            WorldStreamer streamer = FindFirstObjectByType<WorldStreamer>();
-            WorldSiteCatalog siteCatalog = streamer != null && streamer.Config != null ? streamer.Config.siteCatalog : null;
+            WorldSiteCatalog siteCatalog = WorldStreamer.FindSiteCatalog();
             if (siteCatalog != null) Seed(siteCatalog.settlements);
         }
 

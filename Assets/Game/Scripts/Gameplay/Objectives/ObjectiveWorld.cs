@@ -4,6 +4,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Items;
 using SpaceGame.Vehicles;
+using SpaceGame.World;
 
 namespace SpaceGame.Gameplay.Objectives
 {
@@ -22,6 +23,11 @@ namespace SpaceGame.Gameplay.Objectives
         private readonly HashSet<InventoryItem> used = new();
         private readonly HashSet<ulong> finished = new();
 
+        /// <summary>The world's baked town list, found on first use.</summary>
+        private WorldSiteCatalog towns;
+
+        private readonly HashSet<string> unknownTowns = new();
+
         /// <summary>
         /// The crew's hull. A story world has exactly one ship with module sockets, and the
         /// objective chain runs only in a story world.
@@ -30,6 +36,20 @@ namespace SpaceGame.Gameplay.Objectives
 
         /// <summary>Every player in the session. Replicated by Netcode, so it is the same list on every machine.</summary>
         public IReadOnlyList<PlayerIdentity> Crew => PlayerIdentity.All;
+
+        /// <summary>
+        /// EVERY machine: the crew's begun quest of <paramref name="quest"/>, or null when they have not taken it on.
+        /// Replicated, so a client sees the same quests as the server.
+        /// </summary>
+        public Quest FindQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null ? ObjectiveDirector.Instance.Find(quest) : null;
+
+        /// <summary>
+        /// SERVER: gives the crew <paramref name="quest"/>, which becomes everyone's active quest. False when it is not
+        /// in the director's catalog (said loudly) or they already have it.
+        /// </summary>
+        public bool StartQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null && ObjectiveDirector.Instance.StartQuest(quest);
 
         // ── Per step ────────────────────────────────────────────────────────────
 
@@ -139,6 +159,36 @@ namespace SpaceGame.Gameplay.Objectives
 
             return nearest;
         }
+
+        /// <summary>
+        /// ANY machine: the settlement called <paramref name="name"/> in the world's baked town list
+        /// (<see cref="WorldSiteCatalog.towns"/>), known whether or not its chunk is loaded. A name the list does
+        /// not have is said once, because a quest waiting on it would otherwise wait forever, silently.
+        /// </summary>
+        public bool TryFindTown(string name, out WorldSiteCatalog.TownEntry town)
+        {
+            town = default;
+            if (string.IsNullOrEmpty(name)) return false;
+
+            if (towns == null) towns = WorldStreamer.FindSiteCatalog();
+            if (towns == null) return false;
+
+            foreach (WorldSiteCatalog.TownEntry entry in towns.towns)
+            {
+                if (entry.name != name) continue;
+                town = entry;
+                return true;
+            }
+
+            if (unknownTowns.Add(name))
+                Debug.LogWarning($"[Objectives] No settlement called '{name}' in the baked town list of " +
+                                 $"'{towns.name}'. Check the name, or re-run Tools/SpaceGame/World/Bake Site Catalog.");
+            return false;
+        }
+
+        /// <summary>How far from a town's centre still counts as in it: its buildings' extent (else <paramref name="fallbackRadius"/>), plus <paramref name="margin"/>.</summary>
+        public static float TownReach(in WorldSiteCatalog.TownEntry town, float margin, float fallbackRadius) =>
+            (town.radius > 0f ? town.radius : fallbackRadius) + margin;
 
         /// <summary>
         /// A point on the ground at a ship-relative offset: sideways and forward in the hull's own

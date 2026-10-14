@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using SpaceGame.Gameplay.Objectives;
@@ -6,17 +7,18 @@ using SpaceGame.Persistence;
 namespace SpaceGame.Core.Persistence
 {
     /// <summary>
-    /// Persists the crew's place in the objective chain: which step, and whether its setup has run.
+    /// Persists the crew's quests: for each, which step, and whether its setup has run.
     ///
     /// <para>
-    /// A global saver, like the game timer beside it: the chain belongs to the world rather than to
+    /// A global saver, like the game timer beside it: the quests belong to the world rather than to
     /// any object in it, and must be written even when no chunk is loaded.
     /// </para>
     /// <para>
-    /// <b>Ids, never indices.</b> The step is written as its <see cref="ObjectiveStep.Id"/>, so steps
-    /// can be inserted into the chain without an old save landing on the wrong one. What a step
-    /// spawned — the module in the sand, the artifact by the wreck — is saved as the runtime entity
-    /// it is, not here.
+    /// <b>Ids, never indices.</b> Each quest is written as its <see cref="ObjectiveChain.Id"/> and its step as its
+    /// <see cref="ObjectiveStep.Id"/>, so quests and steps can be added without an old save landing on the wrong one.
+    /// The story quest keeps the record's top-level fields, which is all a save from before side quests has; every
+    /// other quest is one entry of <see cref="State.quests"/>. What a step spawned — the module in the sand, the
+    /// artifact by the wreck — is saved as the runtime entity it is, not here.
     /// </para>
     /// </summary>
     public class ObjectiveSaveable : MonoBehaviour, ISaveable
@@ -30,39 +32,85 @@ namespace SpaceGame.Core.Persistence
 
         public struct State
         {
-            /// <summary>The current step's id. Null once the chain is finished.</summary>
+            /// <summary>The story quest's current step id. Null once it is finished.</summary>
             public string step;
 
             public bool complete;
 
-            /// <summary>The current step's one-time setup has already run.</summary>
+            /// <summary>The story quest's current step's one-time setup has already run.</summary>
             public bool begun;
 
-            /// <summary>Which of the current step's remarks have been said, by bit. Absent (0) in older saves.</summary>
+            /// <summary>Which of the story quest's current step's remarks have been said, by bit. Absent (0) in older saves.</summary>
+            public int remarks;
+
+            /// <summary>Every other quest the crew have taken on. Absent in older saves.</summary>
+            public List<QuestRecord> quests;
+        }
+
+        public struct QuestRecord
+        {
+            public string id;
+
+            /// <summary>When it was taken on, relative to the others: the newest is the active quest after a load.</summary>
+            public int order;
+
+            public string step;
+            public bool complete;
+            public bool begun;
             public int remarks;
         }
 
         public object CaptureState()
         {
             ObjectiveDirector live = Resolve();
-            if (live == null || !live.IsRunning) return null;
+            if (live == null || !live.IsRunning || live.Story == null) return null;
 
-            return new State
+            SavedQuest story = live.Story.ToSaved();
+            var state = new State
             {
-                step = live.CurrentStepId,
-                complete = live.IsComplete,
-                begun = live.Progress.Begun,
-                remarks = live.Progress.Remarks,
+                step = story.Step,
+                complete = story.Complete,
+                begun = story.Begun,
+                remarks = story.Remarks,
+                quests = new List<QuestRecord>(),
             };
+
+            foreach (Quest quest in live.Quests)
+            {
+                if (quest == live.Story) continue;
+
+                SavedQuest saved = quest.ToSaved();
+                state.quests.Add(new QuestRecord
+                {
+                    id = saved.Id, order = saved.Order, step = saved.Step,
+                    complete = saved.Complete, begun = saved.Begun, remarks = saved.Remarks,
+                });
+            }
+
+            return state;
         }
 
         public void RestoreState(JObject state)
         {
             ObjectiveDirector live = Resolve();
-            if (live == null || state == null) return;
+            if (live == null || live.Story == null || state == null) return;
 
             State restored = state.ToObject<State>(SaveSerializer.Serializer);
-            live.Restore(restored.step, restored.complete, restored.begun, restored.remarks);
+            var saved = new List<SavedQuest>
+            {
+                new() { Id = live.Story.Id, Order = 0, Step = restored.step, Complete = restored.complete,
+                        Begun = restored.begun, Remarks = restored.remarks },
+            };
+
+            if (restored.quests != null)
+                foreach (QuestRecord quest in restored.quests)
+                    saved.Add(new SavedQuest
+                    {
+                        Id = quest.id, Order = quest.order, Step = quest.step,
+                        Complete = quest.complete, Begun = quest.begun, Remarks = quest.remarks,
+                    });
+
+            live.Restore(saved);
         }
 
         /// <summary>

@@ -141,8 +141,8 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>
         /// Is this creature cargo — a nomad in a caravan animal's saddle (<c>NpcPassenger</c>) or on
         /// a sky vessel's deck (<c>VesselSeats</c>)? Parented to the carrier, so limp there it is
-        /// dragged along exactly as a player in a saddle would be. Hits knock the damaged body
-        /// itself, so a shot rider would otherwise be the first to find out.
+        /// dragged along exactly as a player in a saddle would be. A blast or a net lands on the
+        /// rider itself, so a caught rider would otherwise be the first to find out.
         ///
         /// <para>
         /// Asked two ways because the two machines know different things. Seating is decided on

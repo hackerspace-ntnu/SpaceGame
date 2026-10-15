@@ -92,6 +92,8 @@ namespace SpaceGame.Agents.Residents
             ActKind.Hit => Observation.Hitting,
             ActKind.Threatened => Observation.Menacing,
             ActKind.Defended => Observation.Defending,
+            ActKind.BroughtInAlive => Observation.BroughtInAlive,
+            ActKind.BroughtInDead => Observation.BroughtInDead,
             _ => Observation.KinHarmed,
         };
 

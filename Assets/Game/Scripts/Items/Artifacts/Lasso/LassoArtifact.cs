@@ -7,6 +7,7 @@ using SpaceGame.Agents;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay.Status;
 using SpaceGame.Persistence;
 using SpaceGame.Presentation;
 
@@ -33,6 +34,14 @@ namespace SpaceGame.Items
     /// <b>The heavier end wins.</b> A taut rope has to move something, and which end it moves is
     /// decided by <see cref="PlayerPullShare"/> from the two masses. A light creature comes to you.
     /// A heavy one plants its feet and takes you with it.
+    /// </para>
+    /// <para>
+    /// <b>Tap somebody close by and they are tied up.</b> Within <see cref="bindReach"/>, with no
+    /// rope out, a click puts <see cref="StatusKind.Bound"/> on any person — player or agent — and
+    /// the thrower kneels and ties them for <see cref="tieSeconds"/> while they are forced down and
+    /// hogtied (<see cref="BoundBody"/>), no struggling out. The thrower is left holding the lead:
+    /// walking drags them, a click lets go, and interact on them (<see cref="TiedCaptive"/>) picks
+    /// the lead up again.
     /// </para>
     ///
     /// <para>
@@ -107,6 +116,10 @@ namespace SpaceGame.Items
                  "lassoing a second thing from across the canyon.")]
         [SerializeField] private float hitchRange = 6f;
 
+        [Tooltip("A surface facing up within this many degrees of straight up is ground, not a post: " +
+                 "pressing at it lets the catch go instead of tying it there. Terrain never takes a knot.")]
+        [SerializeField, Range(0f, 90f)] private float hitchGroundAngle = 45f;
+
         [Tooltip("Seconds of silence after which a wind-up puts itself away. The safety net for a " +
                  "release that never arrived — a dropped packet, or a thrower who died mid-twirl. " +
                  "Must comfortably exceed EquipmentController's hold send interval.")]
@@ -154,14 +167,68 @@ namespace SpaceGame.Items
         [SerializeField] private LassoRope rope = new LassoRope();
 
         [Header("Lasso Loop")]
-        [SerializeField] private LineRenderer loopRenderer;
+        [Tooltip("The loop on the end of the rope. Drawn on the rope's own line, never a renderer of its own.")]
         [SerializeField] private LassoLoop loop = new LassoLoop();
+
+        [Tooltip("The loop pulled shut on the catch: a ring laid on its skin round the neck, or round the bone " +
+                 "nearest where the rope took hold. Presentation on every machine; nothing of it is sent or saved.")]
+        [SerializeField] private LassoCollar collar = new LassoCollar();
 
         [Header("The Caught Creature")]
         [SerializeField] private LassoStruggle struggle = new LassoStruggle();
 
         [Header("Rope Under Load")]
         [SerializeField] private LassoTension tension = new LassoTension();
+
+        [Header("Hogtie")]
+        [Tooltip("How close, in metres, a person must be to be tied up with a click. Measured " +
+                 "across the ground, from the thrower to the nearest point of the person.")]
+        [SerializeField] private float bindReach = 2.2f;
+
+        [Tooltip("Degrees either side of where the thrower is looking that a person close by is " +
+                 "still tied by a click that missed them. A tap near somebody ties them; the " +
+                 "crosshair need not be exactly on them.")]
+        [SerializeField, Range(0f, 90f)] private float bindCone = 50f;
+
+        [Tooltip("Seconds tying somebody up takes: the thrower kneels and works the rope on while " +
+                 "the person is forced down. They are helpless from the first moment.")]
+        [SerializeField, Min(0.2f)] private float tieSeconds = 2.6f;
+
+        [Tooltip("What the thrower's body does while tying: a kneel, a loop of working hands, and a " +
+                 "stand. Empty for nothing.")]
+        [SerializeField] private CharacterAction tieAction;
+
+        [Tooltip("Seconds after the knot is made that the thrower spends getting up, held still, " +
+                 "before the lead is in their hand — the length of the tie action's exit clip.")]
+        [SerializeField, Min(0f)] private float standUpSeconds = 0.9f;
+
+        [Tooltip("How a tied body weighs, slides over the ground and hangs on a rope.")]
+        [SerializeField] private TiedBodyPhysics tiedBody = new TiedBodyPhysics();
+
+        [Tooltip("The rope wound round somebody tied up.")]
+        [SerializeField] private HogtieWrapLook boundRope = new HogtieWrapLook();
+
+        [Tooltip("How somebody tied up lies.")]
+        [SerializeField] private TiedPoseLook tiedPose = new TiedPoseLook();
+
+        [Tooltip("How far the thrower may reach to drag somebody tied up (interact on them).")]
+        [SerializeField] private float dragRange = 3.5f;
+
+        [Tooltip("Share of a tied body's weight felt on the rope while it is led. A tied person is " +
+                 "walked, not lifted — so leading one is a slow walk rather than a standstill, and " +
+                 "a habitat-sized walker is still a crawl.")]
+        [SerializeField, Range(0.05f, 1f)] private float dragWeightShare = 0.35f;
+
+        [Tooltip("Metres of rope between the hand and somebody being dragged. Long enough that the " +
+                 "body trails clear of the dragger's heels.")]
+        [SerializeField, Min(0.5f)] private float dragRopeLength = 2.8f;
+
+        [Tooltip("How somebody tied up is carried over the shoulder — interact on them.")]
+        [SerializeField] private CaptiveHaulSettings haul = new CaptiveHaulSettings();
+
+        [Tooltip("The dragger's top speed as a share of their walk. A body hauled across the ground " +
+                 "is heavy whatever the rope's maths says about it; this is what makes it feel so.")]
+        [SerializeField, Range(0.1f, 1f)] private float dragSpeedShare = 0.6f;
 
         [Header("The Thrower's Aim")]
         [SerializeField] private LassoAim aim = new LassoAim();
@@ -255,8 +322,33 @@ namespace SpaceGame.Items
         private Transform _targetTransform;   // used when target has no Rigidbody
         private LassoTether _tether;
 
-        /// <summary>Set instead of <see cref="_tether"/> when the far end is a player. See LassoedBody.</summary>
-        private LassoedBody _caughtPlayer;
+        /// <summary>
+        /// Set instead of <see cref="_tether"/> when the far end is a BODY rather than a creature on
+        /// its legs: a standing player, or anybody hogtied and being dragged. See LassoedBody.
+        /// </summary>
+        private LassoedBody _heldBody;
+
+        /// <summary>What the far end weighs on the rope, as both ends agree to compute it.</summary>
+        private float _heldMass = AssumedPlayerMass;
+
+        /// <summary>
+        /// The rope is on somebody hogtied, and the thrower is dragging them. A different contest
+        /// from a catch: nothing on the far end is fighting the ROPE — the struggle is the tie's
+        /// own — so it neither wears nor pays out, and it ends when the tie does.
+        /// </summary>
+        private bool _dragging;
+
+        /// <summary>Somebody being tied up right now by this lasso, while the rope goes on. Null otherwise.</summary>
+        private GameObject _tying;
+
+        /// <summary>
+        /// The thrower's pace is held by this lasso — stopped while tying, slowed while dragging —
+        /// so it is given back exactly once. Only ever true on the thrower's own machine.
+        /// </summary>
+        private PlayerMovement _pacedBody;
+
+        /// <summary>The hint on screen right now, so it is posted when it changes rather than every frame.</summary>
+        private string _hint;
         private float _currentRopeLength;
         private Coroutine _routine;
         private Vector3 _ropeEndPoint;   // world-space point drawn as rope tip
@@ -298,6 +390,9 @@ namespace SpaceGame.Items
         private const int ReleaseVerb = 2;
         private const int HitchVerb = 3;
 
+        /// <summary>Tie up the person in <c>Target</c>, where they stand. See <see cref="TieUp"/>.</summary>
+        private const int BindVerb = 4;
+
         /// <summary>
         /// Set alongside <see cref="HitchVerb"/> when the anchor is bare geometry rather than an
         /// object with an identity — so <c>P</c> is read as a world point rather than as an offset
@@ -318,12 +413,20 @@ namespace SpaceGame.Items
         {
             base.OnRequestUse(ref arg);
 
+            // The hands are busy with a knot. The press is not a throw, and not a second tie.
+            if (_tying != null)
+            {
+                arg.B = MissVerb;
+                return;
+            }
+
             // Holding a catch and pointing at something a rope can be tied to: this press ties it
             // off rather than letting it go. See TryAimAtHitch — and note that pointing at nothing
             // still means "drop it", which is the same shape LeashArtifact gives the gesture: a
             // click on a thing ties, a click on nothing lets go, and no second key is needed for
-            // either.
-            if (_isLassoed && TryAimAtHitch(ref arg)) return;
+            // either. Not while dragging: a leash knotted to a ragdoll would tow its root through
+            // the agent's own motor, which the body has just been taken away from.
+            if (_isLassoed && !_dragging && TryAimAtHitch(ref arg)) return;
 
             // Rope already out, one already in the air, or one already being wound: this press
             // lets go.
@@ -332,6 +435,9 @@ namespace SpaceGame.Items
                 arg.B = ReleaseVerb;
                 return;
             }
+
+            // No rope out and somebody within arm's reach under the crosshair: tie them up.
+            if (TryAimAtPerson(ref arg)) return;
 
             // Present() is deliberately not gated on CanUse — see UsableItem — so a depleted lasso
             // has to refuse here, on the one machine that can still tell the difference.
@@ -392,8 +498,8 @@ namespace SpaceGame.Items
             if (!Physics.Raycast(aimRay, out RaycastHit hit, hitchRange, ~0, QueryTriggerInteraction.Ignore))
                 return false;
 
-            Transform caught = _targetRb != null ? _targetRb.transform : _targetTransform;
-            if (!LassoHitch.IsHitchable(hit.collider, owner.transform, caught)) return false;
+            Transform caught = CatchRoot;
+            if (!LassoHitch.IsHitchable(hit, owner.transform, caught, hitchGroundAngle)) return false;
 
             // The anchor's ROOT, via its Rigidbody where it has one — the same reduction every
             // other query in this file makes, and the reason is the invariant: RaycastHit.transform
@@ -411,6 +517,149 @@ namespace SpaceGame.Items
             arg.B = HitchVerb | (bare ? BareAnchorFlag : 0);
             return true;
         }
+
+        /// <summary>
+        /// Owner-side: is there a person close enough to tie? Encodes them as the press's
+        /// <c>Target</c> if so. See <see cref="PersonToTie"/>.
+        /// </summary>
+        private bool TryAimAtPerson(ref NetArg arg)
+        {
+            GameObject person = PersonToTie();
+            if (person == null) return false;
+
+            arg = arg.With(person);
+
+            // A body with nothing to address it by cannot be named to the other machines. Every
+            // player and every creature has an identity, so this is a wiring fault, not a case.
+            if (arg.Target == 0 && Network.IsNetworked) return false;
+
+            arg.B = BindVerb;
+            return true;
+        }
+
+        /// <summary>
+        /// Owner-side: the person a press would tie, or null — the one under the crosshair if they
+        /// are within <see cref="bindReach"/>, else the nearest one within it and within
+        /// <see cref="bindCone"/> of where the thrower is looking.
+        ///
+        /// <para>
+        /// A tap near somebody ties them. Asking for the crosshair to be exactly on a person a
+        /// metre away is asking a player to aim at their own feet: at that range a body fills the
+        /// view below the eye, and a click that grazed past it used to fall through to a throw.
+        /// </para>
+        /// <para>
+        /// Measured from the thrower to the person's nearest surface, across the ground — not root
+        /// to root, and not through the air: two roots apart can be two people chest to chest, and
+        /// a reach through the air from a root a metre above the soles to a chest failed at
+        /// exactly the distance it was asked to work at.
+        /// </para>
+        /// </summary>
+        private GameObject PersonToTie()
+        {
+            if (owner == null) return null;
+
+            Vector3 from = owner.transform.position;
+
+            if (TryAim(bindReach + EyeToRoot, out RaycastHit hit))
+            {
+                GameObject aimed = PersonOf(hit.collider);
+                if (Tieable(aimed) && GroundDistance(from, hit.point) <= bindReach) return aimed;
+            }
+
+            Vector3 look = aimProvider != null ? aimProvider.GetAimRay().direction : owner.transform.forward;
+            look.y = 0f;
+
+            int count = Physics.OverlapSphereNonAlloc(from, bindReach + NearbyHeadroom, Nearby, ~0,
+                                                      QueryTriggerInteraction.Ignore);
+            GameObject nearest = null;
+            float best = bindReach;
+
+            for (int i = 0; i < count; i++)
+            {
+                GameObject person = PersonOf(Nearby[i]);
+                if (!Tieable(person)) continue;
+
+                Vector3 surface = Nearby[i].ClosestPoint(from);
+                float distance = GroundDistance(from, surface);
+                if (distance > best) continue;
+
+                Vector3 toward = surface - from;
+                toward.y = 0f;
+                if (toward.sqrMagnitude > 1e-4f && look.sqrMagnitude > 1e-4f && Vector3.Angle(look, toward) > bindCone)
+                    continue;
+
+                best = distance;
+                nearest = person;
+            }
+
+            return nearest;
+        }
+
+        /// <summary>Somebody, not the thrower, not already tied.</summary>
+        private bool Tieable(GameObject person) => person != null && person != owner && !IsCaptive(person);
+
+        /// <summary>
+        /// The search for somebody close by reaches this much past <see cref="bindReach"/>: a body's
+        /// collider can start a little way from its nearest point.
+        /// </summary>
+        private const float NearbyHeadroom = 1f;
+
+        /// <summary>The nearby search's own buffer.</summary>
+        private static readonly Collider[] Nearby = new Collider[32];
+
+        /// <summary>
+        /// The ray from the eye starts this far above the root the reach is measured from, so the
+        /// cast has to be at least this much longer to find a body the reach allows.
+        /// </summary>
+        private const float EyeToRoot = 1f;
+
+        /// <summary>
+        /// Distance across the ground, ignoring height.
+        ///
+        /// <para>
+        /// The reach used to be measured straight through the air, from the thrower's root — about
+        /// a metre above their soles — to wherever the click landed on the person. A click on the
+        /// chest from a metre and a half away measured a hair over a metre and a half, failed, and
+        /// fell through to a throw: the tie "did nothing" from exactly the distance it was asked
+        /// to work at.
+        /// </para>
+        /// </summary>
+        private static float GroundDistance(Vector3 a, Vector3 b) =>
+            Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+
+        /// <summary>
+        /// One aim ray, owner-side — the only machine with a camera behind its aim — and the nearest
+        /// thing it meets that is not the thrower.
+        ///
+        /// <para>
+        /// The thrower is skipped rather than trusted to be out of the way: the ray leaves the eye,
+        /// and whatever the thrower wears or holds near it (a pack, a gauntlet, the lasso itself)
+        /// is the first collider a ray aimed down at somebody close by can meet. A tie that hit the
+        /// thrower's own gear failed with nothing to show for it.
+        /// </para>
+        /// </summary>
+        private bool TryAim(float range, out RaycastHit hit)
+        {
+            hit = default;
+            if (aimProvider == null || owner == null) return false;
+
+            int count = Physics.RaycastNonAlloc(aimProvider.GetAimRay(), AimHits, range, ~0,
+                                                QueryTriggerInteraction.Ignore);
+            float nearest = float.PositiveInfinity;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (AimHits[i].distance >= nearest || AimHits[i].collider.transform.IsChildOf(owner.transform)) continue;
+
+                nearest = AimHits[i].distance;
+                hit = AimHits[i];
+            }
+
+            return nearest < float.PositiveInfinity;
+        }
+
+        /// <summary>The aim ray's own buffer. Reused: the hint asks it every frame.</summary>
+        private static readonly RaycastHit[] AimHits = new RaycastHit[16];
 
         /// <summary>
         /// Nothing. Both halves of this item are a rope being drawn and a creature being pulled,
@@ -431,6 +680,12 @@ namespace SpaceGame.Items
             if (UseArg.B == ReleaseVerb)
             {
                 Release();
+                return;
+            }
+
+            if (UseArg.B == BindVerb)
+            {
+                TieUp(UseArg.Resolve());
                 return;
             }
 
@@ -488,8 +743,7 @@ namespace SpaceGame.Items
 
             if (lassoModel != null) lassoModel.SetActive(false);
 
-            rope.Bind(lineRenderer);
-            loop.Bind(loopRenderer);
+            rope.Bind(lineRenderer, loop);
             loop.Show();
 
             Vector3 centre = TwirlCentre();
@@ -659,8 +913,7 @@ namespace SpaceGame.Items
 
             Vector3 start = GetRopeStart();
 
-            rope.Bind(lineRenderer);
-            loop.Bind(loopRenderer);
+            rope.Bind(lineRenderer, loop);
             // A short line along the throw, not a point. Show(start, start) stacks all thirty nodes
             // on the muzzle with zero-length segments, which the constraint solver cannot give a
             // direction to — so the rope leaves the hand as a knot that unpicks itself over the
@@ -821,7 +1074,10 @@ namespace SpaceGame.Items
 
             // Reachable from outside the arc now — the announced catch arrives while a peer's own
             // head is still in the air. Stop that coroutine before ReelRoutine takes the field.
+            // Likewise a lead picked up by the thrower can arrive here before this machine's own
+            // copy of the tie has finished drawing.
             StopRoutine();
+            FinishTie(takeLead: false);
 
             _targetRb        = targetRb;
             _targetTransform = targetTransform;
@@ -833,24 +1089,44 @@ namespace SpaceGame.Items
 
             Transform root = targetRb != null ? targetRb.transform : targetTransform;
 
-            // Neck height on a creature of THIS size, from the one place that decides it. The rope
+            // Somebody tied up is dragged, not caught: nothing on that end fights the rope, and the
+            // body is a ragdoll whose root sits on its pelvis. Decided from the target's own state
+            // rather than from how the rope got here, so a catch announced again to a late joiner,
+            // a pick-up and a tie made on the spot all land the same way.
+            _dragging = IsCaptive(root.gameObject);
+
+            // A leash hogtie is a ragdoll, held by its pelvis; a lasso tie stands, and is roped
+            // like anything else that stands.
+            bool limp = Hogtie.IsTied(root.gameObject);
+            _heldMass = _dragging ? DragMassOf(root.gameObject) : AssumedPlayerMass;
+
+            // Neck height on a creature of THIS size — waist height on a person, where their loop
+            // closes (LassoCollar) — from the one place that decides it. The rope
             // used to be drawn to a flat 1.2 m from a field on this class while the tether
             // constrained against a second flat 1.2 m from a field on LassoStruggle — two copies of
             // one number, on the same prefab, with nothing keeping them equal. Move either and the
-            // rope goes taut against a point it is not drawn to.
-            _attachOffset = Vector3.up * LassoTether.AttachHeightFor(root.gameObject,
-                                                                    struggle.AttachFraction,
-                                                                    struggle.AttachHeight);
+            // rope goes taut against a point it is not drawn to. A captive lies on the ground —
+            // limp, or laid down by its tie — so it is held at its root, not at a neck that is no
+            // longer up there.
+            _attachOffset = _dragging
+                ? Vector3.zero
+                : Vector3.up * LassoTether.AttachHeightFor(root.gameObject,
+                                                           struggle.AttachFractionFor(root.gameObject),
+                                                           struggle.AttachHeight);
 
             Vector3 attachWorldPos = root.position + _attachOffset;
+            float gap = Vector3.Distance(GetRopeStart(), attachWorldPos);
+
             // Clamped to the line there is: a catch made at the very end of a fully wound throw
             // would otherwise start out longer than the rope, and the animal could then be paid out
-            // to a length nothing in the item ever agreed to.
-            _currentRopeLength = Mathf.Clamp(Vector3.Distance(GetRopeStart(), attachWorldPos) + ropeSlack,
+            // to a length nothing in the item ever agreed to. A drag is a short lead, never shorter
+            // than the gap it starts across — a rope that started short would yank the body on the
+            // first step.
+            _currentRopeLength = Mathf.Clamp(_dragging ? Mathf.Max(gap, dragRopeLength) : gap + ropeSlack,
                                              ropeSlack, tension.MaxLength);
             _ropeEndPoint = attachWorldPos;
 
-            Transform ropeAnchor = muzzle != null ? muzzle : owner.transform;
+            Transform ropeAnchor = RopeAnchor;
 
             // A PLAYER is not a creature, and the difference is which machine may move them.
             //
@@ -860,17 +1136,27 @@ namespace SpaceGame.Items
             // LeashedBody do, because a catch is announced to everybody and only one of them turns
             // out to own the victim. Before this, roping a player put a tether on the server, whose
             // every write was discarded: it worked on the host and did nothing to a client.
-            if (root.CompareTag("Player"))
+            //
+            // A limp tied body takes the same component for the same reason, with the ragdoll's
+            // driving machine standing in for the owner — see LassoedBody.
+            //
+            // Somebody this lasso tied is neither: their body is under Unity's physics while it lies
+            // (BoundBody), and the lead is a joint from their knot to this hand, built by BoundBody on
+            // whichever machine owns them. Nothing here moves them.
+            BoundBody captive = _dragging && !limp ? BoundBody.Of(root.gameObject) : null;
+            Rigidbody hand = owner.GetComponent<Rigidbody>();
+            if (captive != null && hand != null)
             {
-                LassoedBody caught = LassoedBody.Ensure(root.gameObject);
-
-                if (caught == null || !caught.Bind(ropeAnchor, _currentRopeLength, AssumedPlayerMass))
+                captive.Hold(hand, hand.transform.InverseTransformPoint(GetRopeStart()), _currentRopeLength);
+            }
+            else if (limp || root.CompareTag("Player"))
+            {
+                if (!HoldBody(root.gameObject))
                 {
                     _isLassoed = false;
+                    _dragging = false;
                     return;
                 }
-
-                _caughtPlayer = caught;
             }
 
             // Taking a creature's legs off its AI and driving them is a change to the creature, not
@@ -884,21 +1170,40 @@ namespace SpaceGame.Items
                 // A creature already on somebody else's rope is not catchable. Refusing here rather
                 // than drawing a rope that constrains nothing is what stops a second thrower being
                 // dragged around by an animal that cannot feel them.
-                if (tether == null || !tether.Bind(ropeAnchor, _currentRopeLength, struggle))
+                bool held = tether != null && tether.Bind(ropeAnchor, _currentRopeLength, struggle);
+
+                if (!held)
                 {
                     _isLassoed = false;
+                    _dragging = false;
                     return;
                 }
 
                 _tether = tether;
             }
 
-            rope.Bind(lineRenderer);
-            loop.Bind(loopRenderer);
+            rope.Bind(lineRenderer, loop);
+
+            // The hand walks at the pace of somebody hauling a body, on its own machine: the joint
+            // never pulls back on it (see BoundBody.Hold), so this is the weight.
+            if (_dragging)
+                HoldPace(owner.GetComponent<PlayerMovement>() is { } walker ? walker.WalkSpeed * dragSpeedShare : 0f);
+
+            // Closing onto the skin, measured once here on every machine. A captive is led by the knot of
+            // its ropes instead, and the lead is tied straight onto it: no loop at all. A loop shown there
+            // had nothing to close onto and hung as the bare collar circle round their wrists and ankles.
+            if (_dragging)
+            {
+                loop.Hide();
+            }
+            else
+            {
+                loop.Show();
+                loop.BeginCinch();
+                collar.Fit(root, attachWorldPos, rope.Width);
+            }
 
             rope.Show(GetRopeStart(), attachWorldPos);
-            loop.Show();
-            loop.BeginCinch();
             rope.Snap();
 
             // The loop closing and the rope cracking taut, at the far end where it happened. The
@@ -929,7 +1234,7 @@ namespace SpaceGame.Items
         {
             if (!_isLassoed) return;
 
-            Transform caught = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform caught = CatchRoot;
 
             if (caught != null)
             {
@@ -950,12 +1255,269 @@ namespace SpaceGame.Items
             Release();
         }
 
+        // ── Tying people up, and leading them ─────────────────────────────────
+
+        /// <summary>The thing on the end of the rope, by the reduction every query here makes.</summary>
+        private Transform CatchRoot => _targetRb != null ? _targetRb.transform : _targetTransform;
+
+        /// <summary>
+        /// What the rope is held by on this end. Written out rather than inlined because it is read
+        /// from OnDestroy, where owner may already be gone.
+        /// </summary>
+        private Transform RopeAnchor => muzzle != null ? muzzle : owner != null ? owner.transform : null;
+
+        /// <summary>
+        /// Further reach the deciding machine grants on top of <see cref="bindReach"/>, for the
+        /// relay the click crossed: the thrower's machine and the server see the two bodies a round
+        /// trip apart.
+        /// </summary>
+        private const float RelaySlack = 1f;
+
+        /// <summary>
+        /// Is <paramref name="body"/> tied up — by this lasso's <see cref="StatusKind.Bound"/>, on
+        /// its feet, or by a leash's <see cref="Hogtie"/>, on the ground? Either way it is led, not
+        /// caught.
+        /// </summary>
+        private static bool IsCaptive(GameObject body) =>
+            Hogtie.IsTied(body) || StatusReceiver.HasStatus(body, StatusKind.Bound);
+
+        /// <summary>
+        /// The person a hit collider belongs to: the player, or the agent — anybody with a will of
+        /// their own. Null for a crate, a wall or the sand.
+        /// </summary>
+        private static GameObject PersonOf(Collider hit)
+        {
+            if (hit == null) return null;
+
+            AgentController agent = hit.GetComponentInParent<AgentController>();
+            if (agent != null) return agent.gameObject;
+
+            for (Transform up = hit.transform; up != null; up = up.parent)
+                if (up.CompareTag("Player")) return up.gameObject;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Is the thrower within <see cref="bindReach"/> (plus <paramref name="slack"/>) of
+        /// <paramref name="body"/>'s nearest solid surface? The deciding machine's own check of the
+        /// click it was sent.
+        /// </summary>
+        private bool WithinBindReach(GameObject body, float slack)
+        {
+            if (body == null || owner == null) return false;
+
+            Vector3 from = owner.transform.position;
+            float nearest = float.PositiveInfinity;
+
+            foreach (Collider part in body.GetComponentsInChildren<Collider>())
+            {
+                // ClosestPoint is refused on a concave mesh and means nothing for a trigger.
+                if (!part.enabled || part.isTrigger || part is MeshCollider { convex: false }) continue;
+
+                nearest = Mathf.Min(nearest, Vector3.Distance(from, part.ClosestPoint(from)));
+            }
+
+            return nearest <= bindReach + slack;
+        }
+
+        /// <summary>What a tied body weighs on the rope while it is led. See <see cref="dragWeightShare"/>.</summary>
+        private float DragMassOf(GameObject body) => LassoTether.EstimateMassOf(body) * dragWeightShare;
+
+        /// <summary>
+        /// Put the far end on <paramref name="body"/> through <see cref="LassoedBody"/>: a standing
+        /// player, or anybody tied up and being led. False when another rope already has them.
+        /// </summary>
+        private bool HoldBody(GameObject body)
+        {
+            LassoedBody held = LassoedBody.Ensure(body);
+            if (held == null || !held.Bind(RopeAnchor, _currentRopeLength, AssumedPlayerMass, _heldMass))
+                return false;
+
+            _heldBody = held;
+            return true;
+        }
+
+        /// <summary>
+        /// Every machine, from one click: tie <paramref name="person"/> up.
+        ///
+        /// <para>
+        /// <b>The rope's look is put on everywhere first</b>, before the condition it draws can
+        /// arrive: a body with no receiver drops the server's announcement without a word, and a
+        /// rope added after it would have nothing to start it. Then the machine that decides this
+        /// body's conditions checks the reach for itself and applies <see cref="StatusKind.Bound"/>
+        /// — so the person is helpless from the click, and is never struggled out of.
+        /// </para>
+        /// <para>
+        /// <b>Then the tie is MADE, over <see cref="tieSeconds"/></b> (<see cref="TieRoutine"/>):
+        /// the thrower kneels and works the rope while the person is forced to their knees and over
+        /// onto their face and the turns go on one by one — and at the end the thrower is left
+        /// holding the lead. Nothing in that is a decision; the condition already landed.
+        /// </para>
+        /// </summary>
+        private void TieUp(GameObject person)
+        {
+            if (person == null || owner == null || person == owner) return;
+            if (_isLassoed || _isThrowing || _isTwirling || _tying != null) return;
+
+            StatusReceiver receiver = StatusReceiver.EnsureOnBody(person);
+            if (receiver == null) return;
+
+            BoundBody.EnsureOn(receiver, boundRope, tiedPose,
+                               lineRenderer != null ? lineRenderer.sharedMaterial : null,
+                               tieSeconds, owner.transform, haul, tiedBody);
+            Sfx.Play(hitchSound, person.transform.position, GetInstanceID());
+
+            if (receiver.Decides && WithinBindReach(person, RelaySlack))
+                receiver.Apply(StatusKind.Bound, source: owner.transform);
+
+            _routine = StartCoroutine(TieRoutine(person));
+        }
+
+        /// <summary>
+        /// Every machine: the rope running from the thrower's hands to the turn being laid on
+        /// <paramref name="person"/>, for as long as the tie takes. The thrower's own machine also
+        /// kneels them, holds them still, and at the end picks up the lead.
+        /// </summary>
+        private IEnumerator TieRoutine(GameObject person)
+        {
+            _tying = person;
+
+            if (OwnerIsLocal())
+            {
+                PlayOnHolder(tieAction);
+                HoldPace(0f);
+            }
+
+            if (lassoModel != null) lassoModel.SetActive(false);
+            // No loop on a tie: the rope runs straight on into the turn being laid.
+            rope.Bind(lineRenderer, null);
+            rope.Show(GetRopeStart(), person.transform.position);
+
+            float tied = Time.time + tieSeconds;
+            float stood = tied + standUpSeconds;
+            bool standing = false;
+
+            while (Time.time < stood && person != null)
+            {
+                // The knot is made: the thrower gets up off their knee, rope still in hand.
+                if (!standing && Time.time >= tied)
+                {
+                    standing = true;
+                    if (OwnerIsLocal()) StopOnHolder(tieAction);
+                }
+
+                BoundBody bound = BoundBody.Of(person);
+                Vector3 tip = bound != null && bound.Wrap.IsShown ? bound.Wrap.Tip : person.transform.position;
+                Vector3 start = GetRopeStart();
+
+                rope.Simulate(start, tip, Vector3.Distance(start, tip) * TieSlack, Time.deltaTime);
+                yield return null;
+            }
+
+            _routine = null;
+            FinishTie(takeLead: true);
+        }
+
+        /// <summary>The rope from the hands to the knot sags this much while it is worked.</summary>
+        private const float TieSlack = 1.15f;
+
+        /// <summary>
+        /// The tie is finished, or abandoned: stand the thrower up, put the coil back in their hand,
+        /// and — when it was finished, on their own machine — pick up the lead, so walking away
+        /// drags the person they just tied. Safe to call with no tie going on.
+        /// </summary>
+        private void FinishTie(bool takeLead)
+        {
+            GameObject tied = _tying;
+            if (tied == null) return;
+
+            _tying = null;
+            rope.Hide();
+            if (lassoModel != null) lassoModel.SetActive(true);
+
+            if (!OwnerIsLocal()) return;
+
+            StopOnHolder(tieAction);
+            ReleasePace();
+
+            if (takeLead && IsCaptive(tied)) ToggleLead(tied);
+        }
+
+        /// <summary>
+        /// Thrower's machine only: cap their pace at <paramref name="speed"/> — nought while they
+        /// kneel over a knot, a heavy walk while they drag somebody. Given back by
+        /// <see cref="ReleasePace"/>.
+        /// </summary>
+        private void HoldPace(float speed)
+        {
+            if (!OwnerIsLocal() || owner == null) return;
+
+            PlayerMovement movement = owner.GetComponent<PlayerMovement>();
+            if (movement == null) return;
+
+            movement.StartHauling(speed);
+            _pacedBody = movement;
+        }
+
+        /// <summary>Give the thrower their own pace back, if this lasso took it. Safe to call twice.</summary>
+        private void ReleasePace()
+        {
+            if (_pacedBody == null) return;
+
+            _pacedBody.StopHauling();
+            _pacedBody = null;
+        }
+
+        /// <summary>Is this lasso leading <paramref name="captive"/> right now?</summary>
+        public bool Leads(GameObject captive) =>
+            _dragging && captive != null && CatchRoot != null && CatchRoot == captive.transform;
+
+        /// <summary>
+        /// Owner-side: drag <paramref name="captive"/> on this lasso, or let them go if this lasso
+        /// is already dragging them. Asked when a tie is finished, and by <see cref="TiedCaptive"/>
+        /// to let go of the lead when the holder heaves the captive onto their shoulder.
+        ///
+        /// <para>
+        /// Sent as the rope states it amounts to, on the rope's own channel: a drag is a
+        /// <see cref="LassoVerb.Caught"/> with no throw before it — <see cref="Attach"/> reads from
+        /// the body that it is a captive — and letting go is <see cref="LassoVerb.LetGo"/>.
+        /// </para>
+        /// </summary>
+        public void ToggleLead(GameObject captive)
+        {
+            if (!OwnerIsLocal() || captive == null || owner == null) return;
+
+            if (_dragging)
+            {
+                if (CatchRoot != null && captive.transform == CatchRoot) SendRope(LassoVerb.LetGo, null);
+                return;
+            }
+
+            if (_isLassoed || _isThrowing || _isTwirling) return;
+            if (GroundDistance(owner.transform.position, captive.transform.position) > dragRange) return;
+
+            // Somebody has them by the ropes already: one pair of hands or one rope on a captive, never both.
+            if (captive.TryGetComponent(out CaptiveHaul hauled) && hauled.Hauler != null) return;
+
+            SendRope(LassoVerb.Caught, captive);
+        }
+
         /// <summary>
         /// Drop everything. Safe to call from anywhere, including twice, and on a machine that
         /// never had a rope out — a press that missed presents a Release with nothing to release.
         /// </summary>
         private void Release()
         {
+            FinishTie(takeLead: false);
+
+            if (_dragging)
+            {
+                BoundBody bound = CatchRoot != null ? BoundBody.Of(CatchRoot.gameObject) : null;
+                if (bound != null && owner != null) bound.LetGo(owner.GetComponent<Rigidbody>());
+                ReleasePace();
+            }
+
             _isLassoed = false;
             _isThrowing = false;
             _isTwirling = false;
@@ -963,6 +1525,7 @@ namespace SpaceGame.Items
             _strainHeld = false;
             _twirlCharge = 0f;
             _wear = 0f;
+            _dragging = false;
 
             StopRoutine();
             ClearFovKick();
@@ -971,20 +1534,18 @@ namespace SpaceGame.Items
             // this hands navigation back exactly where it was taken away.
             //
             // The anchor is passed so a release from THIS rope cannot free a creature another
-            // thrower has since taken hold of. Written out rather than inlined because Release is
-            // reached from OnDestroy, where owner may already be gone.
-            Transform ropeAnchor = muzzle != null ? muzzle
-                                 : owner != null ? owner.transform
-                                 : null;
+            // thrower has since taken hold of.
+            Transform ropeAnchor = RopeAnchor;
 
             if (_tether != null) { _tether.Release(ropeAnchor); _tether = null; }
-            if (_caughtPlayer != null) { _caughtPlayer.Release(ropeAnchor); _caughtPlayer = null; }
+            if (_heldBody != null) { _heldBody.Release(ropeAnchor); _heldBody = null; }
 
             _targetRb        = null;
             _targetTransform = null;
 
             rope.Hide();
             loop.Hide();
+            collar.Clear();
             aim.Hide();
             if (lassoModel != null) lassoModel.SetActive(true);
         }
@@ -1012,8 +1573,7 @@ namespace SpaceGame.Items
         {
             base.OnEquipped(holder);
 
-            rope.Bind(lineRenderer);
-            loop.Bind(loopRenderer);
+            rope.Bind(lineRenderer, loop);
 
             // Every machine equips from the replicated hotbar, so every machine — the thrower's,
             // the server's and every peer's — gets its own instance and its own registration.
@@ -1031,6 +1591,7 @@ namespace SpaceGame.Items
             // restores the rope.
             Release();
             Listen(null);
+            ClearHint();
         }
 
         private void OnDestroy()
@@ -1039,6 +1600,7 @@ namespace SpaceGame.Items
             // or the slot empties.
             Release();
             Listen(null);
+            ClearHint();
 
             // The aim guide is a GameObject of its own, unparented so its world-space line is not
             // dragged about by the hand. Nothing else would ever take it with us.
@@ -1115,7 +1677,7 @@ namespace SpaceGame.Items
             if (!_isLassoed || body == null) return false;
             if (owner == body) return true;
 
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform root = CatchRoot;
 
             return root != null && root.IsChildOf(body.transform);
         }
@@ -1171,7 +1733,7 @@ namespace SpaceGame.Items
             if (!IsAuthority || !_isLassoed) return;
             if (clientId == NetworkManager.ServerClientId) return;
 
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform root = CatchRoot;
             if (root == null) return;
 
             SendRope(LassoVerb.Caught, root.gameObject);
@@ -1245,6 +1807,14 @@ namespace SpaceGame.Items
                     Sfx.Play(snapSound, _ropeEndPoint, GetInstanceID());
                     Release();
                     return;
+
+                case LassoVerb.LetGo:
+                    if (!_isLassoed) return;
+
+                    // The rope coming back to the hand, which is what letting somebody go sounds like.
+                    Sfx.Play(coilSound, GetRopeStart(), GetInstanceID());
+                    Release();
+                    return;
             }
         }
 
@@ -1272,16 +1842,26 @@ namespace SpaceGame.Items
 
         private IEnumerator RideRoutine()
         {
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform root = CatchRoot;
 
             while (_isLassoed && root != null)
             {
-                Vector3 attachWorldPos = root.position + _attachOffset;
+                // The ropes came off — struggled out, cut, timed out, the body died. Every machine
+                // hears that through the tie's own announcement, so every machine lets go of the
+                // drag here at the same moment, with nothing of its own to send.
+                if (_dragging && !IsCaptive(root.gameObject)) break;
+
+                // A captive is led by the knot their wrists and ankles are tied together with, which
+                // is where the rope is drawn to; the root is still what the lead holds.
+                BoundBody bound = _dragging ? BoundBody.Of(root.gameObject) : null;
+                Vector3 attachWorldPos = bound != null ? bound.RopePoint : root.position + _attachOffset;
                 _ropeEndPoint = attachWorldPos;
 
                 Vector3 start = GetRopeStart();
 
-                Vector3 honda = loop.Ride(attachWorldPos, attachWorldPos - start, Time.deltaTime);
+                Vector3 honda = _dragging
+                    ? attachWorldPos
+                    : loop.Ride(attachWorldPos, attachWorldPos - start, Time.deltaTime, collar, start);
 
                 // The collar is made of rope, so the standing part is shorter than the whole line
                 // by however much of it is going round the animal's neck. Handing the drawn cable
@@ -1323,9 +1903,13 @@ namespace SpaceGame.Items
         public override void CaptureItemState(ItemState state)
         {
             base.CaptureItemState(state);
-            if (state == null || !_isLassoed) return;
 
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            // A drag is a rope on a tie, and the tie is deliberately never saved (see Hogtie): a
+            // drag restored without one would be a rope round the neck of a creature that has just
+            // been let up, at the height of its pelvis.
+            if (state == null || !_isLassoed || _dragging) return;
+
+            Transform root = CatchRoot;
             if (root == null) return;
 
             SaveRef target = SaveRef.From(root.gameObject);
@@ -1410,7 +1994,8 @@ namespace SpaceGame.Items
 
         private void Update()
         {
-            if (OwnerIsLocal()) ReadReelInput();
+            bool local = OwnerIsLocal();
+            if (local) ReadReelInput();
 
             // The safety net. A release is one message, and one message is exactly the kind of
             // thing that goes missing — along with the player who was holding the button. See
@@ -1418,6 +2003,47 @@ namespace SpaceGame.Items
             if (_isTwirling && Time.time - _lastHoldTime > holdTimeout) CancelTwirl();
 
             TickTwirl(Time.deltaTime);
+
+            if (!local) return;
+
+            ShowHint(CurrentHint());
+        }
+
+        // ── Telling the thrower what they can do ───────────────────────────────
+        //
+        // Every verb past the throw is a context of the same button, so the context has to be on
+        // screen: a tie that exists only for players who already know about it does not exist
+        // (GDC-L1-UX-0001). Shown at the moment it becomes true and taken down when it stops.
+
+        private const string HintId = "lasso";
+
+        /// <summary>What the thrower can do with their rope right now, or null for nothing worth saying.</summary>
+        private string CurrentHint()
+        {
+            if (_tying != null) return "Tying them up…";
+            if (_dragging) return "Dragging · LMB: let go";
+            if (_isLassoed || _isThrowing || _isTwirling) return null;
+
+            return PersonToTie() != null ? "LMB: tie up" : null;
+        }
+
+        private void ShowHint(string text)
+        {
+            if (text == _hint) return;
+
+            _hint = text;
+
+            if (text == null) PlayerHints.Hide(HintId);
+            else PlayerHints.Show(HintId, text);
+        }
+
+        /// <summary>Take the prompt down as the lasso is put away. Only ever shown on the thrower's machine.</summary>
+        private void ClearHint()
+        {
+            if (_hint == null) return;
+
+            _hint = null;
+            PlayerHints.Hide(HintId);
         }
 
         /// <summary>
@@ -1428,7 +2054,9 @@ namespace SpaceGame.Items
         /// </summary>
         private void ReadReelInput()
         {
-            bool reel = _isLassoed
+            // Not while dragging somebody: there right mouse is interact, "let go of them"
+            // (TiedCaptive), and a press meant for that would also start hauling them in.
+            bool reel = _isLassoed && !_dragging
                         && reelInAction != null
                         && reelInAction.action.ReadValue<float>() >= 0.5f;
 
@@ -1479,7 +2107,10 @@ namespace SpaceGame.Items
                 SetRopeLength(_currentRopeLength + tension.PayOutSpeed * Time.fixedDeltaTime);
             }
 
-            JudgeTension();
+            // A dragged body is not fighting the rope — its struggle is against the tie — so the
+            // rope neither wears nor pays out under it. Hauling never parts your own rope, the
+            // same rule the leash keeps for a hand end.
+            if (!_dragging) JudgeTension();
             ApplyOwnerPull();
         }
 
@@ -1494,7 +2125,7 @@ namespace SpaceGame.Items
         {
             _currentRopeLength = Mathf.Clamp(length, ropeSlack, tension.MaxLength);
             _tether?.SetRopeLength(_currentRopeLength);
-            _caughtPlayer?.SetRopeLength(_currentRopeLength);
+            _heldBody?.SetRopeLength(_currentRopeLength);
         }
 
         /// <summary>
@@ -1519,10 +2150,11 @@ namespace SpaceGame.Items
 
             if (!IsAuthority) return;
 
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform root = CatchRoot;
             if (root == null) return;
 
-            float overshoot = Vector3.Distance(root.position + _attachOffset, GetRopeStart()) - _currentRopeLength;
+            Vector3 catchToHand = GetRopeStart() - (root.position + _attachOffset);
+            float overshoot = catchToHand.magnitude - _currentRopeLength;
             float strain = LassoTension.Strain01(overshoot, tension.FullStrainOvershoot);
 
             _wear = LassoTension.Wear(_wear, strain, Time.fixedDeltaTime,
@@ -1536,7 +2168,11 @@ namespace SpaceGame.Items
 
             // Published as an edge, like the reel. A per-tick strain value would be a message every
             // fixed step for the whole time anything is roped.
-            bool straining = strain > 0f;
+            //
+            // A hoist is strain the catch is not making: it is hanging, and a hanging load takes no
+            // line. Paying out under it let a jetpack climb off a roped body forever while the body
+            // stayed on the ground and the rope grew to its full 26 m. It still wears the rope.
+            bool straining = strain > 0f && !AgentCarry.IsLift(catchToHand, tension.HoistSlope);
             if (straining == _strainHeld) return;
 
             _strainHeld = straining;
@@ -1590,19 +2226,24 @@ namespace SpaceGame.Items
         /// </summary>
         private void ApplyOwnerPull()
         {
-            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            Transform root = CatchRoot;
             if (root == null || !Network.Owns(owner.transform)) return;
+
+            // Somebody this lasso tied hangs on a joint that never pulls the hand (BoundBody.Hold): the
+            // hand's weight is the slowed walk. Pulling here as well would hold a jetpack down.
+            if (_dragging && _heldBody == null && _tether == null) return;
 
             Vector3 ropeStart = GetRopeStart();
             Vector3 attachWorld = root.position + _attachOffset;
             Vector3 toTarget = attachWorld - ropeStart;
+
             float distance = toTarget.magnitude;
 
             // A roped player weighs what every player weighs — see AssumedPlayerMass. Taken from
             // the constant rather than from their Rigidbody so that the thrower's machine and the
             // victim's reach the same split without exchanging a number.
             float targetMass = _tether != null ? _tether.Mass
-                             : _caughtPlayer != null ? AssumedPlayerMass
+                             : _heldBody != null || _dragging ? _heldMass
                              : _targetRb != null ? _targetRb.mass
                              : AssumedPlayerMass;
 

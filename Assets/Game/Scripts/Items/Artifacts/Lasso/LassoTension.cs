@@ -61,11 +61,18 @@ namespace SpaceGame.Items
                  "it the animal is pulling against the end of the rope rather than against a reel.")]
         [SerializeField] private float maxLength = 26f;
 
+        [Tooltip("How steeply the rope must climb from the catch to the hand before the strain on it " +
+                 "is the catch's weight rather than the catch pulling away — a hoist, which takes no " +
+                 "line. 1 is straight up. Without it a jetpack climbing off a roped body paid the " +
+                 "rope out as fast as it rose, and the body never left the ground.")]
+        [SerializeField, Range(0f, 1f)] private float hoistSlope = 0.7f;
+
         public float FullStrainOvershoot => Mathf.Max(fullStrainOvershoot, 0.01f);
         public float BreakSeconds => Mathf.Max(breakSeconds, 0.1f);
         public float RecoverySeconds => Mathf.Max(recoverySeconds, 0.1f);
         public float PayOutSpeed => Mathf.Max(payOutSpeed, 0f);
         public float MaxLength => Mathf.Max(maxLength, 1f);
+        public float HoistSlope => hoistSlope;
 
         /// <summary>
         /// How hard the far end is pulling, 0 to 1, from how far outside the rope it has got.

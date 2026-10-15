@@ -42,5 +42,8 @@ namespace SpaceGame.Core
         /// when it does not. Every machine builds the leash and drops the lasso.
         /// </summary>
         public const int Hitched = 7;
+
+        /// <summary>The holder let go of somebody they were leading. Everybody drops the rope.</summary>
+        public const int LetGo = 8;
     }
 }

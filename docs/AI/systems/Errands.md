@@ -25,7 +25,7 @@ symptoms:
   - "the tower guard stands at the foot of the tower instead of on the deck"
   - "two residents talk while walking but stop dead to face each other"
 reads_with: [Residents, ResidentReputation, HandTools, NavMeshSystem, Multiplayer, Pushables]
-updated: 2026-10-04
+updated: 2026-10-14
 ---
 
 # Errands
@@ -88,7 +88,7 @@ holding goal it always writes, so fights and flees preempt an errand by the ordi
   focus, so neither stops or turns; the talk ends when they drift beyond twice that range, and the pair rests
   `walkTalkRestSeconds` (shorter than a standing talk's rest).
 - **Guards challenge.** `archetype.challengesArmed`: an armed or sprinting player in notice range irritates the guard like a
-  trespasser — one band per `irritationStepSeconds` (Wary, Drawn, then a fight), never faster. A shove is still the stock ladder
+  trespasser — one band per `irritationStepSeconds` (Wary, Drawn, then a fight), never faster. In the fight a guard draws and fires its shock harpoon (`ResidentWeaponModule`, [Residents.md](Residents.md)). A shove is still the stock ladder
   (≥ 2 shoves for the prickliest), so one push is never a fight.
 
 ## Multiplayer

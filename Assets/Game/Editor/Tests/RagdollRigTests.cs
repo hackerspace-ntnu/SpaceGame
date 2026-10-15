@@ -292,12 +292,13 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The whole server path, offline: <c>Network.Decides</c> is true and with no relay on the
-        /// body <c>NetSendTo(…, NetTo.All)</c> dispatches straight to the channel OnEnable
-        /// registered, so damage → OnDamaged → Knock → NetMsg.Knockdown → OnKnockdown all run.
+        /// Taking damage never ragdolls a body, however hard the hit or however wounded the body —
+        /// only a specific event (<c>Knock</c>, a hold) or death does. Offline, so
+        /// <c>Network.Decides</c> is true and any knockdown would dispatch straight to the channel
+        /// OnEnable registered.
         /// </summary>
         [Test]
-        public void SmallHit_DoesNotKnockDown_BigHitDoes()
+        public void Damage_NeverKnocksDown_DeathDoes()
         {
             GameObject root = NewHumanoidRig(out RagdollRig rig);
             var health = root.AddComponent<HealthComponent>();
@@ -305,17 +306,12 @@ namespace SpaceGame.EditorTools
             Invoke(ragdoll, "Awake");
             Invoke(ragdoll, "OnEnable");
 
-            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.05f), null);
-            Assert.IsFalse(rig.IsLimp, "a 5% hit knocked the body down — automatic fire will stun-lock");
-
             health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.4f), null);
-            Assert.IsTrue(rig.IsLimp, "a 40% hit on a wounded body did not knock it down");
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.55f), null);
+            Assert.IsFalse(rig.IsLimp, "taking damage ragdolled a living body");
 
-            // Lethal and harder still, so a Hit knockdown would push the stand-up time later.
-            float standAt = ControllerField<float>(ragdoll, "standAt");
             health.Damage(health.GetHealth, null);
-            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
-                "a killing blow was priced as a hit knockdown — death's business, not the policy's");
+            Assert.IsTrue(rig.IsLimp, "a killing blow left the body standing");
         }
 
         /// <summary>
@@ -337,50 +333,8 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(rig.IsLimp, "stood up before the fall's second was up");
         }
 
-        [Test]
-        public void FallDamage_IsNotAlsoPricedAsAHit()
-        {
-            GameObject root = NewHumanoidRig(out RagdollRig rig);
-            var health = root.AddComponent<HealthComponent>();
-            var ragdoll = root.AddComponent<AgentRagdoll>();
-            Invoke(ragdoll, "Awake");
-            Invoke(ragdoll, "OnEnable");
-
-            // Wounded first, so the fall's damage on its own would be a hit knockdown longer than
-            // the fall's — long enough to show whether it was priced.
-            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.05f), null);
-            Assert.IsFalse(rig.IsLimp, "the fixture's first hit has to leave the body standing");
-
-            RagdollController.RequestFallKnockdown(ragdoll);
-            float standAt = ControllerField<float>(ragdoll, "standAt");
-            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.4f), null);
-
-            Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"),
-                "the fall's damage was priced as a hit as well — a hard landing outlasted fallSeconds");
-
-            Invoke(ragdoll, "TickStandUp",
-                   Time.time + ragdoll.Tuning.fallSeconds + ragdoll.Tuning.settleGraceSeconds + 0.01f);
-            Assert.IsFalse(rig.IsLimp, "still down after the fall's time and the settle grace");
-        }
-
-        [Test]
-        public void RefusedHold_GrantsNoHitImmunity()
-        {
-            // No bones at all, so GoLimp declines and HoldDown rolls itself back through Restore.
-            var root = new GameObject("Boneless");
-            spawned.Add(root);
-            Rig(root);
-            var ragdoll = root.AddComponent<AgentRagdoll>();
-            Invoke(ragdoll, "Awake");
-
-            Assert.IsFalse(ragdoll.HoldDown(new object()), "the fixture has to reproduce a refused hold");
-
-            Assert.AreEqual(float.NegativeInfinity, ControllerField<float>(ragdoll, "stoodUpAt"),
-                "a body that never went down was made immune to hits as though it had stood up");
-        }
-
         /// <summary>
-        /// A freeze holds a player ON THEIR FEET; a blast or a hit must not lay the statue down —
+        /// A freeze holds a player ON THEIR FEET; a blast must not lay the statue down —
         /// neither through the deciding machine's door (<c>Knock</c>) nor on a machine that is
         /// only told about it (<c>OnKnockdown</c>), or the two disagree.
         /// </summary>
@@ -865,14 +819,14 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// Every hit landing on a body that is already down used to restart its down-time, and hit
-        /// immunity is only measured while standing — so under automatic fire nobody ever got up.
-        /// A hit on a downed body no longer knocks it; a blast still can.
+        /// Damage on a body already down must not keep it down — under automatic fire nobody would
+        /// ever get up. A blast still can: it is a deliberate throw.
         /// </summary>
         [Test]
-        public void HitOnADownedBody_DoesNotKeepItDown()
+        public void DamageOnADownedBody_DoesNotKeepItDown()
         {
             GameObject root = NewHumanoidRig(out RagdollRig rig);
+            var health = root.AddComponent<HealthComponent>();
             var ragdoll = root.AddComponent<AgentRagdoll>();
             Invoke(ragdoll, "Awake");
             Invoke(ragdoll, "OnEnable");
@@ -881,9 +835,9 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(rig.IsLimp);
             float standAt = ControllerField<float>(ragdoll, "standAt");
 
-            RagdollController.Knock(root, RagdollCause.Hit, Vector3.forward * 3f, 0.9f);
+            health.Damage(Mathf.RoundToInt(health.GetMaxHealth * 0.9f), null);
             Assert.AreEqual(standAt, ControllerField<float>(ragdoll, "standAt"), 1e-4f,
-                "a hit on a body already down pushed its stand-up time out again");
+                "damage on a body already down pushed its stand-up time out again");
 
             RagdollController.Knock(root, RagdollCause.Blast, Vector3.forward * 40f);
             Assert.Greater(ControllerField<float>(ragdoll, "standAt"), standAt,

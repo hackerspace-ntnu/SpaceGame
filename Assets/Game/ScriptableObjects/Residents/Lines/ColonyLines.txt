@@ -177,3 +177,16 @@ crew.greet	Crew	Greeting	neutral				Question	Off shift. Need something?
 crew.stroll	Crew	Remark		Approaching	Stroll		Statement	Stretching my legs. Three hundred metres of tube.
 crew.gossip	Crew	Gossip					Statement	The rota changed again. Nobody told us.
 crew.reply	Crew	Reply				Question	Statement	Ask whoever's on the console.
+# -- Bounties (Bounties.md): Whereabouts = a tip about the open bounty's target; Remark/Gossip/Rumour x BroughtIn* = it was handed in (subject = the resident it was handed to). Never name {target} outside Whereabouts: the bounty is closed by the time those are heard --
+whereabouts.friendly.1		Whereabouts	friendly				Question	Looking for {target}? {tip}
+whereabouts.neutral.1		Whereabouts	neutral				Statement	For the record, on {target}: {tip}
+whereabouts.neutral.2		Whereabouts	neutral				Statement	{tip} That is the last report we logged.
+whereabouts.wary.1		Whereabouts	wary				Complaint	{tip} Keep me out of the report.
+whereabouts.any		Whereabouts					Statement	{tip}
+whereabouts.evaguard	EvaGuard	Whereabouts					Statement	{tip} Bring {target} back through the lock and the crew owes you.
+remark.bounty.alive.1		Remark		BroughtInAlive			Statement	Alive. Good. Logged, and here is what was promised.
+remark.bounty.dead.1		Remark		BroughtInDead			Statement	Dead. Not ideal, but logged. Here is your share.
+gossip.bounty.alive		Gossip		BroughtInAlive			Statement	The outsider handed the outlaw to {name}. Alive, if you can believe it.
+gossip.bounty.dead		Gossip		BroughtInDead			Statement	The outsider brought the outlaw's body to {name}.
+rumour.bounty.alive		Rumour		BroughtInAlive			Exclamation	The outsider just brought the outlaw in to {name}!
+rumour.bounty.dead		Rumour		BroughtInDead			Exclamation	The outsider brought the outlaw in dead!

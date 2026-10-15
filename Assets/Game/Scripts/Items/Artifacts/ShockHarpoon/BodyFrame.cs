@@ -34,8 +34,8 @@ namespace SpaceGame.Items
             var frame = new BodyFrame { Height = MeasureHeight(body) };
             HashSet<Transform> bones = BonesOf(body);
 
-            Animator animator = body.GetComponentInChildren<Animator>();
-            bool human = animator != null && animator.isHuman;
+            Animator animator = HumanoidOf(body);
+            bool human = animator != null;
 
             frame.Head = human ? animator.GetBoneTransform(HumanBodyBones.Head) : null;
             if (frame.Head == null) frame.Head = Named(bones, "head");
@@ -58,6 +58,13 @@ namespace SpaceGame.Items
             return frame;
         }
 
+        /// <summary>The body's humanoid animator — a person, with named bones to ask for — or null for anything else.</summary>
+        public static Animator HumanoidOf(Transform body)
+        {
+            Animator animator = body != null ? body.GetComponentInChildren<Animator>() : null;
+            return animator != null && animator.isHuman ? animator : null;
+        }
+
         /// <summary>
         /// Every joint the body's skinned meshes are bound to, less anything merely attached to it
         /// (a held tool, worn gear, a harpoon stuck in it: see <see cref="BodyAttachment"/>).
@@ -68,8 +75,10 @@ namespace SpaceGame.Items
             foreach (SkinnedMeshRenderer skin in body.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 if (BodyAttachment.Covers(skin.transform, body)) continue;
+                // Each bone asked once: every mesh lists the whole skeleton, and the attachment walk is a
+                // GetComponent per ancestor — 68 meshes by 65 bones on a Nomad was a tenth of a second.
                 foreach (Transform bone in skin.bones)
-                    if (bone != null && !BodyAttachment.Covers(bone, body)) bones.Add(bone);
+                    if (bone != null && !bones.Contains(bone) && !BodyAttachment.Covers(bone, body)) bones.Add(bone);
             }
             return bones;
         }

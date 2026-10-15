@@ -30,11 +30,13 @@ namespace SpaceGame.EditorTools.Posters
 
             var print = new PosterImage(w, h, Color.clear);
 
-            // Fills, off register.
+            // Fills, off register. Undyed cloth and accent highlights share one pale tint of the
+            // accent, so nothing on the figure prints as bare cream.
             Vector2Int r = style.register;
-            print.Paint(neutral.Shift(r.x, r.y), style.cream);
+            Color wash = Color.Lerp(style.cream, accent, style.washTint);
+            print.Paint(neutral.Shift(r.x, r.y), wash);
             print.Paint(warm.Shift(r.x, r.y), accent);
-            print.Paint(warm.Times(high).Shift(r.x, r.y), style.cream);
+            print.Paint(warm.Times(high).Shift(r.x, r.y), wash);
             print.Paint(skin.Shift(r.x, r.y), style.slate);
             print.Paint(skin.Times(high).Shift(r.x, r.y), style.slateLight);
 

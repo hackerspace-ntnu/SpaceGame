@@ -19,6 +19,8 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Status;
 using SpaceGame.Items;
 
 namespace SpaceGame.EditorTools
@@ -210,14 +212,14 @@ namespace SpaceGame.EditorTools
         {
             // The twirl has to SHOW its charge, or the wind-up is a delay bolted onto the front of
             // the same instant throw rather than a gesture the player is performing.
-            LassoLoop loop = NewLoop(out LineRenderer line);
+            var loop = new LassoLoop();
             loop.Show();
 
             loop.Twirl(Vector3.zero, Vector3.up, charge: 0f, deltaTime: 0.1f);
-            float cold = MeanRadius(line, Vector3.zero);
+            float cold = MeanRadius(loop.Shape, Vector3.zero);
 
             loop.Twirl(Vector3.zero, Vector3.up, charge: 1f, deltaTime: 0.1f);
-            float hot = MeanRadius(line, Vector3.zero);
+            float hot = MeanRadius(loop.Shape, Vector3.zero);
 
             Assert.Greater(hot, cold * 1.5f,
                 "a fully wound loop was not visibly wider than a cold one");
@@ -228,16 +230,16 @@ namespace SpaceGame.EditorTools
         {
             // The most legible frame the item has, and the one it never had: an open throw loop
             // shutting onto a neck. Without it a catch is a line that stops moving.
-            LassoLoop loop = NewLoop(out LineRenderer line);
+            var loop = new LassoLoop();
             loop.Show();
 
             loop.Fly(Vector3.zero, Vector3.forward, charge: 1f, deltaTime: 0.1f);
-            float open = MeanRadius(line, Vector3.zero);
+            float open = MeanRadius(loop.Shape, Vector3.zero);
 
             loop.BeginCinch();
             for (int i = 0; i < 60; i++) loop.Ride(Vector3.zero, Vector3.back, 1f / 60f);
 
-            Assert.Less(MeanRadius(line, Vector3.zero), open * 0.8f, "the loop never cinched shut");
+            Assert.Less(MeanRadius(loop.Shape, Vector3.zero), open * 0.8f, "the loop never cinched shut");
         }
 
         [Test]
@@ -247,19 +249,19 @@ namespace SpaceGame.EditorTools
             // artifact drew the cable to the point the loop was centred on, so it stopped dead in
             // the hole with the loop hovering unattached around it. The knot each drawing method
             // now returns is the fix, and it is only a fix if it is genuinely ON the drawn line.
-            LassoLoop loop = NewLoop(out LineRenderer line);
+            var loop = new LassoLoop();
             loop.Show();
 
             Vector3 centre = new Vector3(3f, 2f, -1f);
 
             Vector3 twirled = loop.Twirl(centre, Vector3.up, charge: 1f, deltaTime: 0.1f);
-            AssertOnTheLoop(line, twirled, "twirling");
+            AssertOnTheLoop(loop.Shape, twirled, "twirling");
 
             Vector3 flown = loop.Fly(centre, Vector3.forward, charge: 1f, deltaTime: 0.1f);
-            AssertOnTheLoop(line, flown, "in flight");
+            AssertOnTheLoop(loop.Shape, flown, "in flight");
 
             Vector3 ridden = loop.Ride(centre, Vector3.back, 0.1f);
-            AssertOnTheLoop(line, ridden, "riding the catch");
+            AssertOnTheLoop(loop.Shape, ridden, "riding the catch");
 
             // And on the RIM, which is the half that makes it a knot rather than a rename of the
             // centre. A honda a rope's width from the middle would pass the test above and still
@@ -269,30 +271,64 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void TheLoopIsDrawnOnTheRopesOwnLine()
+        {
+            // Reported as "one ring and one rope, with a visible break where the rope stops and the ring
+            // starts". The loop had a LineRenderer of its own, so the knot was two ribbon ends meeting.
+            // It is one line now: the chain, through the honda, round the loop and back to it.
+            LassoRope rope = NewRope(out LineRenderer line);
+            var loop = new LassoLoop();
+            rope.Bind(line, loop);
+            loop.Show();
+
+            Vector3 start = Vector3.zero;
+            Vector3 honda = loop.Fly(new Vector3(0f, 1f, 6f), Vector3.forward, charge: 1f, deltaTime: 0.1f);
+            rope.Show(start, honda);
+            rope.Simulate(start, honda, Vector3.Distance(start, honda) * 1.1f, 0.1f);
+
+            IReadOnlyList<Vector3> shape = loop.Shape;
+            int chain = line.positionCount - (shape.Count - 1);
+            Assert.Greater(chain, 2, "the line holds the loop but no rope");
+            Assert.Less(Vector3.Distance(line.GetPosition(chain - 1), honda), 1e-4f, "the rope does not run into the honda");
+
+            for (int i = 1; i < shape.Count; i++)
+                Assert.Less(Vector3.Distance(line.GetPosition(chain - 1 + i), shape[i]), 1e-4f, "the line left the loop's shape");
+
+            for (int i = 1; i < line.positionCount; i++)
+                Assert.Greater(Vector3.Distance(line.GetPosition(i), line.GetPosition(i - 1)), 1e-5f,
+                               $"a zero-length segment at {i} pinches the line");
+
+            loop.Hide();
+            rope.Simulate(start, honda, Vector3.Distance(start, honda) * 1.1f, 0.1f);
+            Assert.AreEqual(chain, line.positionCount, "a hidden loop is still drawn on the end of the rope");
+        }
+
+        [Test]
         public void TheLoopIsPinchedAtTheKnotAndOpenOppositeIt()
         {
             // Reported as "a perfect circle" — which it was, to within a 10% wobble. A rope loop is
             // not: it is drawn together into a throat where the standing part passes through the
             // honda, and carries its width at the far end. That asymmetry is the whole tell, so it
             // is what gets pinned rather than the radius, which a circle also has.
-            LassoLoop loop = NewLoop(out LineRenderer line);
+            var loop = new LassoLoop();
             loop.Show();
             loop.Fly(Vector3.zero, Vector3.forward, charge: 1f, deltaTime: 0.1f);
 
-            int last = line.positionCount - 1;   // the closing vertex, back at the knot
+            IReadOnlyList<Vector3> shape = loop.Shape;
+            int last = shape.Count - 1;   // the closing vertex, back at the knot
             int opposite = last / 2;
 
             // The two strands either side of the knot, against the two either side of the belly.
-            float throat = Vector3.Distance(line.GetPosition(1), line.GetPosition(last - 1));
-            float mouth = Vector3.Distance(line.GetPosition(opposite - 1), line.GetPosition(opposite + 1));
+            float throat = Vector3.Distance(shape[1], shape[last - 1]);
+            float mouth = Vector3.Distance(shape[opposite - 1], shape[opposite + 1]);
 
             Assert.Less(throat, mouth * 0.5f,
                 "the strands left the knot as wide apart as the far side of the loop — that is a hoop");
 
             // The belly hangs further from the centre than the knot does, which is what makes it a
             // pear rather than a ring with a dent in it.
-            Assert.Greater(Vector3.Distance(line.GetPosition(opposite), Vector3.zero),
-                           Vector3.Distance(line.GetPosition(0), Vector3.zero),
+            Assert.Greater(Vector3.Distance(shape[opposite], Vector3.zero),
+                           Vector3.Distance(shape[0], Vector3.zero),
                            "the far side of the loop did not hang past the knot");
         }
 
@@ -309,13 +345,13 @@ namespace SpaceGame.EditorTools
         [Test]
         public void PinchingTheKnotDoesNotNarrowTheMouth()
         {
-            LassoLoop loop = NewLoop(out LineRenderer line);
+            var loop = new LassoLoop();
             loop.Show();
             loop.Fly(Vector3.zero, Vector3.forward, charge: 1f, deltaTime: 0.1f);
 
             float widest = 0f;
-            for (int i = 0; i < line.positionCount; i++)
-                widest = Mathf.Max(widest, Vector3.Distance(line.GetPosition(i), Vector3.zero));
+            foreach (Vector3 point in loop.Shape)
+                widest = Mathf.Max(widest, Vector3.Distance(point, Vector3.zero));
 
             // A third, because the belly and the wobble are both allowed to reach past Radius: at
             // the shipped shape the furthest vertex sits between 1.13 and 1.25 of it depending on
@@ -325,11 +361,11 @@ namespace SpaceGame.EditorTools
                 "the drawn loop was no longer the size Radius promises the aim guide and the catch");
         }
 
-        private static void AssertOnTheLoop(LineRenderer line, Vector3 knot, string state)
+        private static void AssertOnTheLoop(IReadOnlyList<Vector3> shape, Vector3 knot, string state)
         {
             float nearest = float.MaxValue;
-            for (int i = 0; i < line.positionCount; i++)
-                nearest = Mathf.Min(nearest, Vector3.Distance(line.GetPosition(i), knot));
+            foreach (Vector3 point in shape)
+                nearest = Mathf.Min(nearest, Vector3.Distance(point, knot));
 
             Assert.Less(nearest, 1e-4f, $"the knot was not a point on the loop while {state}");
         }
@@ -406,6 +442,7 @@ namespace SpaceGame.EditorTools
             GameObject creature = NewGameObject("creature");
             Rigidbody body = creature.AddComponent<Rigidbody>();
             body.isKinematic = true;
+            body.useGravity = false;
 
             Transform anchor = NewGameObject("anchor").transform;
 
@@ -413,9 +450,32 @@ namespace SpaceGame.EditorTools
             tether.Bind(anchor, 8f, new LassoStruggle());
 
             Assert.IsFalse(body.isKinematic, "the struggle cannot move a body that is still kinematic");
+            // An agent's body is authored without gravity; roped, it must hang from the rope when a
+            // jetpack lifts it and fall back when the rope goes slack, not float where it was left.
+            Assert.IsTrue(body.useGravity, "a roped body lifted off the ground would float there");
 
             tether.Release(anchor);
             Assert.IsTrue(body.isKinematic, "the rope left the creature's body changed after it let go");
+            Assert.IsFalse(body.useGravity, "the rope left the creature falling after it let go");
+        }
+
+        [Test]
+        public void TheGroundIsNotAHitchingPost()
+        {
+            // Pressing at the sand to let a catch go used to knot it to the sand with a leash nobody
+            // meant to make. A post's side still takes a knot; the top of anything you stand on does not.
+            GameObject post = NewGameObject("post");
+            post.AddComponent<BoxCollider>();
+            post.transform.localScale = new Vector3(4f, 1f, 4f);
+            Physics.SyncTransforms();
+
+            Transform holder = NewGameObject("holder").transform;
+
+            Assert.IsTrue(Physics.Raycast(new Vector3(0f, 5f, 0f), Vector3.down, out RaycastHit top, 10f));
+            Assert.IsFalse(LassoHitch.IsHitchable(top, holder, null, 45f), "the catch was tied to the ground");
+
+            Assert.IsTrue(Physics.Raycast(new Vector3(5f, 0f, 0f), Vector3.left, out RaycastHit side, 10f));
+            Assert.IsTrue(LassoHitch.IsHitchable(side, holder, null, 45f), "the side of a post no longer takes a knot");
         }
 
         [Test]
@@ -436,7 +496,7 @@ namespace SpaceGame.EditorTools
             anchor.position = Vector3.zero;
 
             LassoedBody held = LassoedBody.Ensure(victim);
-            Assert.IsTrue(held.Bind(anchor, 8f, 80f));
+            Assert.IsTrue(held.Bind(anchor, 8f, 80f, 80f));
 
             // Offline this machine owns the body, which is the single-player case and the
             // local-player case in a session. The remote case has no second machine to be wrong on
@@ -460,8 +520,8 @@ namespace SpaceGame.EditorTools
 
             LassoedBody held = LassoedBody.Ensure(victim);
 
-            Assert.IsTrue(held.Bind(first, 6f, 80f));
-            Assert.IsFalse(held.Bind(second, 6f, 80f), "a roped player accepted a second rope");
+            Assert.IsTrue(held.Bind(first, 6f, 80f, 80f));
+            Assert.IsFalse(held.Bind(second, 6f, 80f, 80f), "a roped player accepted a second rope");
 
             held.Release(second);
             Assert.IsTrue(held.IsBound, "a release from the wrong rope freed the player");
@@ -488,6 +548,474 @@ namespace SpaceGame.EditorTools
 
             tether.AdvanceStruggle(30f);
             Assert.Less(tether.StruggleFraction, 0.05f, "the creature never tired");
+        }
+
+        [Test]
+        public void AHeavierAnimalTakesLongerToWearOut()
+        {
+            // "Any size can be tied" is only a decision if size costs something. Without this a rat
+            // and a habitat-sized walker are both worn out in six seconds.
+            var struggle = new LassoStruggle();
+
+            Assert.Less(struggle.FightSecondsFor(20f), struggle.FightSecondsFor(80f),
+                "a rat fought as long as a person");
+            Assert.Less(struggle.FightSecondsFor(80f), struggle.FightSecondsFor(600f),
+                "a walker gave up as fast as a person");
+
+            // The ceiling is what keeps the heaviest thing in the game catchable at all.
+            Assert.AreEqual(struggle.FightSecondsFor(600f), struggle.FightSecondsFor(6000f), 1e-4f,
+                "the fight grew without bound with weight");
+        }
+
+        // ── Tying people up ────────────────────────────────────────────────────
+
+        [Test]
+        public void ATiedPersonIsHelplessOnTheirFeetAndHasNothingToSay()
+        {
+            // One click and they are tied: the condition holds them, the dialog stops offering —
+            // interact is the button that leads them now, and a conversation opening on it was what
+            // stopped characters with dialogue being tied up at all.
+            GameObject person = NewGameObject("person");
+            person.AddComponent<HealthComponent>();
+            var status = person.AddComponent<StatusReceiver>();
+            var dialog = person.AddComponent<DialogInteraction>();
+
+            Assert.IsFalse(dialog.IsRestrained, "the person counts as restrained before anybody tied them");
+
+            status.Apply(StatusKind.Bound, 120f);
+
+            Assert.IsTrue(status.Has(StatusKind.Bound), "the tie did not take offline, where every machine decides");
+            Assert.IsTrue(status.Suppressed, "a tied person can still act");
+            Assert.IsTrue(dialog.IsRestrained, "a tied person does not count as restrained");
+
+            // The non-contextual gate, so a drag on the same body is chosen over the dialogue.
+            Assert.IsFalse(dialog.CanInteract(), "a tied person still offers to talk");
+        }
+
+        [Test]
+        public void ATieIsAStandingHoldThatNothingStrugglesOutOf()
+        {
+            // The two halves of what was asked: no ragdoll, and no struggle. A tie that went through
+            // the ragdoll would drop the person in a heap; one that watched damage or input would
+            // have a way out the design said it must not.
+            var bound = new BoundStatus();
+
+            Assert.IsInstanceOf<HeldStandingStatus>(bound, "a tie no longer holds the body on its feet");
+            Assert.IsFalse(typeof(DamageWatchingStatus).IsAssignableFrom(typeof(BoundStatus)),
+                "a tie can be broken by hitting the captive");
+            Assert.IsTrue(bound.Suppresses);
+        }
+
+        [Test]
+        public void TheRopeGoesRoundTheMiddleSixTimes()
+        {
+            // "Rope going around his body about six times" — the user's own figure for the middle.
+            GameObject body = NewGameObject("body");
+            Transform hips = Bone(body.transform, "Hips", new Vector3(0f, 1f, 0f));
+            Transform spine = Bone(hips, "Spine", new Vector3(0f, 1.4f, 0f));
+            Transform legL = Bone(hips, "LegL", new Vector3(-0.15f, 0.1f, 0f));
+            Transform legR = Bone(hips, "LegR", new Vector3(0.15f, 0.1f, 0f));
+            Transform head = Bone(spine, "Head", new Vector3(0f, 1.8f, 0f));
+
+            var look = new HogtieWrapLook();
+            var wrap = new HogtieWrap();
+            wrap.Wind(body, hips, new[] { hips, spine, legL, legR, head }, look, new LeashRope());
+
+            LineRenderer line = body.GetComponentInChildren<LineRenderer>();
+            Assert.IsNotNull(line, "no rope was drawn at all");
+
+            // The middle is laid last: the final turns' worth of points, wound round the spine's
+            // line, which here is straight up through the hips.
+            int count = look.TorsoTurns * HogtieWrap.PointsPerTurn + 1;
+            Assert.GreaterOrEqual(line.positionCount, count);
+
+            float turned = 0f;
+            Vector3 previous = line.GetPosition(line.positionCount - count) - hips.position;
+            for (int i = line.positionCount - count + 1; i < line.positionCount; i++)
+            {
+                Vector3 current = line.GetPosition(i) - hips.position;
+                turned += Vector2.SignedAngle(new Vector2(previous.x, previous.z), new Vector2(current.x, current.z));
+                previous = current;
+            }
+
+            Assert.AreEqual(6f, Mathf.Abs(turned) / 360f, 0.05f, "the rope does not go round the middle six times");
+            CollectionAssert.AreEquivalent(new[] { legL, legR }, wrap.Limbs, "the rope binds something other than the legs");
+
+            wrap.Hide();
+        }
+
+        private static Transform Bone(Transform parent, string name, Vector3 worldPosition)
+        {
+            Transform bone = new GameObject(name).transform;
+            bone.SetParent(parent, false);
+            bone.position = worldPosition;
+            return bone;
+        }
+
+        [Test]
+        public void TheTiedLookAndTheDragAreThereForExactlyAsLongAsTheTie()
+        {
+            GameObject person = NewGameObject("person");
+            person.AddComponent<HealthComponent>();
+            var status = person.AddComponent<StatusReceiver>();
+
+            BoundBody.EnsureOn(status, new HogtieWrapLook(), new TiedPoseLook());
+            var bound = person.GetComponent<BoundBody>();
+            var captive = person.GetComponent<TiedCaptive>();
+
+            Assert.IsNotNull(captive, "nothing on the body offers to drag it");
+            Assert.IsFalse(bound.IsShown, "somebody nobody has tied is drawn tied up");
+            Assert.IsFalse(captive.CanInteract(), "somebody nobody has tied offers to be dragged");
+
+            status.Apply(StatusKind.Bound, 120f);
+            Assert.IsTrue(bound.IsShown, "a tied person is not drawn tied up");
+            Assert.IsTrue(captive.CanInteract(), "a tied person cannot be dragged");
+
+            status.Clear(StatusKind.Bound);
+            Assert.IsFalse(bound.IsShown, "the ropes outlived the tie");
+            Assert.IsFalse(captive.CanInteract(), "somebody untied still offers to be dragged");
+        }
+
+        [Test]
+        public void APersonsLoopClosesRoundTheirWaistAndArms()
+        {
+            // "The lasso should fit around his waist and arms, not around his neck." A loop dropped over a
+            // person pins their arms to their sides. It used to close round the neck — a noose — and before
+            // that cinched to a fixed 0.45 m hoop. Closed, it is the ring measured on the skin of the waist
+            // with the arms taken in, and it stays there when the body moves.
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(HogtieTests.RaxyPrefab);
+            Assert.IsNotNull(prefab, $"{HogtieTests.RaxyPrefab} is gone; point this test at a Raxy that exists.");
+            var raxy = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab);
+            spawned.Add(raxy);
+
+            Animator animator = raxy.GetComponentInChildren<Animator>();
+            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            Transform chest = animator.GetBoneTransform(HumanBodyBones.Chest) ?? animator.GetBoneTransform(HumanBodyBones.UpperChest);
+            Vector3 Waist() => Vector3.Lerp(hips.position, chest.position, 0.45f);
+            Vector3 caught = Waist();
+
+            var loop = new LassoLoop();
+            loop.Show();
+            loop.BeginCinch();
+
+            var collar = new LassoCollar();
+            collar.Fit(raxy.transform, caught, RopeWidth);
+            Assert.IsTrue(collar.IsFitted, "Raxy's waist gave the loop nothing to close onto.");
+
+            Vector3 hand = caught + raxy.transform.forward * 4f;
+            Cinch(loop, collar, caught, hand);
+            AssertLoopOnSkin(loop.Shape, raxy, RopeWidth * 2f, "cinched");
+
+            // Round the arms, not just the trunk: the ring is wider across the body than elbow to elbow.
+            Vector3 across = raxy.transform.right;
+            float elbows = Mathf.Abs(Vector3.Dot(animator.GetBoneTransform(HumanBodyBones.LeftLowerArm).position
+                                                 - animator.GetBoneTransform(HumanBodyBones.RightLowerArm).position, across));
+            float least = float.PositiveInfinity, most = float.NegativeInfinity;
+            foreach (Vector3 point in loop.Shape)
+            {
+                least = Mathf.Min(least, Vector3.Dot(point, across));
+                most = Mathf.Max(most, Vector3.Dot(point, across));
+            }
+            Assert.Greater(most - least, elbows, "the loop closed round the waist inside the arms instead of round them");
+
+            float neck = animator.GetBoneTransform(HumanBodyBones.Neck).position.y;
+            foreach (Vector3 point in loop.Shape)
+                Assert.Less(point.y, neck, "the loop is still up round the neck");
+
+            // Thrown about on the end of the rope: the ring rides the spine, it is not measured again.
+            raxy.transform.SetPositionAndRotation(raxy.transform.position + new Vector3(1.5f, 0.3f, -2f),
+                                                  Quaternion.AngleAxis(70f, Vector3.up) * raxy.transform.rotation);
+            Cinch(loop, collar, Waist(), hand);
+            AssertLoopOnSkin(loop.Shape, raxy, RopeWidth * 2f, "after the body moved");
+        }
+
+        [Test]
+        public void ACreaturesLoopClosesRoundItsNeck()
+        {
+            // The nearest bone to the knot height put an ostrich's loop round its shin: its legs are most
+            // of its height. A lasso goes round the neck, and every creature rig here names one.
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(OstrichPrefab);
+            Assert.IsNotNull(prefab, $"{OstrichPrefab} is gone; point this test at a creature that exists.");
+            var ostrich = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab);
+            spawned.Add(ostrich);
+
+            var struggle = new LassoStruggle();
+            Vector3 caught = ostrich.transform.position
+                           + Vector3.up * LassoTether.AttachHeightFor(ostrich, struggle.AttachFraction, struggle.AttachHeight);
+
+            var collar = new LassoCollar();
+            collar.Fit(ostrich.transform, caught, RopeWidth);
+            Assert.IsTrue(collar.IsFitted, "the ostrich gave the loop nothing to close onto");
+
+            var ring = new List<Vector3>();
+            collar.AddTo(ring);
+            Vector3 middle = Vector3.zero;
+            foreach (Vector3 point in ring) middle += point / ring.Count;
+
+            Transform nearest = null;
+            foreach (SkinnedMeshRenderer skin in ostrich.GetComponentsInChildren<SkinnedMeshRenderer>())
+            foreach (Transform bone in skin.bones)
+                if (bone != null && (nearest == null || (bone.position - middle).sqrMagnitude < (nearest.position - middle).sqrMagnitude))
+                    nearest = bone;
+
+            StringAssert.Contains("neck", nearest.name.ToLowerInvariant(), $"the loop closed nearest {nearest.name}, not round the neck");
+        }
+
+        private const string OstrichPrefab = "Assets/Game/Prefabs/Agents/creatures/Ostrich.prefab";
+
+        [Test]
+        public void ALoopOnNothingToMeasureKeepsItsCollar()
+        {
+            // A catch on something that draws no skin (a bare rig, a stand-in) still closes — onto the
+            // authored collar circle, as before, rather than onto nothing.
+            GameObject body = NewGameObject("bare");
+            Bone(body.transform, "Neck", new Vector3(0f, 1.5f, 0f));
+
+            var collar = new LassoCollar();
+            collar.Fit(body.transform, new Vector3(0f, 1.5f, 0f), 0.06f);
+
+            Assert.IsFalse(collar.IsFitted, "A body with no skin was given a ring to close onto.");
+        }
+
+        /// <summary>Ride the loop long past its cinch, so it is wholly the collar's ring.</summary>
+        private static void Cinch(LassoLoop loop, LassoCollar collar, Vector3 centre, Vector3 hand)
+        {
+            for (int i = 0; i < CinchFrames; i++) loop.Ride(centre, centre - hand, CinchFrame, collar, hand);
+        }
+
+        private const int CinchFrames = 20;
+
+        /// <summary>The shipped rope's thickness — the loop's too, since it is drawn on the rope's line.</summary>
+        private static readonly float RopeWidth = new LassoRope().Width;
+        private const float CinchFrame = 0.05f;
+
+        /// <param name="tolerance">
+        /// Mean distance off the skin allowed. A rope pulled round arms and waist bridges the hollow between
+        /// them, so it lies further off than one round a single limb.
+        /// </param>
+        private static void AssertLoopOnSkin(IReadOnlyList<Vector3> shape, GameObject body, float tolerance, string when)
+        {
+            List<Vector3> skin = HogtieTests.BakedSkin(body);
+            float mean = 0f;
+            foreach (Vector3 point in shape)
+                mean += Mathf.Abs(Mathf.Sqrt(HogtieTests.NearestSquared(skin, point)) - RopeWidth * 0.5f) / shape.Count;
+
+            Assert.Less(mean, tolerance, $"{when}: the loop sits {mean * 100f:F1} cm off the skin on average.");
+        }
+
+        [Test]
+        public void TheRopeGoesOnTurnByTurnWhileTheTieIsMade()
+        {
+            // A tie being made winds the rope on a little at a time, and the binder's own rope runs
+            // to the turn being laid — not the whole hogtie popping onto the body at once.
+            GameObject body = NewGameObject("body");
+            Transform hips = Bone(body.transform, "Hips", new Vector3(0f, 1f, 0f));
+            Transform spine = Bone(hips, "Spine", new Vector3(0f, 1.4f, 0f));
+            Transform legL = Bone(hips, "LegL", new Vector3(-0.15f, 0.1f, 0f));
+            Transform legR = Bone(hips, "LegR", new Vector3(0.15f, 0.1f, 0f));
+
+            var wrap = new HogtieWrap();
+            wrap.Wind(body, hips, new[] { hips, spine, legL, legR }, new HogtieWrapLook(), new LeashRope());
+            LineRenderer line = body.GetComponentInChildren<LineRenderer>();
+            int whole = line.positionCount;
+
+            wrap.Draw(0f);
+            Assert.AreEqual(0, line.positionCount, "rope is on before the binder has started");
+
+            wrap.Draw(0.5f);
+            Assert.AreEqual(whole / 2f, line.positionCount, 1f, "half the tie is not half the rope");
+            Assert.AreEqual(line.GetPosition(line.positionCount - 1), wrap.Tip, "the binder's rope does not run to the turn being laid");
+
+            wrap.Draw(1f);
+            Assert.AreEqual(whole, line.positionCount, "a finished tie is missing rope");
+
+            wrap.Hide();
+        }
+
+        [Test]
+        public void ATiedBodyCanBeHitWhereItLiesAndStandsBackUpWithItsOwnCollider()
+        {
+            // The crosshair has to find the captive on the ground, where the drag is offered — the
+            // standing capsule left an invisible pillar where they used to stand, and the body you
+            // could see could not be aimed at.
+            GameObject person = NewGameObject("person");
+            person.AddComponent<HealthComponent>();
+            var body = person.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            var standing = person.AddComponent<CapsuleCollider>();
+            standing.height = 3f;
+            standing.radius = 0.6f;
+            standing.center = new Vector3(0f, 1.5f, 0f);
+            var status = person.AddComponent<StatusReceiver>();
+
+            BoundBody.EnsureOn(status, new HogtieWrapLook(), new TiedPoseLook());
+            var bound = person.GetComponent<BoundBody>();
+
+            status.Apply(StatusKind.Bound, 120f);
+
+            Assert.IsFalse(standing.enabled, "the standing capsule is still there over a body lying on the ground");
+            var lying = bound.LyingCollider as CapsuleCollider;
+            Assert.IsNotNull(lying, "nothing to aim at where the body lies");
+            Assert.IsFalse(lying.isTrigger, "the lying body is a trigger, which the crosshair passes through");
+            Assert.AreEqual(2, lying.direction, "the lying collider is not lying");
+            Physics.SyncTransforms();
+            Assert.Less(lying.bounds.max.y - person.transform.position.y, 1f, "the lying collider stands taller than a body on the ground");
+
+            status.Clear(StatusKind.Bound);
+
+            Assert.IsTrue(standing.enabled, "the standing capsule was not given back");
+            Assert.IsNull(bound.LyingCollider, "the lying collider outlived the tie");
+        }
+
+        [Test]
+        public void ATakedownGoesFromStandingThroughKneelingToFaceDown()
+        {
+            // The real rig, because the whole of this is how a humanoid avatar reads muscle values.
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Prefabs/agents/Characters/Nomad.prefab");
+            Assert.IsNotNull(prefab, "the test rig moved");
+
+            GameObject nomad = Object.Instantiate(prefab);
+            spawned.Add(nomad);
+            Animator animator = nomad.GetComponentInChildren<Animator>();
+            Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
+            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+
+            var look = new TiedPoseLook();
+            var pose = new TiedPose();
+            const float seconds = 2f;
+            float began = Time.time;
+            pose.Begin(nomad, look, seconds);
+
+            pose.Apply(began);
+            float standingHead = head.position.y;
+
+            pose.Apply(began + seconds * look.KneelEnds);
+            float kneelingHead = head.position.y;
+            Assert.Less(kneelingHead, standingHead - 0.3f, "the body did not go down onto its knees");
+            Assert.Greater(kneelingHead, hips.position.y, "the kneeling body is not upright");
+
+            pose.Apply(began + seconds);
+            Assert.Less(head.position.y, standingHead * 0.35f, "the tied body is not lying down");
+            Assert.AreEqual(1f, pose.Progress, 1e-4f);
+
+            pose.End();
+        }
+
+        [Test]
+        public void ABodyWithNoHumanAvatarIsLaidOnItsSideAndStoodBackUp()
+        {
+            // Never the root: the root is what the agent, the collider and the network move.
+            GameObject creature = NewGameObject("creature");
+            Transform model = new GameObject("Model").transform;
+            model.SetParent(creature.transform, false);
+            model.gameObject.AddComponent<Animator>();
+
+            var pose = new TiedPose();
+            pose.Begin(creature, new TiedPoseLook());
+
+            Assert.IsTrue(pose.IsPosed, "the creature was not laid down");
+            Assert.AreEqual(90f, Vector3.Angle(model.up, Vector3.up), 0.5f, "the creature is not lying on its side");
+            Assert.AreEqual(Quaternion.identity, creature.transform.rotation, "the ROOT was tipped over");
+
+            pose.End();
+
+            Assert.AreEqual(0f, Vector3.Angle(model.up, Vector3.up), 0.01f, "the creature did not stand back up");
+            Assert.AreEqual(Vector3.zero, model.localPosition, "the creature stood up somewhere else");
+        }
+
+        [Test]
+        public void AControlThatIsOnIsChosenOverOneThatIsOffOnTheSameBody()
+        {
+            // A tied character's dialogue refuses, and used to hide the drag sitting beside it.
+            GameObject body = NewGameObject("body", typeof(BoxCollider));
+            body.AddComponent<OffControl>();
+            var on = body.AddComponent<OnControl>();
+            Physics.SyncTransforms();
+
+            var hits = new RaycastHit[4];
+            int count = Physics.RaycastNonAlloc(new Ray(new Vector3(0f, 0f, -5f), Vector3.forward), hits, 10f);
+
+            Assert.IsTrue(Interactor.ResolveAlongRay(hits, count, out IInteractable chosen, out _));
+            Assert.AreSame(on, chosen, "the control that is off was chosen over the one that is on");
+        }
+
+        private class OffControl : MonoBehaviour, IInteractable
+        {
+            public bool CanInteract() => false;
+            public void Interact(Interactor interactor) { }
+        }
+
+        private class OnControl : MonoBehaviour, IInteractable
+        {
+            public bool CanInteract() => true;
+            public void Interact(Interactor interactor) { }
+        }
+
+        [Test]
+        public void ATiedBodyIsUnderPhysicsAndARopeIsAJointThatNeverPullsTheHand()
+        {
+            // The drag is Unity's physics, not scripts writing positions: a dynamic body on a joint, which is what lets a
+            // jetpack lift a captive and the ground stop one. The hand is never moved by what it holds.
+            GameObject person = NewGameObject("person");
+            person.AddComponent<HealthComponent>();
+            var root = person.AddComponent<Rigidbody>();
+            root.isKinematic = true;
+            var standing = person.AddComponent<CapsuleCollider>();
+            standing.height = 3f;
+            standing.center = new Vector3(0f, 1.5f, 0f);
+            var status = person.AddComponent<StatusReceiver>();
+            BoundBody.EnsureOn(status, new HogtieWrapLook(), new TiedPoseLook());
+            var bound = person.GetComponent<BoundBody>();
+
+            status.Apply(StatusKind.Bound);
+            Assert.IsTrue(bound.IsPhysical, "the tied body is not handed to physics where this machine owns it");
+            Assert.IsFalse(root.isKinematic, "the tied body cannot fall, slide or be lifted");
+
+            var hand = NewGameObject("hand").AddComponent<Rigidbody>();
+            var stranger = NewGameObject("stranger").AddComponent<Rigidbody>();
+            bound.Hold(hand, Vector3.zero, 2f);
+
+            ConfigurableJoint rope = bound.RopeJoint;
+            Assert.IsNotNull(rope, "holding the rope made no joint");
+            Assert.AreSame(hand, rope.connectedBody);
+            Assert.AreEqual(2f, rope.linearLimit.limit, 1e-4f, "the joint is not the rope's length");
+            Assert.AreEqual(0f, rope.connectedMassScale, "the captive's weight pulls on the hand holding it");
+
+            bound.LetGo(stranger);
+            Assert.IsNotNull(bound.RopeJoint, "somebody who was not holding the rope let it go");
+            bound.LetGo(hand);
+            Assert.IsNull(bound.RopeJoint, "the rope outlived letting go");
+
+            person.transform.rotation = Quaternion.Euler(70f, 30f, 10f);
+            status.Clear(StatusKind.Bound);
+            Assert.IsTrue(root.isKinematic, "the body was not given back the way it was found");
+            Assert.AreEqual(0f, Vector3.Angle(person.transform.up, Vector3.up), 0.01f, "the body got up lying on its side");
+        }
+
+        [Test]
+        public void ACaptiveWorksFreeOnlyByLyingStillForHalfAMinute()
+        {
+            // The user's rule: left still for 30 s the ropes come off; kept moving, never.
+            GameObject person = NewGameObject("person");
+            person.AddComponent<HealthComponent>();
+            var status = person.AddComponent<StatusReceiver>();
+            status.Apply(StatusKind.Bound);
+            var tie = (BoundStatus)status.BehaviourOf(StatusKind.Bound);
+
+            tie.OnTick(status, 29f);
+            Assert.IsTrue(status.Has(StatusKind.Bound), "the tie came off before half a minute of lying still");
+            Assert.Greater(tie.EscapeProgress, 0.9f, "lying still is not working the ropes loose");
+
+            person.transform.position += Vector3.forward;
+            tie.OnTick(status, 0.1f);
+            Assert.AreEqual(0f, tie.EscapeProgress, 1e-4f, "being dragged does not set the captive back");
+
+            tie.OnTick(status, 29f);
+            Assert.IsTrue(status.Has(StatusKind.Bound), "the time before the drag counted towards working free");
+
+            tie.OnTick(status, 1.5f);
+            Assert.IsFalse(status.Has(StatusKind.Bound), "half a minute of lying still did not free the captive");
         }
 
         [Test]
@@ -767,17 +1295,8 @@ namespace SpaceGame.EditorTools
             line = NewGameObject("rope", typeof(LineRenderer)).GetComponent<LineRenderer>();
 
             var rope = new LassoRope();
-            rope.Bind(line);
+            rope.Bind(line, null);
             return rope;
-        }
-
-        private LassoLoop NewLoop(out LineRenderer line)
-        {
-            line = NewGameObject("loop", typeof(LineRenderer)).GetComponent<LineRenderer>();
-
-            var loop = new LassoLoop();
-            loop.Bind(line);
-            return loop;
         }
 
         /// <summary>The same shape GrappleUseFlowTests builds: a body, a camera, an aim.</summary>
@@ -859,13 +1378,13 @@ namespace SpaceGame.EditorTools
             return measured == 0 ? 0f : total / measured;
         }
 
-        private static float MeanRadius(LineRenderer line, Vector3 centre)
+        private static float MeanRadius(IReadOnlyList<Vector3> shape, Vector3 centre)
         {
             float total = 0f;
-            for (int i = 0; i < line.positionCount; i++)
-                total += Vector3.Distance(line.GetPosition(i), centre);
+            foreach (Vector3 point in shape)
+                total += Vector3.Distance(point, centre);
 
-            return line.positionCount == 0 ? 0f : total / line.positionCount;
+            return shape.Count == 0 ? 0f : total / shape.Count;
         }
     }
 }

@@ -77,9 +77,10 @@ namespace SpaceGame.Items
                  "while squared up at somebody is.")]
         public bool menacing;
 
-        [Tooltip("An NPC wearing this gauntlet fires it at its target (NpcGauntletUseModule). Off by default: " +
+        [Tooltip("An NPC fires this at its target: a gauntlet it wears (NpcGauntletUseModule), or a settlement " +
+                 "resident's own held item (ResidentWeaponModule: a guard's shock harpoon). Off by default: " +
                  "most gadgets assume a player's camera, so each one opts in after it has been checked to " +
-                 "work from an NPC's aim (UsableItem.HolderAimRay).")]
+                 "work from an NPC's aim (UsableItem.HolderAimRay, or the aim NpcItemFire puts in the press).")]
         public bool npcUsable;
 
         [Tooltip("How strange this item looks to a settlement resident when you hold it in front " +

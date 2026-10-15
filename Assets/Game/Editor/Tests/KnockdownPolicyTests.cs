@@ -18,20 +18,12 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void Seconds_SmallHitAtFullHealth_DoesNotKnockDown()
-        {
-            // An assault-rifle round: 5% of health, 95% left, no knockback.
-            var bullet = new KnockdownEvent(RagdollCause.Hit, 0.05f, 0.95f, 0f);
-            Assert.AreEqual(0f, KnockdownPolicy.Seconds(bullet, Tuning()));
-        }
-
-        [Test]
-        public void Seconds_Hit_GrowsWithDamage_LowHealth_AndKnockback()
+        public void Seconds_Blast_GrowsWithLowHealth_AndKnockback()
         {
             KnockdownTuning t = Tuning();
-            float moderate = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Hit, 0.3f, 0.7f, 0f), t);
-            float nearlyDead = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Hit, 0.3f, 0.1f, 0f), t);
-            float shoved = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Hit, 0.3f, 0.7f, 15f), t);
+            float moderate = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Blast, 0f, 0.7f, 5f), t);
+            float nearlyDead = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Blast, 0f, 0.1f, 5f), t);
+            float shoved = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Blast, 0f, 0.7f, 15f), t);
 
             Assert.GreaterOrEqual(moderate, t.minSeconds);
             Assert.Greater(nearlyDead, moderate, "less health left must keep you down longer");
@@ -41,7 +33,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Seconds_NeverExceedTheMaximum()
         {
-            var brutal = new KnockdownEvent(RagdollCause.Hit, 0.9f, 0.01f, 80f);
+            var brutal = new KnockdownEvent(RagdollCause.Blast, 0.9f, 0.01f, 80f);
             Assert.AreEqual(Tuning().maxSeconds, KnockdownPolicy.Seconds(brutal, Tuning()), 1e-4f);
         }
 
@@ -49,18 +41,9 @@ namespace SpaceGame.EditorTools
         public void Seconds_Blast_AlwaysKnocksDown_EvenWithNoDamage()
         {
             // The gauntlet deals no damage; its whole price is the knockdown.
-            var puff = new KnockdownEvent(RagdollCause.Blast, 0f, 1f, 2f);
-            Assert.AreEqual(Tuning().minSeconds, KnockdownPolicy.Seconds(puff, Tuning()), 1e-4f);
-        }
-
-        [Test]
-        public void Immune_BlocksHitsJustAfterStandingUp_ButNotBlasts()
-        {
             KnockdownTuning t = Tuning();
-            Assert.IsTrue(KnockdownPolicy.Immune(RagdollCause.Hit, 0.2f, t));
-            Assert.IsFalse(KnockdownPolicy.Immune(RagdollCause.Hit, t.reknockImmunitySeconds + 0.01f, t));
-            Assert.IsFalse(KnockdownPolicy.Immune(RagdollCause.Blast, 0.2f, t));
-            Assert.IsFalse(KnockdownPolicy.Immune(RagdollCause.Fall, 0.2f, t));
+            float puff = KnockdownPolicy.Seconds(new KnockdownEvent(RagdollCause.Blast, 0f, 1f, 0f), t);
+            Assert.AreEqual(t.minSeconds, puff, 1e-4f);
         }
 
         [Test]

@@ -126,6 +126,27 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Is any rope attached to <paramref name="body"/> — at either end, so a body holding a rope
+        /// counts as much as one caught by it?
+        ///
+        /// <para>
+        /// Unlike the two cuts above this is answered on EVERY machine, and that is what it is for:
+        /// a rope is registered wherever a copy of its item is held, and its state is replicated
+        /// there, while the creature-end constraint a lasso puts on (<see cref="LassoTether"/>) lives
+        /// on the server alone. A client asking "is this animal roped" of the tether gets no.
+        /// </para>
+        /// </summary>
+        public static bool AnyBinds(GameObject body)
+        {
+            if (body == null) return false;
+
+            for (int i = 0; i < Live.Count; i++)
+                if (Live[i] != null && Live[i].Binds(body)) return true;
+
+            return false;
+        }
+
+        /// <summary>
         /// Squared distance between segment <paramref name="p1"/>→<paramref name="q1"/> and segment
         /// <paramref name="p2"/>→<paramref name="q2"/>.
         ///

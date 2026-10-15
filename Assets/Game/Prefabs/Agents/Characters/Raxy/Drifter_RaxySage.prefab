@@ -1902,6 +1902,7 @@ GameObject:
   - component: {fileID: 1627078671000445182}
   - component: {fileID: 1896134876319778719}
   - component: {fileID: 4894154341834722496}
+  - component: {fileID: 1654879949104168110}
   m_Layer: 0
   m_Name: Drifter_RaxySage
   m_TagString: Untagged
@@ -2304,7 +2305,6 @@ MonoBehaviour:
   - Ears are cold. Ears are always cold.
   - Quiet today. Good quiet.
   silentWhileFighting: 1
-  voiceId: 401
   voiceSound:
     Guid:
       Data1: 0
@@ -2359,7 +2359,6 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
-  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -2444,6 +2443,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 0}
   animatorDriver: {fileID: 0}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &5037399109635835349
@@ -2463,7 +2463,6 @@ MonoBehaviour:
   dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -2476,7 +2475,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -2523,7 +2521,6 @@ MonoBehaviour:
   restartFromBeginningAfterSeconds: 10
   useDelayBetweenDialogues: 1
   dialogueDelaySeconds: 1.5
-  voiceId: 401
   voiceSound:
     Guid:
       Data1: 0
@@ -2964,15 +2961,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &3489897784612543131
@@ -3397,30 +3391,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
---- !u!114 &1896134876319778719
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6643838780466197570}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
---- !u!114 &4894154341834722496
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6643838780466197570}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
 --- !u!205 &1627078671000445182
 LODGroup:
   m_ObjectHideFlags: 0
@@ -3453,6 +3423,61 @@ LODGroup:
     renderers:
     - renderer: {fileID: 6372609939414683542}
   m_Enabled: 1
+--- !u!114 &1896134876319778719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6643838780466197570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
+--- !u!114 &4894154341834722496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6643838780466197570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
+--- !u!114 &1654879949104168110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6643838780466197570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cd327d71ce36471e9a2d58922d443ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentWeaponModule
+  priority: 22
+  active: 1
+  trigger: 0
+  minRange: 4
+  maxRange: 20
+  hurtThreshold: 0.4
+  cooldown: 7.5
+  burstCount: 1
+  burstInterval: 0.14
+  reactionDelay: 0.45
+  targetHeightOffset: 1.1
+  leadSeconds: 0.25
+  spreadDegrees: 2.5
+  requireLineOfSight: 1
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  claimFacing: 1
+  facingPriority: 22
 --- !u!1 &6743850976863446703
 GameObject:
   m_ObjectHideFlags: 0

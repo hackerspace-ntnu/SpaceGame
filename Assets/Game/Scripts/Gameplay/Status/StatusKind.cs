@@ -40,6 +40,12 @@ namespace SpaceGame.Gameplay.Status
         /// <see cref="Frozen"/>, limp like <see cref="Foamed"/>, and never lethal on its own.
         /// </summary>
         Shocked = 6,
+
+        /// <summary>
+        /// Tied up by a lasso: helpless and kept on its feet, rope round the middle, and cannot
+        /// struggle out. Ends when it runs out, or with a respawn.
+        /// </summary>
+        Bound = 7,
     }
 
     /// <summary>
@@ -55,6 +61,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 7;
+        public const int Count = 8;
     }
 }

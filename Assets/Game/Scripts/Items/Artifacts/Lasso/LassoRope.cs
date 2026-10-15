@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -73,8 +74,7 @@ namespace SpaceGame.Items
                  "grapple's cable tapers because it is a cable being paid out of a gun, which is " +
                  "a different object — copying that here made the far end of the rope, which is " +
                  "the end the player is looking at, the thinnest part of it.\n\n" +
-                 "Matches the loop's authored width, because the loop IS this rope. Keep the two " +
-                 "equal.")]
+                 "The loop is drawn as the end of this same line, so this is its width too.")]
         [SerializeField] private float width = 0.062f;
 
         [Tooltip("Metres of rope one repeat of the material's texture covers.\n\n" +
@@ -88,8 +88,8 @@ namespace SpaceGame.Items
         [Tooltip("What the rope is made of. Left empty the LineRenderer keeps whatever was " +
                  "authored on it, which is how this ended up drawn in Custom_Wood — a surface " +
                  "material off a prop, stretched once across up to 26 m of cable.\n\n" +
-                 "Assigned rather than authored for the reason LeashRope assigns its own: the rope " +
-                 "and the loop are the same rope and must not be able to drift onto two materials.")]
+                 "Assigned rather than authored for the reason LeashRope assigns its own: the " +
+                 "prefab's LineRenderer carries whatever the last effect copied onto it wanted.")]
         [SerializeField] private Material material;
 
         [Header("Bite — the tension crack")]
@@ -101,6 +101,8 @@ namespace SpaceGame.Items
         [SerializeField] private float snapWaves = 3f;
 
         private LineRenderer line;
+        private LassoLoop loop;
+        private Vector3[] drawn = System.Array.Empty<Vector3>();
         private Vector3[] pos;
         private Vector3[] prev;
         private Vector3[] smoothed;
@@ -109,8 +111,25 @@ namespace SpaceGame.Items
         /// <summary>Whether there is a renderer to draw into at all.</summary>
         public bool IsBound => line != null;
 
-        /// <summary>Hand over the renderer. Safe with null — the lasso simply draws no rope.</summary>
-        public void Bind(LineRenderer renderer) => line = renderer;
+        /// <summary>The rope's thickness, metres — the loop's too, since it is drawn on this line.</summary>
+        public float Width => width;
+
+        /// <summary>
+        /// Hand over the renderer, and the loop tied on the far end. Safe with null — the lasso simply
+        /// draws no rope, or a rope with no loop on it.
+        ///
+        /// <para>
+        /// The loop is drawn on this same line, on past the honda and round, rather than on a renderer
+        /// of its own: two LineRenderers meeting at the knot are two ribbons with two ends, two texture
+        /// starts and two independent turns towards the camera, and the eye reads that as a ring hung
+        /// on a rope. One line is one rope.
+        /// </para>
+        /// </summary>
+        public void Bind(LineRenderer renderer, LassoLoop tiedOn)
+        {
+            line = renderer;
+            loop = tiedOn;
+        }
 
         /// <summary>
         /// Start a rope between these two points.
@@ -421,12 +440,26 @@ namespace SpaceGame.Items
             prev[pos.Length - 1] = end;
         }
 
+        /// <summary>
+        /// The chain, then the loop on past its end. The loop's first point is the honda the chain was
+        /// pinned to, so it is skipped rather than drawn twice: a zero-length segment has no direction
+        /// for the ribbon to face and pinches the line at exactly the knot.
+        /// </summary>
         private void Redraw()
         {
             if (line == null || !line.enabled || pos == null) return;
 
-            if (line.positionCount != pos.Length) line.positionCount = pos.Length;
-            line.SetPositions(pos);
+            IReadOnlyList<Vector3> tail = loop != null ? loop.Shape : null;
+            int extra = tail != null && tail.Count > 1 ? tail.Count - 1 : 0;
+
+            int count = pos.Length + extra;
+            if (drawn.Length != count) drawn = new Vector3[count];
+
+            System.Array.Copy(pos, drawn, pos.Length);
+            for (int i = 0; i < extra; i++) drawn[pos.Length + i] = tail[i + 1];
+
+            if (line.positionCount != count) line.positionCount = count;
+            line.SetPositions(drawn);
         }
     }
 }

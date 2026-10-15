@@ -314,6 +314,39 @@ namespace SpaceGame.Gameplay
         /// Hierarchy to treat as invisible — the interacting player's own body. Optional so tests
         /// can resolve a ray without building a player.
         /// </param>
+        /// <summary>Scratch for <see cref="OfferingAlong"/>. Never held across a call.</summary>
+        private static readonly List<IInteractable> Candidates = new List<IInteractable>();
+
+        /// <summary>
+        /// The interactable a solid collider answers with: the nearest one on it or above it that is
+        /// on offer right now, and the nearest one at all when none is.
+        ///
+        /// <para>
+        /// One body can carry more than one — a character's dialogue, and the lasso's drag once it
+        /// is tied up. Taking the nearest regardless, which this used to, let a dialogue that is
+        /// refusing (a tied-up character has nothing to say) hide the drag sitting beside it, and
+        /// the crosshair lit up on neither. Falling back to the nearest keeps everything else as it
+        /// was: a body whose only control is off still blocks the line of sight and still names
+        /// itself in the reticle.
+        /// </para>
+        /// <para>
+        /// The non-contextual <see cref="IInteractable.CanInteract()"/> only, because this is static
+        /// and has no interactor to ask the contextual half — which is per-person and must stay out
+        /// of a choice made for whoever happens to look.
+        /// </para>
+        /// </summary>
+        private static IInteractable OfferingAlong(Collider collider)
+        {
+            Candidates.Clear();
+            collider.GetComponentsInParent(false, Candidates);
+            if (Candidates.Count == 0) return null;
+
+            foreach (IInteractable candidate in Candidates)
+                if (candidate.CanInteract()) return candidate;
+
+            return Candidates[0];
+        }
+
         public static bool ResolveAlongRay(RaycastHit[] hits, int count,
                                            out IInteractable interactable, out RaycastHit chosen,
                                            Transform ignoreRoot = null)
@@ -352,8 +385,7 @@ namespace SpaceGame.Gameplay
                     return true;
                 }
 
-                IInteractable target = collider.GetComponent<IInteractable>()
-                                       ?? collider.GetComponentInParent<IInteractable>();
+                IInteractable target = OfferingAlong(collider);
                 chosen = hits[index];
                 if (target == null) return false;   // solid and inert: it blocks the line of sight
 

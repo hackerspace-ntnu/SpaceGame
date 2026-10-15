@@ -61,6 +61,7 @@ namespace SpaceGame.Agents.Residents
         private bool steppingIn;
         private NavMeshAgentMotor motor;
         private ResidentAwareness awareness;
+        private ResidentWeaponModule weapon;
         private float attendingUntil = float.NegativeInfinity;
         private readonly ErrandRunner errands = new();
         private ResidentSeating seating;
@@ -100,6 +101,7 @@ namespace SpaceGame.Agents.Residents
             resident = GetComponent<Resident>();
             motor = GetComponent<NavMeshAgentMotor>();
             awareness = GetComponentInChildren<ResidentAwareness>(true);
+            weapon = GetComponent<ResidentWeaponModule>();
             seating = new ResidentSeating(gameObject);
             pushing = new ResidentPushing(gameObject);
         }
@@ -405,7 +407,8 @@ namespace SpaceGame.Agents.Residents
                                                         ResidentTuning.Instance.attendResumeSeconds, ref attendingUntil);
             // Hands on a cart while working at a post that has one by it; anything else lets go and leaves the cart standing.
             pushing.Sync(resident.archetype != null && resident.archetype.pushesCart && shown == Activity.Work && heldPlace != ResidentPresence.NoPlace);
-            resident.Presence.Publish(shown, carried, false, heldPlace, attending, seating.SeatId, pushing.CartId);
+            bool armed = weapon != null && weapon.Armed;
+            resident.Presence.Publish(shown, carried, false, heldPlace, attending, seating.SeatId, pushing.CartId, armed);
         }
 
         private static Activity Holding(Activity planned) => planned switch

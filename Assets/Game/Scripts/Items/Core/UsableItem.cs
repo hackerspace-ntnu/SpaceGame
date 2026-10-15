@@ -231,6 +231,15 @@ namespace SpaceGame.Items
         protected bool PlayOnHolder(CharacterAction action, ItemGrip.Hand? arm = null) =>
             action != null && holderActions != null && holderActions.Play(action, arm);
 
+        /// <summary>
+        /// Stop <paramref name="action"/> on the holder's body, through its exit clip if it has one —
+        /// the end of a loop <see cref="PlayOnHolder"/> started. Nothing if it is not what is playing.
+        /// </summary>
+        protected void StopOnHolder(CharacterAction action)
+        {
+            if (action != null && holderActions != null) holderActions.Stop(action);
+        }
+
         /// <summary>The arm this item is used with: the forearm it is worn on, or the hand gripping it.</summary>
         protected ItemGrip.Hand? UsingArm
         {

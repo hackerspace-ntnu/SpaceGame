@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation.Speech;
+using SpaceGame.World.Bounties;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -106,6 +107,14 @@ namespace SpaceGame.Agents.Residents
 
         private bool Answer(Transform player, Stance stance, bool met, Observation seen)
         {
+            // While the crew hunt a bounty taken here, being asked is being asked about the outlaw.
+            BountyBoard bounties = BountyBoard.Instance;
+            if (bounties != null && bounties.AsksAbout(resident) && Speak(Topic.Whereabouts, player, stance, seen, null, null, addressed: true))
+            {
+                bounties.TipHeard();
+                return true;
+            }
+
             for (int i = 0; met && i < conversation.Length; i++)
             {
                 if (!Speak(conversation[(conversationTurn + i) % conversation.Length], player, stance, seen, null, null, addressed: true))

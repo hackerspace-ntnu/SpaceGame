@@ -146,8 +146,12 @@ namespace SpaceGame.Gameplay
         /// is a static helper with no MonoBehaviour to run one on.
         /// </para>
         /// </param>
+        /// <param name="radius">
+        /// The blast radius the damage used, handed to the prefab's <see cref="IStrikeEffect"/> so
+        /// a strike that covers ground — thorns — covers exactly what was hit. A bolt ignores it.
+        /// </param>
         public static GameObject Present(GameObject vfxPrefab, Vector3 drawFrom,
-                                         Vector3 landsAt, float lifetime = 0f)
+                                         Vector3 landsAt, float lifetime = 0f, float radius = 0f)
         {
             if (vfxPrefab == null) return null;
 
@@ -162,9 +166,11 @@ namespace SpaceGame.Gameplay
             // which is why raising the conjurer to 100 m left a bolt in the sky.
             //
             // GetComponentInChildren rather than GetComponent so the prefab is free to put
-            // the renderer under a child with the impact flash and light beside it.
-            var bolt = spawned.GetComponentInChildren<LightningBoltEffect>();
-            if (bolt != null) bolt.Strike(drawFrom, landsAt);
+            // the renderer under a child with the impact flash and light beside it. Asked for
+            // the interface, not the bolt, so the same caster can deliver a different strike
+            // (the witch's thorns) by being handed a different prefab.
+            var effect = spawned.GetComponentInChildren<IStrikeEffect>();
+            if (effect != null) effect.Strike(drawFrom, landsAt, radius);
 
             if (lifetime > 0f) Object.Destroy(spawned, lifetime);
 

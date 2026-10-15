@@ -42,6 +42,7 @@ namespace SpaceGame.Gameplay.Status
         [SerializeField] private InflatedStatus inflated = new InflatedStatus();
         [SerializeField] private FoamedStatus foamed = new FoamedStatus();
         [SerializeField] private SwallowedStatus swallowed = new SwallowedStatus();
+        [SerializeField] private StasisStatus stasis = new StasisStatus();
 
         [Header("Body")]
         [Tooltip("What the Inflated condition scales. Leave empty to scale this object itself, " +
@@ -512,6 +513,7 @@ namespace SpaceGame.Gameplay.Status
                 Slot(inflated);
                 Slot(foamed);
                 Slot(swallowed);
+                Slot(stasis);
                 return behaviours;
             }
         }

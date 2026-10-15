@@ -24,6 +24,7 @@ namespace SpaceGame.Gameplay.Objectives
 
         private readonly HashSet<InventoryItem> used = new();
         private readonly HashSet<ulong> finished = new();
+        private readonly HashSet<(QuestMark, string)> marks = new();
         private readonly List<ScanContact> contacts = new(LooseSearchLimit);
 
         /// <summary>
@@ -43,12 +44,35 @@ namespace SpaceGame.Gameplay.Objectives
         /// </summary>
         public LearnControlsStep.Control LocalControlsUsed { get; set; }
 
+        /// <summary>
+        /// EVERY machine: <c>Time.time</c> when this machine last saw the step change — reached, joined
+        /// into or restored. A step timed from here starts its clock again after a reload.
+        /// </summary>
+        public float StepStartedAt { get; private set; }
+
+        /// <summary>Seconds since <see cref="StepStartedAt"/>.</summary>
+        public float StepSeconds => Time.time - StepStartedAt;
+
         /// <summary>The crew have moved to another step: nothing remembered for the last one counts.</summary>
         public void ForgetStep()
         {
             used.Clear();
             finished.Clear();
+            marks.Clear();
             LocalControlsUsed = LearnControlsStep.Control.None;
+            StepStartedAt = Time.time;
+        }
+
+        /// <summary>SERVER: <paramref name="mark"/> happened to <paramref name="id"/> during the current step.</summary>
+        public void RecordMark(QuestMark mark, string id) => marks.Add((mark, id));
+
+        public bool HasMark(QuestMark mark, string id) => marks.Contains((mark, id));
+
+        /// <summary>The crew member standing nearest <paramref name="point"/>, flat distance, or null when nobody is spawned.</summary>
+        public Transform NearestCrew(Vector3 point, out float distance)
+        {
+            PlayerIdentity nearest = PlayerIdentity.Nearest(point, float.PositiveInfinity, out distance);
+            return nearest != null ? nearest.transform : null;
         }
 
         /// <summary>SERVER: somebody fired <paramref name="item"/> during the current step.</summary>
@@ -89,6 +113,17 @@ namespace SpaceGame.Gameplay.Objectives
         /// </summary>
         public bool TryFindLoose(InventoryItem item, Vector3 near, float radius, out Vector3 position)
         {
+            return TryFindLoosePickup(item, near, radius, out _, out position);
+        }
+
+        /// <summary>
+        /// The nearest copy of <paramref name="item"/> lying loose within <paramref name="radius"/> of
+        /// <paramref name="near"/>, as the pickup itself — for a step that takes the thing away.
+        /// </summary>
+        public bool TryFindLoosePickup(InventoryItem item, Vector3 near, float radius,
+                                       out PickupableItem found, out Vector3 position)
+        {
+            found = null;
             position = default;
             if (item == null) return false;
 
@@ -104,6 +139,7 @@ namespace SpaceGame.Gameplay.Objectives
                 // the thing it is pointing them at. The mark is what every equip path puts on it.
                 if (BodyAttachment.Covers(pickup.transform, null)) continue;
 
+                found = pickup;
                 position = contact.Position;
                 return true;
             }

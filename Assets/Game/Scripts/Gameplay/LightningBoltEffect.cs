@@ -30,7 +30,7 @@ using UnityEngine;
 namespace SpaceGame.Gameplay
 {
     [RequireComponent(typeof(LineRenderer))]
-    public class LightningBoltEffect : MonoBehaviour
+    public class LightningBoltEffect : MonoBehaviour, IStrikeEffect
     {
         [SerializeField] private LineRenderer line;
 
@@ -99,6 +99,9 @@ namespace SpaceGame.Gameplay
             // or a caller that does not know about this component. Fall straight down.
             if (!_struck) Strike(transform.position, transform.position + Vector3.down * fallbackDrop);
         }
+
+        /// <summary>A bolt has no width to fit to a blast, so the radius is the strike's business, not the bolt's.</summary>
+        void IStrikeEffect.Strike(Vector3 from, Vector3 to, float radius) => Strike(from, to);
 
         /// <summary>
         /// Draw a bolt between two world points. Safe to call immediately after Instantiate --

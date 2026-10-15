@@ -19,7 +19,7 @@ symptoms:
   - "Could not start a local session on port N / another program may be using it"
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-28
+updated: 2026-10-15
 ---
 
 # Multiplayer / Netcode core
@@ -55,6 +55,7 @@ Unity Netcode for GameObjects wrapped in one generic message channel, one author
 | `NetAuthority` | [NetAuthority.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs) | Disables simulation drivers + freezes the Rigidbody on remote copies; `IsSimulatedHere`; adopts spawn pose; idempotent `Refresh` on Start/spawn/ownership change |
 | `SimulationDrivers` | [SimulationDrivers.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/SimulationDrivers.cs) | What counts as a driver (`AgentController`, `IMovementMotor`, `NavMeshAgent`); `BelongsTo` stops the sweep at the `NetworkObject` boundary |
 | `NetworkedTeleport` | [NetworkedTeleport.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs) | `Move(go,pos,rot)`: the owner performs it, server RPCs the owner; falls through to `SaveTeleport` |
+| `SharedClock` | [SharedClock.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/SharedClock.cs) | `Now`: `ServerTime.Time` while listening, else local time — for presentation every machine must show together with no message (idle fidgets, the witch's pulse) |
 | `ClientNetworkTransform`/`ClientNetworkAnimator` | [ClientNetworkTransform.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/ClientNetworkTransform.cs) | Owner-authoritative overrides for client-driven bodies |
 | `SessionLauncher` (+`.Relay`, `.Direct`) | [SessionLauncher.cs](Assets/Game/Scripts/Core/Multiplayer/Session/SessionLauncher.cs) | The only place a session starts; never throws, returns `SessionResult`. `HostLocal` (solo), `HostRelayAsync`/`JoinRelayAsync` (players), `HostDirect`/`JoinDirect` (**test only**) |
 | `NetworkBootstrap` | [NetworkBootstrap.cs](Assets/Game/Scripts/Core/Multiplayer/Session/NetworkBootstrap.cs) | Editor-only NetworkManager backfill; strips inert scene `NetworkObject`s; `LogRegisteredPrefabCount` |

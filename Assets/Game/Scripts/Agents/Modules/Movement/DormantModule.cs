@@ -27,6 +27,10 @@
 //
 // It does not wake on damage. Shooting a sleeping conjurer leaves it asleep. That is scope,
 // not an oversight: add a HealthComponent hook here if it should flinch awake.
+//
+// CanWake is the gate for a creature whose waking is a story beat rather than a proximity check --
+// Merob sleeps under the witch's curse and nobody walking up to him may wake him until she is
+// dead. False holds it asleep whoever comes close; WakeNow still works, because that IS the beat.
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -62,6 +66,16 @@ namespace SpaceGame.Agents
         [Tooltip("Bool latched true once the creature is awake. Gates the attack, so a sleeping " +
                  "creature cannot be startled straight into a cast by the Any State edge.")]
         [SerializeField] private string awakeBool = "Awake";
+
+        /// <summary>
+        /// Whether a hostile coming close may wake it. False holds it asleep for a quest to wake
+        /// with <see cref="WakeNow"/>. Not serialized: whoever owns the beat sets it every time the
+        /// creature is loaded.
+        /// </summary>
+        public bool CanWake { get; set; } = true;
+
+        /// <summary>Still asleep: neither waking nor handed over.</summary>
+        public bool IsAsleep => phase == Phase.Asleep;
 
         private Phase phase = Phase.Asleep;
         private float timer;
@@ -138,6 +152,9 @@ namespace SpaceGame.Agents
 
         private void TickAsleep(float deltaTime)
         {
+            if (!CanWake)
+                return;
+
             // Resolved by RELATIONSHIP, not by "the player" — the same call WatchModule makes. It
             // costs nothing here and it is what makes this work for a second player, for a
             // hostile NPC, and on a dedicated server where there is no local player at all.

@@ -1,3 +1,4 @@
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,9 +7,10 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The crew's current objective on the visor: a panel in the top-right corner under the
+    /// The crew's focused objective on the visor: a panel in the top-right corner under the
     /// integrity gauge — heading, title, the step's status lines, range — and a waypoint mark on
-    /// the place it points at.
+    /// the place it points at. Any other chain under way gets one dim line at the foot of the
+    /// panel, so a side quest never hides the main one.
     ///
     /// <para>
     /// <b>Built to be noticed</b> (<c>GDC-L1-UX-0003</c>): during the opening it is the most
@@ -26,7 +28,7 @@ namespace SpaceGame.Presentation
     /// </para>
     /// <para>
     /// On the Annotations layer: it describes the world, so it goes quiet with the middle H level
-    /// along with the reticle. Reads <see cref="ObjectiveDirector"/> on this machine every frame and
+    /// along with the reticle. Reads <see cref="ObjectiveDirector.Focused"/> on this machine every frame and
     /// holds nothing of its own, so a late joiner and a reloaded world draw it with no catching up.
     /// </para>
     /// </summary>
@@ -63,6 +65,9 @@ namespace SpaceGame.Presentation
         [SerializeField] private int statusSize = 20;
 
         [SerializeField] private string heading = "OBJECTIVE";
+
+        [Tooltip("Before the titles of the other chains under way, on the panel's last line.")]
+        [SerializeField] private string alsoPrefix = "ALSO";
 
         [Tooltip("Seconds the panel takes to fade in or out when an objective starts or ends.")]
         [SerializeField, Min(0.01f)] private float fadeSeconds = 0.3f;
@@ -106,6 +111,8 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI titleLabel;
         private TextMeshProUGUI statusLabel;
         private TextMeshProUGUI rangeLabel;
+        private TextMeshProUGUI alsoLabel;
+        private readonly StringBuilder alsoText = new();
 
         private RectTransform marker;
         private CanvasGroup markerGroup;
@@ -127,7 +134,8 @@ namespace SpaceGame.Presentation
         private void LateUpdate()
         {
             ObjectiveDirector director = ObjectiveDirector.Instance;
-            ObjectiveStep step = director != null ? director.Current : null;
+            ObjectiveRun run = director != null ? director.Focused : null;
+            ObjectiveStep step = run?.Current;
             float now = Time.unscaledTime;
 
             panelAlpha = Mathf.MoveTowards(panelAlpha, step != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
@@ -146,12 +154,12 @@ namespace SpaceGame.Presentation
                 nextTextRefresh = now;
             }
 
-            ShowText(director.World, step, now);
+            ShowText(director, run, step, now);
             Announce(now);
-            ShowWaypoint(director.World, step);
+            ShowWaypoint(run.World, step);
         }
 
-        private void ShowText(ObjectiveWorld world, ObjectiveStep step, float now)
+        private void ShowText(ObjectiveDirector director, ObjectiveRun focused, ObjectiveStep step, float now)
         {
             // Status can change every frame (a checklist ticking) but composing it every frame
             // would allocate a string a frame for nothing.
@@ -159,7 +167,23 @@ namespace SpaceGame.Presentation
             nextTextRefresh = now + TextRefreshSeconds;
 
             SetText(titleLabel, step.Title);
-            SetText(statusLabel, step.Status(world));
+            SetText(statusLabel, step.Status(focused.World));
+            SetText(alsoLabel, OtherTitles(director, focused));
+        }
+
+        /// <summary>"ALSO  Repair the ship · Find the witch's hut", or empty when nothing else is under way.</summary>
+        private string OtherTitles(ObjectiveDirector director, ObjectiveRun focused)
+        {
+            alsoText.Clear();
+            foreach (ObjectiveRun run in director.Runs)
+            {
+                if (run == focused || run.Current == null) continue;
+
+                alsoText.Append(alsoText.Length == 0 ? $"{alsoPrefix}  " : "  ·  ");
+                alsoText.Append(run.Current.Title);
+            }
+
+            return alsoText.ToString();
         }
 
         private void Announce(float now)
@@ -258,6 +282,7 @@ namespace SpaceGame.Presentation
 
             statusLabel = Line("Status", statusSize, VisorStyle.Ink);
             rangeLabel = Line("Range", VisorStyle.MicroSize, VisorStyle.InkDim);
+            alsoLabel = Line("Also", VisorStyle.MicroSize, VisorStyle.InkDim);
 
             marker = UIBuilder.Rect("Waypoint", root);
             marker.anchorMin = marker.anchorMax = Vector2.zero;

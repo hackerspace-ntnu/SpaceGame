@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7165aa3601d3264682078335aaed4d1, type: 3}
+  m_Name: SpriteHamletChain
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
+  id: sprite-hamlet
+  speaker: OATHKEEPERS
+  steps:
+  - {fileID: 11400000, guid: cd56f4fc394685a43a2b96a718aa6b6c, type: 2}
+  - {fileID: 11400000, guid: 5306c5f5980a5ac4b844207c9a15acf9, type: 2}
+  - {fileID: 11400000, guid: 081439866d04d184c8c9f8585756d43d, type: 2}
+  - {fileID: 11400000, guid: 64c01be05f2fc9548806f8b8dfa69b0f, type: 2}
+  - {fileID: 11400000, guid: 1bd9860b0533bda438afe03f6ead04c1, type: 2}
+  - {fileID: 11400000, guid: b752d6643bce8f24e8a1359d17db4cd4, type: 2}
+  - {fileID: 11400000, guid: 5c3e717cbf56ccd4f81fbfec3bf30608, type: 2}
+  - {fileID: 11400000, guid: f0911246fcc524e49b3e93101a58e685, type: 2}
+  - {fileID: 11400000, guid: 4cb86633b3d1cd84695a70efd811eabb, type: 2}
+  - {fileID: 11400000, guid: e004d08e2fa5adf4295dad2c2fc3e8ed, type: 2}
+  - {fileID: 11400000, guid: 478f79adb0851444e931dbad7719bc4e, type: 2}
+  - {fileID: 11400000, guid: 68000e9208703fa458d9ebd1577209a8, type: 2}

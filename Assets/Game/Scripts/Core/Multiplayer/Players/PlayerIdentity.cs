@@ -84,6 +84,32 @@ namespace SpaceGame.Core
         public static IReadOnlyList<PlayerIdentity> All => instances;
 
         /// <summary>
+        /// The spawned player nearest <paramref name="point"/> by ground distance (height ignored),
+        /// within <paramref name="maxDistance"/>; null when there is none.
+        /// </summary>
+        public static PlayerIdentity Nearest(Vector3 point, float maxDistance, out float distance)
+        {
+            PlayerIdentity nearest = null;
+            distance = maxDistance;
+
+            foreach (PlayerIdentity player in instances)
+            {
+                if (player == null) continue;
+
+                Vector3 delta = player.transform.position - point;
+                delta.y = 0f;
+                float d = delta.magnitude;
+                if (d > distance) continue;
+
+                distance = d;
+                nearest = player;
+            }
+
+            if (nearest == null) distance = float.PositiveInfinity;
+            return nearest;
+        }
+
+        /// <summary>
         /// The name to show. Falls back to the client id while the name is still in flight, so a
         /// player list never has a blank row for someone who has only just joined.
         /// </summary>

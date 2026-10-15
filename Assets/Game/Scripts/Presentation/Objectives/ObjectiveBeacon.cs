@@ -5,7 +5,7 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// A column of light standing over whatever the current objective has left lying in the open —
+    /// A column of light standing over whatever the focused objective has left lying in the open —
     /// the module from the wreck, the artifact thrown clear — so it can be picked out from the
     /// ramp a hundred metres away.
     ///
@@ -79,11 +79,11 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            ObjectiveDirector director = ObjectiveDirector.Instance;
-            ObjectiveStep step = director != null ? director.Current : null;
+            ObjectiveRun run = ObjectiveDirector.Instance != null ? ObjectiveDirector.Instance.Focused : null;
+            ObjectiveStep step = run?.Current;
 
             Vector3 at = default;
-            bool shown = step != null && step.TryGetBeacon(director.World, out at);
+            bool shown = step != null && step.TryGetBeacon(run.World, out at);
 
             if (column.gameObject.activeSelf != shown) column.gameObject.SetActive(shown);
             if (shown) Place(at);

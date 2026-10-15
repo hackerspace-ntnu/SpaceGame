@@ -37,6 +37,7 @@ namespace SpaceGame.EditorTools
             ["Flamethrower"]        = "the hand-held one; the gauntlet version is gear and is not listed",
             ["CryoSprayer"]         = "freezes whatever it is pointed at",
             ["ConjurerStaff"]       = "calls down a bolt where it is aimed",
+            ["Oathbranch"]          = "fires a stasis bolt where it is aimed",
             ["BottledSingularity"]  = "thrown, and it takes whoever is nearby with it",
         };
 

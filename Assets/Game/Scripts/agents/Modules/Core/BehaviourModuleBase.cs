@@ -47,6 +47,9 @@ namespace SpaceGame.Agents
 
         public int Priority => priority;
         public bool IsActive => active && enabled && gameObject.activeInHierarchy;
+        // The Inspector switch, for a module that silences another for a while (QuestHoldModule).
+        // Separate from `enabled`, so it never fights a component that toggles that one.
+        public bool Active { get => active; set => active = value; }
         // Override to false in modules that only fire side effects and never return a MoveIntent.
         public virtual bool ClaimsMovement => true;
 

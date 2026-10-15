@@ -27,8 +27,8 @@ symptoms:
   - "no hint ever appears telling me how to get out of the crashed ship"
   - "some players could look around during the intro descent and others could not, or kept their HUD through it"
   - "a cutscene locked or blacked out the wrong player in a multiplayer session"
-reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio, Diagnostics]
-updated: 2026-09-28
+reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio, Diagnostics, SpriteHamletQuest]
+updated: 2026-10-15
 ---
 
 # Cutscenes & Presentation
@@ -66,10 +66,14 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
 
 | Action | File | What it does |
 | --- | --- | --- |
-| `LookAtCutscene` | [Actions/LookAtCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/LookAtCutscene.cs) | Slerp camera rotation to `target`, hold, slerp back. Rotation only. `Target` is settable for a runtime target — `ObjectiveBriefing` aims it at a hull socket ([Objectives](Objectives.md)) |
+| `LookAtCutscene` | [Actions/LookAtCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/LookAtCutscene.cs) | Slerp camera rotation to `target`, hold, slerp back. Rotation only. `Target` is settable for a runtime target — `ObjectiveBriefing` aims it at a hull socket ([Objectives](Objectives.md)). Its `BlendRotation` is public and shared with `DialogueCutscene` |
+| `DialogueCutscene` | [Actions/DialogueCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/DialogueCutscene.cs) | A `QuestActor` addresses the player: waits up to `speakerWait` for a spawned speaker to exist locally (bounded), looks at them, types `lines` through `NpcDialogPopupUI`, looks back. Started per machine by `QuestStepCutscene` on a live quest-step arrival ([SpriteHamletQuest](SpriteHamletQuest.md)); the server holds the speaker still with `QuestHoldModule` |
 | `CameraShakeCutscene` | [Actions/CameraShakeCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/CameraShakeCutscene.cs) | Perlin pos+rot jitter, quadratic decay, exact local-pose restore. Own noise, **not** `ShakeMath` |
 | `WalkThroughDoorCutscene` | [Actions/WalkThroughDoorCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/WalkThroughDoorCutscene.cs) | Eased FP camera glide to `throughPoint`'s pose. Moves the camera, not the body |
-| `ThirdPersonWalkThroughCutscene` | [Actions/ThirdPersonWalkThroughCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ThirdPersonWalkThroughCutscene.cs) | Disables player cam + `AudioListener`, spawns `CutsceneTempCamera`, dollies `startOffset`→`endOffset` while lerping the player Rigidbody to `throughPoint`; `finally` restores |
+| `ThirdPersonWalkThroughCutscene` | [Actions/ThirdPersonWalkThroughCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ThirdPersonWalkThroughCutscene.cs) | Takes a `CutsceneCamera`, dollies `startOffset`→`endOffset` while lerping the player Rigidbody to `throughPoint`; `finally` disposes it |
+| `CutsceneCamera` | [Core/CutsceneCamera.cs](Assets/Game/Scripts/Presentation/Cutscenes/Core/CutsceneCamera.cs) | `IDisposable`: disables the player camera + `AudioListener`, creates `CutsceneTempCamera` with the same lens and a listener; `Dispose` restores. Hold it in `try/finally` |
+| `OrbitCutscene` | [Actions/OrbitCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/OrbitCutscene.cs) | Slow arc round `focus`, starting behind the player's own line of sight, pushing in; swings whichever way (or half as far) keeps the arc clear of static scenery (Rigidbody-less colliders), and is pulled in front of it otherwise. The witch's finisher ([WitchFight](WitchFight.md)) |
+| `QuestFailedCutscene` | [Actions/QuestFailedCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/QuestFailedCutscene.cs) | "QUEST FAILED": black overlay canvas (sort 32001) with the world showing through the title by STENCIL — `windowMaterial` marks the glyphs (alpha-clipped), the black skips them, `grimeMaterial` speckles over; `Reason` line below; letters swell and the black lifts. `BlackBy` = `fadeIn` |
 | `ArrivalCutscene` | [Actions/ArrivalCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalCutscene.cs) | Crash landing: black on seating → **hold until `Launch()`** → wake fade → `shakeOverDescent` curve → fade to black **finishing at first contact** (and snapped there regardless — see Gotchas) → black through `settleWindow + blackout` → starts `ArrivalConcussion` → fade in → raises static `LocalPlayerRecovered` (what the seat-exit hint times itself from). Adds/destroys `ArrivalCameraRig`. Mutates nothing |
 | `ArrivalConcussion` | [Actions/ArrivalConcussion.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalConcussion.cs) | The coming-to blur: a runtime global `Volume` with one wide-open Bokeh `DepthOfField` (focus 0.1 m, focal 300, aperture 1 — the `PackFocusCamera` pattern, maxed), weight 1→0 over ~9 s with a dazed hold at full. Started under the final blackout so the first visible frame is already soft; lives OUTSIDE the cutscene because the player must have their look back while it clears. Destroys its volume and assetless profile with itself |
 | `ArrivalBeats` | [Core/ArrivalBeats.cs](Assets/Game/Scripts/Presentation/Cutscenes/Core/ArrivalBeats.cs) | Pure timing: `Contact`, `FadeStart`, `FadeDuration`, `BlackHold`, `DescentProgress(elapsed)`. `FadeStart + FadeDuration == Contact` is the whole contract |

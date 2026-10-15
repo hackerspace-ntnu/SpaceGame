@@ -1,0 +1,394 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &280604518568175290
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7721681422793926881}
+  - component: {fileID: 7376806582864101639}
+  - component: {fileID: 6919436168294932489}
+  m_Layer: 0
+  m_Name: LiftHandle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7721681422793926881
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280604518568175290}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6385039462670001024}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &7376806582864101639
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280604518568175290}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.4
+  m_Center: {x: 0, y: 0.32, z: 0}
+--- !u!114 &6919436168294932489
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280604518568175290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d84602a57b8ccd46b6e0af6c0ed56e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.KeeperLiftHandle
+  promptFormat: 'RMB: pick up {0}'
+--- !u!1001 &3431228338418612006
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 629877249890287631, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: 'dialogLines.Array.data[0]'
+      value: What the root gives freely, we take; what it keeps, we leave.
+      objectReference: {fileID: 0}
+    - target: {fileID: 1313560472060194675, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 1394d8ca8fa12744b91a71ba6da09680, type: 2}
+    - target: {fileID: 1923371609751467410, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: prefabId
+      value: 8d742dd0c5c2e8345aef190989be6a37
+      objectReference: {fileID: 0}
+    - target: {fileID: 3549941985627144689, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 924558149
+      objectReference: {fileID: 0}
+    - target: {fileID: 3549941985627144689, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1147756749
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      propertyPath: m_Name
+      value: Keeper_Bramble
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7721681422793926881}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5087983582087567939}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3217656819333754461}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7641215726683670903}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7414604257264508750}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1876133832100835200}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4419983731405185218}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1702297414693909615}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2383621726359875329}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3445479938457436710}
+    - targetCorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5147868422120433030}
+  m_SourcePrefab: {fileID: 100100000, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+--- !u!4 &1331858809570494897 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4460144150840180375, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+  m_PrefabInstance: {fileID: 3431228338418612006}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6041551563791251770 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8955914587006979612, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+  m_PrefabInstance: {fileID: 3431228338418612006}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5087983582087567939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d074487125818e242beed49a74e554a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestActor
+  actorId: keeper-bramble
+  talkRange: 6
+--- !u!114 &3217656819333754461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c186b2e68cc6bf47b38d66ffb164441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StunOnHitModule
+  priority: 100
+  active: 1
+  stunSeconds: 3
+--- !u!114 &7641215726683670903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93a8ee5aa8603394ab7094658ff6ad2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EscortFollowModule
+  priority: 15
+  active: 1
+  followDistance: 3
+  runBeyond: 10
+  giveUpBeyond: 80
+  rescanInterval: 0.5
+--- !u!114 &7414604257264508750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c6c80534f08502478a34b4321a35eb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChantStoneModule
+  priority: 30
+  active: 1
+  arriveDistance: 0.5
+  runBeyond: 6
+--- !u!114 &1876133832100835200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99285a64c18cb0840b1556f9589d9bd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestStateGate
+  window:
+    chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+    from: hamlet-escort-keepers
+    until: hamlet-reforge-oath
+  activeInside: []
+  activeOutside: []
+  enabledInside:
+  - {fileID: 7641215726683670903}
+--- !u!114 &4419983731405185218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25aa1af39cdcce64faba475343076354, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.RueStrikeModule
+  priority: 30
+  active: 1
+  targetActorId: witch-morwen
+  arenaSearchRadius: 60
+  postTolerance: 1.2
+  bombPrefab: {fileID: 6026428935348357151, guid: c87466b872b4f2f48b68cabcc774e368, type: 3}
+  throwRange: 24
+  throwInterval: 2.4
+  throwJitter: 0.8
+  flightBase: 0.45
+  flightPerMetre: 0.05
+  handHeight: 0.7
+  duckRadius: 40
+--- !u!114 &1702297414693909615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51fca3239dd531044874febce3a0620f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.PoisonTally
+  ShowTopMostFoldoutHeaderGroup: 1
+  fallsAt: 3
+--- !u!114 &2383621726359875329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 117ab20b0d532b2449ac6700b31b3055, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.KeeperCarry
+  ShowTopMostFoldoutHeaderGroup: 1
+  keeperName: Bramble
+  liftableDuring:
+    chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+    from: hamlet-defeat-witch
+    until: hamlet-return
+  liftReach: 4
+  liftHandle: {fileID: 7376806582864101639}
+  armSlots:
+  - {x: 0, y: 0.3, z: 0.75}
+  - {x: -0.5, y: 0.25, z: 0.5}
+  - {x: 0.5, y: 0.25, z: 0.5}
+  setDownOffset: {x: 0, y: 0.5, z: 1.1}
+  catchUpSpeed: 14
+  leapArcPerMetre: 0.3
+  minLeapArc: 1.5
+--- !u!114 &3445479938457436710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0befb1f97f22fef49ad87a4b1490a284, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.KeeperPose
+  armature: {fileID: 1331858809570494897}
+  cowerScale: {x: 1.2, y: 0.62, z: 1.2}
+  cowerTremble: 22
+  duckRadius: 40
+  throwStretch: 0.3
+  throwSeconds: 0.35
+  flinchSquash: 0.35
+  flinchSeconds: 0.4
+  flinchPuff: {fileID: 5643233871448613224, guid: 3a0a22e59e5327c4087b773b3c56eec1, type: 3}
+  coughPuff: {fileID: 7691138288705946631, guid: 578a59fbd38e45b44a0210b7be71407b, type: 3}
+  coughEvery: 3.5
+  poisonedTint: {r: 0.45, g: 0.95, b: 0.25, a: 1}
+  poisonedTintAmount: 0.65
+  headHeight: 0.8
+  fallenTilt: 85
+  fallSeconds: 0.5
+  wriggleDegrees: 12
+  wrigglePerSecond: 7
+--- !u!114 &5147868422120433030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6041551563791251770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a357e729b2a6966458f5b8093c65cb4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.PoisonPips
+  pip: {fileID: 21300000, guid: 46b0f0fc776d9704c93a26dba5211ee1, type: 3}
+  height: 1.25
+  spacing: 0.2
+  size: 0.16
+  emptyColour: {r: 1, g: 1, b: 1, a: 0.55}
+  fullColour: {r: 0.45, g: 1, b: 0.2, a: 1}
+  pop: 0.8
+  popSeconds: 0.35
+--- !u!4 &6385039462670001024 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8575447913599734950, guid: 57620a3eab1138a43bb185093b1744ee, type: 3}
+  m_PrefabInstance: {fileID: 3431228338418612006}
+  m_PrefabAsset: {fileID: 0}

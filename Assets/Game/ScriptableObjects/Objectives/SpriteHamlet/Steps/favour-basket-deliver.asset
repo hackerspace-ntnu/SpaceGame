@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d85fbda35fd8be54aa94128acdb0700c, type: 3}
+  m_Name: favour-basket-deliver
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.DeliverItemStep
+  id: favour-basket-deliver
+  title: Bring Hazelbud's acorn basket back
+  briefing: []
+  lookAtFocus: 0
+  item: {fileID: 11400000, guid: 598fa6940038f1046ba555d578b7f809, type: 2}
+  actorId: villager-hazelbud
+  fallbackSiteId: hamlet-gate
+  handOverRadius: 3
+  searchRadius: 150

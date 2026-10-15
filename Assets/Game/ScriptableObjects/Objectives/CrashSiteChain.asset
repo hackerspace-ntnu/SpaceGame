@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7165aa3601d3264682078335aaed4d1, type: 3}
   m_Name: CrashSiteChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
+  id: crash-site
+  speaker: LANDER
   steps:
   - {fileID: 11400000, guid: 7d3b5c9e981b1414db78e3230d242719, type: 2}
   - {fileID: 11400000, guid: c0750443f8296e147ac667b215b5e3be, type: 2}

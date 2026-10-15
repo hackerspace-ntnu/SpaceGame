@@ -34,6 +34,13 @@ namespace SpaceGame.Gameplay.Status
         /// it is the body not being in the world — see <see cref="SwallowedStatus"/>.
         /// </summary>
         Swallowed = 5,
+
+        /// <summary>
+        /// Held out of time: helpless like <see cref="Frozen"/>, inside a shimmering shell rather
+        /// than a coat of ice. Laid by the Oathbranch's bolt and the sprite hamlet's dome — see
+        /// <see cref="StasisStatus"/>.
+        /// </summary>
+        Stasis = 6,
     }
 
     /// <summary>
@@ -49,6 +56,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 6;
+        public const int Count = 7;
     }
 }

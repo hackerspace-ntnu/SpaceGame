@@ -120,6 +120,20 @@ A ring of four tall weathervanes stands round a grated wind vent at the foot of 
 
 **Worth knowing:** the ring is always scrambled by turning cranks from the solved position, never by picking random directions, because some arrangements of four coupled vanes cannot be solved at all.
 
+### The sprite hamlet's quest *(SpriteHamletQuest)*
+
+A waist-high fairy village whose guardian robot, Merob, sleeps under a witch's curse. The villagers each know a scrap of the story and send you to their elder, who asks you to find the witch's hut. Her life is bound to the sacred herbs she bought from the hamlet long ago, stuck in her hat, so nothing you carry can hurt her. The elder gives three villagers bottles of rue, the herb that undoes the sacred ones, and hands you the Oathbranch: the staff that held a dome of stasis over the village, which drops the moment you lift it. How that fight plays is its own entry, just below. When she dies, lightning strikes over the hamlet: Merob has woken, cursed and hostile. You beat him down without destroying him, and the villagers' chant, the words of the oath the hamlet once broke, frees him. He gives up his staff. Three villagers also ask small favours (shift a fallen log, find a lost basket, burn spores out of the well) that pay out real items.
+
+Every line they say is in [the story bible](sprite-hamlet-story.md).
+
+**Worth knowing:** nothing in the hamlet remembers the story on its own. Merob, the escorts, the chant and what every villager says are all worked out from the one saved place in the quest, so a reload or a late joiner always sees the right thing. Nobody on the hamlet's side can die: keepers are stunned instead, and Merob stops at a health floor.
+
+### The witch fight *(WitchFight)*
+
+Morwen is unseen between her attacks: a faint shimmer, footprints in the grass, and a bright pulse every few seconds that gives her away. She spins and flings slow balls of poison in a spiral you walk through the gaps of, and now and then makes the earth heave before thorns burst up. The three villagers stand at the edge of her clearing lobbing bottles of rue at her, but the bottles are slow and she never stands still, so they only land while you hold her frozen with the Oathbranch; each one that lands burns a herb from her hat. The villagers cannot dodge, and three balls of poison fell any of them, which loses the fight: the screen goes black but for QUEST FAILED, with the world still showing through the letters, and everything starts over. So you pick them up and carry them out of the spiral, but with your arms full you cannot use the staff. When only one herb is left, the villagers leap onto her hat and pull it out themselves.
+
+**Worth knowing:** carrying and freezing are meant to compete. Every spin is a choice between protecting the villagers and setting up the next herb, and that choice is the fight.
+
 ### The sun shrine *(SunShrine)*
 
 A half-buried sun temple whose vault door is sealed by a gold sun glyph. The glyph sits in shade, so the players crank three mirrors to bounce the real, moving sun into it: the first mirror catches the light and tilts, the other two turn. Hold the glyph lit for five seconds and the door sinks away for good. The sun keeps moving, so a working arrangement drifts off within about an in-game hour and has to be chased. A sundial outside marks the third of the day when the shrine is awake.

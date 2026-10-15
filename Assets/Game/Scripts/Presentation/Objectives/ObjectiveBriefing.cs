@@ -6,9 +6,9 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The lander's computer speaking: each objective step's briefing, one line per dialog popup,
-    /// the moment the crew reach it — and, where the step asks, the camera turned to what it is
-    /// about.
+    /// Each objective step's briefing, one line per dialog popup, the moment the crew reach it —
+    /// spoken by its chain's <see cref="ObjectiveChain.Speaker"/> (the lander's computer for the
+    /// main chain) — and, where the step asks, the camera turned to what it is about.
     ///
     /// <para>
     /// <b>Per machine, nothing on the wire.</b> Every machine hears the same step change through
@@ -28,9 +28,6 @@ namespace SpaceGame.Presentation
     [RequireComponent(typeof(LookAtCutscene))]
     public class ObjectiveBriefing : MonoBehaviour
     {
-        [Tooltip("Who is speaking. Shown in bold before every line.")]
-        [SerializeField] private string speaker = "LANDER";
-
         [Tooltip("Shortest time a line stays up, seconds. Longer lines stay up as long as they type.")]
         [SerializeField, Min(0.5f)] private float secondsPerLine = 4f;
 
@@ -44,12 +41,14 @@ namespace SpaceGame.Presentation
 
         private readonly Queue<string> pending = new();
 
+        /// <summary>Per run, the step last briefed (or found already begun); -1 for none.</summary>
+        private int[] briefedStep = System.Array.Empty<int>();
+
         private ObjectiveDirector director;
         private LookAtCutscene lookAt;
         private Transform focusPoint;
 
-        private int briefedStep = -1;
-        private bool focusPending;
+        private ObjectiveRun focusRun;
         private float presentSince = -1f;
         private float lastVisible = float.NegativeInfinity;
         private bool reportedMissingPopup;
@@ -74,31 +73,41 @@ namespace SpaceGame.Presentation
 
             // Read the state as it is now: a step already begun when this wakes was reached before
             // anybody here could have heard it.
-            if (director.Progress.Begun) briefedStep = director.Progress.Step;
+            briefedStep = new int[director.Runs.Count];
+            foreach (ObjectiveRun run in director.Runs)
+                briefedStep[run.Index] = run.Progress.Begun ? run.Progress.Step : -1;
         }
 
         private void OnDisable()
         {
             if (director != null) director.Changed -= OnChanged;
             pending.Clear();
+            focusRun = null;
         }
 
-        private void OnChanged(bool live)
+        /// <summary>
+        /// A newer step's briefing replaces whatever is still queued, from any chain: the crew have
+        /// moved on, and lines about the step they left would only mislead.
+        /// </summary>
+        private void OnChanged(ObjectiveRun run, bool live)
         {
-            ObjectiveProgress progress = director.Progress;
-            if (!progress.Begun || progress.Step == briefedStep) return;
+            ObjectiveProgress progress = run.Progress;
+            if (!progress.Begun || progress.Step == briefedStep[run.Index]) return;
 
-            briefedStep = progress.Step;
-            pending.Clear();
-            focusPending = false;
+            briefedStep[run.Index] = progress.Step;
 
-            ObjectiveStep step = director.Current;
+            ObjectiveStep step = run.Current;
             if (!live || step == null) return;
 
-            foreach (string line in step.Briefing)
-                if (!string.IsNullOrWhiteSpace(line)) pending.Enqueue(line);
+            pending.Clear();
+            focusRun = null;
 
-            focusPending = step.LookAtFocus;
+            string speaker = run.Chain.Speaker;
+            foreach (string line in step.Briefing)
+                if (!string.IsNullOrWhiteSpace(line))
+                    pending.Enqueue(string.IsNullOrEmpty(speaker) ? line : $"<b>{speaker}</b>  {line}");
+
+            if (step.LookAtFocus) focusRun = run;
         }
 
         private void Update()
@@ -138,13 +147,13 @@ namespace SpaceGame.Presentation
 
             if (now < lastVisible + gapSeconds) return;
 
-            if (focusPending)
+            if (focusRun != null)
             {
-                focusPending = false;
-                LookAtFocus(player);
+                LookAtFocus(player, focusRun);
+                focusRun = null;
             }
 
-            popup.Show($"<b>{speaker}</b>  {pending.Dequeue()}", secondsPerLine);
+            popup.Show(pending.Dequeue(), secondsPerLine);
             lastVisible = now;
         }
 
@@ -156,11 +165,11 @@ namespace SpaceGame.Presentation
         /// shows while it turns; the rest wait, because the look is a cutscene and the player is not
         /// "present" until it ends.
         /// </summary>
-        private void LookAtFocus(PlayerController player)
+        private void LookAtFocus(PlayerController player, ObjectiveRun run)
         {
-            ObjectiveStep step = director.Current;
+            ObjectiveStep step = run.Current;
             if (step == null || CutsceneDirector.Instance == null) return;
-            if (!step.TryGetFocus(director.World, out Vector3 focus)) return;
+            if (!step.TryGetFocus(run.World, out Vector3 focus)) return;
 
             focusPoint.position = focus;
             CutsceneDirector.Instance.Play(lookAt, player.gameObject);

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92bf1a89ef82e914ab59f9e1c93458e3, type: 3}
+  m_Name: favour-basket-reward
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.RewardStep
+  id: favour-basket-reward
+  title: Hazelbud's thanks
+  briefing:
+  - My basket! Oh, every acorn still in it. Here, take this.
+  lookAtFocus: 0
+  actorId: villager-hazelbud
+  takes: {fileID: 11400000, guid: 598fa6940038f1046ba555d578b7f809, type: 2}
+  takeRadius: 3
+  rewards:
+  - {fileID: 11400000, guid: 4dfaffb1c6dcf4a4d9636e0a8a44dc67, type: 2}
+  placeAhead: 1.2
+  spacing: 0.5
+  dropHeight: 0.5

@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay.Status;
 
 namespace SpaceGame.Items
 {
@@ -32,6 +33,9 @@ namespace SpaceGame.Items
         private IPlayerInventory inventory;
 
         private GameObject equippedItemObject;
+
+        /// <summary>The held item this controller has hidden because the arms are full. See <see cref="ArmsLoad"/>.</summary>
+        private GameObject veiledItem;
 
         /// <summary>
         /// Which hotbar slot the held object came out of, or -1.
@@ -416,12 +420,33 @@ namespace SpaceGame.Items
             // and neither is something to hang a weapon discharge on.
             if (WallAimController.Aiming != null) return;
 
+            // Arms full of something that is not an item: the press is theirs (ArmsLoad).
+            if (ArmsLoad.PressUse(gameObject)) return;
+
             hand?.Press();
         }
 
         private void OnUseRelease() => hand?.Release();
 
-        private void Update() => hand?.Tick(Time.time);
+        private void Update()
+        {
+            hand?.Tick(Time.time);
+            SyncArmsLoad();
+        }
+
+        /// <summary>
+        /// Hide the held item while the arms are full, on every machine, and give it back the moment
+        /// they empty — or the moment a different item is equipped under the load.
+        /// </summary>
+        private void SyncArmsLoad()
+        {
+            GameObject hide = ArmsLoad.IsFull(gameObject) ? equippedItemObject : null;
+            if (hide == veiledItem) return;
+
+            if (veiledItem != null) BodyVeil.Show(veiledItem, this);
+            veiledItem = hide;
+            if (veiledItem != null) BodyVeil.Hide(veiledItem, this);
+        }
 
         private void OnUseRequested(in NetArg arg, ulong sender)
         {

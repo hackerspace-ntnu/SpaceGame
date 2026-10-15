@@ -18,7 +18,7 @@ symptoms:
   - "a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "the menu item a doc names is not in the Tools menu"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-28
+updated: 2026-10-07
 ---
 # Editor Tooling
 
@@ -135,6 +135,8 @@ Regenerate the streamed world: `Tools ▸ World Streaming ▸ Chunk World` → `
 - [SaveCoverageReport](Assets/Game/Scripts/Core/Persistence/Editor/SaveCoverageReport.cs) heuristically lists mutable state with no saver — a starting point, not a defect list.
 
 ## Gotchas
+
+- **`Sync Network Prefabs` ends in a modal `DisplayDialog`.** Run from a script or an MCP command it blocks the editor loop until someone clicks OK — every later bridge call times out with nothing in the console. From code, call `NetworkPrefabRegistrar.Sync(out added, out total)` instead of the menu.
 
 - **The prefabs are the only copy now.** There is no builder to re-run, so a prefab overwritten or broken by hand cannot be regenerated — recover it from git.
 - **Never wipe an animator controller's sub-assets by hand; empty it through the API.** Two ways of "starting over" on a controller a prefab references have each produced a controller with no states and a clean console: `DeleteAsset` + `CreateAnimatorControllerAtPath`, and keeping the asset but `DestroyImmediate`-ing every sub-asset and resetting `layers`. The second is the nasty one: the write saves and reads back correctly, and *later in the session* the in-memory controller turns up **empty and dirty**, so the next `AssetDatabase` save writes that empty object over the good file. Clear through `RemoveState` / `RemoveAnyStateTransition` / `RemoveParameter`, keep the layer and its state machine, then force-reimport and count the states on disk.

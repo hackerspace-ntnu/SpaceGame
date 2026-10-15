@@ -16,7 +16,7 @@ symptoms:
   - "my asmdef cannot see PlayerController / GameServices / NetMessaging"
   - "a gameplay hotkey still fires while a menu or the chat box is open"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-09-25
+updated: 2026-10-15
 ---
 
 # Core Services
@@ -45,6 +45,7 @@ The glue layer: boot order, the static service/registry locators, player input, 
 | `IWorldService` / `WorldService` | [IWorldService.cs](Assets/Game/Scripts/Core/GameServices/Interfaces/IWorldService.cs), [WorldService.cs](Assets/Game/Scripts/Core/GameServices/Implementations/WorldService.cs) | Spawn/despawn that also handles NGO spawn + `SaveablePolicy.EnsureSpawned` + `SaveManager.NotifyDestroyed` |
 | `IItemDropService` / `PlayerDropService` | [IItemDropService.cs](Assets/Game/Scripts/Core/GameServices/Interfaces/IItemDropService.cs), [PlayerDropService.cs](Assets/Game/Scripts/Core/GameServices/Implementations/PlayerDropService.cs) | Drop an `InventoryItem` into the world |
 | `Registry<T>` / `IRegistryEntry` | [Registry.cs](Assets/Game/Scripts/Core/Registry/Registry.cs), [IRegistryEntry.cs](Assets/Game/Scripts/Core/Registry/IRegistryEntry.cs) | `string ID` → ScriptableObject; `Get`, `All` |
+| `LiveSet<T>` | [LiveSet.cs](Assets/Game/Scripts/Core/Registry/LiveSet.cs) | Enabled scene components a spawned thing must FIND (`BlinkArena`, `WitchArena`): `Add`/`Remove` from `OnEnable`/`OnDisable`, `TryFindNearest`. An instance, so its owner keeps the static and clears it from `SubsystemRegistration` |
 | `RegistryLoader` | [RegistryLoader.cs](Assets/Game/Scripts/Core/Registry/RegistryLoader.cs) | Loads `Resources/Items`, then `SaveablePrefabRegistry.LoadAll()` |
 | `GameSettings` | [GameSettings.cs](Assets/Game/Scripts/Core/Settings/GameSettings.cs) | All player options, PlayerPrefs, `Changed` event |
 | `PlayerInputManager` | [PlayerInputManager.cs](Assets/Game/Scripts/Core/Input/PlayerInputManager.cs) | Single source of player input; owns `InputControls` |

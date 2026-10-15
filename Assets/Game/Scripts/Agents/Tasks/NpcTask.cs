@@ -70,6 +70,10 @@ namespace SpaceGame.Agents
                  "base speed is.")]
         public float travelSpeedMultiplier = 1f;
 
+        [Tooltip("Optional. Ground the destination must be level across, for a group that stops as " +
+                 "one body — a walking city. Off (footprint 0) for everything that stops on any ground.")]
+        public LevelGroundRule levelGround;
+
         /// <summary>
         /// A dwell duration for one visit. Sampled per arrival rather than stored, so two NPCs on
         /// the same task asset do not leave the same site in lockstep.

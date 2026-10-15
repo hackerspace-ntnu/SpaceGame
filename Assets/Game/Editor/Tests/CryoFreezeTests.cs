@@ -334,8 +334,6 @@ namespace SpaceGame.EditorTests
             }
 
             public void ForceStop() { }
-            public void NudgeDestination(Vector3 offset) { }
-            public void SuggestDestination(Vector3 position) { }
         }
 
         private GameObject New(string name, params System.Type[] components)

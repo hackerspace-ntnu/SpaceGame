@@ -312,7 +312,7 @@ namespace SpaceGame.Agents
             CarriedBody.Abandon(this);
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
-            suppressedModules.Clear();
+            suppressedModules.Forget();
             ownRigidbodyConstraintsCaptured = false;
             ClearMountedReferences();
             activeSeatPoint = seatPoint;

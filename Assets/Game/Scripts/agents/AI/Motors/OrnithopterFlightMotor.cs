@@ -1,7 +1,6 @@
-// Rigidbody-backed motor for the dune ornithopter. Unlike FlyingRigidbodyMotor — which is a
-// throttle-and-yaw model for blimps and drones that are always level — this one flies an energy
-// model: airspeed is bought with altitude or with flapping, the wing stalls if it is asked for too
-// much, and the craft banks to turn.
+// Rigidbody-backed motor for the dune ornithopter. Rather than a throttle-and-yaw model that keeps
+// the craft level, this one flies an energy model: airspeed is bought with altitude or with
+// flapping, the wing stalls if it is asked for too much, and the craft banks to turn.
 //
 // The physics is NOT here. It lives in SpaceGame.Vehicles.Ornithopter.OrnithopterFlightModel as
 // pure functions, so it can be tested without a scene. This class is the shell that owns the
@@ -126,8 +125,6 @@ namespace SpaceGame.Agents
         public bool IsImmobile => !flying;
         public bool HasReachedDestination => true;
         public Vector3? CurrentDestination => null;
-        public void NudgeDestination(Vector3 offset) { }
-        public void SuggestDestination(Vector3 position) { }
 
         private void Awake()
         {
@@ -200,7 +197,7 @@ namespace SpaceGame.Agents
         }
 
         // Latched on the render loop, consumed on the physics loop — the same split
-        // FlyingRigidbodyMotor uses, and for the reason recorded there: writing a Rigidbody from
+        // HoverRigidbodyMotor uses, and for the reason recorded there: writing a Rigidbody from
         // Update drives it with the wrong clock, so the per-step advance is uneven and a follow camera
         // turns that unevenness straight into shake.
         public void ApplyRiderInput(in RiderInput input, float deltaTime)

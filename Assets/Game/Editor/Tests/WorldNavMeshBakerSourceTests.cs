@@ -6,7 +6,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.AI;
-using SpaceGame.World.NavMeshTools;
+using SpaceGame.World;
 
 namespace SpaceGame.EditorTools
 {
@@ -25,7 +25,7 @@ namespace SpaceGame.EditorTools
         public void AStaticColliderIsGround()
         {
             var col = root.AddComponent<BoxCollider>();
-            Assert.IsTrue(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsTrue(NavMeshSources.IsBakeable(col, Everything));
         }
 
         [Test]
@@ -33,7 +33,7 @@ namespace SpaceGame.EditorTools
         {
             root.AddComponent<Rigidbody>().isKinematic = true;
             var col = root.AddComponent<BoxCollider>();
-            Assert.IsTrue(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsTrue(NavMeshSources.IsBakeable(col, Everything));
         }
 
         [Test]
@@ -41,7 +41,7 @@ namespace SpaceGame.EditorTools
         {
             root.AddComponent<Rigidbody>().isKinematic = false;
             var col = root.AddComponent<BoxCollider>();
-            Assert.IsFalse(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsFalse(NavMeshSources.IsBakeable(col, Everything));
         }
 
         [Test]
@@ -49,7 +49,7 @@ namespace SpaceGame.EditorTools
         {
             var col = root.AddComponent<BoxCollider>();
             col.isTrigger = true;
-            Assert.IsFalse(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsFalse(NavMeshSources.IsBakeable(col, Everything));
         }
 
         [Test]
@@ -58,7 +58,7 @@ namespace SpaceGame.EditorTools
             var col = root.AddComponent<BoxCollider>();
             root.layer = 5;
             LayerMask withoutFive = ~(1 << 5);
-            Assert.IsFalse(WorldNavMeshBaker.IsBakeable(col, withoutFive));
+            Assert.IsFalse(NavMeshSources.IsBakeable(col, withoutFive));
         }
 
         [Test]
@@ -68,7 +68,7 @@ namespace SpaceGame.EditorTools
             root.AddComponent<NavMeshAgent>();
             root.AddComponent<Rigidbody>().isKinematic = true;
             var col = root.AddComponent<CapsuleCollider>();
-            Assert.IsFalse(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsFalse(NavMeshSources.IsBakeable(col, Everything));
         }
 
         [Test]
@@ -78,7 +78,7 @@ namespace SpaceGame.EditorTools
             var limb = new GameObject("Limb");
             limb.transform.SetParent(root.transform);
             var col = limb.AddComponent<BoxCollider>();
-            Assert.IsFalse(WorldNavMeshBaker.IsBakeable(col, Everything));
+            Assert.IsFalse(NavMeshSources.IsBakeable(col, Everything));
         }
     }
 }

@@ -230,8 +230,8 @@ namespace SpaceGame.Core.Persistence
                 records[profileId] = record;
             }
 
-            record.Position = player.transform.position;
-            record.Rotation = player.transform.rotation;
+            record.Position = SavedPose.PositionOf(player.transform);
+            record.Rotation = SavedPose.RotationOf(player.transform);
 
             SaveableEntity entity = player.GetComponent<SaveableEntity>();
             if (entity == null) return;

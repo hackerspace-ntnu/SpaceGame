@@ -16,15 +16,15 @@ namespace SpaceGame.Core.Persistence
     /// again, so every load hands the player another moment of grace — and a player who reloads
     /// often is never shot at by anything.
     ///
-    /// <b>One saver, three components, because they are one question.</b> An agent can carry a melee
-    /// module, a profile-driven ranged module and one or more artifact-firing modules at once — they
-    /// are composed, not alternatives — and all three keep the same shape of state for the same
-    /// reason. Splitting them would mean three keys, three policy clauses and three files to keep in
-    /// step, for state that is captured and restored identically.
+    /// <b>One saver, two components, because they are one question.</b> An agent can carry a melee
+    /// module and one or more artifact-firing modules at once — they are composed, not alternatives —
+    /// and both keep the same shape of state for the same reason. Splitting them would mean two keys,
+    /// two policy clauses and two files to keep in step, for state that is captured and restored
+    /// identically.
     ///
-    /// <b>Positional over each component array.</b> An NPC with two <see cref="NpcItemUseModule"/>s
-    /// — the documented way to give it a weapon it swaps by range — has two independent cadences,
-    /// and index i is component i in <c>GetComponents</c> order. A module added to the prefab since
+    /// <b>Positional over each component array.</b> An NPC with two <see cref="ItemUseModuleBase"/>s
+    /// — two hand slots it swaps by range, or a hand weapon and a worn gauntlet — has two independent
+    /// cadences, and index i is component i in <c>GetComponents</c> order. A module added to the prefab since
     /// the save reads as "at its defaults", which is the right answer for a weapon that did not
     /// exist to have been fired.
     ///
@@ -37,25 +37,6 @@ namespace SpaceGame.Core.Persistence
         public const string Key = "combatCadence";
 
         public string SaveKey => Key;
-
-        public struct RangedState
-        {
-            public float cooldown;
-            public int burstRemaining;
-            public float burstTimer;
-            public int burstSpread;
-            public bool engaged;
-            public float strafeTimer;
-            public bool hasStrafeDestination;
-            public Vector3 strafeDestination;
-
-            /// <summary>
-            /// Who the last shot was billed to, so <c>OnKillEvent</c> can still be attributed after a
-            /// load. Unresolvable is an ordinary answer and means "nobody", which costs one missed
-            /// kill credit on a target that has since gone.
-            /// </summary>
-            public SaveRef firingAt;
-        }
 
         public struct MeleeState
         {
@@ -96,60 +77,36 @@ namespace SpaceGame.Core.Persistence
 
         public struct State
         {
-            public RangedState[] ranged;
             public MeleeState[] melee;
             public ItemUseState[] itemUse;
         }
 
-        private AgentRangedCombatModule[] rangedModules;
         private CloseCombatModule[] meleeModules;
-        private NpcItemUseModule[] itemUseModules;
+        private ItemUseModuleBase[] itemUseModules;
 
         // Lazy, NOT cached in Awake: EditMode tests never run Awake, and a saver that caches there
         // cannot be round-trip tested by PersistenceProbe.
-        private AgentRangedCombatModule[] Ranged =>
-            rangedModules ??= GetComponents<AgentRangedCombatModule>();
-
         private CloseCombatModule[] Melee =>
             meleeModules ??= GetComponents<CloseCombatModule>();
 
-        private NpcItemUseModule[] ItemUse =>
-            itemUseModules ??= GetComponents<NpcItemUseModule>();
+        private ItemUseModuleBase[] ItemUse =>
+            itemUseModules ??= GetComponents<ItemUseModuleBase>();
 
         private State pending;
         private bool hasPending;
 
         public object CaptureState()
         {
-            AgentRangedCombatModule[] ranged = Ranged;
             CloseCombatModule[] melee = Melee;
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
 
-            if (ranged.Length == 0 && melee.Length == 0 && itemUse.Length == 0) return null;
+            if (melee.Length == 0 && itemUse.Length == 0) return null;
 
             var state = new State
             {
-                ranged = new RangedState[ranged.Length],
                 melee = new MeleeState[melee.Length],
                 itemUse = new ItemUseState[itemUse.Length],
             };
-
-            for (int i = 0; i < ranged.Length; i++)
-            {
-                AgentRangedCombatModule m = ranged[i];
-                state.ranged[i] = new RangedState
-                {
-                    cooldown = m.CooldownTimer,
-                    burstRemaining = m.BurstRemaining,
-                    burstTimer = m.BurstTimer,
-                    burstSpread = m.BurstSpread,
-                    engaged = m.Engaged,
-                    strafeTimer = m.StrafeTimer,
-                    hasStrafeDestination = m.HasStrafeDestination,
-                    strafeDestination = m.StrafeDestination,
-                    firingAt = SaveRef.From(m.FiringAtObject),
-                };
-            }
 
             for (int i = 0; i < melee.Length; i++)
             {
@@ -164,7 +121,7 @@ namespace SpaceGame.Core.Persistence
 
             for (int i = 0; i < itemUse.Length; i++)
             {
-                NpcItemUseModule m = itemUse[i];
+                ItemUseModuleBase m = itemUse[i];
                 state.itemUse[i] = new ItemUseState
                 {
                     cooldown = m.CooldownTimer,
@@ -211,7 +168,7 @@ namespace SpaceGame.Core.Persistence
         {
             if (!hasPending) return;
 
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
             ItemUseState[] records = pending.itemUse;
 
             bool resolvedEverything = true;
@@ -234,40 +191,11 @@ namespace SpaceGame.Core.Persistence
                 }
             }
 
-            AgentRangedCombatModule[] ranged = Ranged;
-            RangedState[] rangedRecords = pending.ranged;
-
-            if (rangedRecords != null)
-            {
-                for (int i = 0; i < rangedRecords.Length && i < ranged.Length; i++)
-                {
-                    if (!rangedRecords[i].firingAt.IsSet) continue;
-
-                    if (!rangedRecords[i].firingAt.TryResolve(out GameObject victim))
-                    {
-                        resolvedEverything = false;
-                        continue;
-                    }
-
-                    ranged[i].RestoreFiringAt(victim);
-                }
-            }
-
             if (resolvedEverything) hasPending = false;
         }
 
         private void ApplyCadences(in State state)
         {
-            AgentRangedCombatModule[] ranged = Ranged;
-            if (state.ranged != null)
-                for (int i = 0; i < state.ranged.Length && i < ranged.Length; i++)
-                {
-                    RangedState r = state.ranged[i];
-                    ranged[i].RestoreCadence(r.cooldown, r.burstRemaining, r.burstTimer, r.burstSpread,
-                                             r.engaged, r.strafeTimer, r.hasStrafeDestination,
-                                             r.strafeDestination);
-                }
-
             CloseCombatModule[] melee = Melee;
             if (state.melee != null)
                 for (int i = 0; i < state.melee.Length && i < melee.Length; i++)
@@ -276,7 +204,7 @@ namespace SpaceGame.Core.Persistence
                     melee[i].RestoreCadence(m.cooldown, m.commit, m.engaged);
                 }
 
-            NpcItemUseModule[] itemUse = ItemUse;
+            ItemUseModuleBase[] itemUse = ItemUse;
             if (state.itemUse != null)
                 for (int i = 0; i < state.itemUse.Length && i < itemUse.Length; i++)
                 {
@@ -293,16 +221,10 @@ namespace SpaceGame.Core.Persistence
 
         private void ResetToDefaults()
         {
-            foreach (AgentRangedCombatModule m in Ranged)
-            {
-                m.RestoreCadence(0f, 0, 0f, 0, false, 0f, false, Vector3.zero);
-                m.RestoreFiringAt(null);
-            }
-
             foreach (CloseCombatModule m in Melee)
                 m.RestoreCadence(0f, 0f, false);
 
-            foreach (NpcItemUseModule m in ItemUse)
+            foreach (ItemUseModuleBase m in ItemUse)
             {
                 m.RestoreCadence(0f, 0, 0f, 0f, false, Vector3.zero);
                 m.RestoreAimTracking(null, Vector3.zero);

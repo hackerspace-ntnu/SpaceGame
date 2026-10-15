@@ -1,6 +1,7 @@
 // Receives alerts from AlertBroadcaster and forces AgentTargeting onto a target the agent has
 // not independently detected yet, so chase and both attack modules all act on it at once.
 // Drag onto any entity that should respond to ally alerts (guards, pack hunters, etc.).
+using System;
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -18,6 +19,14 @@ namespace SpaceGame.Agents
 
         // Set by RestoreAlert, consumed by the next OnEnable.
         private bool restoredAlert;
+
+        /// <summary>
+        /// An alert about somebody this agent has no quarrel with — the case the meter weighs as
+        /// <see cref="AggressionInput.AllyHurt"/> — with that somebody and the victim (null when the
+        /// alert named none). Raised before the meter moves, so a listener can take a side first:
+        /// join (<see cref="ProvocationModule.Raise"/> to Grudge) or stay out (<see cref="ClearAlert"/>).
+        /// </summary>
+        public event Action<Transform, Transform> HeardAllyHurt;
 
         // ── Persisted state ───────────────────────────────────────────────────────
         public Vector3 AlertPosition => alertPosition;
@@ -54,8 +63,8 @@ namespace SpaceGame.Agents
             restoredAlert = true;
         }
 
-        // Called by AlertBroadcaster and by SettlementAlarm.
-        public void ReceiveAlert(Transform target, Vector3 lastKnownPosition)
+        // Called by AlertBroadcaster and by SettlementAlarm. victim: whose fight it is, when known.
+        public void ReceiveAlert(Transform target, Vector3 lastKnownPosition, Transform victim = null)
         {
             alertPosition = lastKnownPosition;
             alertTimer = alertDuration;
@@ -92,11 +101,16 @@ namespace SpaceGame.Agents
             //   applies to the people who had no quarrel with you to begin with.
             //
             // A hit landing on this body is an instant fight either way, because hitGain says so.
-            // AddAggression no-ops once provoked, so an alert mid-fight costs nothing.
+            // AddAggression no-ops once provoked, so an alert mid-fight costs nothing, and a fight it
+            // does start is not re-announced (ProvocationModule.Announces).
             if (IsHostileTo(target))
+            {
                 provocation.Provoke(target, announce: false);
-            else
-                provocation.AddAggression(AggressionInput.AllyHurt, 1f, target);
+                return;
+            }
+
+            HeardAllyHurt?.Invoke(target, victim);
+            provocation.AddAggression(AggressionInput.AllyHurt, 1f, target);
         }
 
         /// <summary>

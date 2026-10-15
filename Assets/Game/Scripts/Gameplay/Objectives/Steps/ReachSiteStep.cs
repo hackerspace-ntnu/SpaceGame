@@ -26,13 +26,13 @@ namespace SpaceGame.Gameplay.Objectives
         {
             if (!QuestSite.TryGet(siteId, out Vector3 site, out float radius)) return false;
 
-            return world.NearestCrew(site, out float distance) != null && distance <= radius;
+            return world.NearestCrewDistance(site) <= radius;
         }
 
         public override bool TryGetWaypoint(ObjectiveWorld world, out Vector3 position)
         {
             position = default;
-            return world.StepSeconds >= revealWaypointAfterSeconds && QuestSite.TryGet(siteId, out position, out _);
+            return world.StepSeconds() >= revealWaypointAfterSeconds && QuestSite.TryGet(siteId, out position, out _);
         }
     }
 }

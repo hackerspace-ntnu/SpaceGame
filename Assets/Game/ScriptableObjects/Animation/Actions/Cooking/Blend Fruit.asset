@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Blend Fruit
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 1
+  playback: 1
+  variants:
+  - clip: {fileID: 1393703313685190235, guid: 9c75d1fa59e8bca44916b96a2bf381b1, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 0}
+    exit: {fileID: 0}
+    selectionWeight: 1
+    contactAt: 0
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 0.95, y: 1.05}
+  fadeIn: 0.25
+  fadeOut: 0.25
+  marks: []
+  reach: {x: 0.4985823, y: 1.679716, z: 0.19481325}
+  cues:
+  - {fileID: 11400000, guid: 0e79d5f0eb9a046d6a687e69fc4a83c6, type: 2}
+  - {fileID: 11400000, guid: 9c7961bfe04ef4f1e810a01d26d82c35, type: 2}
+  postures: 5

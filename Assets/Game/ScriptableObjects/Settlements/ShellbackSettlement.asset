@@ -1,0 +1,137 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e00213ead7e543929b7d6cb03079ebb, type: 3}
+  m_Name: ShellbackSettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementConfig
+  buildings:
+  - prefab: {fileID: 4753198146456751024, guid: 66d4b28f628b54dae9f98cf523729df6, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2522525099514216163, guid: fe1b561af7f114b718df25f47160458d, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8880752566591065812, guid: 6ba00a9cd69dd446ca4b1aa340ce4c83, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 29812862079559774, guid: e1313b0d192474f33acb106ff09b6f11, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 17140939085119691, guid: fca2f51baee9d463f9dac976b8c253be, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7443808564631417406, guid: 8e3fd284c080747bc9f64d97e717ccc2, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 3829745173037757931, guid: aa25f53075b1a47a6995c82f2fe20803, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1957290673614712193, guid: a6d22deeae9b24ce2ab5162582d26cc3, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 4495854470687426005, guid: 31d8cc93cdd994e579db7fe13cdb546e, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8755641659769857358, guid: 6b9e4c730536e458ea7398a45d671064, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 30112438898074234, guid: 92d4acb9fd6d642adb8fb0bc90414bca, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2688095760443978097, guid: 48b9f72f5899f43e087e25e9cd1404ae, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 499032633134228038, guid: 8d88f7a8b1cf7491d8c013461c8c3006, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1301079911386176519, guid: b66f36997369f49fe956797096334bdf, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8622380716988595588, guid: 345dc887a60014b61841988d94c2c1ac, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5457810169111362905, guid: 73dee9edc572849d2b630c7b6a40ce9f, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7836450097882197030, guid: c6ec614a9f2f34730b100fe8cd2da2cd, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1389406946623361535, guid: 23c37e86fcba04a26bd4da11a91edcd3, type: 3}
+    count: 1
+    spawnChance: 0.7
+  - prefab: {fileID: 1916532523183800790, guid: 8576da62ff26f4971a2d2ed6035e4c34, type: 3}
+    count: 1
+    spawnChance: 0.7
+  - prefab: {fileID: 8109292149792427120, guid: 6a63138c64fc346fa840e3a6ff8a0117, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2058160704727719115, guid: 0e295ca2239ab47989fc90718fcd7bf9, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1955574918160196976, guid: e2acf97e1bcc54e8cb351422f099d4d2, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5334377907979166932, guid: 57c7dbb6283cc4d5fab3e812f2d2e2c1, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 7975350247430251023, guid: 9061697ff36e941e6bfecffa55042cb8, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8469090776545575255, guid: 4bbd0441ff2d042c285477be2f3bf3ec, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 5901555421537983517, guid: 1b3a1ca5687bb4db0bcd66df03d78792, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 3474718121195194260, guid: c743d6ca6024943ee9dfffd567092bff, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 8004751455468580982, guid: d3902135e4a5b42b1bb7121bcc253db0, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 2851193425406132299, guid: 8831c2282a3de42089fa48e6f24d3e94, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 4675552115370696300, guid: fceed9abfbdfb4ab2a9b5595e1538b8f, type: 3}
+    count: 1
+    spawnChance: 1
+  - prefab: {fileID: 1598615471610837708, guid: dd84db1321ac849e4b894d9c9fcb21a1, type: 3}
+    count: 1
+    spawnChance: 1
+  decorations:
+  - prefab: {fileID: 7654199781468129003, guid: 4ab17c1d3269245a4b1f09a510a236c1, type: 3}
+    count: 1
+    spawnChance: 0.8
+  - prefab: {fileID: 6226597173709128931, guid: bf567d36a9402418b91c666fe8e6b99f, type: 3}
+    count: 1
+    spawnChance: 0.8
+  - prefab: {fileID: 2344912346831665768, guid: ff440b7479a15412586b842911c05a12, type: 3}
+    count: 1
+    spawnChance: 0.8
+  characters:
+  - prefab: {fileID: 6320590716706008551, guid: 61491180a02d1480b92d900abf8ffb00, type: 3}
+    count: 6
+    spawnChance: 1
+  - prefab: {fileID: 6320590716706008551, guid: 61a687aabf79048128def9377edba74b, type: 3}
+    count: 56
+    spawnChance: 0.9
+  specialCharacters: []
+  culture: {fileID: 11400000, guid: 4ae362eea5234041bdc6dadbe27adf8c, type: 2}
+  streets: {fileID: 11400000, guid: d5ae737c4eaaf4fa4869cc320d65c9ee, type: 2}
+  minBuildingGap: 0
+  maxBuildingGap: 0
+  outskirts: 4
+  decorationSpacing: 0.4
+  characterSpacing: 0.3
+  flattenPadding: 3
+  blendDistance: 10
+  ambientNoiseAmplitude: 0.6
+  ambientNoiseScale: 0.05

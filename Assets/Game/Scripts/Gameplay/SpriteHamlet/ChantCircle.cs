@@ -86,7 +86,7 @@ namespace SpaceGame.Gameplay.SpriteHamlet
         public float Progress => IsSpawned ? replicatedProgress.Value : progress;
 
         /// <summary>The quest says the keepers chant here now. Every machine.</summary>
-        public bool IsRunning => runsDuring.Contains(runsDuring.FindRun());
+        public bool IsRunning => runsDuring.IsInside;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => Live.Clear();

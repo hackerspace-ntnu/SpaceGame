@@ -26,6 +26,21 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void ALoopedWorkClipNeverPlaysWhileTheBodyWalks()
+        {
+            string[] workCues = { "work", "cook", "craft", "eat", "repair", "tend" };
+            foreach (CharacterAction action in HumanoidControllerBuilder.CollectActions())
+            {
+                if (!action.Loops || action.BodySlot == CharacterAction.Slot.Full) continue;
+                if (!action.Cues.Any(c => workCues.Contains(c.name))) continue;
+
+                Assert.IsFalse(action.Fits(BodyPosture.Moving),
+                               $"'{action.name}' is a stationary work loop with no posture limit: a Hold of its cue " +
+                               "plays it on a body that is walking (tick Standing and Seated only)");
+            }
+        }
+
+        [Test]
         public void EveryActionPassesTheBuildersContentCheck()
         {
             var profile = AssetDatabase.LoadAssetAtPath<HumanoidAnimationProfile>(HumanoidControllerBuilder.ProfilePath);

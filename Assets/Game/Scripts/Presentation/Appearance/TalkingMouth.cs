@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Presentation.Speech;
 
 namespace SpaceGame.Presentation
 {
@@ -7,16 +8,16 @@ namespace SpaceGame.Presentation
     /// Opens and shuts a character's jaw while it is talking.
     ///
     /// <para>
-    /// "Talking" is whatever the dialog popup is typing out for this character: every NPC line --
-    /// chatter, dialog, a trader's greeting, a warning -- goes through <see cref="NpcDialogPopupUI"/>,
-    /// and the popup knows who said it and which letter it has just revealed. The jaw follows that
-    /// letter, so the mouth moves in step with the text, pauses where the typewriter pauses on a
-    /// comma, and stops the moment the player skips to the end of the line.
+    /// "Talking" is the line this character's <see cref="Speaker"/> is revealing: every NPC line --
+    /// chatter, dialog, a trader's greeting, a warning, a resident's remark -- is said through it,
+    /// and it knows which letter its typewriter has just revealed. The jaw follows that letter, so
+    /// the mouth moves in step with the text (popup or bubble), pauses where the typewriter pauses
+    /// on a comma, and stops the moment the player skips to the end of the line.
     /// </para>
     ///
     /// <para>
     /// Purely cosmetic, like <see cref="EyeBlink"/>: every machine animates the mouth for the lines
-    /// its own popup shows. Nothing is sent and nothing is saved.
+    /// said on it. Nothing is sent and nothing is saved.
     /// </para>
     ///
     /// <para>
@@ -53,6 +54,7 @@ namespace SpaceGame.Presentation
         [SerializeField, Range(0.01f, 0.3f)] private float response = 0.06f;
 
         private HealthComponent health;
+        private Speaker voice;
         private Quaternion restRotation;
         private float open;
         private float openVelocity;
@@ -64,6 +66,7 @@ namespace SpaceGame.Presentation
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
+            voice = Speaker.Of(transform);
 
             // Loud, because the failure is silent: a mouth with no jaw simply never moves.
             if (jaw == null)
@@ -96,8 +99,7 @@ namespace SpaceGame.Presentation
             if (jaw == null) return;
 
             float target = 0f;
-            var popup = NpcDialogPopupUI.Instance;
-            if (!Dead && popup != null && popup.TryGetSpokenCharacter(transform, out char letter))
+            if (!Dead && voice.TryGetSpokenCharacter(out char letter))
                 target = Openness(letter);
 
             open = Mathf.SmoothDamp(open, target, ref openVelocity, response);

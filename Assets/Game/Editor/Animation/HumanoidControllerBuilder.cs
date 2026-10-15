@@ -89,7 +89,7 @@ namespace SpaceGame.EditorTools
             foreach (string problem in problems) report.AppendLine("  PROBLEM " + problem);
 
             HumanoidMasks.Set masks = HumanoidMasks.Load();
-            if (masks.Upper == null || masks.Left == null || masks.Right == null)
+            if (masks.Upper == null || masks.Left == null || masks.Right == null || masks.Arms == null)
                 report.AppendLine("  PROBLEM the masks under " + HumanoidMasks.Folder + " have not been written yet; run Rebuild.");
             else if (problems.Count == 0)
             {
@@ -174,6 +174,7 @@ namespace SpaceGame.EditorTools
 
             HumanoidBaseLayer.Build(controller, profile);
             HumanoidPoseLayers.BuildUpperBody(controller, profile, masks.Upper);
+            HumanoidPoseLayers.BuildHoldArms(controller, profile, masks.Arms);
             HumanoidPoseLayers.BuildWornLeft(controller, profile, masks.Left);
             HumanoidActionLayers.Build(controller, profile, actions, CharacterAction.Slot.Full, null);
             HumanoidActionLayers.Build(controller, profile, actions, CharacterAction.Slot.Upper, masks.Upper);

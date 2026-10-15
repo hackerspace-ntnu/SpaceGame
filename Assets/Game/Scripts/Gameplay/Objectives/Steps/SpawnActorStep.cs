@@ -53,6 +53,6 @@ namespace SpaceGame.Gameplay.Objectives
             return true;
         }
 
-        public override bool IsMet(ObjectiveWorld world) => world.StepSeconds >= holdSeconds;
+        public override bool IsMet(ObjectiveWorld world) => world.StepSeconds() >= holdSeconds;
     }
 }

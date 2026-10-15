@@ -4,8 +4,8 @@ using Unity.Netcode;
 namespace SpaceGame.Gameplay.Objectives
 {
     /// <summary>
-    /// Where the crew are in one objective chain. The whole of the chain's shared state: small
-    /// enough to replicate as one value and save as one record. <c>default</c> is a chain nobody
+    /// Where the crew are in the objective chain. The whole of the chain's shared state: small
+    /// enough to replicate as one value and save as one record. <c>default</c> is a world nobody
     /// has played yet.
     /// </summary>
     public struct ObjectiveProgress : INetworkSerializable, IEquatable<ObjectiveProgress>
@@ -20,16 +20,16 @@ namespace SpaceGame.Gameplay.Objectives
         public bool Begun;
 
         /// <summary>
-        /// Somebody accepted this side chain. Never read for the main chain, which is under way from
-        /// the landing (<see cref="ObjectiveRun.StartsOnLanding"/>).
+        /// Which of the current step's remarks (<see cref="ObjectiveStep.IsRemarkDue"/>) have been said,
+        /// one bit per remark index. Cleared with every new step; saved, so none is said twice.
         /// </summary>
-        public bool Started;
+        public int Remarks;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref Step);
             serializer.SerializeValue(ref Begun);
-            serializer.SerializeValue(ref Started);
+            serializer.SerializeValue(ref Remarks);
         }
 
         /// <summary>
@@ -37,10 +37,10 @@ namespace SpaceGame.Gameplay.Objectives
         /// progress costs nothing on the wire.
         /// </summary>
         public bool Equals(ObjectiveProgress other) =>
-            Step == other.Step && Begun == other.Begun && Started == other.Started;
+            Step == other.Step && Begun == other.Begun && Remarks == other.Remarks;
 
         public override bool Equals(object obj) => obj is ObjectiveProgress other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Step, Begun, Started);
+        public override int GetHashCode() => HashCode.Combine(Step, Begun, Remarks);
     }
 }

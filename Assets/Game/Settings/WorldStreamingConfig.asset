@@ -17,6 +17,8 @@ MonoBehaviour:
   worldOrigin: {x: 0, y: 0, z: -1000}
   loadRadius: 1
   unloadGracePeriod: 10
+  offWorldDistance: 2000
+  streamLookaheadSeconds: 2
   configId: 303234dac994845669b13bb8047213be
   chunks:
   - gridCoord: {x: 0, y: 0}
@@ -355,3 +357,4 @@ MonoBehaviour:
       m_Center: {x: 3750, y: 0, z: 1750}
       m_Extent: {x: 250, y: 500, z: 250}
     hasTerrain: 1
+  siteCatalog: {fileID: 11400000, guid: 3a34f406320144cc68e118391bd5e725, type: 2}

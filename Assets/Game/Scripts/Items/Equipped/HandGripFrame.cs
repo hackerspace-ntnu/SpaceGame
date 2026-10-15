@@ -71,6 +71,7 @@ namespace SpaceGame.Items
         private static readonly string[] IndexHints  = { "index" };
         private static readonly string[] MiddleHints = { "middle" };
         private static readonly string[] PinkyHints  = { "pinky", "little" };
+        private static readonly string[] RingHints   = { "ring" };
         private static readonly string[] ThumbHints  = { "thumb" };
 
         // ── Derivation ───────────────────────────────────────────────────────────
@@ -111,6 +112,12 @@ namespace SpaceGame.Items
             Transform index  = FindFinger(animator, hand, isRightHand, HumanBodyBones.RightIndexProximal,  HumanBodyBones.LeftIndexProximal,  IndexHints);
             Transform middle = FindFinger(animator, hand, isRightHand, HumanBodyBones.RightMiddleProximal, HumanBodyBones.LeftMiddleProximal, MiddleHints);
             Transform pinky  = FindFinger(animator, hand, isRightHand, HumanBodyBones.RightLittleProximal, HumanBodyBones.LeftLittleProximal, PinkyHints);
+
+            // A hand with three fingers and a thumb (the Raxy's) has no little finger: the ring finger is then the
+            // far side of the knuckle row. Without it such a rig fell to the forearm path, whose roll is a guess
+            // taken from the world's up at the moment of the call.
+            if (pinky == null)
+                pinky = FindFinger(animator, hand, isRightHand, HumanBodyBones.RightRingProximal, HumanBodyBones.LeftRingProximal, RingHints);
             Transform thumb  = FindFinger(animator, hand, isRightHand, HumanBodyBones.RightThumbProximal,  HumanBodyBones.LeftThumbProximal,  ThumbHints);
 
             if (index == null || pinky == null || thumb == null) return false;

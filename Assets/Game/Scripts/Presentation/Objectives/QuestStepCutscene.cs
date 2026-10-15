@@ -36,17 +36,25 @@ namespace SpaceGame.Presentation
         private void OnEnable()
         {
             director = ObjectiveDirector.Instance;
-            if (director != null) director.Changed += OnChanged;
+            if (director != null)
+            {
+                director.Started += OnChanged;
+                director.Changed += OnChanged;
+            }
         }
 
         private void OnDisable()
         {
-            if (director != null) director.Changed -= OnChanged;
+            if (director != null)
+            {
+                director.Started -= OnChanged;
+                director.Changed -= OnChanged;
+            }
         }
 
-        private void OnChanged(ObjectiveRun run, bool live)
+        private void OnChanged(Quest quest, bool live)
         {
-            if (!arrival.Notice(run, live, chain, onStep)) return;
+            if (!arrival.Notice(quest, live, chain, onStep)) return;
             if (cutscene == null || CutsceneDirector.Instance == null) return;
 
             PlayerController player = GameplayMenuScope.FindLocalPlayer();

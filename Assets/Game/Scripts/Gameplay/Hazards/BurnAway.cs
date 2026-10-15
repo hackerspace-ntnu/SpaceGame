@@ -44,7 +44,7 @@ namespace SpaceGame.Gameplay.Hazards
 
         private void Awake() => receiver = GetComponent<StatusReceiver>();
 
-        private bool Burnable => burnableDuring.chain == null || burnableDuring.Contains(burnableDuring.FindRun());
+        private bool Burnable => burnableDuring.chain == null || burnableDuring.IsInside;
 
         private void Update()
         {

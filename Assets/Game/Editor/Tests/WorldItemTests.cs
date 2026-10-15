@@ -46,6 +46,30 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
+        /// Every item's world prefab hands back that item when picked up. The pickup's asset is what
+        /// <c>TryAddItem</c> is given, and a prefab whose PickupableItem names no item (or another one)
+        /// answers "RMB: pick up" and then refuses — or gives the wrong thing — with a clean console.
+        /// </summary>
+        [Test]
+        public void EveryItemsPrefab_PicksUpAsThatItem()
+        {
+            var problems = new List<string>();
+
+            foreach (string guid in AssetDatabase.FindAssets("t:InventoryItem", new[] { "Assets/Game/Resources/Items" }))
+            {
+                var item = AssetDatabase.LoadAssetAtPath<InventoryItem>(AssetDatabase.GUIDToAssetPath(guid));
+                if (item == null || item.itemPrefab == null) continue;
+                if (!item.itemPrefab.TryGetComponent(out PickupableItem pickup)) continue;
+                if (pickup.Item != item)
+                    problems.Add($"{AssetDatabase.GetAssetPath(item.itemPrefab)} picks up as " +
+                                 $"'{(pickup.Item != null ? pickup.Item.name : "nothing")}', not '{item.name}'");
+            }
+
+            Assert.IsEmpty(problems, "These item prefabs do not pick up as their own item:\n  " +
+                                     string.Join("\n  ", problems));
+        }
+
+        /// <summary>
         /// The decision itself: an item lying in the sand is the size the ship's gear wall draws it.
         ///
         /// <para>

@@ -39,9 +39,19 @@ namespace SpaceGame.World
         [SerializeField] private string id;
 
         public SiteKind Kind => kind;
-        public string SiteId => id;
         public string SiteName => siteName;
+        public float Radius => radius;
         public bool Airborne => airborne;
+
+        /// <summary>The id this marker registers under, derived first if it has none yet (see <see cref="EnsureId"/>).</summary>
+        public string SiteId
+        {
+            get
+            {
+                EnsureId();
+                return id;
+            }
+        }
 
         private void Reset()      => EnsureId();
         private void OnValidate()
@@ -123,6 +133,8 @@ namespace SpaceGame.World
             SiteKind.WaterHole    => new Color(0.3f, 0.7f, 1f),
             SiteKind.TradePost    => new Color(1f, 0.9f, 0.3f),
             SiteKind.AnimalGround => new Color(1f, 0.5f, 0.5f),
+            SiteKind.Outpost      => new Color(0.75f, 0.55f, 0.35f),
+            SiteKind.AntennaSite  => new Color(0.5f, 1f, 0.95f),
             _                     => Color.gray,
         };
     }

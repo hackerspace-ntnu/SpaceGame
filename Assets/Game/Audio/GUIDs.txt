@@ -9,23 +9,150 @@
 {995d8555-6cf7-43a4-8846-872e82f135ef} bus:/SFX
 {1f1b1c3c-b32b-4ff5-bff3-ac6079cd2d5e} bus:/UI
 {fd63df1a-5cfd-4bf1-a787-be2064eb663e} event:/Music/TestSong
-{c86d01f2-215f-4b2b-b73b-444d334e3c1a} event:/SFX/Antigravity
-{0e9a27d5-0ef5-407f-b77e-9f49283c1b88} event:/SFX/ElectricHum
-{f0a2a570-03b2-4091-b776-ae9862e14f69} event:/SFX/Explosion
-{7dbcf4c2-3f34-430e-a8d5-30bc10184f61} event:/SFX/Footstep
-{21dc1cbc-e2d8-496e-b514-33e02b94debf} event:/SFX/Hit
-{3ab3db1b-9bde-4824-935c-384a829dc256} event:/SFX/Implosion
-{62ef52ab-e607-4c03-aa7b-a0b4d7056cdc} event:/SFX/Jump
-{6a67c910-fcb3-4a3c-959d-8c9206b61b5a} event:/SFX/MetalPickup
-{6464cf0e-8aa2-4b95-a972-0b0219e557cd} event:/SFX/Pickup
-{a76d2321-b82d-4941-b6b9-8d8b5db07ed6} event:/SFX/PlayerDie
-{9bd24ee9-0c2b-4845-89d9-67ec12576c92} event:/SFX/ShipHumLoop
-{b9b84084-80ab-4fb7-9b33-e490a5b43914} event:/SFX/Slurp
-{077caa6e-cd10-416c-877a-ad687b755af7} event:/SFX/Takeoff
-{7504f77e-4fdf-4a21-89d8-1a11907102c6} event:/SFX/Thunder
-{481aa070-009b-4b0f-a383-dca253823f75} event:/SFX/Wham
-{f65b7507-09ed-449b-8db3-2add938753c5} event:/SFX/Wind Howling
+{1b9b30ae-7e15-415a-88da-b7a53ab1352b} event:/SFX/Ambience/AmbWind Loop
+{99dfc268-c6eb-4771-aebc-59b42114395b} event:/SFX/Ambience/HulkSettlement Loop
+{546ab6d3-62e7-4a94-81c2-1d6e2b75c957} event:/SFX/Ambience/InteriorHum Loop
+{ecff7d53-cf24-484a-9b92-bea519990902} event:/SFX/Ambience/Lattice outpost Loop
+{dc747e6f-4ccd-4460-8b6f-9068f6d80771} event:/SFX/Ambience/Mining rig derelict Loop
+{4eb9405a-cf7f-4b66-a6bc-eae4d29ca921} event:/SFX/Ambience/Outpost3 Loop
+{b85fca5d-7679-4e7e-a685-9bb1d5cc6f7b} event:/SFX/Ambience/RefineryTower Loop
+{ee553b46-b8b6-4640-bc64-f4aaf3081835} event:/SFX/Ambience/Relay outpost Loop
+{5d21fe6a-c130-42ad-b64d-80f46e313962} event:/SFX/Ambience/Sandstorm Roar
+{f65b7507-09ed-449b-8db3-2add938753c5} event:/SFX/Ambience/Wind Howling
+{7dbcf4c2-3f34-430e-a8d5-30bc10184f61} event:/SFX/DefaultFootstep
+{4a285da9-2bd0-4917-b168-2cba0cca1a5a} event:/SFX/Impact/Critical
+{81cf6f02-4ef6-46f3-b798-b1429a3b806c} event:/SFX/Impact/Explosion
+{5307e934-8516-466b-9e2e-28f1b9e64975} event:/SFX/Impact/Flesh
+{baeab4a5-0d28-4182-ae38-db76174b65d3} event:/SFX/Impact/Metal
+{3219a525-771f-4539-a373-8a19bfa35e6c} event:/SFX/Impact/Projectile
+{5f35bb1d-dd10-49ef-a919-5c1fc0f5e945} event:/SFX/Impact/Shield
+{28fbaba1-2438-4523-be50-0e534f6e551e} event:/SFX/Interact/Close
+{c19c0d19-6dcb-4f28-8466-0115df7b105d} event:/SFX/Interact/Denied
+{d7839b83-ca30-42f4-897b-b0787c276af6} event:/SFX/Interact/Drop
+{6b9a0590-32d2-4a7a-b4e8-7137c3f6eaf6} event:/SFX/Interact/Lever
+{6a67c910-fcb3-4a3c-959d-8c9206b61b5a} event:/SFX/Interact/MetalPickup
+{817ec949-3c0e-4119-93ff-6ea20643d381} event:/SFX/Interact/Open
+{ab9aaff3-a4d3-4ad9-b932-450dd4b23a02} event:/SFX/Interact/POI Discovered
+{6464cf0e-8aa2-4b95-a972-0b0219e557cd} event:/SFX/Interact/Pickup
+{58b7f6e7-746a-485e-ad58-963fc7c422ab} event:/SFX/Interact/Prompt
+{2c66c829-fec0-4153-a3e6-dce107a3bea3} event:/SFX/Interact/ScannerDiscovery
+{9c14305e-d1c8-4f33-b49b-ffb29735ce3c} event:/SFX/Interact/WorkstationRepair
+{c86d01f2-215f-4b2b-b73b-444d334e3c1a} event:/SFX/Item/AntiGrav Potion/Antigravity
+{8a41ada9-2fa8-4e97-b029-2ffa22303f08} event:/SFX/Item/AntiGrav Potion/Pickup
+{c55bb8ca-6a99-4208-b6d6-01c562a78e65} event:/SFX/Item/Backpack/Close
+{f55e3868-697f-4eaa-ae5c-61e045ba74f6} event:/SFX/Item/Backpack/Open
+{a6752ed2-b93c-4141-b4cd-71d67308456e} event:/SFX/Item/Backpack/Pickup
+{51779278-de73-4cfb-9e3a-73685149a159} event:/SFX/Item/Ball Lightning/Arc
+{789803bb-bc85-4d34-bc46-fe094f886529} event:/SFX/Item/Ball Lightning/ChargeLoop
+{66dc887f-8fd3-4eb9-8853-0ec813860f33} event:/SFX/Item/Ball Lightning/Fire
+{267b1745-0c69-4843-8ea2-f28bb327f3ed} event:/SFX/Item/Energy/ChargeLoop
+{2df9030f-e911-4bc9-b4fc-3afa3fb6173b} event:/SFX/Item/Energy/Fire
+{d4055bd9-2945-400b-b804-48ca1377c3e8} event:/SFX/Item/Equip
+{36c84819-69bd-4ac7-b8ab-57907c54954e} event:/SFX/Item/Flashlight/Clack
+{e60897b1-7467-4dd4-be67-556634bf4a2a} event:/SFX/Item/Flashlight/Click
+{7891506f-06fd-499b-8204-146f57ba9ac6} event:/SFX/Item/Generic/Pickup
+{038ce06c-8b3e-4a0f-a991-c0a303397e8b} event:/SFX/Item/Generic/Use
+{40ef3753-3aa2-4467-b584-4454bc607d69} event:/SFX/Item/Grappler/Attach
+{9743c5e2-b1b0-47a8-bbab-c3ff67e4c345} event:/SFX/Item/Grappler/Launch
+{9de6381e-1be8-4ab4-ad70-061867605a61} event:/SFX/Item/Grappler/Reel
+{d9961367-bf44-4133-96c4-718abe3d3e1c} event:/SFX/Item/Jetpack/Boost Loop
+{4e1b5f58-6b87-4c49-a3cf-e603a863b5d5} event:/SFX/Item/Jetpack/Pickup
+{fa14f8c6-a229-4c51-ab10-c240bc0a7401} event:/SFX/Item/Jetpack/Thrust
+{5866f2ea-d1b8-4667-b61f-9d8d137e447e} event:/SFX/Item/Lasso/Catch
+{0117ded1-e692-4f37-a630-78b47312127a} event:/SFX/Item/Lasso/Pickup
+{235ad596-57c4-4166-80e9-ab7c0ba0b068} event:/SFX/Item/Lasso/Whip
+{33946629-1c27-4229-a355-ea3ab5a21e3b} event:/SFX/Item/Leash/ClipOn
+{a2aa6281-cdbb-47ee-9d3a-87235a1ae2ad} event:/SFX/Item/Leash/Pickup
+{2bec0f1f-ce1a-4dcf-9435-c9d6b2e4b8b3} event:/SFX/Item/Lightning Spell/Discharge
+{4689d41f-5f66-4272-a6ce-1153c33b356b} event:/SFX/Item/Lightning Spell/Equip
+{6609dfce-07d9-436a-8e08-e4c630e82a94} event:/SFX/Item/Melee/Impact
+{c7085eae-7832-44d7-9a95-fb4619d99d6e} event:/SFX/Item/Melee/Swing
+{a9965e56-3f59-490d-8c07-37bc1323d45c} event:/SFX/Item/Pistol/Empty
+{cf618968-323d-41e6-bd81-3e155999430a} event:/SFX/Item/Pistol/Equip
+{45b404e6-b436-4ed5-8497-328397fa50d8} event:/SFX/Item/Pistol/Reload
+{966b186c-2703-4b2d-80cc-9879da88f38f} event:/SFX/Item/Pistol/Shot
+{22ee7abf-63d7-4113-9f57-f98e29466859} event:/SFX/Item/ProjectileWhoosh
+{941fbe41-f6b8-4b07-8bfc-39473e900407} event:/SFX/Item/Rifle/Empty
+{2911a527-58b1-45c8-b2e7-be78bd2a4f2d} event:/SFX/Item/Rifle/Equip
+{5cc16ecb-a0c1-49a0-aa6f-505080498b59} event:/SFX/Item/Rifle/Reload
+{04a18702-c9fb-4bc9-9415-3a3f775e7404} event:/SFX/Item/Rifle/Shot
+{74784b5b-d52e-4502-9f37-65370d28e3ed} event:/SFX/Item/Rocket/Deploy
+{10dde530-dabd-460d-8051-5bf874904c96} event:/SFX/Item/Rocket/Equip
+{29da9b9b-1635-43b8-9093-34cf0430cb54} event:/SFX/Item/Scanner/Hum
+{97f2b0fd-5a54-4973-be72-58a8a67ab835} event:/SFX/Item/Scanner/Pulse
+{dceedc39-cd5b-4720-92b0-a3207ee46822} event:/SFX/Item/Scanner/Reveal
+{42843d95-3f5e-4910-88b1-e8b71ff40b20} event:/SFX/Item/Shotgun/Empty
+{de230c9f-dde8-4384-8572-b57e564a9470} event:/SFX/Item/Shotgun/Equip
+{cbd1692d-3383-4226-acef-ea568457cfb7} event:/SFX/Item/Shotgun/Reload
+{f1009f93-e67b-4b17-8ddf-77ec092038a7} event:/SFX/Item/Shotgun/Shot
+{22b558de-7a58-4b9e-9d16-6f0f564b2900} event:/SFX/Item/Wings/Flap
+{7cf6cb8b-8378-45ab-9ace-75ea5b52a566} event:/SFX/Item/Wings/Fold
+{b3701d42-6f1f-4226-a805-85785498abe6} event:/SFX/Item/Wings/Pickup
+{2dbdac8a-c626-4773-ae5b-328f96773ace} event:/SFX/Item/Wings/Unfurl
+{03e488da-fd51-4c54-8840-3ef0f7e37f8b} event:/SFX/Misc/CracklingLoop
+{0e9a27d5-0ef5-407f-b77e-9f49283c1b88} event:/SFX/Misc/ElectricHum
+{f0a2a570-03b2-4091-b776-ae9862e14f69} event:/SFX/Misc/Explosion
+{21dc1cbc-e2d8-496e-b514-33e02b94debf} event:/SFX/Misc/Hit
+{3ab3db1b-9bde-4824-935c-384a829dc256} event:/SFX/Misc/Implosion
+{46524952-ad22-45af-8a33-aa397279a7b5} event:/SFX/Misc/Meteor Impact
+{b9b84084-80ab-4fb7-9b33-e490a5b43914} event:/SFX/Misc/Slurp
+{7504f77e-4fdf-4a21-89d8-1a11907102c6} event:/SFX/Misc/Thunder
+{481aa070-009b-4b0f-a383-dca253823f75} event:/SFX/Misc/Wham
+{259dd477-7a44-4222-9fbe-afabd255f284} event:/SFX/NPC/NPCFootstep
+{4ac80da1-515e-4124-b770-b072a26e56d1} event:/SFX/NPC/Nomad/Blip
+{42bee7c6-1c35-401c-9c51-397882d05adf} event:/SFX/NPC/Nomad/Mumble
+{b400846f-fcd3-4e3c-91c2-1e133554bdb1} event:/SFX/NPC/Nomad/Open
+{8983d0e9-7907-4017-980f-0d4c467a7fa9} event:/SFX/NPC/Robot/Aggro
+{c5ae36cd-ff8b-4a57-90d4-6e9a3eb6f7e5} event:/SFX/NPC/Robot/Alert
+{5d0b6e17-e527-46a7-8120-646d638c1be9} event:/SFX/NPC/Robot/Attack
+{3120825c-b362-4f59-bc8b-a3405e0c4456} event:/SFX/NPC/Robot/Death
+{ca531b46-dcee-4709-975c-b894a015727b} event:/SFX/NPC/Robot/Footstep
+{8719957d-81d8-4ad4-99e8-f6b6cf2f9560} event:/SFX/NPC/Robot/HumLoop
+{ec485335-0744-4856-8f18-fb1d9e288aa8} event:/SFX/NPC/Robot/Hurt
+{51f801fc-0f6c-4978-8e16-b2f5e8840569} event:/SFX/NPC/Robot/Search
+{01e72559-65cc-4e7f-8612-9c9105015558} event:/SFX/NPC/Robot/SearchLoop
+{ab81af6c-ffda-4d3e-b78d-806d27348159} event:/SFX/Player/BreathingLoop
+{761a718f-7820-4260-b7a0-b6bdb98210f0} event:/SFX/Player/CriticalHealthLoop
+{4a403cc5-1804-47af-9828-ba0fded5582f} event:/SFX/Player/CriticalOxygenLoop
+{17a93444-31bc-4093-ade6-5d8db396f9b4} event:/SFX/Player/Dash
+{a76d2321-b82d-4941-b6b9-8d8b5db07ed6} event:/SFX/Player/Death
+{a2b8e044-2b92-48cb-9fb7-72536146b64c} event:/SFX/Player/Footstep
+{cd6c9436-4f5e-4677-8c47-460112306c6b} event:/SFX/Player/Hurt
+{62ef52ab-e607-4c03-aa7b-a0b4d7056cdc} event:/SFX/Player/Jump
+{16226642-9b18-4324-a27a-aa0bd72fdd11} event:/SFX/Player/Land
+{4770a410-1301-4f4b-b3a4-88932c36d73c} event:/SFX/Player/Respawn
+{b4513033-90e3-4e83-8403-9238635b519d} event:/SFX/Ship/Alarm
+{46f4f370-84c0-4b1b-b89c-ece86df01728} event:/SFX/Ship/EngineLoop
+{9bd24ee9-0c2b-4845-89d9-67ec12576c92} event:/SFX/Ship/HumLoop
+{4150b3b2-94e4-4504-8c32-eb1f0b766457} event:/SFX/Ship/Landing
+{dfcc7491-40f3-4b2d-816a-f6e457a230a2} event:/SFX/Ship/Repair
+{077caa6e-cd10-416c-877a-ad687b755af7} event:/SFX/Ship/Takeoff
+{0832b3a1-bbb5-4b82-95d7-c5df20f5c06f} event:/SFX/Ship/Workstation/Accept
+{13199e7a-b082-4012-b3c6-e105f09b9719} event:/SFX/Ship/Workstation/Clunk
+{ba7c1a6d-82b3-4226-8ee5-07588ca1f5d9} event:/SFX/Ship/Workstation/Reject
+{fc1a1808-3032-47b4-8a38-640bb2d0e7ec} event:/SFX/Ship/Workstation/Workin
+{adf6383c-993c-43c2-b4cc-7f367f5b7c48} event:/SFX/Vehicles/Aircraft/Deploy
+{325a9799-35c4-4458-8198-1313dcff5a1a} event:/SFX/Vehicles/Aircraft/Flap
+{9e4e9db4-b9d7-4d3b-9df0-7f3889b5b417} event:/SFX/Vehicles/Aircraft/Fold
+{1fa340f4-d02f-4d7d-a763-1986abb16e2a} event:/SFX/Vehicles/Aircraft/Stall
+{038a8947-2d0e-4661-9acb-dc9ed3625fd7} event:/SFX/Vehicles/Aircraft/WindLoop
+{086b8991-a637-4f6b-801e-2553468f89d7} event:/SFX/Vehicles/Enter
+{866e7cc9-3947-49e6-8d02-3cd85690e29a} event:/SFX/Vehicles/Exit
+{d6be002c-6465-4077-97b9-9003000c6d30} event:/SFX/Vehicles/Vehicle/EngineLoop
+{bd8ff53c-7dbf-4445-8a87-f52d1414c5ba} event:/SFX/Vehicles/Vehicle/Start
+{c00defd5-2043-4548-b6ef-deab8d8fa0e0} event:/SFX/Vehicles/Vehicle/Stop
+{ffb0e57f-69a2-4dcc-84d5-e3d5bd809161} event:/UI/Back
+{88b94174-5712-4b08-befb-227871a4ca4f} event:/UI/Click
+{b82695a9-6664-48ba-ab0e-fc4f3a7b6e42} event:/UI/Error
+{0ccd6ebd-2cdd-4090-9b03-7a8584801d1b} event:/UI/Hover
 {b674f714-b8ba-434e-8706-4a464666132c} event:/UI/No
+{e34ebcc6-6de8-42e6-809c-247996ab5870} event:/UI/Notify
 {4946c5eb-90fc-499d-ac5d-72bbb6fbb564} event:/UI/Yes
+{29cfd904-50d0-45ae-b4f2-8e6b59a7ff56} parameter:/Clanging
+{06289ca3-ad13-4164-8c68-36eac4dd14ba} parameter:/Disposition
 {a3366948-8e8c-47dd-8b77-195eac9d1e8f} parameter:/Floor
 {5dd540ff-4af0-45a6-a6f3-fad3be8890f9} parameter:/HasImploded
+{431b2608-7f18-49ee-b025-01703a69634d} parameter:/Indoors
+{f090879d-d83a-49f5-b7bd-a34bf5c7ac54} parameter:/RPM
+{30e9a110-7b9c-4dad-903a-d0f2a7b37f67} parameter:/Weight
+{22cbc073-bdbe-4a92-97c4-3515b7f1410e} parameter:/Windy

@@ -6,6 +6,9 @@ paths:
   - Assets/Game/Scripts/Core/Diagnostics/
   - Assets/Game/Scripts/Core/DiagnosticsBridge/
   - Assets/Game/Scripts/Core/Safety/
+  - Assets/Game/Scripts/agents/Diagnostics/
+  - Assets/Game/Editor/Agents/AgentBenchmark.cs
+  - Assets/Game/Editor/Agents/PlayModeHarness.cs
 symptoms:
   - "a feature stopped working mid-session and the chat says it was switched off"
   - "the game is frozen behind a free cursor with no menu on screen"
@@ -18,15 +21,19 @@ symptoms:
   - "a coroutine threw once and that feature never worked again for the rest of the session"
   - "[Fault] something threw (x5) — QUARANTINED, this feature is now off"
   - "how do I get a bug report out of a playtest"
-reads_with: [Multiplayer, AgentSystem, UI, Testing]
-updated: 2026-09-09
+  - "the Strider city drops the frame rate and nobody knows which system"
+  - "how much do 200 agents cost per frame"
+  - "Temp/agent_benchmark.txt says not started"
+  - "the agent benchmark entered play mode and then sat on the main menu"
+reads_with: [Multiplayer, AgentSystem, UI, Testing, ResidentsBaseline]
+updated: 2026-10-04
 ---
 
 # Diagnostics
 
 One broken feature stops; the rest of the session keeps playing. Two mechanisms and they are not interchangeable: a **barrier** ([`Fault`](Assets/Game/Scripts/Core/Diagnostics/Fault.cs)) at the seams where one caller invokes N independent plug-ins, and a **guard** ([`ISessionGuard`](Assets/Game/Scripts/Core/Safety/ISessionGuard.cs)) that measures a broken *outcome* and hands the session back.
 
-**Scope:** [Core/Diagnostics/](Assets/Game/Scripts/Core/Diagnostics/) — assembly `SpaceGame.Diagnostics`, `references: []`, `autoReferenced: true`; [Core/DiagnosticsBridge/](Assets/Game/Scripts/Core/DiagnosticsBridge/) and [Core/Safety/](Assets/Game/Scripts/Core/Safety/) — both `Assembly-CSharp`.
+**Scope:** [Core/Diagnostics/](Assets/Game/Scripts/Core/Diagnostics/) — assembly `SpaceGame.Diagnostics`, `references: []`, `autoReferenced: true`; [Core/DiagnosticsBridge/](Assets/Game/Scripts/Core/DiagnosticsBridge/) and [Core/Safety/](Assets/Game/Scripts/Core/Safety/) — both `Assembly-CSharp`; the play-mode harnesses (agent benchmark, residents baseline), [agents/Diagnostics/](Assets/Game/Scripts/agents/Diagnostics/) (`Assembly-CSharp`) and [Editor/Agents/](Assets/Game/Editor/Agents/) `AgentBenchmark.cs`, `ResidentsBaseline.cs`, `PlayModeHarness.cs`.
 **Related:** [Multiplayer.md](Multiplayer.md) · [Testing.md](Testing.md) · [AgentSystem.md](AgentSystem.md) · [UI.md](UI.md) · [WorldStreaming.md](WorldStreaming.md) (`UnderTerrainGuard`, the doctrine every guard here copies)
 
 ## Model
@@ -51,8 +58,8 @@ Two answers, and putting either in the other's place is a bug:
 
 | Type | File | Role |
 | --- | --- | --- |
-| `Fault` | [Diagnostics/Fault.cs](Assets/Game/Scripts/Core/Diagnostics/Fault.cs) | `Run`, `Coroutine`, `IsQuarantined`, `Raised`/`Quarantined` events, `ResetForPlaySession`. Key is `instanceID:site` |
-| `FaultBudget` | [Diagnostics/FaultBudget.cs](Assets/Game/Scripts/Core/Diagnostics/FaultBudget.cs) | Pure arithmetic, caller passes the clock. `Record` returns true on the one call that trips |
+| `Fault` | [Diagnostics/Fault.cs](Assets/Game/Scripts/Core/Diagnostics/Fault.cs) | `Run`, `Run<TState>(owner, site, ref state, RefAction<TState>)` (the allocation-free form: inputs and result in a struct, body a cached capture-free delegate; `Run(Action)` is this with the action as state), `Coroutine`, `IsQuarantined`, `Raised`/`Quarantined` events, `ResetForPlaySession`. `TryEnter` + `Report` are `Run` without the closure, for hot loops (`Report` for an owner the body destroyed logs the exception uncounted). Key is `instanceID:site`, built only for an owner that already has a quarantined site (`ownersWithQuarantine`) or on a report |
+| `FaultBudget` | [Diagnostics/FaultBudget.cs](Assets/Game/Scripts/Core/Diagnostics/FaultBudget.cs) | Pure arithmetic, caller passes the clock. `Record` returns true on the one call that trips; `AnyQuarantined` (a count of tripped keys, zeroed by `Clear`) is the hot path's early-out |
 | `FaultRecord` | [Diagnostics/FaultRecord.cs](Assets/Game/Scripts/Core/Diagnostics/FaultRecord.cs) | Immutable struct of strings. Holds **no** Unity references — it outlives what it describes |
 | `FaultLedger` | [Diagnostics/FaultLedger.cs](Assets/Game/Scripts/Core/Diagnostics/FaultLedger.cs) | Static, `Capacity` 64 oldest-dropped, plus `TotalFaults` which counts the dropped ones |
 | `IQuarantinable` | [Diagnostics/IQuarantinable.cs](Assets/Game/Scripts/Core/Diagnostics/IQuarantinable.cs) | Opt out of `enabled = false`: shed one job, keep the component running |
@@ -75,7 +82,7 @@ Barrier sites, and the teardown each coroutine gives back:
 
 | Site | Where | Teardown |
 | --- | --- | --- |
-| `AgentModule.Tick` · `AgentModule.Facing` | [AgentController.RunModule](Assets/Game/Scripts/agents/controller/AgentController.cs) — all four module loops | — |
+| `AgentModule.Tick` · `AgentModule.Facing` | [AgentController.RunModule](Assets/Game/Scripts/agents/controller/AgentController.cs) — all four module loops, through `TryEnter`/`Report` (zero allocation per tick) | — |
 | `UseChannel.Present` · `UseChannel.Effect` | [UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) — two sites so presentation and effect quarantine apart | — |
 | `Interactable.Interact` · `Interactable.SecondaryInteract` | [Interactor.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) — owner is the **target**, not the Interactor | — |
 | `CutsceneDirector.RunCutscene` | [CutsceneDirector.cs](Assets/Game/Scripts/Presentation/Cutscenes/Core/CutsceneDirector.cs) | `EndCutscene()` |
@@ -88,13 +95,30 @@ Barrier sites, and the teardown each coroutine gives back:
 | `Guard.<Name>` | [SessionGuardRunner.cs](Assets/Game/Scripts/Core/Safety/SessionGuardRunner.cs) | — |
 | `Autotest.Inject` | [AutotestRunner.Faults.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Faults.cs) — three injected throws, checked from both logs | — |
 
+The agent benchmark — the number the agent restructure holds itself to:
+
+| Type | File | Role |
+| --- | --- | --- |
+| `PlayModeHarness` | [Editor/Agents/PlayModeHarness.cs](Assets/Game/Editor/Agents/PlayModeHarness.cs) | Shared editor half of every play-mode harness: `Request(json)` refuses or stores the settings in SessionState (`SpaceGame.<name>.*`) and returns; an `EditorApplication.update` pump saves the scene setup, lets the owner stage its scene, enters play mode; `start(json)` on `EnteredPlayMode`; Error Pause overridden; scene setup restored in edit mode. The owner's `[InitializeOnLoadMethod]` calls `Install()` |
+| `HarnessRun` | [agents/Diagnostics/HarnessRun.cs](Assets/Game/Scripts/agents/Diagnostics/HarnessRun.cs) | Shared play-mode half: `WaitForBootstrap`, `BeginReport` (header line), `WriteFailure`, `WriteText`, `DoneLine` |
+| `AgentBenchmark` | [Editor/Agents/AgentBenchmark.cs](Assets/Game/Editor/Agents/AgentBenchmark.cs) | Menu `Tools/Agents/Run Agent Benchmark`, or `SpaceGame.EditorTools.AgentBenchmark.Run()` from one bridge call. A `PlayModeHarness` that stages an empty scene |
+| `AgentBenchmarkRun` | [agents/Diagnostics/AgentBenchmarkRun.cs](Assets/Game/Scripts/agents/Diagnostics/AgentBenchmarkRun.cs) | Play-mode harness: empty stage, box NavMesh, fake players, spawn, measure, write `Temp/agent_benchmark.txt` |
+| `AgentBenchmarkSettings` | [agents/Diagnostics/AgentBenchmarkSettings.cs](Assets/Game/Scripts/agents/Diagnostics/AgentBenchmarkSettings.cs) | Every tunable: 200 agents over Raxy_poor/Nomad_Tan/Clanker/Vrescal/RobotHorse/Appa, 4 fake players, 120 baseline + 300 warm-up + 600 recorded frames at `captureDeltaTime` 1/60, seed |
+| `BenchmarkChannel` | [agents/Diagnostics/BenchmarkChannel.cs](Assets/Game/Scripts/agents/Diagnostics/BenchmarkChannel.cs) | One `ProfilerRecorder` + preallocated per-frame samples; median/p95/mean per phase |
+| `BenchmarkPlayer` | [agents/Diagnostics/BenchmarkPlayer.cs](Assets/Game/Scripts/agents/Diagnostics/BenchmarkPlayer.cs) | Unkillable (`IDamageFilter` zeroes every hit) Humans body walking a circle, so the load does not change mid-run |
+| `ResidentsBaseline` / `ResidentsBaselineRun` / `ResidentsBaselineSettings` / `ResidentBaselineTrack` / `ResidentBaselineCounts` | [Editor/Agents/ResidentsBaseline.cs](Assets/Game/Editor/Agents/ResidentsBaseline.cs), [agents/Diagnostics/](Assets/Game/Scripts/agents/Diagnostics/) | The residents baseline: menu `Tools/Agents/Run Residents Baseline` or `SpaceGame.EditorTools.ResidentsBaseline.Run()`; a `PlayModeHarness` that stages the world scene and plays one in-game day of a settlement. What it records and the CSV contract: [ResidentsBaseline.md](ResidentsBaseline.md) |
+
 ## Flows
+
+**Measuring what agents cost.** `AgentBenchmark.Run()` refuses (and writes the reason to the report) over unsaved scenes, a dirty Prefab Mode stage, compile errors, play mode or a run already in progress; otherwise it stores the settings JSON in SessionState and an `EditorApplication.update` pump enters play mode on a later tick, after swapping to an empty scene (an open world scene would otherwise be loaded and measured). `[InitializeOnLoadMethod]` re-arms the pump if a recompile lands first. On `EnteredPlayMode` the editor loads the prefabs and the `HumansFaction`/`GlobalRelationships` assets and calls `AgentBenchmarkRun.Begin`. The harness waits for the `Bootstrapper` chain (every play start goes Bootstrap → main menu) to settle, creates a fresh `AgentBenchmark` scene and unloads every other one, builds the arena slab, one NavMesh per `NavMesh.GetSettingsCount()` agent type from a single Box `NavMeshBuildSource`, an overhead camera and the fake players, sets `Time.captureDeltaTime`, records the baseline frames, spawns the agents (seeded positions snapped to the NavMesh), warms up, records, writes the report and calls back; the editor leaves play mode and restores the scenes. Report lines: `status`, agent counts and mix, then median/p95/mean for `BehaviourUpdate`, `LateBehaviourUpdate`, `FixedBehaviourUpdate` (ms), `GC Allocated In Frame` (bytes) and `GC Allocation In Frame Count`, each as *baseline* | *agents*. The last line is always `DONE` — success, refusal or failure.
 
 **A throw becomes a chat line.** `Fault.Run` catches → `FaultBudget.Record(key, realtimeSinceStartup)` → a `FaultRecord` into `FaultLedger` → `Debug.LogError("[Fault] <owner> · <site> threw (xN)…")` → `Raised` for every fault. On the call that trips: `IQuarantinable.OnQuarantined()` if implemented, otherwise `behaviour.enabled = false`, then `Quarantined` → `FaultChatBridge.Announce` writes one `ChatLog` system line. Every later call at that site returns false without entering the body. Errors thrown *outside* a barrier reach the same ledger through `FaultLogSink`, tagged `host:<id>` / `client:<id>` / `offline`. `/faults` prints the last 10; `/faults dump` writes the file.
 
 **A coroutine dies and gives back what it took.** `Fault.Coroutine` drives the inner routine with `MoveNext` inside the `try` and `yield return current` outside it (C# forbids yielding from a `try` with a `catch`), so yielded values reach Unity unchanged. On a throw it reports, runs `onFail` behind its own barrier at site `<site>.teardown`, and ends. That teardown is the routine's *own* ending, extracted so the two cannot disagree — `EndCutscene`, `CompleteArrival`, `FinishOut` were pulled out of routine tails for exactly this.
 
 **A leaked scope is released.** `SessionGuardRunner` sweeps at 0.5 s of unscaled time (the scope stops the clock solo, so scaled time would wait forever for the failure it exists to end) → `StuckScopeGuard` walks `GameplayMenuScope.Owners`, ages each abandoned owner by the interval, collects the ones past 2 s into a second list — `Exit` mutates the set being walked — logs an **error** naming the type, and releases. Input comes back the same tick the scope empties; if it does not, `InputRestoreGuard` takes it 5 s later.
+
+**Profiling.** Hot paths carry `Unity.Profiling.ProfilerMarker`s (compiled out of non-development builds), named `SpaceGame.<System>.<Method>` so a capture searched for `SpaceGame.` shows only ours. `ProfilerMarker` has no name getter, so each `static readonly ProfilerMarker XMarker` keeps its name in `const string XMarkerName` beside it; [ProfilerMarkerNamingTests](Assets/Game/Editor/Tests/ProfilerMarkerNamingTests.cs) reflects over `Assembly-CSharp` and `SpaceGame.*` and enforces the prefix, uniqueness and the const. Markers: `Agent.Update` ⊃ `Agent.Modules` ⊃ `Fault.Run` (one per guarded body, so *calls* = module ticks) ⊃ module markers (`Formation.Tick`, `Targeting.Reevaluate`/`.Refresh`, `Menace.Scan`); `Agent.Facing`; `NavPath.Repath` (the NavMesh fetch: `LeggedDriver` from `Motor.Tick`, the hull and wheel motors from `FixedUpdate`); `Perception.LineOfSight` and `ItemUse.LineOfSight` (the first nests in the second and in targeting: read self ms); `GroundConform.Probe`; `WalkerCarrier.Fixed`; `NpcTask.Resolve`; `NpcWorldSim.Spawn` (a spike: read its max frame). Capture protocol: CPU module, Deep Profile off, 600 frames beside the Strider city after 10 s on screen, plus a separate capture spanning a spawn; record self/total ms, calls and GC Alloc per marker and whether the GPU module says GPU-bound. The full steps and the baseline table live in [the perf plan's B1](docs/superpowers/plans/2026-10-04-test-failures-and-strider-perf.md).
 
 ## Multiplayer
 
@@ -125,12 +149,18 @@ N/A — the ledger is deliberately per-session and is never saved. A fault from 
 - **Some routines get no teardown on purpose, and adding one would break them.** `Arrival.FlyDescent` must not run `AbandonDescent`: that decrements the counter the landing watchdog waits on, so the watchdog would be satisfied, `RecoverStalledDescents()` would never run, and the hull would stand on its nose forever. `Arrival.EmptySeats` is itself the backstop for a crew that never stood up. `VehicleStation.AskForState` and `NetLatch.Ask` are late joiners' *questions* — they claim nothing, and a dead ask reads as the state the object already had. **Known gap:** if `Arrival.FlyFormation` dies before its own landing watchdog, `CompleteArrival` frees the crew but nothing levels the hull.
 - **Quarantine's default is blunt: the whole `Behaviour` is switched off.** For `UseChannel.Effect` that is the `UsableItem` component, for `Interactable.Interact` the door — which is the point, the broken thing stops rather than the player's ability to use items or interact at all. A component that owns several jobs should implement `IQuarantinable` and shed one; an empty `OnQuarantined()` is worse than not implementing it, because the component is then *not* disabled and keeps faulting.
 - **`AgentController.RunModule` returns null for a module that is not a `Component`**, which the arbitration reads as "I pass". Every module today derives from `BehaviourModuleBase : MonoBehaviour`, but a plain-object module would silently never tick and never log.
+- **A per-frame barrier must not allocate.** A lambda capturing its inputs is a closure per call, and the `instanceID:site` key was a string per call: per module, per agent, per frame (~3 allocations per module per creature). Per-frame sites (`AgentController.RunModule`/`RunFacing`) use `Run<TState>` with a `static readonly` capture-free `RefAction`, or `if (!Fault.TryEnter(owner, site)) skip; try { … } catch (Exception e) { Fault.Report(owner, site, e); }`. `Report` counts against the budget exactly as `Run`'s own catch does, so call it once per caught exception and never for a body that was not entered. `AgentModuleBarrierTests.RunningAModuleAllocatesNothing` holds the line, and `TheAllocationProbeSeesAPerCallClosure` proves the probe can see the old shape. Prove it with `Assert.That(d, Is.Not.AllocatingGCMemory())` (`UnityEngine.TestTools.Constraints`) after calling `d` once to JIT it; **`GC.GetAllocatedBytesForCurrentThread` answers 0 in Unity's Mono whatever was allocated**, so a test built on it always passes.
+- **Agent benchmark: read the markers, never frame time.** An unfocused editor plays at a few fps whatever the game does; `BehaviourUpdate` and friends are the work done inside them. The GC counters cover the whole main thread, editor included, which is what the *baseline* column is for — compare *agents* against it, not against zero. The load is not constant either: the mix holds mutually hostile factions, so agents fight during the run and the live count falls (first run: 143 of 200 still had an enabled `AgentController` at the end) — read the `agents:` line before comparing two runs.
+- **Agent benchmark: a run kills anybody else's test run.** Entering play mode reloads the domain; a concurrent `HeadlessTestRunner` run dies with "Unexpected assembly reload happened while running tests". Check before starting one.
+- **Agent benchmark: the fake players are invisible to `SessionPlayers`.** Offline, `SessionPlayers.Collect` returns only the local `PlayerController`, and there is none. Targeting finds the fake players (they register through `EntityFaction`), so hostile chase/aim/melee load is real; resident menace/jostle/remark sensors see nobody and cost less than they would beside a real player.
+- **Agent benchmark: it waits out the `Bootstrapper` before it builds anything.** Every play start is redirected to build index 0 and then to the main menu; a stage built before that chain finished would be unloaded under the run. The harness waits until a scene past index 0 is active and every scene is loaded, up to `settleTimeoutFrames`, then fails with "the Bootstrap scene chain had not finished loading". If the Bootstrapper's flow changes, change `HarnessRun.BootstrapSettled` with it (both harnesses wait on it).
+- **Agent benchmark: Error Pause is overridden for the run.** Any spawned agent that logs an error would otherwise freeze the run at that frame until someone looked. `AgentBenchmark` unpauses on every editor tick while the run is live; the errors are still in the console.
 - **`Fault.Run` returning false is not always a fault.** It also means the owner is destroyed (a teardown, deliberately not ledgered) or the site is already quarantined. Never retry on false; carry on with the next thing.
 - **The barrier's log line is `[Fault] …`, and `FaultLogSink` skips exactly that prefix** so guarded faults are not counted twice. A new log path that reformats those lines would double every entry in the ledger.
 
 ## Extending
 
-**Add a barrier.** Find the *fan-out* point — one caller, N independent plug-ins — and wrap the call, not the loop. One site name per independently-failing job (`UseChannel.Present` and `.Effect` are two for a reason: one shared site quarantines both together). Site strings are stable literals, never interpolated with an id; the id is already in the key. If the call is a single authoritative decision, do not barrier it at all.
+**Add a barrier.** Find the *fan-out* point — one caller, N independent plug-ins — and wrap the call, not the loop. One site name per independently-failing job (`UseChannel.Present` and `.Effect` are two for a reason: one shared site quarantines both together). Site strings are stable literals, never interpolated with an id; the id is already in the key. If the call is a single authoritative decision, do not barrier it at all. If the call runs every frame per entity, use `TryEnter` + your own `try/catch` + `Report` instead of `Run` (see Gotchas), and add an allocation test beside it.
 
 **Guard a coroutine.** `owner.StartCoroutine(Fault.Coroutine(owner, "Site.Name", Routine(), Teardown))`. The teardown is the routine's own ending, extracted so the two cannot drift — hoist the locals it needs onto the component. It must be idempotent (the normal path has usually run it already) and must release anything a caller may be spinning on. Pass no teardown only when the routine claims nothing, and say why in a comment. For a plain object that borrows a component's coroutines (`NetLatch`, `FadeHandle`), the owner is the component.
 

@@ -52,6 +52,7 @@ using System.Collections.Generic;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay.Ragdoll;
 using SpaceGame.Gameplay.Status;
 using Unity.Netcode;
 using UnityEngine;
@@ -150,10 +151,6 @@ namespace SpaceGame.Items
                  "one side; three breaks it into gusts. It need not be a whole number — this is a " +
                  "frequency, and a fractional one simply makes the fan asymmetric.")]
         [SerializeField, Min(0.25f)] private float scatterLobes = 3f;
-
-        [Tooltip("How long a body stays down after being thrown, seconds. Travels with the " +
-                 "knockdown so every machine agrees when it ends.")]
-        [SerializeField, Min(0f)] private float downedSeconds = 1.2f;
 
         [Tooltip("Impulse scaling reference for loose items: a body this heavy takes the full fling.")]
         [SerializeField, Min(0.1f)] private float itemMassReference = 18f;
@@ -1407,18 +1404,12 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Tell every machine to put this body on the ground.
-        ///
-        /// Sent on the VICTIM's relay, and to everyone: bone transforms do not replicate, so a
-        /// ragdoll is not something one machine can run on another's behalf.
+        /// Put this body on the ground, for a duration priced by the victim's own
+        /// <c>KnockdownTuning</c> — the bottle owns the throw, not how long it lasts. The price
+        /// travels with the knockdown so every machine agrees when it ends: a watcher does not
+        /// simulate the flight and cannot work the moment out for itself.
         /// </summary>
-        private void Knock(GameObject victim, Vector3 fling)
-        {
-            NetMessaging.NetSendTo(victim, NetMsg.Knockdown, new NetArg
-            {
-                P = fling,
-                A = Mathf.RoundToInt(downedSeconds * 1000f),
-            }, NetTo.All);
-        }
+        private void Knock(GameObject victim, Vector3 fling) =>
+            RagdollController.Knock(victim, RagdollCause.Blast, fling);
     }
 }

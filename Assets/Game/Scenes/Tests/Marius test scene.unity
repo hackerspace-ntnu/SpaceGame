@@ -1514,7 +1514,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 0
+  corpseLifetime: 0
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &301530254
@@ -8917,11 +8917,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveDirector
   chain: {fileID: 11400000, guid: 33cfe3942907eee459610d98691da28b, type: 2}
-  sideChains:
+  quests:
   - {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
   - {fileID: 11400000, guid: f56f5404d52f9d54b8a85aef8788703a, type: 2}
   - {fileID: 11400000, guid: 121bc16596a24234484fedfee26edb6d, type: 2}
   - {fileID: 11400000, guid: 2d36ee478c712814192c88b71ceaeeda, type: 2}
+  triggerCheckSeconds: 0.5
 --- !u!4 &1438697316
 Transform:
   m_ObjectHideFlags: 0
@@ -11247,6 +11248,7 @@ GameObject:
   - component: {fileID: 1932440851}
   - component: {fileID: 1932440852}
   - component: {fileID: 1932440853}
+  - component: {fileID: 1215615715}
   m_Layer: 0
   m_Name: QuestNetwork
   m_TagString: Untagged
@@ -11306,6 +11308,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bdd5d05f7bc8035468c4800c0db663d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &1215615715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1932440850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd0c624849c84a9f9e4e6e0d5a4547e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestRequestNetwork
   ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1001 &1945019516
 PrefabInstance:

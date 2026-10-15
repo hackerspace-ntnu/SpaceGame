@@ -1,11 +1,23 @@
 using System;
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using SpaceGame.Presentation.Speech;
 
 namespace SpaceGame.Presentation
 {
+    /// <summary>
+    /// The screen-space dialog box: lines addressed to this machine's player, and yes/no questions.
+    ///
+    /// <para>
+    /// A view of <see cref="Speech.Speaker"/>. A line with a speaker is said through that
+    /// character's <see cref="Speech.Speaker"/> on the <see cref="SpeechChannel.Dialog"/> channel and
+    /// shown here when it arrives on <see cref="Speech.Speaker.AnySaid"/> — so the mouth, the hands
+    /// and the box all run off the one line, and a resident's reply sent to this player (said with
+    /// <c>showPopup</c>) lands here the same way. Reveal timing is <see cref="Typewriter"/>'s, the
+    /// clock the speaker's own line runs on.
+    /// </para>
+    /// </summary>
     public class NpcDialogPopupUI : MonoBehaviour
     {
         public static NpcDialogPopupUI Instance { get; private set; }
@@ -24,33 +36,22 @@ namespace SpaceGame.Presentation
         [SerializeField] private Button noButton;
         [SerializeField] private TMP_Text yesButtonText;
         [SerializeField] private TMP_Text noButtonText;
-        [Header("Typewriter")]
-        [SerializeField] private bool useTypewriter = true;
-        [SerializeField] private float charactersPerSecond = 28f;
-        [SerializeField] private float holdAfterTyping = 0.8f;
-        [SerializeField] private float punctuationExtraPause = 0.08f;
 
-        private Coroutine showRoutine;
         private bool isTyping;
-        private bool skipTypingRequested;
         private bool isQuestionActive;
+        private bool presentingQuestion;
         private Action yesChoiceCallback;
         private Action noChoiceCallback;
 
-        // Who said the line on screen, and the letter the typewriter revealed last -- what a
-        // TalkingMouth moves its jaw to.
-        private Transform speaker;
-        private string typedMessage = string.Empty;
-        private int typedIndex = -1;
-
-        /// <summary>Who said the line on screen, or null. Stale once the popup hides: check <see cref="IsVisible"/>.</summary>
-        public Transform Speaker => speaker;
-
-        /// <summary>The line on screen, in full.</summary>
-        public string Line => typedMessage;
-
-        /// <summary>Counts every line shown, so a reader can tell a new line from the same one.</summary>
-        public int LineNumber { get; private set; }
+        // The line on screen, on the typewriter clock, and the speaker whose line it is (null for a
+        // line nobody in the world says). The speaker's line number tells this line from a later one.
+        private string lineText = string.Empty;
+        private float lineStartedAt;
+        private float lineEndsAt;
+        private float showAtLeastUntil;
+        private bool lineAutoHides;
+        private Speaker lineSpeaker;
+        private int lineSpeakerNumber;
 
         private void Awake()
         {
@@ -79,6 +80,8 @@ namespace SpaceGame.Presentation
             {
                 noButton.onClick.AddListener(HandleNoClicked);
             }
+
+            Speaker.AnySaid += HandleSpeakerSaid;
         }
 
         private void OnDestroy()
@@ -95,6 +98,7 @@ namespace SpaceGame.Presentation
 
             if (Instance == this)
             {
+                Speaker.AnySaid -= HandleSpeakerSaid;
                 Instance = null;
             }
         }
@@ -104,14 +108,12 @@ namespace SpaceGame.Presentation
         public void Show(string message, float duration = -1f, Transform speaker = null)
         {
             ClearQuestionState();
-            this.speaker = speaker;
-            ShowInternal(message, duration, autoHide: true);
+            Say(message, duration > 0f ? duration : defaultDuration, speaker);
         }
 
         public void ShowQuestion(string message, string yesLabel, string noLabel, Action onYes, Action onNo,
                                  Transform speaker = null)
         {
-            this.speaker = speaker;
             yesChoiceCallback = onYes;
             noChoiceCallback = onNo;
             isQuestionActive = true;
@@ -140,10 +142,38 @@ namespace SpaceGame.Presentation
             }
 
             SetChoiceUIActive(true);
-            ShowInternal(message, defaultDuration, autoHide: false);
+
+            presentingQuestion = true;
+            Say(message, defaultDuration, speaker);
+            presentingQuestion = false;
         }
 
-        private void ShowInternal(string message, float duration, bool autoHide)
+        // Through the character's Speaker when there is one, so the line arrives back here on
+        // AnySaid like any other line meant for this player; straight onto the box when not.
+        private void Say(string message, float showAtLeast, Transform speaker)
+        {
+            Speaker voice = Speaker.Of(speaker);
+            if (voice != null)
+            {
+                voice.Say(message, SpeechChannel.Dialog, showPopup: true, showAtLeast);
+                return;
+            }
+
+            Present(message ?? string.Empty, Time.time, showAtLeast, null);
+        }
+
+        private void HandleSpeakerSaid(Speaker voice, string text, SpeechChannel channel)
+        {
+            if (!voice.OnPopup) return;
+
+            // A question owns the box until it is answered: a line arriving from elsewhere would
+            // leave the asker waiting on an answer the player can no longer give.
+            if (isQuestionActive && !presentingQuestion) return;
+
+            Present(text, Time.time, voice.LineEndsAt - Time.time, voice);
+        }
+
+        private void Present(string message, float startedAt, float showAtLeast, Speaker voice)
         {
             if (!popupRoot || !dialogText)
             {
@@ -151,53 +181,59 @@ namespace SpaceGame.Presentation
                 return;
             }
 
-            float showDuration = duration > 0f ? duration : defaultDuration;
+            lineText = message;
+            lineStartedAt = startedAt;
+            showAtLeastUntil = startedAt + showAtLeast;
+            lineEndsAt = Mathf.Max(startedAt + Typewriter.DurationFor(message), showAtLeastUntil);
+            lineAutoHides = !isQuestionActive;
+            lineSpeaker = voice;
+            lineSpeakerNumber = voice != null ? voice.LineNumber : 0;
 
-            LineNumber++;
-            popupRoot.SetActive(true);
-            isTyping = false;
-            skipTypingRequested = false;
-
-            if (autoHide)
+            if (lineAutoHides)
             {
                 // Regular line display must not keep question alternatives visible.
                 SetChoiceUIActive(false);
             }
 
-            if (showRoutine != null)
+            popupRoot.SetActive(true);
+            isTyping = Typewriter.TypingSeconds(message) > 0f;
+            dialogText.text = message;
+            dialogText.maxVisibleCharacters = isTyping ? Typewriter.VisibleChars(message, 0f) : int.MaxValue;
+        }
+
+        private void Update()
+        {
+            if (!IsVisible || !dialogText) return;
+
+            if (isTyping)
             {
-                StopCoroutine(showRoutine);
+                float elapsed = Time.time - lineStartedAt;
+                isTyping = elapsed < Typewriter.TypingSeconds(lineText);
+                dialogText.maxVisibleCharacters = isTyping
+                    ? Typewriter.VisibleChars(lineText, elapsed)
+                    : int.MaxValue;
             }
 
-            showRoutine = StartCoroutine(ShowRoutine(message, showDuration, autoHide));
+            if (lineAutoHides && !isTyping && Time.time >= lineEndsAt)
+            {
+                popupRoot.SetActive(false);
+                SetChoiceUIActive(false);
+                isQuestionActive = false;
+                yesChoiceCallback = null;
+                noChoiceCallback = null;
+            }
         }
 
-        /// <summary>
-        /// While the typewriter is revealing a line <paramref name="who"/> said, the letter it
-        /// revealed last. False once the line is fully shown, skipped, hidden, or said by someone else.
-        /// </summary>
-        public bool TryGetSpokenCharacter(Transform who, out char character)
-        {
-            character = default;
-            if (!isTyping || who == null || who != speaker ||
-                typedIndex < 0 || typedIndex >= typedMessage.Length)
-                return false;
-
-            character = typedMessage[typedIndex];
-            return true;
-        }
+        /// <summary>The speaker of the line on screen, while that is still the line it is saying.</summary>
+        private Speaker CurrentLineSpeaker =>
+            lineSpeaker != null && lineSpeaker.LineNumber == lineSpeakerNumber ? lineSpeaker : null;
 
         public void Hide()
         {
-            if (showRoutine != null)
-            {
-                StopCoroutine(showRoutine);
-                showRoutine = null;
-            }
+            CurrentLineSpeaker?.Hush();
+            lineSpeaker = null;
 
-            speaker = null;
             isTyping = false;
-            skipTypingRequested = false;
             isQuestionActive = false;
             yesChoiceCallback = null;
             noChoiceCallback = null;
@@ -216,74 +252,20 @@ namespace SpaceGame.Presentation
                 return;
             }
 
-            skipTypingRequested = true;
-        }
-
-        private IEnumerator ShowRoutine(string message, float duration, bool autoHide)
-        {
-            if (message == null)
-            {
-                message = string.Empty;
-            }
-
-            dialogText.text = message;
-            dialogText.maxVisibleCharacters = useTypewriter && charactersPerSecond > 0f ? 0 : int.MaxValue;
-            typedMessage = message;
-            typedIndex = -1;
-
-            float elapsed = 0f;
             isTyping = false;
-            skipTypingRequested = false;
+            dialogText.maxVisibleCharacters = int.MaxValue;
 
-            if (useTypewriter && charactersPerSecond > 0f)
+            // A spoken line ends when its speaker's does, so the box and the mouth stop together.
+            Speaker voice = CurrentLineSpeaker;
+            if (voice != null)
             {
-                isTyping = true;
-                float baseDelay = 1f / charactersPerSecond;
-                for (int i = 0; i < message.Length; i++)
-                {
-                    if (skipTypingRequested)
-                    {
-                        dialogText.maxVisibleCharacters = int.MaxValue;
-                        break;
-                    }
-
-                    char character = message[i];
-                    dialogText.maxVisibleCharacters = i + 1;
-                    typedIndex = i;
-
-                    float delay = baseDelay;
-                    if (character == '.' || character == ',' || character == '!' || character == '?' || character == ';' || character == ':')
-                    {
-                        delay += punctuationExtraPause;
-                    }
-
-                    elapsed += delay;
-                    yield return new WaitForSeconds(delay);
-                }
-                isTyping = false;
-                skipTypingRequested = false;
+                voice.FinishLine();
+                lineEndsAt = voice.LineEndsAt;
             }
             else
             {
-                dialogText.text = message;
-                dialogText.maxVisibleCharacters = int.MaxValue;
+                lineEndsAt = Mathf.Max(Time.time + Typewriter.HoldAfterTyping, showAtLeastUntil);
             }
-
-            if (autoHide)
-            {
-                float waitAfterTyping = Mathf.Max(holdAfterTyping, duration - elapsed);
-                if (waitAfterTyping > 0f)
-                {
-                    yield return new WaitForSeconds(waitAfterTyping);
-                }
-
-                popupRoot.SetActive(false);
-                SetChoiceUIActive(false);
-                isQuestionActive = false;
-                yesChoiceCallback = null;
-                noChoiceCallback = null;
-            }
-            showRoutine = null;
         }
 
         private void HandleYesClicked()
@@ -361,9 +343,6 @@ namespace SpaceGame.Presentation
         private void OnValidate()
         {
             defaultDuration = Mathf.Max(0f, defaultDuration);
-            charactersPerSecond = Mathf.Max(1f, charactersPerSecond);
-            holdAfterTyping = Mathf.Max(0f, holdAfterTyping);
-            punctuationExtraPause = Mathf.Max(0f, punctuationExtraPause);
         }
     }
 }

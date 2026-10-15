@@ -36,11 +36,17 @@ namespace SpaceGame.Gameplay.Status
         Swallowed = 5,
 
         /// <summary>
+        /// Tased: down on the ground, twitching, for a few seconds. Helpless like
+        /// <see cref="Frozen"/>, limp like <see cref="Foamed"/>, and never lethal on its own.
+        /// </summary>
+        Shocked = 6,
+
+        /// <summary>
         /// Held out of time: helpless like <see cref="Frozen"/>, inside a shimmering shell rather
         /// than a coat of ice. Laid by the Oathbranch's bolt and the sprite hamlet's dome — see
         /// <see cref="StasisStatus"/>.
         /// </summary>
-        Stasis = 6,
+        Stasis = 7,
     }
 
     /// <summary>
@@ -56,6 +62,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 7;
+        public const int Count = 8;
     }
 }

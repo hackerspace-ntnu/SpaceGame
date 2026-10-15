@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8754f7552cdd043bfa15f373039372e9, type: 3}
+  m_Name: ColonyCulture
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.SettlementCulture
+  lines: {fileID: 4900000, guid: 102fdf1f4f73542d1b35fa1360277986, type: 3}
+  names:
+  - Ada
+  - Idris
+  - Mira
+  - Tobias
+  - Yuki
+  - Casimir
+  - Noor
+  - Halvard
+  - Selene
+  - Dmitri
+  - Ines
+  - Kofi
+  - Liv
+  - Rafael
+  - Anouk
+  - Bjorn
+  - Priya
+  - Teodor
+  - Wren
+  - Zane
+  - Elio
+  - Freya
+  - Gideon
+  - Hana
+  - Ivo
+  - Jun
+  - Kaia
+  - Lazar
+  archetypes:
+  - {fileID: 11400000, guid: 4ec27ca9dbbd046a9b13573c17537d30, type: 2}
+  - {fileID: 11400000, guid: 0f59377e8dd914974afb36a95bdeb4a5, type: 2}
+  - {fileID: 11400000, guid: 677c5ba0638c24f90b6b2c59d2edf0fe, type: 2}
+  - {fileID: 11400000, guid: b0f54b5f01122489b93063cad895e753, type: 2}
+  - {fileID: 11400000, guid: 648960632b5ec4968aeeef5bb49fd96d, type: 2}
+  - {fileID: 11400000, guid: 6031603a55fb440cfa2ee586fcb43108, type: 2}
+  - {fileID: 11400000, guid: 6e1c7172788aa4ff9b0166e58f33946c, type: 2}
+  - {fileID: 11400000, guid: f9ca9f8e7e8404517b35dab14a9aea62, type: 2}
+  - {fileID: 11400000, guid: 0f58cc5f1a6354946985ad9b41aad62e, type: 2}
+  - {fileID: 11400000, guid: ab48dd858b7ca43fc9509379df95f8dc, type: 2}
+  profiles:
+  - prefab: {fileID: 2578966956616729156, guid: d0f638635216a414e9bf763407759c52, type: 3}
+    suits:
+    - {fileID: 11400000, guid: 4ec27ca9dbbd046a9b13573c17537d30, type: 2}
+    - {fileID: 11400000, guid: 0f59377e8dd914974afb36a95bdeb4a5, type: 2}
+    - {fileID: 11400000, guid: 677c5ba0638c24f90b6b2c59d2edf0fe, type: 2}
+    - {fileID: 11400000, guid: b0f54b5f01122489b93063cad895e753, type: 2}
+    - {fileID: 11400000, guid: 648960632b5ec4968aeeef5bb49fd96d, type: 2}
+    - {fileID: 11400000, guid: 6031603a55fb440cfa2ee586fcb43108, type: 2}
+    - {fileID: 11400000, guid: 6e1c7172788aa4ff9b0166e58f33946c, type: 2}
+    - {fileID: 11400000, guid: f9ca9f8e7e8404517b35dab14a9aea62, type: 2}
+    - {fileID: 11400000, guid: 0f58cc5f1a6354946985ad9b41aad62e, type: 2}
+    - {fileID: 11400000, guid: ab48dd858b7ca43fc9509379df95f8dc, type: 2}
+  stationedShare: 0.62
+  roamerShare: 0.2
+  outriderShare: 0.1
+  patrolShare: 0.1
+  freeTimeReachMinutes: 6
+  ambleUse: {fileID: 11400000, guid: 4334c4d2ff2dc4aa581397278b10f7da, type: 2}
+  expeditions: {fileID: 0}

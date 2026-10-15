@@ -1,17 +1,18 @@
 // Line-of-sight and field-of-view gate for entity targeting.
-// Other modules call CanSee(target) before acting. Fully optional — remove it and modules
-// revert to radius-only detection. Emits noise when target is spotted (for alert system).
-// Also supports a "last seen" position used by SearchModule.
+// Other modules call IsVisible(target) — or CanSeeCached(target) for the one target they track every
+// frame — before acting. Fully optional — remove it and modules revert to radius-only detection.
+// Stateless apart from whether the agent is moving and that cached sight answer: what the agent
+// remembers about a target lives in AgentTargeting.
 //
 // Authoritative perception API — other modules should route here instead of re-implementing
 // FOV/LoS. Public entry points:
-//   CanSee(target)                     — full FOV + LoS from the eye, updates memory
-//   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV, no memory update
+//   IsVisible(target)                  — full FOV + LoS from the eye
+//   CanSeeCached(target)               — IsVisible for the tracked target, re-cast on an interval
+//   HasLineOfSight(target)             — LoS from the eye to the body OR the head, no FOV
 //   HasLineOfSightFrom(origin, target) — LoS to the body only, from an arbitrary origin (e.g. a weapon muzzle)
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
-using FMODUnity;
-using SpaceGame.Audio;
 
 namespace SpaceGame.Agents
 {
@@ -45,27 +46,31 @@ namespace SpaceGame.Agents
                  "top grazes a ceiling or an overhang the head itself would be under.")]
         [SerializeField] private float headInset = 0.15f;
 
-        [Header("Memory")]
-        [Tooltip("How long the entity remembers the last known position after losing sight.")]
-        [SerializeField] private float memoryDuration = VisionBaseline.MinMemory;
-
-        [Header("Noise on Spot")]
-        [SerializeField] private bool emitNoiseOnSpot = true;
-        [SerializeField] private float spotNoiseRadius = 12f;
-
-        [Header("Audio")]
-        [SerializeField] private bool playSpotSound = true;
-        [SerializeField] private SfxId spotId = SfxId.EntityAlert;
-        [SerializeField] private EventReference spotSound;
-
-        public Vector3 LastKnownPosition { get; private set; }
-        public bool HasLastKnownPosition { get; private set; }
-        public float TimeSinceLastSeen { get; private set; }
+        [Tooltip("Seconds between line-of-sight re-checks of the target the agent is tracking " +
+                 "(CanSeeCached). A new target is checked at once. Each check is up to two rays, " +
+                 "every agent pays it, and a target does not dodge behind cover in a fifth of a second.")]
+        [SerializeField, Min(0f)] private float sightRecheckInterval = 0.2f;
 
         public Vector3 EyePosition => eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
-        public float MemoryDuration => memoryDuration;
+        public float SightRecheckInterval => sightRecheckInterval;
 
-        private NoiseEmitter noiseEmitter;
+        // Read for AgentController.IsParked (an agent out of the scene's action does not move) and
+        // RidesAsPassenger (seated cargo sees out through its carrier). Resolved on first use rather
+        // than in Awake, which EditMode tests never run.
+        private AgentController controller;
+        private bool controllerResolved;
+
+        // CanSeeCached's answer and whom it was cast at.
+        private Transform sightCachedTarget;
+        private bool sightCachedVisible;
+        private float sightRecheckTimer;
+
+        // Instance, not shared: grown in place and kept, like WalkerGround's. A full buffer is
+        // grown and re-cast (see IsUnobstructed); the cap is the most colliders one sight line is
+        // ever expected to cross.
+        private RaycastHit[] sightHits = new RaycastHit[InitialSightHits];
+        private const int InitialSightHits = 16;
+        private const int MaxSightHits = 512;
         private Vector3 prevPosition;
         private bool isMoving;
 
@@ -87,9 +92,12 @@ namespace SpaceGame.Agents
         // Shared rather than one list per agent: HeadPointOf fills and consumes it in one call.
         private static readonly List<Collider> colliderBuffer = new List<Collider>(8);
 
+        // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
+        private const string LineOfSightMarkerName = "SpaceGame.Perception.LineOfSight";
+        private static readonly ProfilerMarker LineOfSightMarker = new(LineOfSightMarkerName);
+
         private void Awake()
         {
-            noiseEmitter = GetComponent<NoiseEmitter>();
             prevPosition = transform.position;
 
             if (occlusionLayers == 0)
@@ -102,38 +110,56 @@ namespace SpaceGame.Agents
             }
         }
 
+        private void OnEnable()
+        {
+            // A random phase, so a crowd enabled on the same frame does not re-cast in step (the
+            // AgentController.speedVariationPhase precedent).
+            sightRecheckTimer = Random.Range(0f, sightRecheckInterval);
+            sightCachedTarget = null;
+        }
+
         private void Update()
         {
-            if (HasLastKnownPosition)
-                TimeSinceLastSeen += Time.deltaTime;
+            TickSightRecheck(Time.deltaTime);
 
-            if (TimeSinceLastSeen > memoryDuration)
+            // Parked: a body being placed is not "moving".
+            AgentController agent = Controller;
+            if (agent != null && agent.IsParked)
             {
-                HasLastKnownPosition = false;
-                TimeSinceLastSeen = 0f;
+                isMoving = false;
+                prevPosition = transform.position;
+                return;
             }
 
             isMoving = (transform.position - prevPosition).sqrMagnitude > 0.0001f;
             prevPosition = transform.position;
         }
 
-        // Full perception check: FOV + LoS from the eye. Updates last-known memory when visible.
-        // Only call this for the target the agent is actually committed to — see IsVisible().
-        public bool CanSee(Transform target)
+        /// <summary>
+        /// <see cref="IsVisible"/> for the target the agent is tracking every frame. Re-cast only
+        /// every <see cref="sightRecheckInterval"/> or when the target changes, and between casts
+        /// the last answer stands. Only call this for the one target the agent is committed to:
+        /// one cache slot, so alternating targets re-casts every call.
+        /// </summary>
+        public bool CanSeeCached(Transform target)
         {
-            if (!IsVisible(target))
+            if (!target)
                 return false;
 
-            LastKnownPosition = target.position;
-            HasLastKnownPosition = true;
-            TimeSinceLastSeen = 0f;
+            if (target != sightCachedTarget || sightRecheckTimer <= 0f)
+            {
+                sightCachedTarget = target;
+                sightCachedVisible = IsVisible(target);
+                sightRecheckTimer = sightRecheckInterval;
+            }
 
-            return true;
+            return sightCachedVisible;
         }
 
-        // FOV + LoS with no memory side effect. Use when testing candidates the agent has not
-        // committed to: CanSee() writes LastKnownPosition, so scoring a crowd with it would
-        // overwrite the memory of the target actually being tracked.
+        /// <summary>Advance the re-check clock. Update calls it; public so a test can step it.</summary>
+        public void TickSightRecheck(float deltaTime) => sightRecheckTimer -= deltaTime;
+
+        // Full perception check: FOV + LoS from the eye.
         public bool IsVisible(Transform target)
         {
             if (!target)
@@ -157,7 +183,7 @@ namespace SpaceGame.Agents
             return CanSightReach(origin, target);
         }
 
-        // LoS from the eye only — no FOV, no memory update. Body or head, like IsVisible.
+        // LoS from the eye only — no FOV. Body or head, like IsVisible.
         public bool HasLineOfSight(Transform target) => CanSightReach(EyePosition, target);
 
         // An eye sees a target when either its body or its head is unobstructed, so waist-high cover
@@ -204,6 +230,13 @@ namespace SpaceGame.Agents
             return head;
         }
 
+        /// <summary>
+        /// LoS from <paramref name="origin"/> to an explicit <paramref name="point"/> on
+        /// <paramref name="target"/> (a led aim point), under the same self / carrier / target rules.
+        /// </summary>
+        public bool HasLineOfSightFrom(Vector3 origin, Vector3 point, Transform target)
+            => IsUnobstructed(origin, point, target);
+
         // LoS to the target's body from an arbitrary origin (e.g. a weapon muzzle). Ignores hits on
         // self and the target itself.
         public bool HasLineOfSightFrom(Vector3 origin, Transform target)
@@ -216,6 +249,8 @@ namespace SpaceGame.Agents
 
         private bool IsUnobstructed(Vector3 origin, Vector3 point, Transform target)
         {
+            using ProfilerMarker.AutoScope sample = LineOfSightMarker.Auto();
+
             Vector3 toTarget = point - origin;
             float distance = toTarget.magnitude;
             if (distance < 1e-4f)
@@ -235,18 +270,40 @@ namespace SpaceGame.Agents
             // Triggers are ignored: the project queries them by default (queriesHitTriggers), and a
             // trigger is never a wall. A ship's breathable-air volume hid a player 370 m away from
             // twelve of fifteen NPCs; interaction zones and streaming volumes would do the same.
-            RaycastHit[] hits = Physics.RaycastAll(origin, dir, distance, occlusionLayers,
-                                                   QueryTriggerInteraction.Ignore);
+            //
+            // Non-allocating, and a full buffer is grown and re-cast: RaycastNonAlloc drops whatever
+            // did not fit, unsorted, and the dropped hit could be the wall (WalkerGround.Ray).
+            int count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            while (count >= sightHits.Length && sightHits.Length < MaxSightHits)
+            {
+                sightHits = new RaycastHit[sightHits.Length * 2];
+                count = Physics.RaycastNonAlloc(origin, dir, sightHits, distance, occlusionLayers,
+                                                QueryTriggerInteraction.Ignore);
+            }
+
+            // Seated cargo looks out through its carrier: crew sit inside their house's walls and
+            // see and shoot out of it (the user's call, 2026-10-04). NpcSeating parents the NPC under
+            // the carrier, so the carrier is the root above it. Gated on the cargo flag, never on
+            // the parent alone: an NPC parented under a scene container must not see through the
+            // whole container.
+            Transform carrier = IsSeatedCargo() && transform.parent != null ? transform.parent.root : null;
+
+            // The COLLIDER's transform, not hit.transform: that is the Rigidbody's, and a wall on a
+            // child of a kinematic root would read as the root (INVARIANTS: a query does not know
+            // what the solver was told).
             Transform blocker = null;
             float blockerDistance = float.PositiveInfinity;
-            for (int i = 0; i < hits.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                Transform t = hits[i].transform;
-                if (t == transform || t.IsChildOf(transform))
+                Transform t = sightHits[i].collider.transform;
+                if (t.IsChildOf(transform))
                     continue;
-                if (hits[i].distance >= blockerDistance)
+                if (carrier != null && t.IsChildOf(carrier))
                     continue;
-                blockerDistance = hits[i].distance;
+                if (sightHits[i].distance >= blockerDistance)
+                    continue;
+                blockerDistance = sightHits[i].distance;
                 blocker = t;
             }
 
@@ -254,39 +311,37 @@ namespace SpaceGame.Agents
             return blocker == null || blocker == target || blocker.IsChildOf(target);
         }
 
+        private AgentController Controller
+        {
+            get
+            {
+                if (!controllerResolved)
+                {
+                    controller = GetComponentInParent<AgentController>();
+                    controllerResolved = true;
+                }
+                return controller;
+            }
+        }
+
+        private bool IsSeatedCargo()
+        {
+            AgentController agent = Controller;
+            return agent != null && agent.RidesAsPassenger;
+        }
+
         /// <summary>
-        /// Restore-only. Called by the save system; do not call from gameplay.
-        ///
-        /// This component keeps a second copy of the same memory <c>AgentTargeting</c> keeps, written
-        /// from <see cref="CanSee"/>. Only one of them is persisted — AgentTargeting's, which is the
-        /// authority, since it is the caller that decides when <see cref="CanSee"/> runs at all. This
-        /// method exists so <c>AgentStateSaveable</c> can push that one answer into both, rather than
-        /// letting a second saver restore a copy that could disagree with the first.
-        ///
-        /// The elapsed time is clamped to this component's own <c>memoryDuration</c>, which may be
-        /// shorter than the targeting profile's — a memory this module would already have dropped
-        /// must not come back alive.
+        /// The way the body faces: its forward, or — when that is the more horizontal of the two — the
+        /// way its head points. A prone body (an ornithopter pilot lying in its cradle, banking and
+        /// diving with the craft) has its forward pointing at the ground and its head along the craft's
+        /// nose; nose-up, the head is -up. Flattened by the callers.
         /// </summary>
-        public void RestoreMemory(Vector3 lastKnownPosition, bool hasLastKnownPosition, float timeSinceLastSeen)
+        private Vector3 GetForward()
         {
-            LastKnownPosition = lastKnownPosition;
-            HasLastKnownPosition = hasLastKnownPosition;
-            TimeSinceLastSeen = hasLastKnownPosition
-                ? Mathf.Clamp(timeSinceLastSeen, 0f, memoryDuration)
-                : 0f;
+            Vector3 forward = transform.forward;
+            Vector3 head = forward.y < 0f ? transform.up : -transform.up;
+            return FlattenHorizontal(head).sqrMagnitude > FlattenHorizontal(forward).sqrMagnitude ? head : forward;
         }
-
-        // Call when a target is spotted for the first time to alert nearby allies.
-        public void NotifySpotted(Transform target)
-        {
-            if (emitNoiseOnSpot && noiseEmitter)
-                noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
-
-            if (playSpotSound)
-                Sfx.Play(spotId, transform.position, spotSound, GetInstanceID());
-        }
-
-        private Vector3 GetForward() => transform.forward;
 
         private static Vector3 FlattenHorizontal(Vector3 v)
         {
@@ -301,8 +356,6 @@ namespace SpaceGame.Agents
             targetAimHeight = Mathf.Max(0f, targetAimHeight);
             headAimHeight = Mathf.Max(0f, headAimHeight);
             headInset = Mathf.Max(0f, headInset);
-            memoryDuration = Mathf.Max(0f, memoryDuration);
-            spotNoiseRadius = Mathf.Max(0f, spotNoiseRadius);
         }
 
         private void OnDrawGizmosSelected()

@@ -2,8 +2,8 @@
 // Damages the first IDamageable it touches, then despawns. Gravity is applied by
 // the Rigidbody (set by RocketLauncherTurret.Fire), so the trajectory is a parabolic arc.
 //
-// Friendly-fire is filtered the same way AgentProjectile does it: if the shooter
-// has an EntityFaction allied with the hit target's faction, the hit is ignored.
+// Friendly-fire is filtered: if the shooter has an EntityFaction allied with the
+// hit target's faction, the hit is ignored.
 using UnityEngine;
 using SpaceGame.Gameplay;
 

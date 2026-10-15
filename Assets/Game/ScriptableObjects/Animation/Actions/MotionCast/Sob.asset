@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Sob
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 2
+  variants:
+  - clip: {fileID: 7920862057456639799, guid: b4a1e8c1a3981e9499582849523addda, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: -4463835898200899952, guid: b4a1e8c1a3981e9499582849523addda, type: 3}
+    exit: {fileID: -7892034263664345434, guid: b4a1e8c1a3981e9499582849523addda, type: 3}
+    selectionWeight: 1
+    contactAt: 0
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 0.95, y: 1.05}
+  fadeIn: 0.3
+  fadeOut: 0.35
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: 16a6ff46be05143efba81f2d536a0699, type: 2}
+  - {fileID: 11400000, guid: ec668b3e58afc4912903da194ac3cd91, type: 2}
+  postures: 0

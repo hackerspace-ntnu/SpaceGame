@@ -4,6 +4,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Items;
 using SpaceGame.Vehicles;
+using SpaceGame.World;
 
 namespace SpaceGame.Gameplay.Objectives
 {
@@ -19,13 +20,13 @@ namespace SpaceGame.Gameplay.Objectives
     /// </summary>
     public sealed class ObjectiveWorld
     {
-        /// <summary>How many loose contacts one search considers. Far more than a crash site holds.</summary>
-        private const int LooseSearchLimit = 64;
-
         private readonly HashSet<InventoryItem> used = new();
         private readonly HashSet<ulong> finished = new();
-        private readonly HashSet<(QuestMark, string)> marks = new();
-        private readonly List<ScanContact> contacts = new(LooseSearchLimit);
+
+        /// <summary>The world's baked town list, found on first use.</summary>
+        private WorldSiteCatalog towns;
+
+        private readonly HashSet<string> unknownTowns = new();
 
         /// <summary>
         /// The crew's hull. A story world has exactly one ship with module sockets, and the
@@ -36,6 +37,20 @@ namespace SpaceGame.Gameplay.Objectives
         /// <summary>Every player in the session. Replicated by Netcode, so it is the same list on every machine.</summary>
         public IReadOnlyList<PlayerIdentity> Crew => PlayerIdentity.All;
 
+        /// <summary>
+        /// EVERY machine: the crew's begun quest of <paramref name="quest"/>, or null when they have not taken it on.
+        /// Replicated, so a client sees the same quests as the server.
+        /// </summary>
+        public Quest FindQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null ? ObjectiveDirector.Instance.Find(quest) : null;
+
+        /// <summary>
+        /// SERVER: gives the crew <paramref name="quest"/>, which becomes everyone's active quest. False when it is not
+        /// in the director's catalog (said loudly) or they already have it.
+        /// </summary>
+        public bool StartQuest(ObjectiveChain quest) =>
+            ObjectiveDirector.Instance != null && ObjectiveDirector.Instance.StartQuest(quest);
+
         // ── Per step ────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -44,35 +59,12 @@ namespace SpaceGame.Gameplay.Objectives
         /// </summary>
         public LearnControlsStep.Control LocalControlsUsed { get; set; }
 
-        /// <summary>
-        /// EVERY machine: <c>Time.time</c> when this machine last saw the step change — reached, joined
-        /// into or restored. A step timed from here starts its clock again after a reload.
-        /// </summary>
-        public float StepStartedAt { get; private set; }
-
-        /// <summary>Seconds since <see cref="StepStartedAt"/>.</summary>
-        public float StepSeconds => Time.time - StepStartedAt;
-
         /// <summary>The crew have moved to another step: nothing remembered for the last one counts.</summary>
         public void ForgetStep()
         {
             used.Clear();
             finished.Clear();
-            marks.Clear();
             LocalControlsUsed = LearnControlsStep.Control.None;
-            StepStartedAt = Time.time;
-        }
-
-        /// <summary>SERVER: <paramref name="mark"/> happened to <paramref name="id"/> during the current step.</summary>
-        public void RecordMark(QuestMark mark, string id) => marks.Add((mark, id));
-
-        public bool HasMark(QuestMark mark, string id) => marks.Contains((mark, id));
-
-        /// <summary>The crew member standing nearest <paramref name="point"/>, flat distance, or null when nobody is spawned.</summary>
-        public Transform NearestCrew(Vector3 point, out float distance)
-        {
-            PlayerIdentity nearest = PlayerIdentity.Nearest(point, float.PositiveInfinity, out distance);
-            return nearest != null ? nearest.transform : null;
         }
 
         /// <summary>SERVER: somebody fired <paramref name="item"/> during the current step.</summary>
@@ -111,41 +103,8 @@ namespace SpaceGame.Gameplay.Objectives
         /// of <paramref name="near"/>. False when every copy is in somebody's hands or pack — or
         /// lies in a chunk that has not streamed in, which is the same thing to a waypoint.
         /// </summary>
-        public bool TryFindLoose(InventoryItem item, Vector3 near, float radius, out Vector3 position)
-        {
-            return TryFindLoosePickup(item, near, radius, out _, out position);
-        }
-
-        /// <summary>
-        /// The nearest copy of <paramref name="item"/> lying loose within <paramref name="radius"/> of
-        /// <paramref name="near"/>, as the pickup itself — for a step that takes the thing away.
-        /// </summary>
-        public bool TryFindLoosePickup(InventoryItem item, Vector3 near, float radius,
-                                       out PickupableItem found, out Vector3 position)
-        {
-            found = null;
-            position = default;
-            if (item == null) return false;
-
-            ScannerRegistry.Collect(near, radius, contacts, LooseSearchLimit);
-
-            // Collect sorts nearest first, so the first match is the answer.
-            foreach (ScanContact contact in contacts)
-            {
-                if (contact.Target is not PickupableItem pickup || pickup.Item != item) continue;
-
-                // The copy in a hand is an Instantiate of the same prefab, pickup and all, and it
-                // registers like any other — without this the waypoint follows the player carrying
-                // the thing it is pointing them at. The mark is what every equip path puts on it.
-                if (BodyAttachment.Covers(pickup.transform, null)) continue;
-
-                found = pickup;
-                position = contact.Position;
-                return true;
-            }
-
-            return false;
-        }
+        public bool TryFindLoose(InventoryItem item, Vector3 near, float radius, out Vector3 position) =>
+            LooseItems.TryFind(item, near, radius, out position);
 
         /// <summary>
         /// The centre of the first empty module socket on the crew's hull that takes
@@ -168,6 +127,68 @@ namespace SpaceGame.Gameplay.Objectives
 
             return false;
         }
+
+        /// <summary>The crew's hull's first socket that takes <paramref name="kind"/>, whatever is in it; null for none.</summary>
+        public ShipPartSocket SocketOf(ShipPartKind kind)
+        {
+            ShipPartRack ship = Ship;
+            if (ship == null) return null;
+
+            foreach (ShipPartSocket socket in ship.Sockets)
+                if (socket != null && socket.Kind == kind) return socket;
+
+            return null;
+        }
+
+        /// <summary>
+        /// EVERY machine: the flat distance from <paramref name="point"/> to the nearest member of the crew,
+        /// metres; infinity with nobody in the session. Player positions are replicated, so the server asks it
+        /// of everyone.
+        /// </summary>
+        public float NearestCrewDistance(Vector3 point)
+        {
+            float nearest = float.PositiveInfinity;
+
+            foreach (PlayerIdentity member in Crew)
+            {
+                if (member == null) continue;
+                Vector3 at = member.transform.position;
+                float dx = at.x - point.x, dz = at.z - point.z;
+                nearest = Mathf.Min(nearest, Mathf.Sqrt(dx * dx + dz * dz));
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
+        /// ANY machine: the settlement called <paramref name="name"/> in the world's baked town list
+        /// (<see cref="WorldSiteCatalog.towns"/>), known whether or not its chunk is loaded. A name the list does
+        /// not have is said once, because a quest waiting on it would otherwise wait forever, silently.
+        /// </summary>
+        public bool TryFindTown(string name, out WorldSiteCatalog.TownEntry town)
+        {
+            town = default;
+            if (string.IsNullOrEmpty(name)) return false;
+
+            if (towns == null) towns = WorldStreamer.FindSiteCatalog();
+            if (towns == null) return false;
+
+            foreach (WorldSiteCatalog.TownEntry entry in towns.towns)
+            {
+                if (entry.name != name) continue;
+                town = entry;
+                return true;
+            }
+
+            if (unknownTowns.Add(name))
+                Debug.LogWarning($"[Objectives] No settlement called '{name}' in the baked town list of " +
+                                 $"'{towns.name}'. Check the name, or re-run Tools/SpaceGame/World/Bake Site Catalog.");
+            return false;
+        }
+
+        /// <summary>How far from a town's centre still counts as in it: its buildings' extent (else <paramref name="fallbackRadius"/>), plus <paramref name="margin"/>.</summary>
+        public static float TownReach(in WorldSiteCatalog.TownEntry town, float margin, float fallbackRadius) =>
+            (town.radius > 0f ? town.radius : fallbackRadius) + margin;
 
         /// <summary>
         /// A point on the ground at a ship-relative offset: sideways and forward in the hull's own

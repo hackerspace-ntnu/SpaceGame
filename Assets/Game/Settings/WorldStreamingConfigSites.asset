@@ -1,0 +1,186 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac44fc89311d4439a38d5be8105067a, type: 3}
+  m_Name: WorldStreamingConfigSites
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorldSiteCatalog
+  sites: []
+  settlements:
+  - settlementId: 1c3973d9ea094a5bb1c9e91a52a50f8a
+    name: Settlement
+    position: {x: 2999, y: 128.69003, z: 618}
+    hasMuster: 1
+    musterPosition: {x: 2944.8083, y: 115.85379, z: 608.7512}
+    musterForward: {x: -0.99727637, y: 0, z: -0.07375585}
+    beds: 35
+    cultureProfileIndex: 0
+    roster:
+    - residentKey: r:0
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 010000000200000003000000040000000b0000000a000000
+      sourcePrefabGuid: 945875e2c9c034aca8157a89589e2e6f
+      displayName: Sefa
+    - residentKey: r:1
+      archetypeIndex: 26
+      roles: 0
+      adult: 1
+      bonds: 000000000200000003000000040000000c0000000d000000
+      sourcePrefabGuid: 562a63fecff42411a8fa6015a4cc0d56
+      displayName: Oren
+    - residentKey: r:2
+      archetypeIndex: 28
+      roles: 0
+      adult: 1
+      bonds: 000000000100000003000000040000000500000006000000
+      sourcePrefabGuid: f2a1bce75c71646f698b5d8935877f1b
+      displayName: Lesh
+    - residentKey: r:3
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 000000000100000002000000040000000500000007000000
+      sourcePrefabGuid: 9e7fd6836c1eb4625a847a487fc6ea96
+      displayName: Ulla
+    - residentKey: r:4
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 000000000100000002000000030000000600000007000000
+      sourcePrefabGuid: ebeb475745d3c4a28afbacf713f00555
+      displayName: Dasra
+    - residentKey: r:5
+      archetypeIndex: 20
+      roles: 8
+      adult: 1
+      bonds: 060000000700000008000000090000001000000011000000
+      sourcePrefabGuid: b1a441d697d7244e5a2d03264d70e8fd
+      displayName: Mirza
+    - residentKey: r:6
+      archetypeIndex: 25
+      roles: 0
+      adult: 1
+      bonds: 050000000700000008000000090000000300000004000000
+      sourcePrefabGuid: 6eabcf8a2c144405e9b53c006afa32cc
+      displayName: Emru
+    - residentKey: r:7
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 050000000600000008000000090000000a0000000b000000
+      sourcePrefabGuid: ffd6ce667ab644930862dfe31068fb15
+      displayName: Farid
+    - residentKey: r:8
+      archetypeIndex: 28
+      roles: 0
+      adult: 1
+      bonds: 050000000600000007000000090000000300000004000000
+      sourcePrefabGuid: d331d99758b16401aa91335195d00b8f
+      displayName: Bina
+    - residentKey: r:9
+      archetypeIndex: 5
+      roles: 0
+      adult: 1
+      bonds: 050000000600000007000000080000000300000004000000
+      sourcePrefabGuid: c87391b23c12d4857bc382aa3edc3668
+      displayName: Nadia
+    - residentKey: r:10
+      archetypeIndex: 6
+      roles: 0
+      adult: 1
+      bonds: 0b0000000c0000000d0000000e0000000500000007000000
+      sourcePrefabGuid: 192105a79d9644a9ba3346e28a99c798
+      displayName: Rasha
+    - residentKey: r:11
+      archetypeIndex: 8
+      roles: 2
+      adult: 1
+      bonds: 0a0000000c0000000d0000000e0000000500000007000000
+      sourcePrefabGuid: f2a1bce75c71646f698b5d8935877f1b
+      displayName: Dalit
+    - residentKey: r:12
+      archetypeIndex: 30
+      roles: 2
+      adult: 1
+      bonds: 0a0000000b0000000d0000000e0000000500000007000000
+      sourcePrefabGuid: 26de078b165624b48bab903240fa9b2c
+      displayName: Qadi
+    - residentKey: r:13
+      archetypeIndex: 17
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000c0000000e0000000500000007000000
+      sourcePrefabGuid: 172915b40f756480a9df328461e89868
+      displayName: Bekir
+    - residentKey: r:14
+      archetypeIndex: 10
+      roles: 4
+      adult: 1
+      bonds: 0a0000000b0000000c0000000d0000000500000007000000
+      sourcePrefabGuid: 2a4b9ce2f062c490583b57550c0e8d6a
+      displayName: Faro
+    - residentKey: r:15
+      archetypeIndex: 14
+      roles: 0
+      adult: 1
+      bonds: 100000001100000012000000130000000500000007000000
+      sourcePrefabGuid: 42b14c93f650343d9904c00262437ec4
+      displayName: Jessa
+    - residentKey: r:16
+      archetypeIndex: 23
+      roles: 0
+      adult: 1
+      bonds: 0f0000001100000012000000130000000500000007000000
+      sourcePrefabGuid: 97c27ca5afc2b440ea8dbf6236ebb85a
+      displayName: Nour
+    - residentKey: r:17
+      archetypeIndex: 16
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000012000000130000000500000007000000
+      sourcePrefabGuid: 562a63fecff42411a8fa6015a4cc0d56
+      displayName: Idris
+    - residentKey: r:18
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 0f0000001000000011000000130000000500000007000000
+      sourcePrefabGuid: 4f284d4a656604161b70bb841ec01d61
+      displayName: Asha
+    - residentKey: r:19
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000011000000120000000500000007000000
+      sourcePrefabGuid: 192105a79d9644a9ba3346e28a99c798
+      displayName: Parsa
+  towns:
+  - id: be7fcc75927f414c9b3241715912add8
+    name: astronauts_settlement
+    position: {x: 2786.2832, y: 109.87087, z: 533.8228}
+    radius: 138.8741
+    faction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
+  - id: autodeba89fd347a84d3
+    name: outpost (1)
+    position: {x: 2381.118, y: 105.85279, z: 896.36426}
+    radius: 16.151554
+    faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
+  - id: 1c3973d9ea094a5bb1c9e91a52a50f8a
+    name: Settlement
+    position: {x: 2999, y: 128.69003, z: 618}
+    radius: 221.05975
+    faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
+  - id: autob47765c5a81251f8
+    name: ClankerSettlement
+    position: {x: 3614.8, y: 109.03782, z: 796}
+    radius: 170
+    faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}

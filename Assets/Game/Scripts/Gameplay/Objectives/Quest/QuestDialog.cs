@@ -111,15 +111,14 @@ namespace SpaceGame.Gameplay.Objectives
         private Entry Matching()
         {
             foreach (Entry entry in entries)
-                if (entry.window.Contains(entry.window.FindRun())) return entry;
+                if (entry.window.IsInside) return entry;
 
             return null;
         }
 
         private static bool WillOffer(Entry entry)
         {
-            ObjectiveRun run = entry.window.FindRun();
-            return entry.offerChain && run != null && !run.IsStarted;
+            return entry.offerChain && entry.window.TryGetPosition(out int position) && position < 0;
         }
 
         private void Offer(Entry entry, Interactor interactor)

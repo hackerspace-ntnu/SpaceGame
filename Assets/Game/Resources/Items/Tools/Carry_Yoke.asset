@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: Carry_Yoke
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: 43d2258eb8e424ba8a68fe431d83c69e
+  itemName: Yoke
+  itemPrefab: {fileID: 6206299411174689775, guid: ca6ee6e95ce704ede8237d3ea2c0ad78, type: 3}
+  icon: {fileID: 21300000, guid: 68067bd90de68479e9e885a4c546ca5b, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0
+  menacing: 0
+  curiosity: 0
+  showInDevBrowser: 0

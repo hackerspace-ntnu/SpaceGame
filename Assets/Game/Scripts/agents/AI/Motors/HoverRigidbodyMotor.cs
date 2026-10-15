@@ -1,7 +1,7 @@
 // Rigidbody-backed motor for ground-effect craft: a hull that rides a fixed clearance over whatever
 // is below it and cannot leave it.
 //
-// This is deliberately not FlyingRigidbodyMotor with a low ceiling. A flying motor gives the pilot
+// This is deliberately not a flying motor with a low ceiling. A flying motor gives the pilot
 // the vertical axis and lets the craft go wherever it is pointed; here the vertical axis does not
 // exist at all. The pilot gets throttle and steering, and the height is a servo onto the ground the
 // craft is passing over — climb it, hold it, never leave it. So there is no altitude hold, no
@@ -13,8 +13,10 @@
 //
 // Every write to the body happens in FixedUpdate. Rigidbody velocity and MoveRotation are only
 // meaningful per physics step; driving them from the render loop makes the per-step advance uneven,
-// which a follow camera turns straight into shake. Tick() therefore only records what the AI channel
-// asked for — see FlyingRigidbodyMotor.ApplyRiderInput for the long-form version of that reasoning.
+// which a follow camera turns straight into shake. Tick() and ApplyRiderInput() therefore only record
+// what was asked for. Above 50 Hz several Update calls land between physics steps and all but the
+// last are discarded; below it some steps get none. The body still travels the right *average*
+// distance, so it looks correct to a static observer while the per-step advance is uneven.
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -328,18 +330,6 @@ namespace SpaceGame.Agents
             body.MoveRotation(stepped);
         }
 
-        public void NudgeDestination(Vector3 offset)
-        {
-            if (!currentDestination.HasValue)
-                return;
-            currentDestination = currentDestination.Value + offset;
-        }
-
-        public void SuggestDestination(Vector3 position)
-        {
-            pendingIntent = MoveIntent.MoveTo(position, stopDistance);
-        }
-
         // ─────────── Rider channel ───────────
         public void ApplyRiderInput(in RiderInput input, float deltaTime)
         {
@@ -454,7 +444,7 @@ namespace SpaceGame.Agents
             Vector3 moveDirection = toTarget / distance;
             Vector3 desired = moveDirection * (maxSpeed * Mathf.Max(0.01f, intent.SpeedMultiplier));
 
-            FaceDirection(intent.OverrideFacingDirection ? intent.FacingDirection : moveDirection, deltaTime);
+            FaceDirection(moveDirection, deltaTime);
 
             return Vector3.MoveTowards(Horizontal(body.linearVelocity), desired, acceleration * deltaTime);
         }

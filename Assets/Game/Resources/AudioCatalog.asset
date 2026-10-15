@@ -757,6 +757,18 @@ MonoBehaviour:
     maxDistance: 70
     volume: 0.6
     note: 'stand-in: wants a heavy mech footfall'
+  - id: 706
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 80
+    volume: 0.6
+    note: 'stand-in: wants a geared slewing motor (satellite dish)'
   - id: 800
     eventRef:
       Guid:

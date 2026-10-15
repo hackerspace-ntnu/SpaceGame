@@ -15,12 +15,6 @@ namespace SpaceGame.Core.Persistence
     /// there, and re-notices the player a second later from scratch — which reads as the world having
     /// forgotten what was happening, because it had.
     ///
-    /// <b>One memory, two components.</b> <see cref="PerceptionModule"/> keeps its own copy of the
-    /// last-known position, written whenever <c>AgentTargeting</c> asks it to look. Only
-    /// <c>AgentTargeting</c>'s copy is stored, and this saver pushes it into both on restore. A second
-    /// saver for the perception copy would be a second answer to one question, and the winner would be
-    /// whichever ran last.
-    ///
     /// <b>Deferred, because targets are references.</b> A target is another entity or a player, and
     /// neither reliably exists when this agent's scene hydrates. The refs are read in
     /// <see cref="RestoreState"/> and resolved in <see cref="OnLoadComplete"/>.
@@ -33,10 +27,8 @@ namespace SpaceGame.Core.Persistence
         public const string Key = "agent";
 
         private AgentTargeting targeting;
-        private PerceptionModule perception;
 
         private AgentTargeting Targeting => targeting != null ? targeting : targeting = GetComponent<AgentTargeting>();
-        private PerceptionModule Perception => perception != null ? perception : perception = GetComponent<PerceptionModule>();
 
         public string SaveKey => Key;
 
@@ -89,9 +81,9 @@ namespace SpaceGame.Core.Persistence
             public string profileId;
 
             /// <summary>
-            /// Vestigial. Patrol progress moved to its own saver, because <c>PatrolRobot</c> and
-            /// the PatrolRobots have a <c>PatrolModule</c> and no <c>AgentTargeting</c> — so this
-            /// saver was never added to them and their patrol was never saved at all.
+            /// Vestigial. Patrol progress moved to its own saver, because an agent can have a
+            /// <c>PatrolModule</c> and no <c>AgentTargeting</c> — and then this saver is never added
+            /// to it, so its patrol was never saved at all.
             ///
             /// The fields stay in the struct, unwritten and unread, so a save file from before the
             /// split still deserializes without a migration. Do not reuse the names.
@@ -161,22 +153,15 @@ namespace SpaceGame.Core.Persistence
             float timeSinceSeen = Mathf.Clamp(state.timeSinceSeen, 0f, Targeting.MemoryDuration);
 
             // A target that no longer resolves still leaves the memory intact, which is deliberate: the
-            // agent knows something was over there, which is exactly what it knew before the save.
+            // agent knows something was over there, which is exactly what it knew before the save. It
+            // also counts as a lost target, so a SearchModule goes to look there.
             Targeting.RestoreMemory(
                 target != null ? target.transform : null,
+                state.target.IsSet,
                 state.lastKnownPosition,
                 state.hasLastKnownPosition,
                 timeSinceSeen,
                 attacker != null ? attacker.transform : null);
-
-            // The perception copy of the same memory, from the same record. It clamps again against
-            // its own (possibly shorter) memoryDuration.
-            //
-            // Compared with Unity's == rather than ?., which does a plain reference check and would
-            // happily call into a destroyed component.
-            PerceptionModule eyes = Perception;
-            if (eyes != null)
-                eyes.RestoreMemory(state.lastKnownPosition, state.hasLastKnownPosition, timeSinceSeen);
         }
 
         /// <summary>

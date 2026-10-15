@@ -742,8 +742,6 @@ namespace SpaceGame.EditorTools
 
             public void Tick(in MoveIntent intent, float deltaTime) { }
             public void ForceStop() { }
-            public void NudgeDestination(Vector3 offset) { }
-            public void SuggestDestination(Vector3 position) { }
 
             public void SuspendSelfDrive() => Suspended = true;
             public void ResumeSelfDrive() => Suspended = false;

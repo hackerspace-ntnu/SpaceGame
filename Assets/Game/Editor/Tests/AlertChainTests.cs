@@ -1,7 +1,8 @@
 // The alert chain, end to end, on real components: one agent learns of a target and its allies in
 // range are handed it — as a grudge where they can hold one — while a neutral bystander, an ally
 // out of range, and an ally of a receiver (who must not be reached by a second-hand alert) are
-// left alone. Plus the settlement alarm's clock.
+// left alone. Plus calling for help — the one deliberate re-announcement, a hop per call while the caller
+// fights — and the settlement alarm's clock.
 //
 // EditMode, so Awake/OnEnable never run: every component resolves its neighbours lazily for
 // exactly this reason, and the registry is fed by hand where OnEnable would have done it.
@@ -134,6 +135,56 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(player.transform, relay.GetComponent<AgentTargeting>().Target);
             Assert.IsNull(far.GetComponent<AgentTargeting>().Target, "a received alert was re-broadcast");
+        }
+
+        [Test]
+        public void AFightAnAllysAlertStartedIsNotReAnnounced()
+        {
+            // Neutral toward the player, so the alert goes through the meter — and allyHurtGain at
+            // the top makes the first alert a fight. Spotter reaches Relay (20 m); Far, 40 m out,
+            // hears anything only if the fight Relay started was announced again.
+            var player = Entity("Player", humans, new Vector3(0f, 0f, -50f));
+            var spotter = Nomad("Spotter", Vector3.zero);
+            var relay = Nomad("Relay", new Vector3(20f, 0f, 0f));
+            var far = Nomad("Far", new Vector3(40f, 0f, 0f));
+
+            spotter.GetComponent<ProvocationModule>().Provoke(player.transform);
+
+            Assert.IsTrue(relay.GetComponent<ProvocationModule>().IsProvoked, "the first alert fills a bold meter");
+            Assert.IsFalse(far.GetComponent<ProvocationModule>().IsProvoked, "an alert-born fight was re-announced");
+        }
+
+        [Test]
+        public void AFighterCallingForHelp_ReachesOneHopFurtherPerCall_AndACalmAgentCallsNobody()
+        {
+            // The chain above: Spotter reaches Relay (20 m), Far is 40 m out. The fight Spotter announces
+            // stops at Relay; Relay calling for help is what reaches Far.
+            var player = Entity("Player", humans, new Vector3(0f, 0f, -10f));
+            var spotter = Nomad("Spotter", Vector3.zero);
+            var relay = Nomad("Relay", new Vector3(20f, 0f, 0f));
+            var far = Nomad("Far", new Vector3(40f, 0f, 0f));
+
+            Assert.IsFalse(relay.GetComponent<AlertBroadcaster>().CallForHelp(), "an agent not fighting calls nobody");
+            spotter.GetComponent<ProvocationModule>().Provoke(player.transform);
+            Assert.IsTrue(relay.GetComponent<ProvocationModule>().IsProvoked);
+            Assert.IsFalse(far.GetComponent<ProvocationModule>().IsProvoked, "the announcement alone does not cascade");
+
+            Assert.IsTrue(relay.GetComponent<AlertBroadcaster>().CallForHelp());
+            Assert.AreEqual(player.transform, far.GetComponent<ProvocationModule>().Aggressor, "the call reached the next ally");
+        }
+
+        private GameObject Nomad(string name, Vector3 at)
+        {
+            var go = Entity(name, fauna, at);
+            go.AddComponent<AgentTargeting>();
+            SetRadius(go.AddComponent<AlertBroadcaster>(), 30f);
+            go.AddComponent<AlertReceiverModule>();
+            go.AddComponent<HealthComponent>();
+            var provocation = go.AddComponent<ProvocationModule>();
+            AggressionSettings settings = provocation.Settings;
+            settings.allyHurtGain = AggressionMath.Max;
+            provocation.Settings = settings;
+            return go;
         }
 
         [Test]

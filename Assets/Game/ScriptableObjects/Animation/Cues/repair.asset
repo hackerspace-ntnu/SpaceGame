@@ -13,4 +13,11 @@ MonoBehaviour:
   m_Name: repair
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: 'Repairing: wrench, hammer, fixing.'
-  fallback: {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
+  fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools:
+  - {fileID: 11400000, guid: c6e4f31fddda7445e9b7d44576bdd9b3, type: 2}
+  - {fileID: 11400000, guid: baf2b8fc497a04996a58b80424b99006, type: 2}
+  - {fileID: 11400000, guid: 5e61213f7dc3144d6bd00546b3e69ace, type: 2}
+  - {fileID: 11400000, guid: be2fa83c232d94053b90d0f7f62ce909, type: 2}
+  bareHands: 0

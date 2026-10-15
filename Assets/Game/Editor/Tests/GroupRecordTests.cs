@@ -35,6 +35,7 @@ namespace SpaceGame.EditorTools
                 WipedOut = true,
                 Delivered = true,
             };
+            group.Fallen.AddRange(new[] { 0, 1003 });
 
             JObject json = JObject.FromObject(group.ToRecord(), SaveSerializer.Serializer);
             NpcGroup.Record back = json.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
@@ -48,6 +49,8 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(restored.IsWarParty);
             Assert.IsTrue(restored.WipedOut, "a party wiped out just before the save must not respawn on load");
             Assert.IsTrue(restored.Delivered, "a party already dropped off comes back on foot, not in a vessel");
+            CollectionAssert.AreEqual(new[] { 0, 1003 }, restored.Fallen,
+                "a party saved after losing people must not come back whole on load");
         }
 
         [Test]
@@ -59,22 +62,24 @@ namespace SpaceGame.EditorTools
             var group = new NpcGroup { Id = record.id, TemplateId = record.templateId };
             group.ApplyRecord(in record);
 
-            // A bare group has no seed of its own, so a missing one leaves 0 (ApplyRecord keeps, never zeroes).
-            Assert.AreEqual(0, group.RosterSeed);
+            // Before seeds were saved every group drew from its id's hash, so an older save keeps that.
+            Assert.AreEqual(RosterDraw.StableHash("nomad-caravan"), group.RosterSeed);
             Assert.AreEqual(string.Empty, group.QuarryProfileId);
             Assert.AreEqual(0, group.Tier);
             Assert.IsFalse(group.IsWarParty);
             Assert.IsFalse(group.WipedOut);
             Assert.IsFalse(group.Delivered, "an older save's party has not been dropped off");
+            CollectionAssert.IsEmpty(group.Fallen, "an older save's party has lost nobody");
         }
 
         [Test]
-        public void ApplyRecord_WithNoSeed_KeepsTheGroupsOwn_ButASavedSeedWins()
+        public void ApplyRecord_WithNoSeed_DrawsFromItsId_ButASavedSeedWins()
         {
-            var group = new NpcGroup { Id = "caravan", RosterSeed = RosterDraw.StableHash("caravan") };
+            // A new world's seed: an older save, written before seeds were saved, drew from the id's hash.
+            var group = new NpcGroup { Id = "caravan", RosterSeed = 918273 };
 
             group.ApplyRecord(new NpcGroup.Record { id = "caravan" });
-            Assert.AreEqual(RosterDraw.StableHash("caravan"), group.RosterSeed, "an older save has no seed to give");
+            Assert.AreEqual(RosterDraw.StableHash("caravan"), group.RosterSeed, "an older save drew from its id");
 
             group.ApplyRecord(new NpcGroup.Record { id = "caravan", rosterSeed = 42 });
             Assert.AreEqual(42, group.RosterSeed);
@@ -89,6 +94,7 @@ namespace SpaceGame.EditorTools
             var member = new GameObject("Nomad");
             junk.Add(member);
             member.AddComponent<EntityFaction>();
+            member.AddComponent<HealthComponent>();
 
             var group = new NpcGroup { Id = "g" };
             GroupMembership membership = GroupMembership.Stamp(member, group, 3, tribe);
@@ -207,6 +213,28 @@ namespace SpaceGame.EditorTools
             const int seed = 55, member = 2, candidates = 7;
             Assert.AreEqual(RosterDraw.IndexFor(seed, member, candidates),
                             RosterDraw.IndexFor(seed, member, candidates));
+        }
+
+        [Test]
+        public void CrewAshore_RoundTripsThroughTheSaveSerializer()
+        {
+            var group = new NpcGroup { Id = "strider-city", TemplateId = "strider-city", CrewAshore = true };
+            JObject json = JObject.FromObject(group.ToRecord(), SaveSerializer.Serializer);
+            NpcGroup.Record back = json.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
+
+            var restored = new NpcGroup { Id = back.id, TemplateId = back.templateId };
+            restored.ApplyRecord(in back);
+            Assert.IsTrue(restored.CrewAshore);
+        }
+
+        [Test]
+        public void Record_FromAnOlderSave_ReadsCrewAboard()
+        {
+            var old = JObject.Parse("{\"id\":\"strider-city\",\"templateId\":\"strider-city\",\"taskIndex\":1}");
+            NpcGroup.Record record = old.ToObject<NpcGroup.Record>(SaveSerializer.Serializer);
+            var group = new NpcGroup { Id = record.id };
+            group.ApplyRecord(in record);
+            Assert.IsFalse(group.CrewAshore, "an old save spawns the city marching");
         }
     }
 }

@@ -58,7 +58,7 @@ namespace SpaceGame.Agents
             "Maintains a preferred distance from a target. Backs away if too close, faces the target otherwise. Good for ranged enemies that kite.\n\n" +
             "• detectRadius — range at which the module activates\n" +
             "• preferredDistance — desired gap between entity and target\n" +
-            "• Pair with AgentRangedCombatModule to shoot while backing away";
+            "• Pair with NpcItemUseModule to shoot while backing away";
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {

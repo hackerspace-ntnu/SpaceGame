@@ -88,7 +88,7 @@ namespace SpaceGame.Agents
         // ─────────── ITowable ───────────
         //
         // Implemented on the motor rather than on a component of its own, so every NavMesh-driven
-        // thing in the game -- creatures, NPCs, the patrol robots, a mount -- gains this at once
+        // thing in the game -- creatures, NPCs, a mount -- gains this at once
         // with no prefab wiring to forget. LeggedDriver had to be a separate seam only because
         // ITowable lives in the default assembly and the locomotion behind it does not; nothing
         // here has that problem.

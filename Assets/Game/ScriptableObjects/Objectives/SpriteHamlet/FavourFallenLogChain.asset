@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: FavourFallenLogChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
   id: favour-fallen-log
+  title: Mosswick's Door
+  summary: "A fallen log has shut Mosswick in. Shift it off the door."
   speaker: MOSSWICK
+  trigger: {fileID: 0}
   steps:
   - {fileID: 11400000, guid: c7e1f0ead3cac35468359d0713e297a1, type: 2}
   - {fileID: 11400000, guid: 37bee658298124b4893b25d94521bbfe, type: 2}

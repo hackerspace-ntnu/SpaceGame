@@ -34,8 +34,9 @@ symptoms:
   - "a lit torch and a powered scanner, one per wrist, and only the right arm comes up"
   - "the torch came back on after a reload but the world is still dark for everyone else"
   - "changing beam length or spot angle in the Inspector does nothing at runtime"
+  - "looking over my shoulder swings the torch arm through my chest"
 reads_with: [PlayerCharacter, BodyEquipment, Artifacts, Multiplayer, Persistence, Environment]
-updated: 2026-09-25
+updated: 2026-10-04
 ---
 
 # Flashlight
@@ -72,7 +73,7 @@ A player torch in three layers: a URP spot light, a global-uniform long-throw co
 | `PlayerViewNetwork` | [PlayerViewNetwork.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerViewNetwork.cs) | `NetworkVariable<bool> netTorch`, `TorchOn`, `SetTorch`/`ClearTorch` |
 | `FlashlightGauntletBuilder` | FlashlightGauntletBuilder.cs | *Tools ▸ SpaceGame ▸ Items ▸ Build Flashlight Gauntlet*. Owns the prefab and the item asset |
 | `PlayerArmAim` | [PlayerArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs) | Points a posed forearm at the look. `SetPointer`/`ClearPointer` per arm; runs on every machine off `PlayerViewNetwork.AimPivot`. Added by `PlayerAimRig.Awake`, never authored on a prefab |
-| `ArmAim` | [ArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs) | The maths with no frame in it: `Convergence`, the clamped `Swing`, and `Point` — shoulder share then elbow passes. Pinned by `ArmAimTests` |
+| `ArmAim` | [ArmAim.cs](Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs) | The maths with no frame in it: `Convergence`, the clamped `Swing`, and `Point` — shoulder share then elbow passes. `maxDegrees` limits the pointer's **total** swing: past the limit every stage reaches for one direction fixed before anything moves. Pinned by `ArmAimTests` |
 | `PlayerAimRig.SetWornStyle` | [PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | The pose a working gauntlet on one arm asks for — **shared with the Item Scanner**, which asks for it while powered ([Artifacts.md](Artifacts.md)). `PoseStyle` lets a held item override it, `PoseMirrored` says which arm asked, `Posing` is what the layer weight follows, `LeftArmStyle` is what the second (left-arm) layer plays when both arms ask at once |
 | `HumanoidControllerBuilder` | [HumanoidControllerBuilder.cs](Assets/Game/Editor/Animation/HumanoidControllerBuilder.cs) | *Tools ▸ SpaceGame ▸ Animation ▸ Rebuild Humanoid Controller*. Generates both masked layers, their masks and every hold/raise/mirrored state from the humanoid profile ([HumanoidAnimation.md](HumanoidAnimation.md)) |
 
@@ -99,6 +100,7 @@ Body-slot bags are saved by `BodyEquipmentSaveable` through `GearSaveCodec.Captu
 
 ## Gotchas
 
+- **The swing limit is on the pointer's total swing, not on each stage.** `ArmAim.Point` used to clamp the shoulder and each elbow pass to `maxDegrees` separately, re-reading the target after every move, so a target behind the player swung the lamp 0.55×40 + 40 + 40 = 102° on a 40° limit — through the chest. Past the limit it now fixes the furthest allowed **direction** once, before anything moves, and every stage pursues that; a direction has no parallax, so the elbow passes still converge, onto exactly the limit. Within the limit it pursues the target point as before (the elbow moves the lamp, so a point is needed there). `TheSwingStopsAtTheShoulderLimit` and `ALimitedSwingStillUsesTheWholeLimit` pin both sides.
 - **`RestoreItemState` is owner-only, and the guard is load-bearing.** A peer's copy of a worn slot arrives with an **empty** bag — `BodyEquipmentNetwork` replicates the item id and clears the state on every machine — so an ungated restore runs a frame after `SetTorch` applied `netTorch` and switches a lit torch back off. `LateUpdate` puts it right again, which is exactly the one-frame flicker nobody can reproduce on purpose.
 - **`PlayerViewNetwork` is HANDED the lamp; it does not look for one.** A worn gauntlet is instantiated and parented inside one call, and any search of the player for a `Flashlight` run earlier than that — in `Awake`, in `OnNetworkSpawn` — finds nothing and never looks again.
 - **`ClearTorch` does not publish false.** `Publish` reads `torch != null && torch.IsOn` every frame and sends it on the next one; doing it twice is how the published value and the variable get to disagree.

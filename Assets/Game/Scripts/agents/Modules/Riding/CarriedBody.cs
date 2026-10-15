@@ -66,6 +66,18 @@ namespace SpaceGame.Agents
             /// </para>
             /// </summary>
             public readonly HashSet<object> Placers = new();
+
+            /// <summary>
+            /// Whether anything has ever <see cref="Hold"/>-frozen the body under this record. A record
+            /// that only ever took weight touched nothing but <c>useGravity</c>, so that is all its
+            /// <see cref="Release"/> hands back — see there for why it must not hand back more.
+            ///
+            /// <para>
+            /// Sticky rather than read off <see cref="Placers"/>: a seat that let go first has still
+            /// frozen the body, and the last weight claim's release is what has to undo that.
+            /// </para>
+            /// </summary>
+            public bool EverFrozen;
         }
 
         private static readonly Dictionary<Rigidbody, Record> s_held = new();
@@ -128,6 +140,10 @@ namespace SpaceGame.Agents
         /// <see cref="Release"/>, and that is the whole point: whoever picks the body up next finds
         /// the state it had before the park rather than the park itself.
         /// </para>
+        /// <para>
+        /// <c>LedgeClimber</c> takes a climbing player's weight the same way, for the same reason: a
+        /// mount or a seat taken mid-climb must not bank the climb as the body's normal state.
+        /// </para>
         /// </summary>
         public static void SuspendGravity(GameObject body, object holder)
         {
@@ -164,7 +180,11 @@ namespace SpaceGame.Agents
             }
 
             hold.Holders.Add(holder);
-            if (placing) hold.Placers.Add(holder);
+            if (placing)
+            {
+                hold.Placers.Add(holder);
+                hold.EverFrozen = true;
+            }
 
             return rb;
         }
@@ -172,6 +192,15 @@ namespace SpaceGame.Agents
         /// <summary>
         /// Let go. The body gets its own physics back only once the LAST holder has released it, and
         /// gets back what it was before the FIRST one took it.
+        ///
+        /// <para>
+        /// <b>A record that only ever took weight gives back only gravity.</b> Kinematic,
+        /// interpolation and velocity were never this record's, and something else may have changed
+        /// them meanwhile on purpose: a player who goes limp mid-climb is made kinematic by the
+        /// ragdoll, and a full restore here re-dynamics the root under the limp bones and stops it
+        /// dead. Nor is the body brought to rest — a weight claim never stopped it, so its holder
+        /// decides how it leaves.
+        /// </para>
         /// </summary>
         public static void Release(GameObject body, object holder)
         {
@@ -185,8 +214,10 @@ namespace SpaceGame.Agents
 
             s_held.Remove(rb);
 
-            rb.isKinematic = hold.WasKinematic;
             rb.useGravity = hold.HadGravity;
+            if (!hold.EverFrozen) return;
+
+            rb.isKinematic = hold.WasKinematic;
             rb.interpolation = hold.Interpolation;
 
             // Handed back at rest rather than carrying whatever the ride implied, so nobody is flung

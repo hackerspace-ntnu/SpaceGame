@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd41bb12474a14ef08e0f9ddb5603574, type: 3}
+  m_Name: HaulOre
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ChoreDefinition
+  displayName: hauling ore
+  source: {fileID: 11400000, guid: b8dcc03de9ef344b9a07075f6ab63c86, type: 2}
+  target: {fileID: 11400000, guid: 7befda6c7ce154a1495f1a881bba1e9a, type: 2}
+  targetsPerRound: {x: 1, y: 1}
+  carried: {fileID: 11400000, guid: d95e67566932144259ce66b831aea56f, type: 2}
+  carryThroughout: 0
+  carriesProps: 1
+  sourceSeconds: {x: 4, y: 7}
+  targetSeconds: {x: 3, y: 6}

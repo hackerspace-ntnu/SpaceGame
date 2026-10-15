@@ -13,6 +13,7 @@
 // owns the rules.
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SpaceGame.Agents
 {
@@ -33,6 +34,12 @@ namespace SpaceGame.Agents
 
         /// <summary>Standing in this faction's territory while unwelcome. Magnitude is seconds.</summary>
         Trespass,
+
+        /// <summary>
+        /// A player shoved into this agent (JostleSensor). Counted on the ladder, never weighed —
+        /// worth no points on the meter. Appended last: the value may be stored as an int.
+        /// </summary>
+        Jostle,
     }
 
     /// <summary>
@@ -95,6 +102,17 @@ namespace SpaceGame.Agents
         [Tooltip("The meter reading that starts the fight. 100 unless a creature should snap early.")]
         public float attackAt;
 
+        [Tooltip("Jostles (a player shoving into this agent) it takes to start a fight. 0 = no " +
+                 "ladder: hitGain weighs every hit and jostles are ignored. Above 0 every hit or " +
+                 "blocked blow is an instant fight, and only jostles climb: 3 = Calm→Wary→Drawn→fight, " +
+                 "2 = Calm→Drawn→fight, 1 = the first jostle fights.")]
+        [FormerlySerializedAs("hitsToFight")]
+        public int jostlesToFight;
+
+        [Tooltip("Seconds each band holds, with nothing new, before cooling one step. 0 keeps the " +
+                 "calmRate slope. A ladder always settles (see AggressionMath.LadderMinSettleSeconds).")]
+        public float settleSeconds;
+
         /// <summary>
         /// The temperament every prefab starts from: a solid hit fights, a scratch does not, and
         /// the agent forgets in about ten seconds.
@@ -116,6 +134,9 @@ namespace SpaceGame.Agents
             trespassGainPerSecond = 10f,
             calmRate = 10f,
             attackAt = AggressionMath.Max,
+            // No ladder: existing prefabs keep the meter.
+            jostlesToFight = 0,
+            settleSeconds = 0f,
         };
     }
 
@@ -187,12 +208,75 @@ namespace SpaceGame.Agents
             // ordinary attackAt == 100 case multiplies by exactly 1f. Computing `span * (WaryAt /
             // Max)` instead put 40f up against 40.000002f and quietly reported Calm at the exact
             // boundary — the bands would have been one ulp late for every agent in the game.
-            float scale = Mathf.Max(1f, Mathf.Min(attackAt, Max)) / Max;
-
-            if (value >= DrawnAt * scale) return AggressionBand.Drawn;
-            if (value >= WaryAt * scale) return AggressionBand.Wary;
+            if (value >= Threshold(DrawnAt, attackAt)) return AggressionBand.Drawn;
+            if (value >= Threshold(WaryAt, attackAt)) return AggressionBand.Wary;
 
             return AggressionBand.Calm;
+        }
+
+        private static float Scale(float attackAt) => Mathf.Max(1f, Mathf.Min(attackAt, Max)) / Max;
+
+        // The explicit cast rounds the product to a float on every path. Left implicit, the runtime may
+        // compare an extended-precision product against a float FloorOf already rounded, and a band's
+        // own floor then reads as the band below it (Wary at attackAt 60 read Calm).
+        private static float Threshold(float bandAt, float attackAt) => (float)(bandAt * Scale(attackAt));
+
+        // ── The jostle ladder (jostlesToFight > 0) ───────────────────────────────
+        //
+        // The meter answers "how much"; the ladder answers "how many". Shoved, a villager should say
+        // "watch it", then "last warning", then fight — a count the player can learn — and no gain
+        // value expresses that, because the third shove is not worth more than the first. A blow is
+        // never on the ladder: hitting or shooting somebody is a fight at once.
+
+        /// <summary>
+        /// The shortest hold a ladder rung gets. A rung that cools before a second jostle can land is
+        /// not a ladder: on the calmRate slope a raised band starts at its floor and is gone in a frame.
+        /// </summary>
+        public const float LadderMinSettleSeconds = 5f;
+
+        /// <summary>
+        /// The meter reading at the bottom of <paramref name="band"/>, so an agent moved by band
+        /// still reads coherently to everything that reads the number (the telegraph, the save).
+        /// </summary>
+        public static float FloorOf(AggressionBand band, float attackAt = Max)
+        {
+            return band switch
+            {
+                AggressionBand.Wary   => Threshold(WaryAt, attackAt),
+                AggressionBand.Drawn  => Threshold(DrawnAt, attackAt),
+                AggressionBand.Grudge => Max,
+                _                     => 0f,
+            };
+        }
+
+        /// <summary>
+        /// The band one jostle lands an agent in. The rungs are the top
+        /// <paramref name="jostlesToFight"/> bands: 3 → Wary, Drawn, Grudge · 2 → Drawn, Grudge ·
+        /// 1 → Grudge. A jostle always takes the next rung above where the agent is, so one that
+        /// is already Wary (from trespass, say) still has two jostles to go on a 2-ladder. 0 (no
+        /// ladder) steps one band.
+        /// </summary>
+        public static AggressionBand LadderStep(AggressionBand current, int jostlesToFight)
+        {
+            int rungs = jostlesToFight <= 0 ? 3 : jostlesToFight;
+
+            if (rungs >= 3 && current < AggressionBand.Wary) return AggressionBand.Wary;
+            if (rungs >= 2 && current < AggressionBand.Drawn) return AggressionBand.Drawn;
+
+            return AggressionBand.Grudge;
+        }
+
+        /// <summary>
+        /// The band after <paramref name="heldFor"/> quiet seconds in <paramref name="band"/>: one
+        /// step down once it has held <paramref name="settleSeconds"/>, otherwise unchanged. Only
+        /// for an agent with no grudge — a held grudge belongs to the leash.
+        /// </summary>
+        public static AggressionBand Settle(AggressionBand band, float heldFor, float settleSeconds)
+        {
+            if (band == AggressionBand.Calm || heldFor < settleSeconds)
+                return band;
+
+            return band - 1;
         }
     }
 }

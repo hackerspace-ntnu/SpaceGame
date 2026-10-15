@@ -22,6 +22,11 @@
 // The split is deliberate: this class stays the only thing that knows what time it is. SkyNetwork
 // never computes an hour, never keeps one for its own use and never answers a question about the
 // sky. It carries a statement between machines and hands it straight back to this class.
+//
+// The anchor also states WHICH day it is: the world has run anchorDay whole cycles plus anchorPhase
+// at that clock reading, so the day counter is the same pure function as the hour — the integer part
+// of the cycles instead of the fraction. Every restatement carries the day it was made on, so no
+// re-anchoring (a clock handover, a jump to an hour) can ever drop the world back to day 0.
 using System;
 using System.Collections.Generic;
 using SpaceGame.Core;
@@ -34,6 +39,9 @@ namespace SpaceGame.World
     {
         /// <summary>Floor on <see cref="cycleDuration"/>. A zero-length day is a division by zero.</summary>
         private const float MinCycleDuration = 0.0001f;
+
+        public const float HoursPerDay = 24f;
+        public const float MinutesPerDay = 1440f;
 
         [Header("Day/Night Cycle Settings")]
         [Tooltip("Duration of a full day/night cycle in seconds")]
@@ -52,14 +60,18 @@ namespace SpaceGame.World
 
         private Light directionalLight;
 
-        /// <summary>The hour the light was last pointed at. Read by the anchor when the clock changes.</summary>
-        private float currentTimeOfDay;
+        /// <summary>
+        /// The cycles (whole days plus the hour) the light was last pointed at. Read by the anchor
+        /// when the clock changes.
+        /// </summary>
+        private double currentCycles;
 
-        // The anchor: at clock reading anchorClock the world reads anchorPhase, and every other
-        // hour follows from cycleDuration. Two numbers rather than an accumulator, because an
-        // accumulator can only ever describe THIS machine's history.
+        // The anchor: at clock reading anchorClock the world has run anchorDay whole days and reads
+        // anchorPhase into the next, and every other hour follows from cycleDuration. Numbers rather
+        // than an accumulator, because an accumulator can only ever describe THIS machine's history.
         private double anchorClock;
         private double anchorPhase;
+        private int anchorDay;
 
         /// <summary>
         /// Which clock <see cref="anchorClock"/> was measured against — a session's server time, or
@@ -102,6 +114,20 @@ namespace SpaceGame.World
         public static IReadOnlyList<DayNightCycle> Live => live;
 
         /// <summary>
+        /// The world's running cycle, or null when none is loaded. Skips a frozen one: the main
+        /// menu's light is live for the frame of a scene handover, and its hour means nothing.
+        /// </summary>
+        public static DayNightCycle Main
+        {
+            get
+            {
+                for (int i = 0; i < live.Count; i++)
+                    if (live[i] != null && !live[i].freezeCycle) return live[i];
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Raised whenever a cycle's anchor moves, i.e. whenever something states what hour it is.
         /// The server's cue to replicate that statement.
         /// </summary>
@@ -134,6 +160,31 @@ namespace SpaceGame.World
         /// <summary>Where the day is right now: 0 is midnight, 0.5 noon.</summary>
         public float TimeOfDay => PhaseAt(Now);
 
+        /// <summary>Which day the world is on, counted from 0 when it was created.</summary>
+        public int Day => DayAt(Now);
+
+        /// <summary>The hour right now, 0 to 24.</summary>
+        public float HourOfDay => TimeOfDay * HoursPerDay;
+
+        /// <summary>
+        /// Game minutes since midnight of day 0 — <c>(Day + TimeOfDay) * 1440</c>, continuous across
+        /// midnight. The clock schedules are written against: it never wraps, so "later" is "greater".
+        /// </summary>
+        public double GameMinutesNow => CyclesAt(Now) * MinutesPerDay;
+
+        /// <summary>The day the world is on when the shared clock reads <paramref name="clock"/>.</summary>
+        public int DayAt(double clock) => DayAt(anchorDay, anchorPhase, clock - anchorClock, cycleDuration);
+
+        /// <summary>
+        /// The day counter as a pure function: <paramref name="elapsed"/> seconds after an anchor
+        /// stating <paramref name="anchorDay"/> days and <paramref name="anchorPhase"/> of the next.
+        /// </summary>
+        public static int DayAt(int anchorDay, double anchorPhase, double elapsed, float cycleDuration) =>
+            (int)Math.Floor(anchorDay + anchorPhase + elapsed / Mathf.Max(MinCycleDuration, cycleDuration));
+
+        private double CyclesAt(double clock) =>
+            anchorDay + anchorPhase + (clock - anchorClock) / Mathf.Max(MinCycleDuration, cycleDuration);
+
         /// <summary>
         /// Where the day is when the shared clock reads <paramref name="clock"/>.
         /// <para>
@@ -144,16 +195,26 @@ namespace SpaceGame.World
         /// </summary>
         public float PhaseAt(double clock)
         {
-            double cycles = anchorPhase + (clock - anchorClock) / Mathf.Max(MinCycleDuration, cycleDuration);
-            return (float)(cycles - System.Math.Floor(cycles));
+            double cycles = CyclesAt(clock);
+            return (float)(cycles - Math.Floor(cycles));
         }
 
         /// <summary>
         /// States that the world reads <paramref name="phase"/> when the shared clock reads
+        /// <paramref name="clock"/>, on whatever day the current anchor says that reading falls.
+        /// Moves the hour, never the day.
+        /// </summary>
+        public void AnchorTo(float phase, double clock) =>
+            AnchorTo(hasAnchor ? DayAt(clock) : 0, phase, clock);
+
+        /// <summary>
+        /// States that the world has run <paramref name="day"/> whole days and reads
+        /// <paramref name="phase"/> into the next when the shared clock reads
         /// <paramref name="clock"/>. The only way the hour is ever set.
         /// </summary>
-        public void AnchorTo(float phase, double clock)
+        public void AnchorTo(int day, float phase, double clock)
         {
+            anchorDay = day;
             anchorPhase = phase;
             anchorClock = clock;
             anchoredToSession = Network.IsNetworked;
@@ -177,8 +238,9 @@ namespace SpaceGame.World
         /// double is for the arithmetic in <see cref="PhaseAt"/>, not for extra precision here.
         /// </para>
         /// </summary>
-        public void ReadAnchor(out float phase, out double clock)
+        public void ReadAnchor(out int day, out float phase, out double clock)
         {
+            day = anchorDay;
             phase = (float)anchorPhase;
             clock = anchorClock;
         }
@@ -198,7 +260,7 @@ namespace SpaceGame.World
         /// </para>
         /// </summary>
         public void AnchorToClockOrigin() =>
-            AnchorTo(startTimeOfDay, Network.IsNetworked ? 0d : Now);
+            AnchorTo(0, startTimeOfDay, Network.IsNetworked ? 0d : Now);
 
         /// <summary>
         /// Takes an hour stated by an authority: a save loaded on this machine, or — on a client —
@@ -209,14 +271,36 @@ namespace SpaceGame.World
         /// different hour on every machine that applied it, which is exactly why the pair is
         /// replicated together rather than the hour alone.
         /// </para>
+        /// <para>
+        /// <paramref name="day"/> is the whole days the authority's anchor states, so a joiner counts
+        /// the same day as the host instead of starting its own at 0.
+        /// </para>
         /// </summary>
-        public void AdoptAnchor(float phase, double clock)
+        public void AdoptAnchor(int day, float phase, double clock) =>
+            Adopt(day, Mathf.Repeat(phase, 1f), clock);
+
+        /// <summary>An anchor that states no day: the hour only, on day 0.</summary>
+        public void AdoptAnchor(float phase, double clock) => AdoptAnchor(0, phase, clock);
+
+        /// <summary>
+        /// Moves the world to <paramref name="hour"/> (0 to 24) of the day it is already on — back
+        /// to this morning or on to tonight, never into another day. Call it on the server (or
+        /// offline): the move is an ordinary anchor statement, so <c>SkyNetwork</c> replicates it,
+        /// and a client's own jump would be overwritten by the next one the server states.
+        /// </summary>
+        public void JumpToHour(float hour)
+        {
+            double now = Now;
+            Adopt(DayAt(now), Mathf.Repeat(hour, HoursPerDay) / HoursPerDay, now);
+        }
+
+        private void Adopt(int day, float phase, double clock)
         {
             // A frozen light keeps the angle the scene authored, and neither a save nor the server
             // may be the one thing that swings it. Same rule as Start below.
             if (freezeCycle) return;
 
-            AnchorTo(Mathf.Repeat(phase, 1f), clock);
+            AnchorTo(day, phase, clock);
             hasStatedHour = true;
             UpdateLightRotation();
         }
@@ -234,8 +318,11 @@ namespace SpaceGame.World
         /// it was written in. So it is anchored to this machine's reading of NOW — the moment the
         /// world is being put back — and that reading is what then gets replicated.
         /// </para>
+        /// <para>
+        /// <paramref name="day"/> is 0 for a save written before the day was counted.
+        /// </para>
         /// </summary>
-        public void RestoreTimeOfDay(float phase) => AdoptAnchor(phase, Now);
+        public void RestoreTimeOfDay(float phase, int day = 0) => Adopt(day, Mathf.Repeat(phase, 1f), Now);
 
         /// <summary>
         /// Settles which hour this cycle opens at. Called from <see cref="Start"/>, and public so a
@@ -309,16 +396,24 @@ namespace SpaceGame.World
         {
             if (anchoredToSession == Network.IsNetworked) return;
 
-            if (hasStatedHour) AnchorTo(currentTimeOfDay, Now);
-            else AnchorToClockOrigin();
+            if (!hasStatedHour)
+            {
+                AnchorToClockOrigin();
+                return;
+            }
+
+            // The day travels explicitly: read against the new clock, the old anchor would put
+            // the same moment on a random day.
+            double day = Math.Floor(currentCycles);
+            AnchorTo((int)day, (float)(currentCycles - day), Now);
         }
 
         private void UpdateLightRotation()
         {
-            currentTimeOfDay = TimeOfDay;
+            currentCycles = CyclesAt(Now);
 
             // Convert time of day (0-1) to rotation angle (0-360 degrees)
-            float rotationAngle = currentTimeOfDay * 360f;
+            float rotationAngle = (float)(currentCycles - Math.Floor(currentCycles)) * 360f;
 
             // Apply rotation around the specified axis
             transform.rotation = Quaternion.AngleAxis(rotationAngle, rotationAxis);

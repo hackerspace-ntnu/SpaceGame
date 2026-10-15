@@ -49,6 +49,23 @@ namespace SpaceGame.Core.Persistence
 
             /// <summary>A property of the errand, not of the agent — an amble and a hurry differ here.</summary>
             public float speedMultiplier;
+
+            // Appended: a save from before goals could hold has none of the fields below, and their
+            // defaults (no hold, no face point) are exactly what such a goal meant.
+
+            /// <summary>Stand at the goal once there rather than wandering off it.</summary>
+            public bool hold;
+
+            /// <summary>
+            /// Whether <see cref="facePoint"/> is set. Two fields rather than a <c>Vector3?</c>: the
+            /// save serializer's Vector3 handling is not something to bet a nullable wrapper on.
+            /// </summary>
+            public bool hasFacePoint;
+
+            public Vector3 facePoint;
+
+            /// <summary>Run rather than walk there. Absent in older saves: walk, which is what they meant.</summary>
+            public bool run;
         }
 
         public object CaptureState()
@@ -67,6 +84,10 @@ namespace SpaceGame.Core.Persistence
                 reason = Goal.Reason,
                 siteId = Goal.SiteId,
                 speedMultiplier = Goal.SpeedMultiplier,
+                hold = Goal.HoldOnArrival,
+                hasFacePoint = Goal.FacePoint.HasValue,
+                facePoint = Goal.FacePoint ?? Vector3.zero,
+                run = Goal.Run,
             };
         }
 
@@ -83,7 +104,8 @@ namespace SpaceGame.Core.Persistence
             var restored = state.ToObject<State>(SaveSerializer.Serializer);
 
             Goal.RestoreGoal(restored.hasGoal, restored.position, restored.arriveRadius,
-                             restored.reason, restored.siteId, restored.speedMultiplier);
+                             restored.reason, restored.siteId, restored.speedMultiplier,
+                             restored.hold, restored.hasFacePoint ? restored.facePoint : (Vector3?)null, restored.run);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Core;
 using SpaceGame.World;
 
 namespace SpaceGame.Presentation
@@ -164,6 +165,9 @@ namespace SpaceGame.Presentation
         private Material beamMaterial;
         private InputAction toggleAction;
         private Transform player;
+
+        /// <summary>Where the player is on the chart: their position, or the door they went in by while inside an interior.</summary>
+        private Vector3 chartPosition;
         private bool visible;
         private float visibleSinceTime = -999f;
 
@@ -266,7 +270,7 @@ namespace SpaceGame.Presentation
         {
             if (!enableFogOfWar) return;
 
-            Vector3 pos = player.position;
+            Vector3 pos = chartPosition;
             if (!hasDiscoverySample)
             {
                 AddDiscoveryPoint(pos);
@@ -926,7 +930,16 @@ namespace SpaceGame.Presentation
             if (player == null)
                 player = GameplayMenuScope.LocalPlayerTransform;
 
-            return player != null;
+            if (player == null) return false;
+
+            // Inside an interior the body stands at off-grid coordinates the chart has no terrain for
+            // (a colony's airlock is a few thousand metres west of the world), so the chart follows
+            // the door the player came in by until they walk back out.
+            chartPosition = InteriorManager.Instance != null &&
+                            InteriorManager.Instance.TryGetVisit(player.gameObject, out InteriorManager.InteriorVisit visit)
+                ? visit.ReturnPosition
+                : player.position;
+            return true;
         }
 
         private void UpdateRootTransform()
@@ -1005,8 +1018,8 @@ namespace SpaceGame.Presentation
             {
                 // Continuous center in container space (= world XZ minus worldOrigin).
                 visCenter = new Vector2(
-                    player.position.x - config.worldOrigin.x,
-                    player.position.z - config.worldOrigin.z);
+                    chartPosition.x - config.worldOrigin.x,
+                    chartPosition.z - config.worldOrigin.z);
                 visSize = new Vector2(
                     (viewRadius * 2 + 1) * config.chunkSize.x,
                     (viewRadius * 2 + 1) * config.chunkSize.y);
@@ -1014,7 +1027,7 @@ namespace SpaceGame.Presentation
                 // Every chunk that window touches — NOT the player's own chunk ± viewRadius, which
                 // is symmetric about the CHUNK rather than about the player, so it drew up to half
                 // a chunk more terrain on one side of the hologram's centre than the other.
-                config.Grid.WindowAround(player.position, visSize, out visMin, out visMax);
+                config.Grid.WindowAround(chartPosition, visSize, out visMin, out visMax);
             }
             else
             {
@@ -1118,7 +1131,7 @@ namespace SpaceGame.Presentation
             playerMarker.SetActive(true);
 
             var s = terrainContainer.localScale;
-            playerMarker.transform.localPosition = WorldToTerrainLocal(player.position)
+            playerMarker.transform.localPosition = WorldToTerrainLocal(chartPosition)
                 + Vector3.up * (markerLift / s.y);
             playerMarker.transform.localScale = InverseContainerScale(playerMarkerSize);
 
@@ -1347,7 +1360,7 @@ namespace SpaceGame.Presentation
                 terrainMaterial.SetInt("_DiscoveryCount", count);
 
                 // Round map vignette centered on the player's sim-world XZ.
-                Vector3 centerWorld = player != null ? player.position : Vector3.zero;
+                Vector3 centerWorld = player != null ? chartPosition : Vector3.zero;
                 terrainMaterial.SetVector("_MapCenterXZ", new Vector4(centerWorld.x, centerWorld.z, 0f, 0f));
                 terrainMaterial.SetFloat("_MapRadius", Mathf.Max(0.01f, mapRadius));
                 terrainMaterial.SetFloat("_MapEdgeFalloff", Mathf.Max(0.0001f, mapEdgeFalloff));

@@ -44,7 +44,7 @@ A knee-to-waist-high fairy village whose guardian robot, Merob (the `LightningCo
 
 - **Everything the world does follows the chain's saved progress.** Merob's curse (`MerobQuestState`), the keepers following (`QuestStateGate` → `EscortFollowModule`), the chant circle (`ChantCircle.runsDuring`), the witch holding still for her monologue (`QuestHoldModule`), the dome and the planted staff (`QuestStateGate`), the stash lid (`QuestStateGate`) and what each villager says (`QuestDialog`) are all **derived** from a `QuestStepWindow` over replicated, saved progress. None of them saves or sends anything.
 - **Characters and places are named, not referenced.** Step assets name a `QuestActor` id ("hamlet-elder") or a `QuestSite` id ("witch-hut") because steps are assets and characters live in chunk scenes or are spawned. A site in an unloaded chunk answers from the baked `QuestSiteTable`.
-- **Happenings reach steps as quest marks.** `QuestMarks.Raise(mark, id)` on the server — Talked, Dead, Subdued, Chanted, Burned — is recorded into every active run's per-step memory; a step reads `world.HasMark`. A mark counts only in the step it lands in.
+- **Happenings reach steps as quest marks.** `QuestMarks.Raise(mark, id)` on the server — Talked, Dead, Subdued, Chanted, Burned — is recorded against every unfinished quest's current step (`QuestStepMemory`); a step reads `world.HasMark`. A mark counts only in the step it lands in.
 - **The witch fight is its own system — [WitchFight.md](WitchFight.md).** In short: her life is bound to three stolen herbs (`HerbBoundLife`, only `Rue` in `Stasis`, one herb per stasis, the last plucked in a finisher); she prowls unseen and spins out poison spirals; the keepers hold posts and lob rue bombs that only land on a frozen witch; the player carries keepers out of the poison; three balls on any keeper fail and reset the fight.
 - **The Oath-Chant frees Merob.** Three keepers at three stones advance a verse only while all are in place and on their feet; around Merob the full chant frees him. It is no longer part of the witch fight (changed 2026-10-12: a chant lowering an invisible ward read as unmotivated).
 - **The dome is the hamlet's defence while Merob sleeps** (`StasisDome`): any creature not of the hamlet's faction that touches its skin is held in stasis. It stands only while the Oathbranch is in its socket — taking the staff drops it, and the player keeps the staff after the fight.
@@ -56,10 +56,12 @@ A knee-to-waist-high fairy village whose guardian robot, Merob (the `LightningCo
 | --- | --- |
 | [`QuestActor`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestActor.cs) | Authored, readable id on a character or a thing; static `TryFind`; raises Dead (never on a restore) and `ReportSubdued`; `TalkRange` for the server's distance check |
 | [`QuestSite`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestSite.cs) / [`QuestSiteTable`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestSiteTable.cs) | Named place + radius; live registry first, then `Resources/Objectives/QuestSites.asset` baked by **Tools ▸ SpaceGame ▸ Objectives ▸ Bake Quest Sites** |
-| [`QuestStepWindow`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestStepWindow.cs) | `chain` + `from` / `until` step ids; positions −1 (unaccepted) … n (complete); `#complete` token |
+| [`QuestStepWindow`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestStepWindow.cs) | `chain` + `from` / `until` step ids; positions −1 (not taken on: the director has no `Quest` for it yet) … n (complete); `#complete` token; `IsInside` / `TryGetPosition` |
 | [`QuestStateGate`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestStateGate.cs) | Toggles GameObjects / Behaviours by a window, every machine |
 | [`QuestDialog`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestDialog.cs) | Per-window lines on a character, asked first by `DialogInteraction.Interact`; may offer a chain; finishing an entry reports Talked |
-| [`QuestRequests`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestRequests.cs) | Talked / Accepted, local → server (`ObjectiveNetwork.ReportTalkedRpc` / `RequestAcceptRpc`); the server checks the SENDER's body is within `TalkRange` |
+| [`QuestRequests`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestRequests.cs) | Talked / Accepted, local → server (`QuestRequestNetwork.ReportTalkedRpc` / `RequestAcceptRpc`, beside `ObjectiveNetwork` on `NetworkGameManager.prefab`); the server checks the SENDER's body is within `TalkRange` |
+| [`QuestStepMemory`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestStepMemory.cs) | What a hamlet step remembers beyond `ObjectiveWorld`: `QuestMarks.Raise` (SERVER) records into every unfinished quest's current step; `world.HasMark(mark, id)`, `world.StepSeconds()`. Keyed by the quest's `ObjectiveWorld`, wiped when its step index moves |
+| [`QuestRequestNetwork`](Assets/Game/Scripts/Gameplay/Objectives/Quest/QuestRequestNetwork.cs) | Beside `ObjectiveNetwork` on `NetworkGameManager.prefab`: a client's "finished talking to" / "accepted the quest of" a `QuestActor`, judged by the server against the sender's body (`QuestRequests`) |
 | `QuestMarks` / `QuestMark` | Server event hub; the director records marks per run |
 | [`StepArrival`](Assets/Game/Scripts/Gameplay/Objectives/Quest/StepArrival.cs) | "Just reached this step", once per live arrival — for presentation |
 | Steps | `TalkToActorStep`, `ReachSiteStep` (`revealWaypointAfterSeconds`), `EscortStep`, `SpawnActorStep` (+ `holdSeconds`), `DefeatActorStep` (Killed / Subdued; status from the actor's `IQuestStatus`), `ChantStep`, `BurnStep`, `MoveAwayStep`, `DeliverItemStep`, `RewardStep` |
@@ -76,7 +78,7 @@ A knee-to-waist-high fairy village whose guardian robot, Merob (the `LightningCo
 
 ## Flows
 
-**Accept.** Elder's `QuestDialog` entry (window: before acceptance) plays its lines, then `DialogInteraction.AskQuestion` → Yes → `QuestRequests.Accepted` → server: actor loaded, sender in range, actor `Offers(chain)` → `ObjectiveDirector.TryStart`.
+**Accept.** Elder's `QuestDialog` entry (window: before acceptance) plays its lines, then `DialogInteraction.AskQuestion` → Yes → `QuestRequests.Accepted` → server: actor loaded, sender in range, actor `Offers(chain)` → `ObjectiveDirector.StartQuest` (main's quest catalog: the quest begins, joins every machine's quest log and becomes the active quest).
 
 **Report.** Finishing an entry's last line → `QuestRequests.Talked` → server → `QuestMark.Talked` → a `TalkToActorStep` naming that actor is met.
 
@@ -110,6 +112,9 @@ Only the chain is saved (`objectives`), plus what already saves itself: the witc
 
 ## Gotchas
 
+- **An unaccepted quest has no `Quest` at all.** `Find` is null until it begins, and a begun quest raises `Started`, not `Changed` — a client adopting a fresh quest (step 0, not begun) hears only `Started`. Anything following a quest's position (`QuestStepWindow` consumers, `StepArrival`) must listen to both.
+- **`QuestStepMemory.StepSeconds` counts from the first time this machine asks** about the step, not from the step change; a waypoint revealed after N seconds (`ReachSiteStep`) times from when it is first drawn.
+- **`ConjurerCastModule` draws its strike from the `ConjurerStruck` broadcast alone.** `NetToAll` always dispatches locally too (the host's own RPC returns to it; offline the channel runs the handler), so the direct `PresentStrike` that `Commit` used to make as well drew every strike twice on the host — two bolts for Merob, two thorn clusters for the witch (fixed 2026-10-13). Its `strikeVFXPrefab` (formerly `lightningVFXPrefab`) takes any prefab carrying an `IStrikeEffect`; `LightningStrike.Present` hands it both ends and the blast radius.
 - **A mark lands only in the current step**, so anything that can happen early is also read live (`ISubduable`, the log's position) or gated (`BurnAway.burnableDuring`), or the step waits forever.
 - **`QuestActor` ids are authored and unique** (a prefab's id is shared by every instance). **Talk is judged on the server's copy of the talker's body** — keep `TalkRange` a few metres above the interaction distance, or a lagging client is "too far away to be believed".
 - **`QuestStateGate` must never toggle a GameObject holding a spawned `NetworkObject`.** Gate behaviours on the character, not the character.
@@ -127,9 +132,9 @@ Only the chain is saved (`objectives`), plus what already saves itself: the witc
 
 ## Extending
 
-1. **A favour:** a chain asset (new permanent id, speaker = the villager's name) appended to the director's `sideChains`; a `QuestDialog` entry with `offerChain`; a doing step (`MoveAwayStep`, `DeliverItemStep`, `BurnStep`) and a `RewardStep`.
+1. **A favour:** a chain asset (new permanent id, speaker = the villager's name) with a `title` and `summary` for the quest log (J), added to the director's `quests` catalog in `persistentScene` (and in the test scene's `QuestSystems`); a `QuestDialog` entry with `offerChain`; a doing step (`MoveAwayStep`, `DeliverItemStep`, `BurnStep`) and a `RewardStep`.
 2. **A new kind of quest happening:** add a `QuestMark`, raise it on the server, add a step reading it.
 3. **Verify** as [Objectives](Objectives.md) says, and per stage on a client: accept from a client, watch the cutscene on a client, and the witch fight's own list in [WitchFight.md](WitchFight.md).
 4. **Placing the sites:** drop both prefabs into chunk scenes (the glade's +Z trail should point at the hamlet's gate side, a few hundred metres apart), re-bake the world NavMesh, run *Bake Quest Sites*, and re-save the scenes so the in-scene `NetworkObject`s and `SaveableEntity` ids are written.
 5. **Every line the characters say** is in [the story bible](../../Human/sprite-hamlet-story.md); change both together.
-6. **Jumping to a step while testing:** in play mode, `ObjectiveDirector.Instance.Restore` with `ObjectiveDirector.Resolve(chain, "<step>", false, begun, true)` puts the run there. Restore to `hamlet-confront-witch` (begun false) to spawn her, then to `hamlet-defeat-witch` (begun true).
+6. **Jumping to a step while testing:** in play mode, `ObjectiveDirector.Instance.Restore(new[] { new SavedQuest { Id = "sprite-hamlet", Order = 1, Step = "<step>", Begun = begun } })` puts the quest there (the story quest restarts unless it is in the list too). Restore to `hamlet-confront-witch` (begun false) to spawn her, then to `hamlet-defeat-witch` (begun true).

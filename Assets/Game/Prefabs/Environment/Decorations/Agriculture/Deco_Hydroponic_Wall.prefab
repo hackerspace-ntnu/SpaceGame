@@ -1,0 +1,1249 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1856368420202031444
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4774706646328276489}
+  - component: {fileID: 4142712149310537522}
+  - component: {fileID: 7571231702030450571}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Pipe1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4774706646328276489
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856368420202031444}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2163421045125727856}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4142712149310537522
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856368420202031444}
+  m_Mesh: {fileID: 5022789385212739464, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &7571231702030450571
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1856368420202031444}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 6697138931531071778, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2073828435248132145
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5966235314033067022}
+  - component: {fileID: 8830442736658792378}
+  - component: {fileID: 3395424115809119399}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Pipe3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5966235314033067022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2073828435248132145}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3100782696734379702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8830442736658792378
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2073828435248132145}
+  m_Mesh: {fileID: -6141493011035207691, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &3395424115809119399
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2073828435248132145}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 6697138931531071778, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3510344075468100970
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2384947364294028788}
+  - component: {fileID: 7060292065692167274}
+  - component: {fileID: 7178899665971516152}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Plants2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &2384947364294028788
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3510344075468100970}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6175301715835286499}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7060292065692167274
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3510344075468100970}
+  m_Mesh: {fileID: 8744532639800788634, guid: c4e18ffdea6be4dd089995a25843f5ca, type: 2}
+--- !u!23 &7178899665971516152
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3510344075468100970}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 4074328963859344974, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: -1488721567648347541, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 6952755599561195553, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 797587147760285459, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: -9095833762489679502, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3522041413685967289
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4941505613444827483}
+  - component: {fileID: 3376587580740960848}
+  - component: {fileID: 2112084030801675103}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Frame
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4941505613444827483
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3522041413685967289}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 792530148494364728}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3376587580740960848
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3522041413685967289}
+  m_Mesh: {fileID: 5281378244560330957, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &2112084030801675103
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3522041413685967289}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2043506970664812740, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4102541092815536035
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4253269487085541852}
+  - component: {fileID: 1056159496987018854}
+  - component: {fileID: 8262163382522301794}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Pipe2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4253269487085541852
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4102541092815536035}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2744383203095467967}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1056159496987018854
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4102541092815536035}
+  m_Mesh: {fileID: 6303119355944685596, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &8262163382522301794
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4102541092815536035}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 6697138931531071778, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4670059172170139389
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3704495757029128242}
+  - component: {fileID: 626506922551459920}
+  - component: {fileID: 1255737501466918219}
+  - component: {fileID: 194384906961008080}
+  m_Layer: 0
+  m_Name: Deco_Hydroponic_Wall
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &3704495757029128242
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670059172170139389}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8293999512009717006}
+  - {fileID: 6604455183184535343}
+  - {fileID: 30612417334635537}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &626506922551459920
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670059172170139389}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.3, y: 2.4, z: 0.7}
+  m_Center: {x: 0, y: 1.15, z: 0.1}
+--- !u!114 &1255737501466918219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670059172170139389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be6b2963850df4a788a7bc91711243c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementFixture
+  displayName: Hydroponic wall
+  scanClass: 2
+--- !u!205 &194384906961008080
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4670059172170139389}
+  serializedVersion: 2
+  m_LocalReferencePoint: {x: -0.06163484, y: 1.1418983, z: 0.09320681}
+  m_Size: 2.5232697
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.25
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5602269886273484059}
+    - renderer: {fileID: 3702972934149340189}
+    - renderer: {fileID: 8921076594516534449}
+    - renderer: {fileID: 2213376942625903300}
+    - renderer: {fileID: 8190771453419261304}
+    - renderer: {fileID: 4191389143935116622}
+    - renderer: {fileID: 3393556439680038849}
+    - renderer: {fileID: 7535967621222940093}
+    - renderer: {fileID: 1725423305759697944}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5602269886273484059}
+    - renderer: {fileID: 3702972934149340189}
+    - renderer: {fileID: 8921076594516534449}
+    - renderer: {fileID: 2213376942625903300}
+    - renderer: {fileID: 8190771453419261304}
+    - renderer: {fileID: 4191389143935116622}
+    - renderer: {fileID: 3393556439680038849}
+    - renderer: {fileID: 7535967621222940093}
+    - renderer: {fileID: 1725423305759697944}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 2112084030801675103}
+    - renderer: {fileID: 7571231702030450571}
+    - renderer: {fileID: 8262163382522301794}
+    - renderer: {fileID: 3395424115809119399}
+    - renderer: {fileID: 4490873824427552420}
+    - renderer: {fileID: 7178899665971516152}
+    - renderer: {fileID: 2577877729181998088}
+    - renderer: {fileID: 7533101675182912505}
+    - renderer: {fileID: 9011461414289410081}
+  m_Enabled: 1
+--- !u!1 &4946997996145634320
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 626966055472663436}
+  - component: {fileID: 4672331587928994868}
+  - component: {fileID: 7533101675182912505}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Reservoir
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &626966055472663436
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4946997996145634320}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5079837441892806224}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4672331587928994868
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4946997996145634320}
+  m_Mesh: {fileID: -3784318024653833928, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &7533101675182912505
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4946997996145634320}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 3230756071487966642, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 7394809625278489721, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4983216542253876238
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4643560248837553213}
+  - component: {fileID: 8017287172385938726}
+  - component: {fileID: 9011461414289410081}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_ReturnPipe
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &4643560248837553213
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4983216542253876238}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3692533323244170008}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8017287172385938726
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4983216542253876238}
+  m_Mesh: {fileID: -8613966424149915614, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!23 &9011461414289410081
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4983216542253876238}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6697408153882380362, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5100666112679299010
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5519322386765099671}
+  - component: {fileID: 6349657534392041076}
+  - component: {fileID: 4490873824427552420}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Plants1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &5519322386765099671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5100666112679299010}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6188966538583037568}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6349657534392041076
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5100666112679299010}
+  m_Mesh: {fileID: 4300000, guid: c4e18ffdea6be4dd089995a25843f5ca, type: 2}
+--- !u!23 &4490873824427552420
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5100666112679299010}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: -9095833762489679502, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 797587147760285459, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 4074328963859344974, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: -1488721567648347541, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 6952755599561195553, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5491441197064033596
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1741935159236667875}
+  - component: {fileID: 3774112325096734700}
+  - component: {fileID: 2577877729181998088}
+  m_Layer: 0
+  m_Name: Hydroponic_Wall_Plants3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 94
+  m_IsActive: 1
+--- !u!4 &1741935159236667875
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5491441197064033596}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5330565419303942971}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3774112325096734700
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5491441197064033596}
+  m_Mesh: {fileID: -6456740132245382293, guid: c4e18ffdea6be4dd089995a25843f5ca, type: 2}
+--- !u!23 &2577877729181998088
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5491441197064033596}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 6952755599561195553, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 797587147760285459, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: -9095833762489679502, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: -1488721567648347541, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  - {fileID: 4074328963859344974, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6776020557873469878
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 30612417334635537}
+  - component: {fileID: 4645871342213535118}
+  m_Layer: 0
+  m_Name: Spot_Garden
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &30612417334635537
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6776020557873469878}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
+  m_LocalPosition: {x: -0.06163478, y: -0.016928792, z: 1.5265052}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3704495757029128242}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4645871342213535118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6776020557873469878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abb98847fa10b412a9f228fa054d5bc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SettlementSpot
+  use: {fileID: 11400000, guid: 3341a6d193d34d93ada62078f59a3b6a, type: 2}
+  face: {fileID: 6604455183184535343}
+  group: 
+  stationCue: {fileID: 0}
+--- !u!1 &8317207373066617799
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6604455183184535343}
+  m_Layer: 0
+  m_Name: Face_Garden
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6604455183184535343
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8317207373066617799}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.06163478, y: 0.9830712, z: 0.09320682}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3704495757029128242}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &8399369305340728037
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3704495757029128242}
+    m_Modifications:
+    - target: {fileID: -9028506376256519168, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8632460827889923561, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: -5842311098049439152, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: -1138204302668199166, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: -981809613849827669, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: 29666508179806252, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_Name
+      value: deco_hydroponic_wall
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: 4296697037278421742, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: 4373206909754361535, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    - target: {fileID: 8160727066278555957, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 94
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 9110549057900380893, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4941505613444827483}
+    - targetCorrespondingSourceObject: {fileID: -1542889572349406059, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4774706646328276489}
+    - targetCorrespondingSourceObject: {fileID: 5946594402262222170, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4253269487085541852}
+    - targetCorrespondingSourceObject: {fileID: -2334909085589136301, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5966235314033067022}
+    - targetCorrespondingSourceObject: {fileID: -6813051615509871515, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5519322386765099671}
+    - targetCorrespondingSourceObject: {fileID: 2387921349946351878, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2384947364294028788}
+    - targetCorrespondingSourceObject: {fileID: 4425196615291169246, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1741935159236667875}
+    - targetCorrespondingSourceObject: {fileID: 3670355480231328949, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 626966055472663436}
+    - targetCorrespondingSourceObject: {fileID: 5165081902920874493, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4643560248837553213}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+--- !u!4 &792530148494364728 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9110549057900380893, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1725423305759697944 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2062258596965777667, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2163421045125727856 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1542889572349406059, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2213376942625903300 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -1574021832629649375, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2744383203095467967 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5946594402262222170, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3100782696734379702 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2334909085589136301, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3393556439680038849 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -2627612357522004700, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3692533323244170008 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5165081902920874493, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3702972934149340189 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5184513580971339512, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4191389143935116622 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -3550450754633779285, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5079837441892806224 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3670355480231328949, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5330565419303942971 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4425196615291169246, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &5602269886273484059 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -5102632089915381762, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6175301715835286499 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2387921349946351878, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6188966538583037568 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6813051615509871515, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7535967621222940093 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2019212965457293144, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8190771453419261304 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 377170817207787421, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8293999512009717006 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8921076594516534449 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 1107474308970772052, guid: 8da78fe63aa524a7c985e152a18fc4ec, type: 3}
+  m_PrefabInstance: {fileID: 8399369305340728037}
+  m_PrefabAsset: {fileID: 0}

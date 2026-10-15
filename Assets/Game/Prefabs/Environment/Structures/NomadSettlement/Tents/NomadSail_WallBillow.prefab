@@ -50,11 +50,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8226659308175948335, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -7188205048622663454, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -6351902845929960873, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -66,11 +66,11 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 83997bedf68014d14828c18f59f8e33f, type: 2}
     - target: {fileID: -5405210114924668759, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -4950009130266480434, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -428482452294826470, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -78,7 +78,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -403787085129841677, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_Name
@@ -90,11 +90,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3289016753853759926, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 5520563037605835384, guid: ce255257f10784c9d99fbc570e720691, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -154,11 +154,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0.15810013, y: 2.076657, z: 2.5966556}
   m_Size: 7.591738
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.3
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 300276170232734225}
@@ -170,6 +170,20 @@ LODGroup:
     - renderer: {fileID: 2508362691403437856}
     - renderer: {fileID: 458453184032155647}
     - renderer: {fileID: 178795039782144218}
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7821365831544171921}
+    - renderer: {fileID: 2825889033259935659}
+    - renderer: {fileID: 2508362691403437856}
+    - renderer: {fileID: 4135375405874000892}
+    - renderer: {fileID: 5926462661501480480}
+  - screenRelativeHeight: 0.01
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7821365831544171921}
+    - renderer: {fileID: 2825889033259935659}
+    - renderer: {fileID: 2508362691403437856}
   m_Enabled: 1
 --- !u!23 &5926462661501480480 stripped
 MeshRenderer:

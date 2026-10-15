@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -5,45 +6,35 @@ using UnityEngine;
 namespace SpaceGame.Gameplay.Objectives
 {
     /// <summary>
-    /// Puts the crew's place in every objective chain on the wire: one server-written list that
-    /// every peer adopts into its own <see cref="ObjectiveDirector"/>, and the reports the other way
-    /// — "my player has done their part of this step", "my player finished talking to this
-    /// character", "my player accepted this quest" (see <see cref="QuestRequests"/>).
+    /// Puts the crew's quests on the wire: one server-written list, one entry per begun quest, that every peer
+    /// adopts into its own <see cref="ObjectiveDirector"/>; and two requests the other way — "my player has done
+    /// their part of this step" and "give us this quest".
     ///
     /// <para>
     /// A <see cref="NetworkList{T}"/> rather than a message, for the reason the module rack
     /// replicates a mask: a message answers whoever was listening, and a player joining halfway
-    /// through the salvage was not. The value is simply true when they arrive. Entry <c>i</c> is the
-    /// director's run <c>i</c>, the main chain first — the same order on every machine, because it is
-    /// the order of the director's serialized chains.
+    /// through the salvage was not. The list is simply true when they arrive.
     /// </para>
     /// <para>
     /// On the NetworkGameManager prefab in <c>persistentScene</c>, beside <c>ChatNetwork</c> and for
     /// its reasons: it already carries a NetworkObject, it spawns on every peer before any player
     /// does, and the director it speaks for is plain scene state with no NetworkObject of its own.
-    /// It is not a second source of truth — the director holds the progress; this only carries it.
+    /// It is not a second source of truth — the director holds the quests; this only carries them.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
     public class ObjectiveNetwork : NetworkBehaviour
     {
-        // Netcode requires a NetworkList to exist before spawn, so it is built here, not in Awake.
-        private readonly NetworkList<ObjectiveProgress> progress = new(
+        private readonly NetworkList<QuestState> quests = new(
             null, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+        private readonly List<QuestState> received = new();
 
         private ObjectiveDirector director;
 
-        /// <summary>The spawned instance on this machine, or null outside a session.</summary>
-        public static ObjectiveNetwork Active { get; private set; }
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => Active = null;
-
         public override void OnNetworkSpawn()
         {
-            Active = this;
-
             director = ObjectiveDirector.Instance;
             if (director == null)
             {
@@ -52,21 +43,22 @@ namespace SpaceGame.Gameplay.Objectives
                 return;
             }
 
-            progress.OnListChanged += OnReplicated;
+            quests.OnListChanged += OnReplicated;
             director.LocalPlayerFinished += OnLocalPlayerFinished;
+            director.GiveRequested += OnGiveRequested;
 
             if (IsServer)
             {
                 director.Changed += Publish;
-                foreach (ObjectiveRun run in director.Runs) Publish(run, live: true);
+                director.Started += Publish;
+                Publish();
                 return;
             }
 
             // The read-on-spawn. Netcode hands a joiner the current list in the spawn payload and
-            // never replays OnListChanged for it, so this is the only moment a late joiner learns
+            // never raises OnListChanged for it, so this is the only moment a late joiner learns
             // where the crew are — and it is not "live": they missed the briefings, by definition.
-            for (int i = 0; i < progress.Count; i++)
-                director.Adopt(i, progress[i], live: false);
+            Adopt(live: false);
         }
 
         public override void OnNetworkDespawn() => Unsubscribe();
@@ -74,74 +66,78 @@ namespace SpaceGame.Gameplay.Objectives
         public override void OnDestroy()
         {
             Unsubscribe();
+
+            // Disposes the NetworkList's native storage.
             base.OnDestroy();
         }
 
         private void Unsubscribe()
         {
-            if (Active == this) Active = null;
-
-            progress.OnListChanged -= OnReplicated;
+            quests.OnListChanged -= OnReplicated;
             if (director == null) return;
 
             director.Changed -= Publish;
+            director.Started -= Publish;
             director.LocalPlayerFinished -= OnLocalPlayerFinished;
+            director.GiveRequested -= OnGiveRequested;
         }
 
-        private void Publish(ObjectiveRun run, bool live)
+        private void Publish(Quest quest, bool live) => Publish();
+
+        /// <summary>SERVER: makes the list match the director's quests, writing only the entries that differ.</summary>
+        private void Publish()
         {
             if (!IsServer || !IsSpawned) return;
 
-            while (progress.Count <= run.Index) progress.Add(default);
-            progress[run.Index] = run.Progress;
+            IReadOnlyList<Quest> begun = director.Quests;
+            for (int i = 0; i < begun.Count; i++)
+            {
+                QuestState state = QuestState.Of(begun[i]);
+                if (i >= quests.Count) quests.Add(state);
+                else if (!quests[i].Equals(state)) quests[i] = state;
+            }
+
+            while (quests.Count > begun.Count) quests.RemoveAt(quests.Count - 1);
         }
 
-        private void OnReplicated(NetworkListEvent<ObjectiveProgress> change)
+        private void OnReplicated(NetworkListEvent<QuestState> change)
         {
             // The host wrote it; adopting it back would announce its own change a second time.
             if (IsServer) return;
 
-            if (change.Type is NetworkListEvent<ObjectiveProgress>.EventType.Value
-                            or NetworkListEvent<ObjectiveProgress>.EventType.Add
-                            or NetworkListEvent<ObjectiveProgress>.EventType.Insert)
-                director.Adopt(change.Index, change.Value, live: true);
+            Adopt(live: true);
         }
 
-        private void OnLocalPlayerFinished(ObjectiveRun run, int step)
+        private void Adopt(bool live)
+        {
+            received.Clear();
+            foreach (QuestState state in quests) received.Add(state);
+            director.Adopt(received, live);
+        }
+
+        private void OnLocalPlayerFinished(Quest quest, int step)
         {
             if (!IsSpawned) return;
 
-            if (IsServer) director.RecordFinished(NetworkManager.LocalClientId, run.Index, step);
-            else ReportFinishedRpc(run.Index, step);
+            if (IsServer) director.RecordFinished(NetworkManager.LocalClientId, quest.Id, step);
+            else ReportFinishedRpc(new FixedString64Bytes(quest.Id), step);
+        }
+
+        private void OnGiveRequested(ObjectiveChain quest)
+        {
+            if (IsSpawned && !IsServer) GiveQuestRpc(new FixedString64Bytes(quest.Id));
         }
 
         /// <summary>
-        /// A client saying its own player has done their part of run <paramref name="runIndex"/>'s
-        /// step <paramref name="step"/>. The player is the sender, never an argument, so no client can
-        /// finish a step for somebody else.
+        /// A client saying its own player has done their part of step <paramref name="step"/> of a quest. The
+        /// player is the sender, never an argument, so no client can finish a step for somebody else.
         /// </summary>
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void ReportFinishedRpc(int runIndex, int step, RpcParams rpcParams = default) =>
-            director.RecordFinished(rpcParams.Receive.SenderClientId, runIndex, step);
+        private void ReportFinishedRpc(FixedString64Bytes quest, int step, RpcParams rpcParams = default) =>
+            director.RecordFinished(rpcParams.Receive.SenderClientId, quest.Value, step);
 
-        internal void SendTalked(string actorId) => ReportTalkedRpc(actorId);
-
-        internal void SendAccepted(string actorId, string chainId) => RequestAcceptRpc(actorId, chainId);
-
-        /// <summary>A client's player finished a conversation. Judged against the SENDER's body, never an argument.</summary>
+        /// <summary>A client's <see cref="QuestGiver"/> fired: the server begins the quest, for the whole crew.</summary>
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void ReportTalkedRpc(FixedString64Bytes actorId, RpcParams rpcParams = default) =>
-            QuestRequests.ServerTalked(actorId.ToString(), SenderBody(rpcParams));
-
-        /// <summary>A client's player accepted a quest. Judged against the SENDER's body, never an argument.</summary>
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestAcceptRpc(FixedString64Bytes actorId, FixedString64Bytes chainId, RpcParams rpcParams = default) =>
-            QuestRequests.ServerAccepted(actorId.ToString(), chainId.ToString(), SenderBody(rpcParams));
-
-        private Transform SenderBody(RpcParams rpcParams) =>
-            NetworkManager.ConnectedClients.TryGetValue(rpcParams.Receive.SenderClientId, out NetworkClient client)
-            && client.PlayerObject != null
-                ? client.PlayerObject.transform
-                : null;
+        private void GiveQuestRpc(FixedString64Bytes quest) => director.StartQuest(quest.Value);
     }
 }

@@ -57,7 +57,16 @@ namespace SpaceGame.Items
             Pistol = 5,
 
             /// <summary>A blade held on guard.</summary>
-            Sword = 6
+            Sword = 6,
+
+            /// <summary>Both hands out front on a handle, pushing something on wheels ahead.</summary>
+            Push = 7,
+
+            /// <summary>One arm hanging easy at the side with the item in the fist; the other arm is left alone.</summary>
+            Carry = 8,
+
+            /// <summary>One arm bent with the item held ready at the hip; the other arm is left alone.</summary>
+            Ready = 9
         }
 
         [Header("Where the hand closes")]

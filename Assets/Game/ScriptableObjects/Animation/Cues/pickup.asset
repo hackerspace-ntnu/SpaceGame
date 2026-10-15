@@ -14,3 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterCue
   meaning: Taking something into the hands (the PickedUp moment).
   fallback: {fileID: 0}
+  needsFreeHands: 0
+  tools: []
+  bareHands: 0

@@ -9823,6 +9823,7 @@ GameObject:
   - component: {fileID: 256437622080941833}
   - component: {fileID: 8082357172988985145}
   - component: {fileID: 5865193978673342714}
+  - component: {fileID: 3372749641257504580}
   m_Layer: 0
   m_Name: Flamethrower
   m_TagString: Untagged
@@ -10143,6 +10144,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 6
   coneHalfAngle: 25
   coneMask:
@@ -10166,10 +10168,23 @@ MonoBehaviour:
   groundSampleStart: 2
   jet: {fileID: 8231496269122513396}
   muzzle: {fileID: 2267190055650707276}
+  commitToBurst: 0
   igniteTime: 0.06
   fadeTime: 0.18
   aimSmoothing: 22
   holdTimeout: 0.5
+--- !u!114 &3372749641257504580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3018379131946269701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &3556111543972964517
 GameObject:
   m_ObjectHideFlags: 0

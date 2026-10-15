@@ -23,8 +23,8 @@ namespace SpaceGame.Gameplay.Objectives
             if (actor == null) return;
 
             if (Network.Decides) ServerTalked(actor.ActorId, talker);
-            else if (ObjectiveNetwork.Active != null) ObjectiveNetwork.Active.SendTalked(actor.ActorId);
-            else Debug.LogError("[Quest] No ObjectiveNetwork to carry a conversation to the server.");
+            else if (QuestRequestNetwork.Active != null) QuestRequestNetwork.Active.SendTalked(actor.ActorId);
+            else Debug.LogError("[Quest] No QuestRequestNetwork to carry a conversation to the server.");
         }
 
         /// <summary>The local player <paramref name="talker"/> accepted the chain <paramref name="chainId"/> from <paramref name="actor"/>.</summary>
@@ -33,8 +33,8 @@ namespace SpaceGame.Gameplay.Objectives
             if (actor == null) return;
 
             if (Network.Decides) ServerAccepted(actor.ActorId, chainId, talker);
-            else if (ObjectiveNetwork.Active != null) ObjectiveNetwork.Active.SendAccepted(actor.ActorId, chainId);
-            else Debug.LogError("[Quest] No ObjectiveNetwork to carry an accepted quest to the server.");
+            else if (QuestRequestNetwork.Active != null) QuestRequestNetwork.Active.SendAccepted(actor.ActorId, chainId);
+            else Debug.LogError("[Quest] No QuestRequestNetwork to carry an accepted quest to the server.");
         }
 
         /// <summary>SERVER: <paramref name="talker"/>'s player finished a conversation with the actor <paramref name="actorId"/>.</summary>
@@ -54,7 +54,7 @@ namespace SpaceGame.Gameplay.Objectives
                 return;
             }
 
-            if (ObjectiveDirector.Instance != null) ObjectiveDirector.Instance.TryStart(chainId);
+            if (ObjectiveDirector.Instance != null) ObjectiveDirector.Instance.StartQuest(chainId);
         }
 
         private static bool TryReach(string actorId, Transform talker, out QuestActor actor)

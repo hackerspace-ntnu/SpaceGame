@@ -26,7 +26,7 @@ namespace SpaceGame.Agents
         private bool silenced;
 
         /// <summary>Is the quest holding the character still right now? Every machine, off replicated progress.</summary>
-        public bool IsHolding => holdDuring.Contains(holdDuring.FindRun());
+        public bool IsHolding => holdDuring.IsInside;
 
         private void Reset() => SetPriorityDefault(ModulePriority.Scripted);
 
@@ -52,7 +52,7 @@ namespace SpaceGame.Agents
             if (silenced == value) return;
             silenced = value;
             foreach (BehaviourModuleBase module in silencedWhileHeld)
-                if (module != null) module.Active = !value;
+                if (module != null) module.SetRuntimeActive(!value);
         }
 
         protected override void OnValidate() => SetMinPriority(ModulePriority.Scripted);

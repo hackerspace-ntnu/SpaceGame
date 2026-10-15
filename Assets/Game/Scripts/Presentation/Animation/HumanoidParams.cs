@@ -40,6 +40,7 @@ namespace SpaceGame.Presentation
 
         public static readonly int IdleIndexHash = Animator.StringToHash(IdleIndex);
         public static readonly int CycleOffsetHash = Animator.StringToHash(CycleOffset);
+        public static readonly int SeatedHash = Animator.StringToHash(Seated);
 
         /// <summary>Mirror switch of an action layer's states, one per slot.</summary>
         public static string ActionMirror(CharacterAction.Slot slot) => "ActionMirror" + slot;

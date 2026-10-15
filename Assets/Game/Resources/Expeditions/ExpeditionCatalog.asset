@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 713c85d5a315940c99979e0ce14224f0, type: 3}
+  m_Name: ExpeditionCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionCatalog
+  profiles:
+  - {fileID: 11400000, guid: c7cb8d37ba8b1486e925bb562aac755c, type: 2}
+  prefabs:
+  - guid: 172915b40f756480a9df328461e89868
+    prefab: {fileID: 6320590716706008551, guid: 172915b40f756480a9df328461e89868, type: 3}
+  - guid: 192105a79d9644a9ba3346e28a99c798
+    prefab: {fileID: 6643838780466197570, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
+  - guid: 26de078b165624b48bab903240fa9b2c
+    prefab: {fileID: 6320590716706008551, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
+  - guid: 2a4b9ce2f062c490583b57550c0e8d6a
+    prefab: {fileID: 3105438250342313871, guid: 2a4b9ce2f062c490583b57550c0e8d6a, type: 3}
+  - guid: 42b14c93f650343d9904c00262437ec4
+    prefab: {fileID: 6320590716706008551, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
+  - guid: 4f284d4a656604161b70bb841ec01d61
+    prefab: {fileID: 6320590716706008551, guid: 4f284d4a656604161b70bb841ec01d61, type: 3}
+  - guid: 562a63fecff42411a8fa6015a4cc0d56
+    prefab: {fileID: 9073734896679703001, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+  - guid: 6eabcf8a2c144405e9b53c006afa32cc
+    prefab: {fileID: 3329947332983915974, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+  - guid: 945875e2c9c034aca8157a89589e2e6f
+    prefab: {fileID: 6320590716706008551, guid: 945875e2c9c034aca8157a89589e2e6f, type: 3}
+  - guid: 97c27ca5afc2b440ea8dbf6236ebb85a
+    prefab: {fileID: 3329947332983915974, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
+  - guid: 9e7fd6836c1eb4625a847a487fc6ea96
+    prefab: {fileID: 6320590716706008551, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
+  - guid: b1a441d697d7244e5a2d03264d70e8fd
+    prefab: {fileID: 6320590716706008551, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
+  - guid: c87391b23c12d4857bc382aa3edc3668
+    prefab: {fileID: 6320590716706008551, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+  - guid: d331d99758b16401aa91335195d00b8f
+    prefab: {fileID: 6320590716706008551, guid: d331d99758b16401aa91335195d00b8f, type: 3}
+  - guid: ebeb475745d3c4a28afbacf713f00555
+    prefab: {fileID: 6320590716706008551, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
+  - guid: f2a1bce75c71646f698b5d8935877f1b
+    prefab: {fileID: 8868609454500565137, guid: f2a1bce75c71646f698b5d8935877f1b, type: 3}
+  - guid: ffd6ce667ab644930862dfe31068fb15
+    prefab: {fileID: 6320590716706008551, guid: ffd6ce667ab644930862dfe31068fb15, type: 3}

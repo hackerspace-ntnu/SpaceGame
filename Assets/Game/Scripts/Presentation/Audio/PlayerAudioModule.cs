@@ -1,9 +1,8 @@
 // Gives the player character its own voice: footsteps paced by actual speed, jumps, landings
 // weighted by impact, dashes, and the hurt/death reactions.
 //
-// The entity equivalent is EntityAudioModule; this is deliberately a separate component rather than
-// a shared one, because the player's sounds come from concrete events on PlayerMovement and
-// HealthComponent while an entity's are inferred from a motor interface.
+// Player-only on purpose: the sounds come from concrete events on PlayerMovement and
+// HealthComponent, which no NPC has.
 using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;
@@ -16,7 +15,6 @@ namespace SpaceGame.Presentation
     public class PlayerAudioModule : MonoBehaviour
     {
         [Header("Footsteps")]
-        [SerializeField] private SfxId footstepId = SfxId.PlayerFootstep;
         [SerializeField] private EventReference footstepSound;
         [Tooltip("Metres of travel between footsteps. Pacing on distance rather than on a timer is " +
                  "what keeps the stride matched to the animation at every speed.")]
@@ -25,23 +23,20 @@ namespace SpaceGame.Presentation
         [SerializeField] private float movementThreshold = 0.6f;
 
         [Header("Jump and land")]
-        [SerializeField] private SfxId jumpId = SfxId.PlayerJump;
         [SerializeField] private EventReference jumpSound;
-        [SerializeField] private SfxId landId = SfxId.PlayerLand;
-        [SerializeField] private SfxId landHeavyId = SfxId.PlayerLandHeavy;
+        [SerializeField] private EventReference landSound;
         [Tooltip("Impact speed past which a landing uses the heavy sound. Negative — this is a " +
                  "downward velocity, and it should sit near the fall-damage threshold so a landing " +
                  "that hurts also sounds like it did.")]
         [SerializeField] private float heavyLandSpeed = -8f;
 
         [Header("Dash")]
-        [SerializeField] private SfxId dashId = SfxId.PlayerDash;
         [SerializeField] private EventReference dashSound;
 
         [Header("Damage")]
-        [SerializeField] private SfxId hurtId = SfxId.PlayerHurt;
-        [SerializeField] private SfxId deathId = SfxId.PlayerDeath;
-        [SerializeField] private SfxId respawnId = SfxId.PlayerRespawn;
+        [SerializeField] private EventReference hurtSound;
+        [SerializeField] private EventReference deathSound;
+        [SerializeField] private EventReference respawnSound;
 
         private PlayerMovement movement;
         private HealthComponent health;
@@ -129,18 +124,19 @@ namespace SpaceGame.Presentation
                 return;
 
             distanceSinceStep = 0f;
-            Sfx.Play(footstepId, position, footstepSound, GetInstanceID());
+            Sfx.Play(footstepSound, position);
         }
 
         private void HandleJump()
         {
-            Sfx.Play(jumpId, transform.position, jumpSound, GetInstanceID());
+            Sfx.Play(jumpSound, transform.position);
         }
 
         private void HandleLand(float impactSpeed)
         {
-            SfxId id = impactSpeed <= heavyLandSpeed ? landHeavyId : landId;
-            Sfx.Play(id, transform.position, default, GetInstanceID());
+            float weight = impactSpeed <= heavyLandSpeed ? 1.0f : 0f;
+            
+            Sfx.PlayWithParameter(landSound, transform.position, "Weight", weight);
 
             // A landing ends whatever stride was in progress; without this the first step after
             // touching down comes early.
@@ -149,7 +145,7 @@ namespace SpaceGame.Presentation
 
         private void HandleDash()
         {
-            Sfx.Play(dashId, transform.position, dashSound, GetInstanceID());
+            Sfx.Play(dashSound, transform.position);
         }
 
         // DamageFeedback also reacts to OnDamage, but only where that component is present — it
@@ -159,12 +155,12 @@ namespace SpaceGame.Presentation
         {
             if (GetComponent<DamageFeedback>() != null) return;
 
-            Sfx.Play(hurtId, transform.position, default, GetInstanceID());
+            Sfx.Play(hurtSound, transform.position);
         }
 
         private void HandleDeath()
         {
-            Sfx.Play(deathId, transform.position, default, GetInstanceID());
+            Sfx.Play(deathSound, transform.position);
         }
 
         // OnRevive rather than anything on PlayerRespawn: health state replicates, so this fires on
@@ -172,7 +168,7 @@ namespace SpaceGame.Presentation
         // to the people standing next to them.
         private void HandleRevive()
         {
-            Sfx.Play(respawnId, transform.position, default, GetInstanceID());
+            Sfx.Play(respawnSound, transform.position);
 
             distanceSinceStep = 0f;
             lastPosition = transform.position;

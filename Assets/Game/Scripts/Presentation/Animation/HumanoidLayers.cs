@@ -18,6 +18,12 @@ namespace SpaceGame.Presentation
         /// <summary>Hold poses and the gauntlet raise, driven by PlayerAimRig / HoldAnimator.</summary>
         public const string UpperBody = "Upper Body";
 
+        /// <summary>
+        /// The arms of an unaimed hold (a bucket, a hammer): arms and fingers only, so the spine stays with the
+        /// walk beneath. Its weight is 1 always and its state follows <c>HoldStyle</c>, so nothing writes it.
+        /// </summary>
+        public const string HoldArms = "Hold Arms";
+
         /// <summary>The left arm's own hold pose, for two worn devices at once.</summary>
         public const string WornLeft = "Worn Left";
 
@@ -45,7 +51,7 @@ namespace SpaceGame.Presentation
         /// <summary>Every layer, bottom to top.</summary>
         public static readonly string[] Order =
         {
-            Base, UpperBody, WornLeft, ActionFull, ActionUpper, ActionLeftArm, ActionRightArm, ActionAdditive, Glide
+            Base, UpperBody, HoldArms, WornLeft, ActionFull, ActionUpper, ActionLeftArm, ActionRightArm, ActionAdditive, Glide
         };
 
         /// <summary>The stage of an action a state plays.</summary>

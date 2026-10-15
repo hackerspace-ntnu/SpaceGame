@@ -44,7 +44,7 @@ namespace SpaceGame.Gameplay.Objectives
             if (!QuestActor.TryFind(actorId, out QuestActor giver)) return false;
 
             Transform at = giver.transform;
-            if (takes != null && world.TryFindLoosePickup(takes, at.position, takeRadius, out PickupableItem delivered, out _))
+            if (takes != null && LooseItems.TryFind(takes, at.position, takeRadius, out PickupableItem delivered, out _))
                 GameServices.World.Despawn(delivered.gameObject);
 
             for (int i = 0; i < rewards.Length; i++)

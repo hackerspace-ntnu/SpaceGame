@@ -45,7 +45,6 @@ namespace SpaceGame.Core.Persistence
             /// <summary>-1 for empty-handed, which is a real state and not a missing value.</summary>
             public int equippedSlot;
 
-            public float autoUseTimer;
             public bool hasAimPoint;
             public Vector3 aimPoint;
         }
@@ -60,7 +59,6 @@ namespace SpaceGame.Core.Persistence
             return new State
             {
                 equippedSlot = Equipment.EquippedSlotIndex,
-                autoUseTimer = Equipment.AutoUseTimer,
                 hasAimPoint = Equipment.HasAimPoint,
                 aimPoint = Equipment.AimPoint,
             };
@@ -78,7 +76,7 @@ namespace SpaceGame.Core.Persistence
                 // Nothing recorded means empty-handed at the moment of the save. Applied rather than
                 // ignored, because "put your weapon away" is exactly what a saver must be able to say
                 // — and because the startingSlot latch means nothing else will now say it.
-                Equipment.RestoreEquipment(-1, 0f, false, Vector3.zero);
+                Equipment.RestoreEquipment(-1, false, Vector3.zero);
                 return;
             }
 
@@ -107,7 +105,6 @@ namespace SpaceGame.Core.Persistence
         }
 
         private void Apply(in State state) =>
-            Equipment.RestoreEquipment(state.equippedSlot, state.autoUseTimer,
-                                       state.hasAimPoint, state.aimPoint);
+            Equipment.RestoreEquipment(state.equippedSlot, state.hasAimPoint, state.aimPoint);
     }
 }

@@ -74,10 +74,9 @@ namespace SpaceGame.Gameplay.Puzzles
             this.NetOn(NetMsg.DialTurn, OnTurnRequested);
             this.NetOn(NetMsg.DialState, OnStateAnnounced);
 
-            if (NetJoin.ShouldAsk(this))
+            if (Network.IsNetworked && !Network.Server)
                 askRoutine = StartCoroutine(Fault.Coroutine(this, $"{GetType().Name}.Ask",
-                    NetJoin.AskWhenSpawned(this, () =>
-                        this.NetToServer(NetMsg.DialTurn, new NetArg { A = AskVerb }))));
+                    this.NetToServerWhenSpawned(NetMsg.DialTurn, new NetArg { A = AskVerb })));
         }
 
         private void OnDisable()

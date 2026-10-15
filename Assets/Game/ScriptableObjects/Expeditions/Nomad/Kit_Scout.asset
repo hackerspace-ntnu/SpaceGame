@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 950571b05940e42a293d1a7ee7dbd23e, type: 3}
+  m_Name: Kit_Scout
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionKit
+  weapon: {fileID: 11400000, guid: d5c060dc5c450449aac11c23e2a33ef5, type: 2}
+  tool: {fileID: 11400000, guid: eceb4563a426d4cc79688b9643e57a48, type: 2}
+  beltItems: []

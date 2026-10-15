@@ -81,10 +81,10 @@ How the crew beats Morwen at her glade: freeze her with the Oathbranch so the ke
 
 | What | Carrier | Authority |
 | --- | --- | --- |
-| Spin start | `NetMsg.WitchSpiral` (119), witch relay | Server; balls flown everywhere, billed by server copies |
-| Bomb throw | `NetMsg.RueBombThrown` (120), keeper relay | Server |
-| Lift / set down | `NetMsg.KeeperLift` (121) → server, judged on the sender's body | Server writes `carrierId`, `slot` NetworkVariables |
-| Fail / finish | `NetMsg.WitchFightFailed` (122) / `WitchFinisher` (123), witch relay | Server; cutscenes local |
+| Spin start | `NetMsg.WitchSpiral` (142), witch relay | Server; balls flown everywhere, billed by server copies |
+| Bomb throw | `NetMsg.RueBombThrown` (143), keeper relay | Server |
+| Lift / set down | `NetMsg.KeeperLift` (144) → server, judged on the sender's body | Server writes `carrierId`, `slot` NetworkVariables |
+| Fail / finish | `NetMsg.WitchFightFailed` (145) / `WitchFinisher` (146), witch relay | Server; cutscenes local |
 | Poison count | `PoisonTally` NetworkVariable | Server (damage filter) |
 | Cloak, pulse, footprints, poses, pips | derived from replicated state + `SharedClock` | Every machine |
 | Shove on a player | `NetMsg.Flung` | Victim's owner |

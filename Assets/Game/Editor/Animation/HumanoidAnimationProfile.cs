@@ -24,6 +24,11 @@ namespace SpaceGame.EditorTools
         {
             public ItemGrip.HoldStyle style;
             public AnimationClip clip;
+
+            [Tooltip("Pose the arms and fingers only and leave the spine to the walk beneath. A hold clip is a " +
+                     "whole-torso clip, and on the Upper Body layer its spine overrides the walk's: a hammer's " +
+                     "ready pose bends a walking Raxy to 46 degrees. Set it for any style that is not aimed.")]
+            public bool armsOnly;
         }
 
         /// <summary>Three clips blended over the look pitch (AimPitch): down, level, up.</summary>

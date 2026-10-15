@@ -145,6 +145,7 @@ namespace SpaceGame.Presentation
             // precisely the failure this whole feature already had once.
             gameObject.AddComponent<DamageNumbers>().Bind();
             gameObject.AddComponent<PlayerNameplates>();
+            gameObject.AddComponent<SpeechBubbles>();
         }
 
         private void OnDestroy()

@@ -19,24 +19,14 @@ namespace SpaceGame.Agents
         [SerializeField] private float chaseStopDistance = 1.3f;
         [SerializeField] private float chaseSpeedMultiplier = 1.3f;
 
-        private HerdModule herdModule;
-
-        // Herd slot offset radius. Shrunk to zero for melee agents so they close on the target
-        // instead of parking on a ring outside their own attack range.
-        private float effectiveSpreadRadius;
-
         public bool HasTarget { get; private set; }
 
-        private void Awake()
-        {
-            herdModule = GetComponent<HerdModule>();
-            ConfigureMeleeMovement();
-        }
+        private void Awake() => ConfigureMeleeMovement();
 
-        // For agents with a CloseCombatModule: disable the herd ring and tighten chaseStopDistance
-        // so the final arrival position (slot radius + stop distance + nav jitter) lands strictly
-        // inside attackRange. Without this the agent parks at the ring edge and the attackRange
-        // check rejects by half a metre, producing "chases me but never hits".
+        // For agents with a CloseCombatModule: tighten chaseStopDistance so the final arrival
+        // position (stop distance + nav jitter) lands strictly inside attackRange. Without this the
+        // agent parks at the edge and the attackRange check rejects by half a metre, producing
+        // "chases me but never hits".
         //
         // Uses the smallest sibling melee range so every CloseCombatModule on the agent can fire.
         private void ConfigureMeleeMovement()
@@ -45,14 +35,8 @@ namespace SpaceGame.Agents
             foreach (CloseCombatModule c in GetComponents<CloseCombatModule>())
                 meleeAttackRange = Mathf.Min(meleeAttackRange, c.AttackRange);
 
-            effectiveSpreadRadius = herdModule != null ? herdModule.CombatSpreadRadius : 0f;
-
             if (meleeAttackRange < float.MaxValue)
             {
-                // Herd members clustering on a shared target is the correct shape for melee;
-                // spreading them would park everyone outside swing reach.
-                effectiveSpreadRadius = 0f;
-
                 // Stop just inside attackRange: in reach, but with visible daylight between
                 // colliders so agents don't hug and shove each other.
                 float stopCap = Mathf.Max(0.3f, meleeAttackRange - 0.4f);
@@ -90,11 +74,7 @@ namespace SpaceGame.Agents
                 ? targeting.Target.position
                 : targeting.LastKnownPosition;
 
-            Vector3 destination = herdModule != null
-                ? herdModule.GetSlotPositionAround(chasePosition, effectiveSpreadRadius)
-                : chasePosition;
-
-            return MoveIntent.MoveTo(destination, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
+            return MoveIntent.MoveTo(chasePosition, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
         }
 
         protected override void OnValidate()

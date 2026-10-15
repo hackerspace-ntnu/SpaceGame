@@ -36,28 +36,35 @@ namespace SpaceGame.Gameplay.Objectives
         private void OnEnable()
         {
             director = ObjectiveDirector.Instance;
-            if (director != null) director.Changed += OnChanged;
+            if (director != null)
+            {
+                director.Started += OnChanged;
+                director.Changed += OnChanged;
+            }
             Apply();
         }
 
         private void OnDisable()
         {
-            if (director != null) director.Changed -= OnChanged;
+            if (director != null)
+            {
+                director.Started -= OnChanged;
+                director.Changed -= OnChanged;
+            }
             applied = null;
         }
 
-        private void OnChanged(ObjectiveRun run, bool live)
+        private void OnChanged(Quest quest, bool live)
         {
-            if (run.Chain == window.chain) Apply();
+            if (quest.Chain == window.chain) Apply();
         }
 
         private void Apply()
         {
             // Outside a story world there is no quest to follow: leave the targets as authored.
-            ObjectiveRun run = window.FindRun();
-            if (run == null) return;
+            if (!window.TryGetPosition(out int position)) return;
 
-            bool inside = window.Contains(run);
+            bool inside = window.Contains(position);
             if (applied == inside) return;
             applied = inside;
 

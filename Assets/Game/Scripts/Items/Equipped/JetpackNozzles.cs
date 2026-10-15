@@ -544,7 +544,7 @@ namespace SpaceGame.Items
         /// One system for every nozzle, emitted at a position rather than one system per nozzle:
         /// four emitters on a worn item is four more things for the player's own body to carry
         /// around, and the shipped pattern for this is a single system playing with its emission
-        /// disabled (see <c>GravelBlastFx</c>).
+        /// disabled (see <c>PelletGunFx</c>).
         /// </para>
         /// <para>
         /// Only the ACTIVE model smokes. Both forms are wired, and emitting from the hidden one

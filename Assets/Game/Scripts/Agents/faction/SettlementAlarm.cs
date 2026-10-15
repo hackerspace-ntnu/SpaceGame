@@ -19,9 +19,13 @@
 //   client reaches the same "there is an intruder" answer by itself. No message, nothing for a
 //   late joiner to miss: they hear it as soon as they see the intruder.
 //
-// It is the first piece of the faction design's territory rule (design doc §3.10). Goodwill is
-// not built yet, so "unwelcome" is the authored stance alone: for a Clanker town that is everyone.
-// When goodwill lands, the intruder query is what consults it.
+// It is the first piece of the faction design's territory rule (design doc §3.10). "Unwelcome" is
+// FactionRelations' answer for a faction that is not an entity: the owner tribe's goodwill toward
+// that player first (Allied walks in unchallenged, HostileOnSight and AtWar are intruders whatever
+// the table says), then the authored stance — for a Clanker town, which keeps no ledger, everyone.
+// The ledger's rows and the player-to-profile bindings live on the server, so a CLIENT's siren
+// still answers by table alone: a player a tribe calls Allied can hear a siren on their own
+// machine for a town whose defenders, decided on the server, never rally against them.
 //
 // Holds no state worth persisting: a raised alarm is a consequence of an intruder standing in
 // the radius, and the defenders' targets are already saved by AgentStateSaveable.

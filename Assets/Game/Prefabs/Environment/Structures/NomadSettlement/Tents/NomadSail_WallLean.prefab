@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8485166714404523453, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -7962985096300336176, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 629a50988443145f885252138a585e5c, type: 2}
     - target: {fileID: -4715896216370646489, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -3527939621342013437, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -78,15 +78,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4724820063631527433, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 6707627712171269216, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 8681718736547930698, guid: bfb05c76fdfc54060bcaf918e7c20693, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -126,11 +126,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0, y: 1.901, z: 2.0167646}
   m_Size: 4.103529
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.25
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 6879086814145599520}
@@ -140,6 +140,16 @@ LODGroup:
     - renderer: {fileID: 8623424385293192749}
     - renderer: {fileID: 1012761077553286230}
     - renderer: {fileID: 7145236509664924069}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5684662439169920677}
+    - renderer: {fileID: 2766681937327592268}
+    - renderer: {fileID: 8623424385293192749}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 5684662439169920677}
   m_Enabled: 1
 --- !u!23 &6879086814145599520 stripped
 MeshRenderer:

@@ -29,6 +29,17 @@ namespace SpaceGame.EditorTools
         public const string SwordplayCue = "swordplay";
 
         /// <summary>
+        /// What <see cref="Ensure"/> adds to an NPC that wears the humanoid controller, in the order
+        /// it adds them. The player gets the first four only. One list, so a test that expects the
+        /// wiring cannot drift from what the wiring does.
+        /// </summary>
+        public static readonly IReadOnlyList<System.Type> NpcComponents = new[]
+        {
+            typeof(CharacterActions), typeof(BodyLanguage), typeof(IdleVariation), typeof(HurtReaction),
+            typeof(SpeechGestures), typeof(MeleeDefense),
+        };
+
+        /// <summary>
         /// Adds CharacterActions, BodyLanguage, IdleVariation and HurtReaction to
         /// <paramref name="root"/> — and SpeechGestures and MeleeDefense to an NPC: the player never
         /// speaks through the popup, and blocks with its own hands — and fills its modules' empty action fields. Returns whether anything

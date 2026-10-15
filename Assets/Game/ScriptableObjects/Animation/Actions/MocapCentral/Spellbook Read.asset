@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40fc3b92aea94972bcc6afe80599b5ae, type: 3}
+  m_Name: Spellbook Read
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.CharacterAction
+  slot: 0
+  playback: 2
+  variants:
+  - clip: {fileID: 8993902097722301239, guid: a3312a51c6bd540e18e1ac3aa59f8c27, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 8993902097722301239, guid: 4b1d9486349bc421a92b47d2578ade2e, type: 3}
+    exit: {fileID: 8993902097722301239, guid: 017f682c906d244ee80b39fe894523a2, type: 3}
+    selectionWeight: 1
+    contactAt: 0
+  - clip: {fileID: 8993902097722301239, guid: 0bfefdf4b660e4f31968579df478c200, type: 3}
+    aimDown: {fileID: 0}
+    aimUp: {fileID: 0}
+    enter: {fileID: 8993902097722301239, guid: 4b1d9486349bc421a92b47d2578ade2e, type: 3}
+    exit: {fileID: 8993902097722301239, guid: 017f682c906d244ee80b39fe894523a2, type: 3}
+    selectionWeight: 1
+    contactAt: 0
+  authoredHand: 0
+  mirrorForOtherArm: 0
+  speedRange: {x: 0.95, y: 1.05}
+  fadeIn: 0.3
+  fadeOut: 0.35
+  marks: []
+  cues:
+  - {fileID: 11400000, guid: d0f7f183745f8483293c9a6e941d748f, type: 2}
+  - {fileID: 11400000, guid: 13dbd2bce39e34fcdaad1700a00e7d68, type: 2}
+  postures: 0

@@ -178,7 +178,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void SubtreeBulk_WeighsTheWholeBranch_NotTheBoneAtItsHead()
         {
-            // PatrolRobot 1. Its hips carry too little to be worth simulating, so the chest and both
+            // A robot whose hips carry too little to be worth simulating, so the chest and both
             // legs come out as branch roots at the same depth — and by its own bulk alone a thigh
             // outweighs a chest, so the robot ended up rooted at its right leg with the left leg
             // jointed to it and the entire upper body hanging off the pair.
@@ -198,6 +198,49 @@ namespace SpaceGame.EditorTools
 
             // The whole hierarchy rolls up to its root, which is what makes the numbers comparable.
             Assert.AreEqual(22f, subtree[0], 1e-4f);
+        }
+
+        [Test]
+        public void JointAxes_TwistRunsDownTheBone_SwingIsPerpendicular()
+        {
+            foreach (Vector3 along in new[] { Vector3.down, new Vector3(0.3f, 0.9f, 0.1f), Vector3.forward })
+            {
+                RagdollSkeleton.JointAxes(along, out Vector3 twist, out Vector3 swing);
+
+                Assert.Less(Vector3.Angle(twist, along), 0.01f, "twist must be the bone's own length");
+                Assert.AreEqual(0f, Vector3.Dot(twist, swing), 1e-4f, "swing must be perpendicular");
+                Assert.AreEqual(1f, swing.magnitude, 1e-4f);
+            }
+        }
+
+        [Test]
+        public void JointAxes_ZeroLengthBone_FallsBackToAValidPair()
+        {
+            RagdollSkeleton.JointAxes(Vector3.zero, out Vector3 twist, out Vector3 swing);
+
+            Assert.AreEqual(1f, twist.magnitude, 1e-4f);
+            Assert.AreEqual(0f, Vector3.Dot(twist, swing), 1e-4f);
+        }
+
+        [Test]
+        public void ClampMassRatios_RaisesLightChildren_DownTheWholeChain()
+        {
+            // torso 30 → forearm 1 → hand 0.6, and a thigh of 12 straight off the torso.
+            float[] masses = { 30f, 1f, 0.6f, 12f };
+            int[] parents = { -1, 0, 1, 0 };
+
+            float[] clamped = RagdollSkeleton.ClampMassRatios(masses, parents, 8f);
+
+            Assert.AreEqual(30f, clamped[0], 1e-4f, "the root is never changed");
+            Assert.AreEqual(3.75f, clamped[1], 1e-4f, "30 / 8");
+            Assert.AreEqual(1f, masses[1], 1e-4f, "the input is not modified");
+            Assert.AreEqual(0.6f, clamped[2], 1e-4f, "0.6 already clears its CLAMPED parent's 3.75 / 8");
+            Assert.AreEqual(12f, clamped[3], 1e-4f, "already within the ratio");
+
+            // A hand far too light for its clamped forearm is raised against the clamped value.
+            float[] chain = RagdollSkeleton.ClampMassRatios(new[] { 64f, 1f, 0.1f }, new[] { -1, 0, 1 }, 8f);
+            Assert.AreEqual(8f, chain[1], 1e-4f);
+            Assert.AreEqual(1f, chain[2], 1e-4f, "judged against the raised forearm, not the original 1 kg");
         }
     }
 }

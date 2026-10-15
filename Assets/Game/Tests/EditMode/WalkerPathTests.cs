@@ -158,6 +158,49 @@ namespace SpaceGame.Tests
             Assert.IsFalse(path.TryGetSteerTarget(Vector3.zero, ArriveRadius, out _));
         }
 
+        // ─────────── looking one corner ahead ───────────
+
+        [Test]
+        public void CornerAfterCurrent_IsTheNextOneOnTheRoute()
+        {
+            // A machine that brakes for a turn needs to see the leg beyond the corner it is heading
+            // for, not just that corner.
+            WalkerPath path = PathAlong(
+                new Vector3(0f, 0f, 0f),
+                new Vector3(0f, 0f, 30f),
+                new Vector3(40f, 0f, 30f));
+
+            Assert.IsTrue(path.TryGetCornerAfterCurrent(out Vector3 after));
+            Assert.AreEqual(40f, after.x, 1e-3f);
+        }
+
+        [Test]
+        public void CornerAfterCurrent_IsAbsentOnTheLastLeg()
+        {
+            WalkerPath path = PathAlong(
+                new Vector3(0f, 0f, 0f),
+                new Vector3(0f, 0f, 30f),
+                new Vector3(40f, 0f, 30f));
+            path.TryGetSteerTarget(new Vector3(0f, 0f, 30f), ArriveRadius, out _);
+
+            Assert.IsFalse(path.TryGetCornerAfterCurrent(out _), "the last corner has nothing beyond it");
+            Assert.IsFalse(new WalkerPath().TryGetCornerAfterCurrent(out _), "an empty path has no corners");
+        }
+
+        [Test]
+        public void CornerAfterCurrent_IgnoresTheStaleTail()
+        {
+            Vector3[] buffer = Corners(
+                new Vector3(0f, 0f, 0f),
+                new Vector3(0f, 0f, 20f),
+                new Vector3(999f, 0f, 999f));
+
+            var path = new WalkerPath();
+            path.Set(buffer, 2);
+
+            Assert.IsFalse(path.TryGetCornerAfterCurrent(out _));
+        }
+
         // ─────────── distance ───────────
 
         [Test]

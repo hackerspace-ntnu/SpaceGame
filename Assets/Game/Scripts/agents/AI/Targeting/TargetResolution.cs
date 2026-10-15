@@ -30,6 +30,18 @@ namespace SpaceGame.Agents
             return faction == null || faction.isActiveAndEnabled;
         }
 
+        // The entity a hit came from: the EntityFaction root above whatever child collider or
+        // projectile carried the reference, else the source itself. A limb is not something an
+        // agent can walk toward, and a projectile is destroyed the frame it lands.
+        public static Transform EntityOf(Transform source)
+        {
+            if (!source)
+                return null;
+
+            EntityFaction entity = source.GetComponentInParent<EntityFaction>();
+            return entity != null ? entity.transform : source;
+        }
+
         // Returns the target a module should act on this frame, re-querying the registry when the
         // held reference has gone stale or the re-evaluation interval has elapsed.
         //

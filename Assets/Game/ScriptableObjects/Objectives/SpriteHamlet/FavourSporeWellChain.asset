@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: FavourSporeWellChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
   id: favour-spore-well
+  title: Dewdrop's Well
+  summary: "Spores have choked Dewdrop's well. Burn them out."
   speaker: DEWDROP
+  trigger: {fileID: 0}
   steps:
   - {fileID: 11400000, guid: fe2edf6dc63ceea4eae38b4a53b8ebdb, type: 2}
   - {fileID: 11400000, guid: 99c0bbe7aa1f20842ad7389f3a031749, type: 2}

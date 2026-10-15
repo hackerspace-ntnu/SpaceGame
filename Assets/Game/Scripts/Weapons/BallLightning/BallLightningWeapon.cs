@@ -95,7 +95,9 @@ namespace SpaceGame.Weapons
             // The report belongs to Present(), which runs on every machine — see Weapon.
         }
 
-        // override, not `new` — see the same note on BasicGun.
+        // override, not `new`: hiding the base method meant every base-class caller — GetAimPoint
+        // and GetFireDirection among them — silently kept using the base version, so the barrel
+        // this gun declares was only honoured on the one call site that knew to look for it.
         protected override Vector3 GetSpawnPosition()
         {
             if (projectileSpawnPoint == null)

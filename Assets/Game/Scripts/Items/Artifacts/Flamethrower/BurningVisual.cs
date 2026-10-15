@@ -36,7 +36,7 @@ namespace SpaceGame.Items
         /// added to bodies at runtime and so has no Inspector anybody could wire — the same reason
         /// <c>MountModule</c> loads its default camera that way.
         /// </summary>
-        private const string PrefabResource = "Effects/BodyFire";
+        public const string PrefabResource = "Effects/BodyFire";
 
         /// <summary>
         /// How much wider than the body the flames are drawn. Slightly proud of it, so the fire
@@ -50,7 +50,7 @@ namespace SpaceGame.Items
         /// divided by this, so a creature ends up wearing a fire its own width instead of a ball
         /// sized off its diagonal, which on anything tall was far wider than the thing burning.
         /// </summary>
-        private const float PrefabWidth = 0.8f;
+        public const float PrefabWidth = 0.8f;
 
         /// <summary>
         /// A body smaller than this is still drawn at this size, in metres. Fire on a pebble that

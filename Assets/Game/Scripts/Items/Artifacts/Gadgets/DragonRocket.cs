@@ -150,7 +150,7 @@ namespace SpaceGame.Items
         /// True for a copy that exists only so somebody can watch it.
         ///
         /// The same flag, under the same name and for the same reason, as
-        /// <see cref="SpaceGame.Agents.AgentProjectile.Cosmetic"/>: whenever more than one machine
+        /// <see cref="SpaceGame.Weapons.Projectile.Cosmetic"/>: whenever more than one machine
         /// puts a copy of the same shot in the air, exactly one may bill the target, because
         /// <see cref="NetDamage"/> honours a request from every client that asks. Everything
         /// visible — the flight, the trail, the burst, the whelps — runs on a cosmetic copy too.

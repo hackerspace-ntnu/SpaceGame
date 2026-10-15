@@ -42,6 +42,46 @@ namespace SpaceGame.Items
 
         private PlacementRule Rule => rule != null ? rule : rule = GetComponent<PlacementRule>();
 
+        // In a hand, as opposed to lying in the sand: the same prefab is both.
+        private bool held;
+
+        public override void OnEquipped(GameObject holder)
+        {
+            base.OnEquipped(holder);
+            held = true;
+        }
+
+        public override void OnUnequipped(GameObject holder)
+        {
+            held = false;
+            if (Rule != null) Rule.EndPreview();
+            base.OnUnequipped(holder);
+        }
+
+        private void OnDisable()
+        {
+            if (held && Rule != null) Rule.EndPreview();
+        }
+
+        /// <summary>
+        /// The rule's preview, every frame, for the one machine whose crosshair is honest: the holder's. Asked with the
+        /// same aim and the same <see cref="PlacementRule.CanPlace"/> the press will use, so what is shown is what a
+        /// press would do.
+        /// </summary>
+        private void Update()
+        {
+            if (!held || Rule == null || !OwnerIsLocal()) return;
+
+            if (aimProvider == null || !aimProvider.TryGetAimHit(range, out RaycastHit hit))
+            {
+                Rule.EndPreview();
+                return;
+            }
+
+            var aim = new PlacementAim(hit.point, hit.normal, hit.collider != null ? hit.collider.gameObject : null, PlacerYaw());
+            Rule.Preview(aim, Rule.CanPlace(aim));
+        }
+
         /// <summary>
         /// Owner-side: the only machine whose aim is honest. The server's <c>Camera.main</c> is the
         /// HOST's camera, so a ray recomputed there would place every client's item at the host's

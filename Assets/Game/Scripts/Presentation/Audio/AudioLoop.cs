@@ -13,8 +13,6 @@ namespace SpaceGame.Presentation
     public class AudioLoop : MonoBehaviour
     {
         [Header("Sound")]
-        [SerializeField] private SfxId loopId = SfxId.AmbInteriorHum;
-        [Tooltip("Overrides the catalog outright when set.")]
         [SerializeField] private EventReference loopSound;
 
         [Header("Behaviour")]
@@ -31,9 +29,9 @@ namespace SpaceGame.Presentation
         [Tooltip("Optional FMOD parameter driven by SetIntensity(). Leave empty if the event has none.")]
         [SerializeField] private string intensityParameter = "";
 
-        private readonly LoopingEmitter emitter = new LoopingEmitter();
+        private readonly Sfx.Looper emitter = new Sfx.Looper();
 
-        public bool IsPlaying => emitter.IsPlaying;
+        public bool IsPlaying => emitter.playing;
 
         private void OnEnable()
         {
@@ -48,9 +46,14 @@ namespace SpaceGame.Presentation
 
         public void Play()
         {
-            emitter.Play(loopId, followTransform ? gameObject : null, loopSound);
-
-            if (!followTransform) emitter.SetPosition(transform.position);
+            if (followTransform)
+            {
+                emitter.PlayAndAttach(loopSound, gameObject);
+            }
+            else
+            {
+                emitter.PlayAndPosition(loopSound, transform.position);
+            }
         }
 
         public void Stop() => emitter.Stop(fadeOutOnStop);
@@ -63,6 +66,5 @@ namespace SpaceGame.Presentation
             emitter.SetParameter(intensityParameter, value);
         }
 
-        public void SetVolume(float volume) => emitter.SetVolume(volume);
     }
 }

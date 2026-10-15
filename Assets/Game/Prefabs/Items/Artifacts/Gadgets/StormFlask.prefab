@@ -115,6 +115,7 @@ GameObject:
   - component: {fileID: 7865063898540927976}
   - component: {fileID: 2496127778673033931}
   - component: {fileID: -4940319153858388657}
+  - component: {fileID: 6352524488914997487}
   m_Layer: 0
   m_Name: StormFlask
   m_TagString: Untagged
@@ -401,6 +402,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   range: 40
   groundMask:
     serializedVersion: 2
@@ -419,6 +421,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &6352524488914997487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5806432731717092885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1001 &5387202379573809309
 PrefabInstance:
   m_ObjectHideFlags: 0

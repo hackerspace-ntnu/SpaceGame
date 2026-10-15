@@ -64,12 +64,41 @@ namespace SpaceGame.Items
                  "starting item lists above; these scale with the party.")]
         [SerializeField] private List<InventoryItem> perCrewItems = new();
 
+        [Tooltip("How full each crew store is laid on, 0-1. The lander's bottles come down EMPTY: the crash vents the " +
+                 "crew's own, and filling one at the oxygen plant is the beat that gets them breathing again.")]
+        [SerializeField, Range(0f, 1f)] private float perCrewCharge = 1f;
+
         /// <summary>
         /// Whether <see cref="StockForCrew"/> has already run. A wall is stocked exactly once, at
         /// the arrival that put the ship on the ground, and never again — a second pass would
         /// double the stores every time the director asked.
         /// </summary>
         private bool crewStocked;
+
+        [Header("Taking")]
+        [Tooltip("How close a player must be, and whether they must see it, to take gear off this " +
+                 "wall. The defaults are no rule: the crosshair's own range, through anything.")]
+        [SerializeField] private WallTakeReach takeReach = new();
+
+        /// <summary>
+        /// The reach rule for taking gear off this wall. Both machines read it: the looking
+        /// player's before offering the take, the server again before honouring it.
+        /// </summary>
+        public WallTakeReach TakeReach => takeReach;
+
+        /// <summary>
+        /// Where the gear at <paramref name="uv"/> on <paramref name="surfaceId"/> is, for the
+        /// reach rule: a hand's width off the face, so a sight line to it ends in front of the
+        /// board rather than in it.
+        /// </summary>
+        public Vector3 TakePoint(PackSurfaceId surfaceId, Vector2 uv)
+        {
+            PackSurface face = SurfaceFor(surfaceId);
+            return face != null ? face.ToWorld(uv, TakePointLift) : transform.position;
+        }
+
+        /// <summary>How far off the face <see cref="TakePoint"/> stands, in the surface's frame.</summary>
+        private const float TakePointLift = 0.1f;
 
         private void Awake() => BeginContents();
 
@@ -116,7 +145,7 @@ namespace SpaceGame.Items
                     // rather than a player choosing a face, the same standing the authored lists
                     // and a restored save have. Every face of a wall is reachable anyway, so the
                     // two differ only in what they say.
-                    if (StowAuthored(item))
+                    if (StowAuthored(item, perCrewCharge))
                     {
                         stowed++;
                         continue;
@@ -231,11 +260,16 @@ namespace SpaceGame.Items
             IPlayerInventory hotbar = HotbarOf(arg);
             if (hotbar == null) return;
 
+            // Re-asked here rather than trusted: the press came from a client, and the rule is
+            // the only thing standing between a player and gear they cannot reach.
+            Vector2 at = new Vector2(arg.P.x, arg.P.z);
+            if (!takeReach.AllowsBody(arg.Resolve(), TakePoint(surface, at), transform)) return;
+
             // Idempotent by construction: the space is empty the second time, so nothing is found
             // under the point and TryTakeToHotbar answers false rather than conjuring a duplicate.
             // That is exactly the race two players grabbing the same item produce, and this is the
             // machine that settles it.
-            TryTakeToHotbar(surface, new Vector2(arg.P.x, arg.P.z), hotbar);
+            TryTakeToHotbar(surface, at, hotbar);
         }
 
         /// <summary>Put it on the wall, if it is still in that slot and the spot is still free.</summary>

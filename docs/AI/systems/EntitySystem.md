@@ -8,6 +8,9 @@ paths:
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs
   - Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs
 symptoms:
+  - "dead bodies and dropped loot vanish while nobody is looking"
+  - "a Sky nomad I shot on foot dropped its gun but not its wing pack"
+  - "a dead NPC's body stays lying there for minutes"
   - "a creature disappears for clients when it walks into another chunk"
   - "console warns No prefab registered for id when loading a world"
   - "a runtime-spawned entity is captured in the save but never comes back"
@@ -15,8 +18,9 @@ symptoms:
   - "a generated prefab has an empty motor slot and no error was logged"
   - "an NPC is completely invisible to AI targeting"
   - "a moving NPC keeps nine chunks loaded around itself"
+  - "a Sky transport prefab carries a SaveableEntity and savers after a merge"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-22
+updated: 2026-10-07
 ---
 
 # Entity System
@@ -55,16 +59,16 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `IPersistentEntity` | [Core/Persistence/Format/IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) | Empty marker: "this object is part of the mutable world". The primary `NeedsSaving` clause. |
 | `SceneTracked` | [World/Streaming/Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `keepChunksLoaded` + `UnloadPolicy{Pin,Migrate,Despawn}`; `SetKeepChunksLoaded(bool)` re-registers. Self-registers in `OnEnable`. |
 | `SaveableEntity` | [Core/Persistence/Runtime/SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs) | `prefabId` / `instanceId` / `authored` / `SaveScope`; static `LiveEntities` dictionary; `DeriveAuthoredId`, `EnsureRuntime`, `DisownToExternal`, `MarkBuried`. |
-| `SaveablePolicy` | [Core/Persistence/Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | The one opt-in rule: `NeedsSaving` / `Ensure` / `EnsureScene(Scene)` / `EnsureSpawned(GameObject)`. |
+| `SaveablePolicy` | [Core/Persistence/Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | The one opt-in rule: `NeedsSaving` / `Ensure` / `EnsureScene(Scene)` / `EnsureSpawned(GameObject)`. Maps each component to its saver — e.g. `Resident` → `ResidentSaveable` (key `"resident"`, the resident's memory of players). |
 | `SaveablePrefabRegistry` | [Core/Persistence/Runtime/SaveablePrefabRegistry.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePrefabRegistry.cs) | `prefabId` (asset GUID) → prefab. Sources: `InventoryItem.itemPrefab`, `Resources/Saveable/`, NGO prefab list (lazy on first miss). |
 | `WorldStreamer` | [World/Streaming/Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) | Static `s_trackedEntities`; `UpdateSceneMembership` / `ResolveDesiredScene` / `MoveTracked` / `MigrateObjectRpc`. |
 | `EntityTargetRegistry` | [agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) | Static list of `EntityFaction`; `ResolveNearest(owner, relationship, pos)`. AI targeting only — no persistence link. |
 | `Registry<T>` | [Core/Registry/Registry.cs](Assets/Game/Scripts/Core/Registry/Registry.cs) | Generic `IRegistryEntry` store keyed by string `ID`. **Items only** — nothing entity-shaped uses it. Filled by [RegistryLoader](Assets/Game/Scripts/Core/Registry/RegistryLoader.cs) from `Resources/Items`. |
 | `EntityInventoryComponent` | [agents/Entity/EntityInventoryComponent.cs](Assets/Game/Scripts/agents/Entity/EntityInventoryComponent.cs) | Same `Inventory` class the player uses, on an NPC. |
 | `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
-| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents + rolled `LootEntry` list. |
+| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents and worn gear + rolled `LootEntry` list. A worn **wing pack** drops only from a body killed seated aloft or a war-party flier (`DropsWorn`; any other corpse keeps it on, user decision 2026-10-07); `MarkWarFlier(bagDropChance)` (set at spawn by `NpcWorldSim`, never saved) also makes the bag drop only on that roll. |
 | `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
-| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling, hurt/death SFX, despawn after `despawnDelay` via `SetActive(false)`. |
+| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling (**not saved**: `HealthReactionSaveable` was deleted 2026-10-02 because every prefab's threshold list was empty — a prefab that authors one replays it from scratch after a load), hurt/death SFX; on death the body lies where it fell and the server starts its `Remains` countdown (`corpseLifetime`, 180 s; 0 = stays, a monowheel wreck). See [Combat.md](Combat.md) Gotchas. |
 
 ## Flows
 
@@ -115,6 +119,7 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 
 ## Gotchas
 
+- **`NeedsSaving` refuses a `VesselPilot` hull, and a merge can undo that on disk.** A Sky transport is rebuilt from its war party's group record, never saved on its own, so `SaveablePolicy.NeedsSaving` returns false for anything with a `VesselPilot` (`SaveablePolicy.cs:83`). Prefab YAML from a branch that predates the rule (main's `9c5c2c73` saver pass) still carries `SaveableEntity`, `TransformSaveable`, `HealthSaveable` and `EntityFactionSaveable`, and a merge that takes that side brings them back silently. Rebuild with `Tools/SpaceGame/Vehicles/Build Sky Transports`; `SkyTransportPrefabTests.TheVesselCarriesNoSaversAndNoRagdoll` catches it. The ragdoll side has two guards for the same hull: `RagdollWiring.IsBody` refuses a `VesselPilot` wherever the prefab lives, and `IsVehicle` refuses anything under `/Prefabs/Vehicles/` by folder. (This belongs in SkyTribe.md, which another session had open on 2026-10-04.)
 - **No prefab on disk ships a stamped `prefabId`.** Runtime spawns therefore warn and are captured-but-not-restorable until the prefab is put under `Resources/Saveable/`, registered with NGO, or stamped via `Tools ▸ Save System ▸ Wire Saveable Prefabs`.
 - **There are no `EntityProfile_*` components.** All four, and the `EntityProfileEditors` Generate button, were deleted on 2026-09-22 — see "Authoring an agent prefab" above. An agent prefab is built by an editor script under `Assets/Game/Editor/Creatures/` or composed by hand.
 - **`Core/Registry/` is the item registry.** It has nothing to do with entities; the entity-side lookups are `SaveableEntity.LiveEntities` (persistence) and `EntityTargetRegistry` (targeting). Don't wire an entity into `Registry<T>`.

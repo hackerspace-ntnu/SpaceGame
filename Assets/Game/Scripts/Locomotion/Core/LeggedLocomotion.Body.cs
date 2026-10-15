@@ -93,6 +93,18 @@ namespace SpaceGame.Locomotion
             grippedVelocity = Vector2.zero;
         }
 
+        /// Take the body back after something carried it with this component switched off — a
+        /// standing post on a walking house. The path and the feet are still wherever the machine
+        /// was picked up, so resume from where it was set down: the transform, standing on the
+        /// ground under it. A followed copy only regrounds its feet; its body is the wire's.
+        public void ResumeFromCarry()
+        {
+            if (!ready) return;
+            ResetBodyState();
+            if (externallyPosed) GroundFeet();
+            else SnapToGround();
+        }
+
         /// Drop the machine so the legs start within reach of the ground.
         ///
         /// Refused outright while something else is posing the body: "never write the body" is the

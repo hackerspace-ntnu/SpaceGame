@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: FavourAcornBasketChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
   id: favour-acorn-basket
+  title: Hazelbud's Basket
+  summary: "Hazelbud has lost an acorn basket. Find it and bring it back."
   speaker: HAZELBUD
+  trigger: {fileID: 0}
   steps:
   - {fileID: 11400000, guid: e624777b5f8f42540ba3ee41502f0394, type: 2}
   - {fileID: 11400000, guid: e2ab33306c76cbc4bb9a12048543a468, type: 2}

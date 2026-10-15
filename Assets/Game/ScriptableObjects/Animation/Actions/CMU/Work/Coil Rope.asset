@@ -21,12 +21,16 @@ MonoBehaviour:
     enter: {fileID: 0}
     exit: {fileID: 0}
     selectionWeight: 1
+    contactAt: 0
   authoredHand: 0
   mirrorForOtherArm: 0
   speedRange: {x: 1, y: 1}
   fadeIn: 0.12
   fadeOut: 0.18
   marks: []
+  reach: {x: 0.22924961, y: 1.9592671, z: 0.118028976}
   cues:
   - {fileID: 11400000, guid: 640bbd34382b24e3a99e950b7c7f1aba, type: 2}
-  postures: 0
+  - {fileID: 11400000, guid: ab6653ce0780b45848daff87d27fb9b4, type: 2}
+  - {fileID: 11400000, guid: a2d28e135356f4576af48838e0373c9b, type: 2}
+  postures: 5

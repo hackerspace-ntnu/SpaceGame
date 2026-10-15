@@ -110,7 +110,7 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The compounding trap. On the Nomad, PatrolRobot and Vrescal nothing animates the node
+        /// The compounding trap. On the Nomad and Vrescal nothing animates the node
         /// the tilt is written to, so the value read back next frame is the tilt itself. Multiply
         /// the tilt in again and the body spins.
         /// </summary>

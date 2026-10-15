@@ -61,8 +61,8 @@ namespace SpaceGame.Tests
 
             List<Behaviour> drivers = SimulationDrivers.Discover(entity);
 
-            Assert.Contains(entity.GetComponent<AgentController>(), drivers,
-                "The brain is the first thing a remote copy must stop running.");
+            Assert.IsFalse(drivers.Contains(entity.GetComponent<AgentController>()),
+                "The brain stays on: without authority it ticks only its presentation modules.");
             Assert.Contains(navAgent, drivers,
                 "NavMeshAgent moves the transform on its own and has to be switched off too.");
         }

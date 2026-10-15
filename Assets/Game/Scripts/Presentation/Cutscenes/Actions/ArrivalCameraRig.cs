@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.Characters;
+using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Presentation
 {
@@ -202,9 +203,11 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            Vector2 look = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 look = lookAction != null
+                ? PlayerInputManager.LookThisFrame(lookAction.ReadValue<Vector2>(), lookAction.activeControl)
+                : Vector2.zero;
 
-            float scaled = lookSensitivity * GameSettings.MouseSensitivity * Time.deltaTime;
+            float scaled = lookSensitivity * GameSettings.MouseSensitivity;
             float pitchInput = GameSettings.InvertLookY ? -look.y : look.y;
 
             // Handed over rather than integrated here. The head look owns the angles, the clamps

@@ -415,8 +415,20 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Amends that end a war outright — a party of the roster's last tier wiped out
+        /// (WarPartyRules.EndsWar). At least <paramref name="atLeast"/>, and as much more as carries the
+        /// row <paramref name="margin"/> past AtWar's exit, so the band leaves AtWar and BandChanged
+        /// closes the war the same way any other amends would.
+        /// </summary>
+        public void CreditOutOfWar(FactionDefinition faction, string profileId, float atLeast, float margin) =>
+            Credit(faction, profileId,
+                   Mathf.Max(atLeast, GoodwillMath.CreditToLeaveWar(ValueFor(faction, profileId), thresholds, margin)));
+
+        /// <summary>
         /// Is <paramref name="attacker"/> exempt because <paramref name="victim"/>'s war party was
-        /// hunting them, or somebody on their side? Rosters spec §5.4.
+        /// hunting them, or somebody on their side? Rosters spec §5.4. Only a war party: anyone else of a
+        /// tribe costs goodwill, even one fighting back (user decision 2026-10-07). A released party
+        /// still names its quarry (NpcGroup.Released) while its bodies stand.
         /// </summary>
         private static bool IsSelfDefence(EntityFaction victim, EntityFaction attacker, string attackerProfileId)
         {

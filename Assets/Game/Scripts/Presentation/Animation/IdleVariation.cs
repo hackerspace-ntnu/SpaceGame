@@ -63,6 +63,13 @@ namespace SpaceGame.Presentation
         {
             if (!Writes()) return;
 
+            // Unseen: nothing to vary. Disarmed, so the fidget roll does not fire the moment the body is seen again.
+            if (body != null && body.Dormant)
+            {
+                fidgetBucket = long.MinValue;
+                return;
+            }
+
             Fidget();
 
             CharacterActionCatalog catalog = CharacterActionCatalog.Default;

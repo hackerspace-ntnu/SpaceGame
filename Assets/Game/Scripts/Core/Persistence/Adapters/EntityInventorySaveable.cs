@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -7,6 +8,32 @@ using SpaceGame.Persistence;
 
 namespace SpaceGame.Core.Persistence
 {
+    /// <summary>
+    /// A component beside an entity's bag that put something in it only for a while — a band's kit weapon lent to a
+    /// resident while it musters and walks (ExpeditionMember). Those slots are saved empty, so a load never makes the loan
+    /// the entity's own: nothing would ever take it back.
+    /// </summary>
+    public interface ILentSlots
+    {
+        /// <summary>Slot <paramref name="slot"/> holds a loan right now.</summary>
+        bool IsLent(int slot);
+    }
+
+    /// <summary>What a bag with loans in it saves. Apart from the saver, so it can be tested without the save serializer.</summary>
+    public static class LentSlots
+    {
+        /// <summary>
+        /// For a bag of <paramref name="size"/> slots: slot i's item id (<paramref name="idAt"/>, null for empty), or null where
+        /// <paramref name="lent"/> says the slot holds a loan. Positional, like the saver's state.
+        /// </summary>
+        public static List<string> SavedIds(int size, Func<int, string> idAt, Func<int, bool> lent)
+        {
+            var ids = new List<string>(size);
+            for (int i = 0; i < size; i++) ids.Add(lent(i) ? null : idAt(i));
+            return ids;
+        }
+    }
+
     /// <summary>
     /// Persists an NPC's inventory — what it is carrying, and therefore what it will drop when killed.
     ///
@@ -47,15 +74,15 @@ namespace SpaceGame.Core.Persistence
         {
             if (Inventory == null) return null;
 
-            var ids = new List<string>(Inventory.Size);
-
-            for (int i = 0; i < Inventory.Size; i++)
+            ILentSlots loans = GetComponent<ILentSlots>();
+            return new State
             {
-                InventorySlot slot = Inventory.GetSlot(i);
-                ids.Add(slot == null || slot.IsEmpty ? null : slot.Item.ID);
-            }
-
-            return new State { itemIds = ids };
+                itemIds = LentSlots.SavedIds(Inventory.Size, i =>
+                {
+                    InventorySlot slot = Inventory.GetSlot(i);
+                    return slot == null || slot.IsEmpty ? null : slot.Item.ID;
+                }, i => loans != null && loans.IsLent(i)),
+            };
         }
 
         public void RestoreState(JObject state)

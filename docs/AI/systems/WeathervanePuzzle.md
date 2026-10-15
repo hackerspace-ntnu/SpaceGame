@@ -6,7 +6,6 @@ paths:
   - Assets/Game/Scripts/Gameplay/Puzzles/Weathervane
   - Assets/Game/Scripts/Gameplay/Puzzles/Dials
   - Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs
-  - Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs
   - Assets/Game/Editor/Tests/WeathervanePositionsTests.cs
   - "Assets/Game/Art/Models/_Source~/models/props/weathervane.blend"
   - "Assets/Game/Art/Models/_Source~/models/props/wind_vent.blend"
@@ -31,8 +30,7 @@ permanent**: the cranks lock and the gust stays open, so nobody is stranded on t
 
 **Scope:** [Gameplay/Puzzles/Weathervane/](Assets/Game/Scripts/Gameplay/Puzzles/Weathervane),
 [Gameplay/Puzzles/Dials/](Assets/Game/Scripts/Gameplay/Puzzles/Dials) (shared with [SunShrine.md](SunShrine.md)),
-[DialSetSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs),
-[NetJoin.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs).
+[DialSetSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs).
 **Placed in:** `Assets/Game/Scenes/Tests/Marius test scene.unity` under `WeathervanePeaks` (vent at
 (-60,0,0), mesa at (-100,0,0), landing at (-95,40.4,0)). Not in any world chunk yet.
 
@@ -55,7 +53,6 @@ permanent**: the cranks lock and the gust stays open, so nobody is stranded on t
 | `DialCrank` | [DialCrank.cs](Assets/Game/Scripts/Gameplay/Puzzles/Dials/DialCrank.cs) | `IInteractable` + `IInteractionReadout` on the `CrankHandle` box; serialized `dial` index (0–3 = N, E, S, W), `label` "Weathervane crank", `prompt` |
 | `WindUpdraft` | [WindUpdraft.cs](Assets/Game/Scripts/Gameplay/Puzzles/Weathervane/WindUpdraft.cs) | Owner-side lift/carry/set-down of the LOCAL player. Execution order 200 |
 | `DialSetSaveable` | [DialSetSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs) | Key `dials`, `{ arrangement }` |
-| `NetJoin` | [NetJoin.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetJoin.cs) | Late joiner's "what state is this?", shared with `NetLatch` |
 
 ## Flows
 
@@ -74,7 +71,7 @@ permanent**: the cranks lock and the gust stays open, so nobody is stranded on t
 
 ## Multiplayer
 
-- `NetMsg.DialTurn` (117, player → server) and `DialState` (118, server → all) on the **ring's** relay (named `VaneTurn`/`VaneState` until the sun shrine shared them; ids unchanged) — the ask/announce shape of `LatchSet`/`LatchState`, widened to a packed ring.
+- `NetMsg.DialTurn` (140, player → server) and `DialState` (141, server → all) on the **ring's** relay (named `VaneTurn`/`VaneState` until the sun shrine shared them; 117/118 until the 2026-10-15 merge with main, which had taken 117–139). A client asks once spawned through `NetMessaging.NetToServerWhenSpawned`, as `NetLatch` does — the ask/announce shape of `LatchSet`/`LatchState`, widened to a packed ring.
 - **Server decides the arrangement; every machine presents it; each owner flies its own body.** The gust is never applied by the server: the player's `NetworkTransform` is owner-authoritative. Remote riders are seen through transform sync.
 - **Until a client has heard the arrangement, `IsKnown` is false**: cranks refuse and the gust stays shut. Before that the default positions are all zero, which *is* solved.
 - The root needs an in-scene `NetworkObject` + `NetRelay`. Without them the ring still works on each machine alone.

@@ -68,7 +68,10 @@ namespace SpaceGame.Presentation
             Contact,
 
             /// <summary>The frame a thrown thing leaves the hand.</summary>
-            Release
+            Release,
+
+            /// <summary>The frame the hands take hold of an edge — a ledge climb's pull-up ends here.</summary>
+            Grab
         }
 
         [Serializable]
@@ -137,6 +140,11 @@ namespace SpaceGame.Presentation
 
         [SerializeField] private PhaseMark[] marks = Array.Empty<PhaseMark>();
 
+        [Tooltip("Where the tool's business end is at the Contact mark (the hand, for a clip with no tool), relative to the " +
+                 "body root: x right, y up, z forward, metres, averaged over the variants. Zero = unmeasured. Written by " +
+                 "Tools > SpaceGame > Animation > Measure Action Reach; a station stands this far from what it works at.")]
+        [SerializeField] private Vector3 reach;
+
         [Tooltip("What this action can express. Gameplay asks BodyLanguage for a cue ('greet', " +
                  "'hurt') and gets one of the actions tagged with it.")]
         [SerializeField] private CharacterCue[] cues = Array.Empty<CharacterCue>();
@@ -146,6 +154,11 @@ namespace SpaceGame.Presentation
         [SerializeField] private BodyPosture postures;
 
         public Slot BodySlot => slot;
+
+        /// <summary>Where the tool lands at the Contact mark, in body-root space. Zero until measured.</summary>
+        public Vector3 Reach => reach;
+
+        public bool HasReach => reach != Vector3.zero;
         public IReadOnlyList<CharacterCue> Cues => cues;
 
         /// <summary>The postures this action fits, with the by-slot default filled in.</summary>
@@ -153,6 +166,24 @@ namespace SpaceGame.Presentation
             postures != 0 ? postures : slot == Slot.Full ? BodyPosture.Standing : BodyPostures.Any;
 
         public bool Fits(BodyPosture posture) => (Postures & posture) != 0;
+
+        /// <summary>The arms this action moves: both for a full-body or upper-body clip, one for an arm clip, none for an additive kick.</summary>
+        public BodyArms ArmsUsed
+        {
+            get
+            {
+                switch (slot)
+                {
+                    case Slot.LeftArm: return BodyArms.Left;
+                    case Slot.RightArm: return BodyArms.Right;
+                    case Slot.Additive: return BodyArms.None;
+                    default: return BodyArms.Both;
+                }
+            }
+        }
+
+        /// <summary>Whether none of the arms this action moves is in <paramref name="occupied"/>.</summary>
+        public bool FitsHands(BodyArms occupied) => (ArmsUsed & occupied) == 0;
         public Playback Mode => playback;
         public int VariantCount => variants.Length;
         public float FadeIn => fadeIn;

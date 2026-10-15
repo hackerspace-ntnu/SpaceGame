@@ -116,7 +116,7 @@ namespace SpaceGame.Gameplay.SpriteHamlet
         public Transform Carrier => Resolve(carrierId.Value);
 
         /// <summary>Every machine: the quest is at the point where keepers can be picked up.</summary>
-        public bool InLiftableStretch => liftableDuring.Contains(liftableDuring.FindRun());
+        public bool InLiftableStretch => liftableDuring.IsInside;
 
         /// <summary>Can this keeper be scooped up right now? Every machine.</summary>
         public bool CanBeLifted => InLiftableStretch && !IsCarried && (tally == null || !tally.Fallen);

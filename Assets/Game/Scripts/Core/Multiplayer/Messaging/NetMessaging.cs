@@ -13,6 +13,8 @@
 // The pieces, one per file in this folder: NetArg is the payload, NetMsg the id catalog, NetHandler
 // the delegate, NetTo/NetTarget the addressing, NetChannel the per-entity handler table and
 // NetRelay the wire. Vocabulary/ holds the per-message constants some ids carry in A or B.
+using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace SpaceGame.Core
@@ -69,6 +71,37 @@ namespace SpaceGame.Core
         {
             if (target == null) return;
             Send(target.transform, id, arg, to);
+        }
+
+        /// <summary>
+        /// A late joiner's "what did I miss": ask the server <paramref name="id"/> once this entity's
+        /// <see cref="NetworkObject"/> is actually spawned. Run it as a coroutine from <c>OnEnable</c>.
+        ///
+        /// <para>
+        /// Waits for the spawn rather than sending on the first frame: before it there is no relay, the
+        /// send falls through to a local dispatch, and the client answers its own question with the state
+        /// it already had — which is the prefab's, which is the thing being corrected.
+        /// </para>
+        /// <para>
+        /// Ends at once with nobody to ask: offline, on the server itself, and for an entity with no
+        /// <see cref="NetworkObject"/> above it, which has no wire and runs on each machine alone.
+        /// </para>
+        /// </summary>
+        public static IEnumerator NetToServerWhenSpawned(this Component self, ushort id, NetArg arg)
+        {
+            if (self == null || !Network.IsNetworked || Network.Server) yield break;
+
+            GameObject root = NetChannel.RootOf(self);
+            NetworkObject netObj = root != null ? root.GetComponent<NetworkObject>() : null;
+            if (netObj == null) yield break;
+
+            while (!netObj.IsSpawned)
+            {
+                if (!Network.IsNetworked) yield break;
+                yield return null;
+            }
+
+            self.NetToServer(id, arg);
         }
 
         private static void Send(Component self, ushort id, in NetArg arg, NetTo to,

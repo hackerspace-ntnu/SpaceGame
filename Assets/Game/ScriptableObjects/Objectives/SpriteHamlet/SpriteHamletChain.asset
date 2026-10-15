@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: SpriteHamletChain
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
   id: sprite-hamlet
+  title: The Broken Oath
+  summary: "A witch has cursed the sprite hamlet's guardian, Merob, to sleep. Find her hut, lead the Oathkeepers against her, and reforge the oath that frees him."
   speaker: OATHKEEPERS
+  trigger: {fileID: 0}
   steps:
   - {fileID: 11400000, guid: cd56f4fc394685a43a2b96a718aa6b6c, type: 2}
   - {fileID: 11400000, guid: 5306c5f5980a5ac4b844207c9a15acf9, type: 2}

@@ -90,6 +90,13 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         private readonly HashSet<string> awaitingGround = new();
 
+        /// <summary>
+        /// Live entities kept out of every capture for now (<see cref="Withhold"/>): a Sky nomad in flight.
+        /// Their records are gone, not stale — a capture that merely skipped them would leave the record
+        /// from before, and a load would put them back where that capture found them.
+        /// </summary>
+        private readonly HashSet<string> withheld = new();
+
         /// <summary>How many records are waiting for ground to be put back onto.</summary>
         public int AwaitingGroundCount => awaitingGround.Count;
 
@@ -187,6 +194,7 @@ namespace SpaceGame.Core.Persistence
                 // their prefab on load, beside the player Netcode spawns.
                 if (!entity.BelongsToWorld) continue;
                 if (string.IsNullOrEmpty(entity.InstanceId)) continue;
+                if (withheld.Contains(entity.InstanceId)) continue;
 
                 // Tombstoned this frame and not yet actually destroyed. Capturing it would undo the
                 // burial — see SaveableEntity.IsBuried. Not added to `seen` either: a runtime object
@@ -373,6 +381,28 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         public bool ForgetDestroyed(string instanceId) => world.ClearDestroyed(instanceId);
 
+        /// <summary>
+        /// Take a live entity out of the save until <see cref="Return"/>: its record is dropped now and
+        /// no capture writes another. An authored one is also tombstoned, or its scene file would put it
+        /// back at its authored spot on the next load. Runtime state only: a store built from a load
+        /// withholds nothing.
+        /// </summary>
+        public void Withhold(SaveableEntity entity)
+        {
+            if (entity == null || string.IsNullOrEmpty(entity.InstanceId)) return;
+
+            withheld.Add(entity.InstanceId);
+            world.Entities.Remove(entity.InstanceId);
+            if (entity.IsAuthored) world.MarkDestroyed(entity.InstanceId);
+        }
+
+        /// <summary>The reverse of <see cref="Withhold"/>: the next capture records the entity again.</summary>
+        public void Return(SaveableEntity entity)
+        {
+            if (entity == null || !withheld.Remove(entity.InstanceId)) return;
+            if (entity.IsAuthored) world.ClearDestroyed(entity.InstanceId);
+        }
+
         // ─────────────────────────────────────────────
         //  Capture / restore
         // ─────────────────────────────────────────────
@@ -394,8 +424,8 @@ namespace SpaceGame.Core.Persistence
             record.PrefabId = entity.PrefabId;
             record.Scene = sceneKey;
             record.Authored = entity.IsAuthored;
-            record.Position = entity.transform.position;
-            record.Rotation = entity.transform.rotation;
+            record.Position = SavedPose.PositionOf(entity.transform);
+            record.Rotation = SavedPose.RotationOf(entity.transform);
             record.Scale = entity.transform.localScale;
             record.HasScale = true;
 

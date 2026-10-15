@@ -262,13 +262,13 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void EveryChainIsASideChainOfTheDirector()
+        public void EveryChainIsInTheDirectorsQuestCatalog()
         {
             string scene = File.ReadAllText("Assets/Game/Scenes/world/persistentScene.unity");
             foreach (string c in Chains)
             {
                 string guid = AssetDatabase.AssetPathToGUID(ChainDir + c + ".asset");
-                Assert.That(scene, Does.Contain(guid), $"{c} is not in the director's sideChains");
+                Assert.That(scene, Does.Contain(guid), $"{c} is not in the director's quest catalog");
             }
         }
     }

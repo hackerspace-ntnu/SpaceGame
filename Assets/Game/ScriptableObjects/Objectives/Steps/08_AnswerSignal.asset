@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05e6628b7b548a148b4dba3e01a5e3e0, type: 3}
+  m_Name: 08_AnswerSignal
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.AnswerSignalStep
+  id: answer-signal
+  title: Answer the signal
+  briefing:
+  - Carrier! The new transmitter's picking up a voice on the open band.
+  - Someone out there is calling us in. The bearing's on the terminal's COMMS page,
+    and I've marked it on the map table. Go and answer them.
+  lookAtFocus: 1
+  arrivalMargin: 15
+  sourceStatus: 'Calling on the open band: <b>{0}</b>'
+  unnamedStatus: Calling on the open band

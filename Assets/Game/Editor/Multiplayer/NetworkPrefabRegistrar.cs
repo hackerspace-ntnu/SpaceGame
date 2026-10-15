@@ -112,6 +112,26 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// Is the prefab at <paramref name="prefabPath"/> in a list the NetworkManager references? The
+        /// registration clients spawn by, read without changing anything.
+        ///
+        /// <para>
+        /// Read from the dependency graph rather than by loading the lists: loading a list loads every
+        /// prefab in it, which is slow and drags any broken prefab's load errors into the caller.
+        /// </para>
+        /// </summary>
+        public static bool IsRegistered(string prefabPath)
+        {
+            foreach (string listPath in AssetDatabase.GetDependencies(NetworkManagerPrefabPath, false))
+            {
+                if (AssetDatabase.GetMainAssetTypeAtPath(listPath) != typeof(NetworkPrefabsList)) continue;
+                if (System.Array.IndexOf(AssetDatabase.GetDependencies(listPath, false), prefabPath) >= 0)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Reports without changing anything — what the NetworkManager would load right now.
         /// </summary>
         public static string Audit()

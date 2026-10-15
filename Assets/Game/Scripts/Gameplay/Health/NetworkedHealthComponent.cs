@@ -76,8 +76,11 @@ namespace SpaceGame.Gameplay
             {
                 // Late joiners and newly streamed-in entities arrive with the current value
                 // already in the variable and no change event coming, so read it once on spawn.
+                // A plain restore, not a replicated one: a body that is already dead in this
+                // snapshot died before this machine was watching, so it is hidden at once like a
+                // corpse from a save rather than shown falling.
                 networkHealth.OnValueChanged += ApplyHealth;
-                ApplyHealth(health.GetHealth, networkHealth.Value);
+                health.RestoreHealth(networkHealth.Value);
             }
         }
 
@@ -231,10 +234,15 @@ namespace SpaceGame.Gameplay
         /// that missed one update stayed wrong forever, a heal past max silently clamped away part
         /// of the correction, and every replicated hit fired the local damage flash a second time.
         /// RestoreHealth exists precisely for "this value is now the truth".
+        ///
+        /// Flagged as replicated, because a change event is something happening on the server
+        /// NOW: a death arriving here has to be shown and counted down like the host's, not
+        /// switched off on the spot like a corpse from a save (see
+        /// <see cref="HealthComponent.IsReplicating"/>).
         /// </summary>
         private void ApplyHealth(int previous, int current)
         {
-            if (health != null) health.RestoreHealth(current);
+            if (health != null) health.RestoreHealth(current, replicated: true);
         }
     }
 }

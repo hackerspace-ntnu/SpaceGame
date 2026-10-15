@@ -1,4 +1,3 @@
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,10 +6,9 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The crew's focused objective on the visor: a panel in the top-right corner under the
-    /// integrity gauge — heading, title, the step's status lines, range — and a waypoint mark on
-    /// the place it points at. Any other chain under way gets one dim line at the foot of the
-    /// panel, so a side quest never hides the main one.
+    /// The active quest's current objective on the visor: a panel in the top-right corner under the
+    /// integrity gauge — the quest's name, title, the objective's status lines, range — and a waypoint mark on
+    /// the place it points at.
     ///
     /// <para>
     /// <b>Built to be noticed</b> (<c>GDC-L1-UX-0003</c>): during the opening it is the most
@@ -28,8 +26,9 @@ namespace SpaceGame.Presentation
     /// </para>
     /// <para>
     /// On the Annotations layer: it describes the world, so it goes quiet with the middle H level
-    /// along with the reticle. Reads <see cref="ObjectiveDirector.Focused"/> on this machine every frame and
-    /// holds nothing of its own, so a late joiner and a reloaded world draw it with no catching up.
+    /// along with the reticle. Shows <see cref="QuestLog.Active"/> — the quest most recently taken on, or
+    /// the one the player chose in the quest log — read on this machine every frame; it holds nothing
+    /// of its own, so a late joiner and a reloaded world draw it with no catching up.
     /// </para>
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
@@ -41,7 +40,7 @@ namespace SpaceGame.Presentation
         /// <summary>Room for "1234 m" under the diamond.</summary>
         private const float MarkerLabelWidth = 120f;
 
-        /// <summary>How often the title and status are recomposed while the step stays the same.</summary>
+        /// <summary>How often the title and status are recomposed while the objective stays the same.</summary>
         private const float TextRefreshSeconds = 0.1f;
 
         [Header("Panel")]
@@ -64,10 +63,8 @@ namespace SpaceGame.Presentation
         [SerializeField] private int titleSize = 28;
         [SerializeField] private int statusSize = 20;
 
+        [Tooltip("The heading when the quest has no name.")]
         [SerializeField] private string heading = "OBJECTIVE";
-
-        [Tooltip("Before the titles of the other chains under way, on the panel's last line.")]
-        [SerializeField] private string alsoPrefix = "ALSO";
 
         [Tooltip("Seconds the panel takes to fade in or out when an objective starts or ends.")]
         [SerializeField, Min(0.01f)] private float fadeSeconds = 0.3f;
@@ -111,15 +108,14 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI titleLabel;
         private TextMeshProUGUI statusLabel;
         private TextMeshProUGUI rangeLabel;
-        private TextMeshProUGUI alsoLabel;
-        private readonly StringBuilder alsoText = new();
 
         private RectTransform marker;
         private CanvasGroup markerGroup;
         private TextMeshProUGUI markerRange;
 
         private float panelAlpha;
-        private ObjectiveStep shownStep;
+        private ITrackedObjective shown;
+        private string shownHeading;
         private float announcedAt = float.NegativeInfinity;
         private float nextTextRefresh;
         private int shownMetres = -1;
@@ -133,57 +129,42 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            ObjectiveDirector director = ObjectiveDirector.Instance;
-            ObjectiveRun run = director != null ? director.Focused : null;
-            ObjectiveStep step = run?.Current;
+            IQuestEntry quest = QuestLog.Active;
+            ITrackedObjective objective = quest?.Objective;
             float now = Time.unscaledTime;
 
-            panelAlpha = Mathf.MoveTowards(panelAlpha, step != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
+            panelAlpha = Mathf.MoveTowards(panelAlpha, objective != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
             panelGroup.alpha = panelAlpha;
 
-            if (step == null)
+            if (objective == null)
             {
                 markerGroup.alpha = 0f;
                 return;
             }
 
-            if (step != shownStep)
+            // A new step, or another quest made active: both are a new objective to the player.
+            if (objective != shown)
             {
-                shownStep = step;
+                shown = objective;
+                shownHeading = string.IsNullOrEmpty(quest.Name) ? heading : quest.Name.ToUpperInvariant();
                 announcedAt = now;
                 nextTextRefresh = now;
             }
 
-            ShowText(director, run, step, now);
+            ShowText(objective, now);
             Announce(now);
-            ShowWaypoint(run.World, step);
+            ShowWaypoint(objective);
         }
 
-        private void ShowText(ObjectiveDirector director, ObjectiveRun focused, ObjectiveStep step, float now)
+        private void ShowText(ITrackedObjective objective, float now)
         {
             // Status can change every frame (a checklist ticking) but composing it every frame
             // would allocate a string a frame for nothing.
             if (now < nextTextRefresh) return;
             nextTextRefresh = now + TextRefreshSeconds;
 
-            SetText(titleLabel, step.Title);
-            SetText(statusLabel, step.Status(focused.World));
-            SetText(alsoLabel, OtherTitles(director, focused));
-        }
-
-        /// <summary>"ALSO  Repair the ship · Find the witch's hut", or empty when nothing else is under way.</summary>
-        private string OtherTitles(ObjectiveDirector director, ObjectiveRun focused)
-        {
-            alsoText.Clear();
-            foreach (ObjectiveRun run in director.Runs)
-            {
-                if (run == focused || run.Current == null) continue;
-
-                alsoText.Append(alsoText.Length == 0 ? $"{alsoPrefix}  " : "  ·  ");
-                alsoText.Append(run.Current.Title);
-            }
-
-            return alsoText.ToString();
+            SetText(titleLabel, objective.Title);
+            SetText(statusLabel, objective.Status);
         }
 
         private void Announce(float now)
@@ -191,7 +172,7 @@ namespace SpaceGame.Presentation
             float since = now - announcedAt;
             bool announcing = since < announceSeconds;
 
-            SetText(headingLabel, announcing ? announceHeading : heading);
+            SetText(headingLabel, announcing ? announceHeading : shownHeading);
 
             float pop = 1f + announcePop * Mathf.Pow(1f - Mathf.Clamp01(since / popSeconds), 2f);
             panel.localScale = new Vector3(pop, pop, 1f);
@@ -210,11 +191,11 @@ namespace SpaceGame.Presentation
             if (shown && label.text != text) label.text = text;
         }
 
-        private void ShowWaypoint(ObjectiveWorld world, ObjectiveStep step)
+        private void ShowWaypoint(ITrackedObjective objective)
         {
             Camera view = referenceCamera != null ? referenceCamera : Camera.main;
 
-            if (view == null || !step.TryGetWaypoint(world, out Vector3 waypoint))
+            if (view == null || !objective.TryGetWaypoint(out Vector3 waypoint))
             {
                 markerGroup.alpha = 0f;
                 ShowRange(-1);
@@ -282,7 +263,6 @@ namespace SpaceGame.Presentation
 
             statusLabel = Line("Status", statusSize, VisorStyle.Ink);
             rangeLabel = Line("Range", VisorStyle.MicroSize, VisorStyle.InkDim);
-            alsoLabel = Line("Also", VisorStyle.MicroSize, VisorStyle.InkDim);
 
             marker = UIBuilder.Rect("Waypoint", root);
             marker.anchorMin = marker.anchorMax = Vector2.zero;

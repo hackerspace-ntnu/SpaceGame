@@ -21,7 +21,7 @@ symptoms:
   - "looking at the saddle always offers to ride, never to take it off"
   - "the saddle is the right size for the world but too small for the animal wearing it"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-updated: 2026-09-07
+updated: 2026-10-04
 ---
 
 # Saddles
@@ -38,7 +38,7 @@ Three pieces, each living where it belongs:
 | Piece | Lives on | Is |
 | --- | --- | --- |
 | `SaddleSocket` | the **animal** | Whether a saddle is on. The only replicated state — one bool. `startSaddled` makes an animal born wearing one (the robot horses, whose saddle is part of the chassis); only the first life reads it — a save restores what was saved, so a horse the player unsaddled stays bare. |
-| `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse wears the Sandloper's (narrow, boards behind the cantle). |
+| `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse and the Dunehorn wear the Sandloper's (narrow, boards behind the cantle). The Dunehorn copies Appa's whole stack, but Appa's saddle is 2.5 m wide in root units against its 0.86 m back. |
 | `SaddlePlacement` | the **item** | The saddle is a [placeable](Placeables.md); this is its rule. Criteria: an animal with a free socket. Logic: `Fit()`. |
 | `SteerModule` | the **animal** | Rider input to the motor. Always on; it self-gates on `IsMounted`. |
 | `SaddleQuickRelease` | the **animal** | `Q` while standing beside it. Same `Request(false)` as the grips. |

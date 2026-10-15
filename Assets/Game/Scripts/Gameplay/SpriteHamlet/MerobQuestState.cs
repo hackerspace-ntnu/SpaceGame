@@ -57,19 +57,27 @@ namespace SpaceGame.Gameplay.SpriteHamlet
         {
             health.AddFilter(this);
             director = ObjectiveDirector.Instance;
-            if (director != null) director.Changed += OnChanged;
+            if (director != null)
+            {
+                director.Started += OnChanged;
+                director.Changed += OnChanged;
+            }
             Apply();
         }
 
         private void OnDisable()
         {
             health.RemoveFilter(this);
-            if (director != null) director.Changed -= OnChanged;
+            if (director != null)
+            {
+                director.Started -= OnChanged;
+                director.Changed -= OnChanged;
+            }
         }
 
-        private void OnChanged(ObjectiveRun run, bool live)
+        private void OnChanged(Quest quest, bool live)
         {
-            if (run.Chain == cursedAsleep.chain || run.Chain == freed.chain) Apply();
+            if (quest.Chain == cursedAsleep.chain || quest.Chain == freed.chain) Apply();
         }
 
         public void Filter(HealthComponent victim, ref DamageHit hit)
@@ -83,17 +91,16 @@ namespace SpaceGame.Gameplay.SpriteHamlet
         private void Apply()
         {
             // Outside a story world there is no quest to read: leave him as the prefab made him.
-            ObjectiveRun run = cursedAsleep.FindRun();
-            if (run == null) return;
+            if (!cursedAsleep.TryGetPosition(out int position)) return;
 
-            asleep = cursedAsleep.Contains(run);
+            asleep = cursedAsleep.Contains(position);
             if (dormant != null)
             {
                 dormant.CanWake = !asleep;
                 if (!asleep) dormant.WakeNow();
             }
 
-            if (!freed.Contains(freed.FindRun())) return;
+            if (!freed.IsInside) return;
 
             if (faction != null && freedFaction != null) faction.SetFaction(freedFaction);
             if (!Network.Decides) return;

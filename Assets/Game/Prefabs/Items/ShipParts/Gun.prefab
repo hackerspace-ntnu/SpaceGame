@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 2371058227828415298}
   - component: {fileID: 2490257599690868316}
   - component: {fileID: 5888289079200716295}
+  - component: {fileID: 327337910434650646}
   m_Layer: 0
   m_Name: Gun
   m_TagString: Untagged
@@ -318,11 +319,24 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  useAction: {fileID: 0}
   kind: 6
   installRange: 30
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &327337910434650646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1842720640106692293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d295c3030c542468b851632209d8a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RemainsSaveable
 --- !u!1 &4642439547442659883
 GameObject:
   m_ObjectHideFlags: 0

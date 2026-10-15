@@ -20,6 +20,16 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void OnlyADefeatAtTheLastTier_EndsTheWar()
+        {
+            Assert.IsTrue(WarPartyRules.EndsWar(Reckoning.Defeated, 2, 2), "the strongest party beaten: the war is over");
+            Assert.IsTrue(WarPartyRules.EndsWar(Reckoning.Defeated, 0, 0), "a roster with one tier ends on the first defeat");
+            Assert.IsFalse(WarPartyRules.EndsWar(Reckoning.Defeated, 1, 2), "a lower tier only escalates");
+            Assert.IsFalse(WarPartyRules.EndsWar(Reckoning.Caught, 2, 2));
+            Assert.IsFalse(WarPartyRules.EndsWar(Reckoning.Abandoned, 2, 2));
+        }
+
+        [Test]
         public void OnlyDefeat_RaisesTheTier_AndItCaps()
         {
             Assert.AreEqual(1, WarPartyRules.NextTier(Reckoning.Defeated, 0, 2));

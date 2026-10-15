@@ -11,18 +11,20 @@ namespace SpaceGame.EditorTools
     {
         public const string Folder = HumanoidControllerBuilder.Folder + "Masks/";
 
-        /// <summary>The three masks the layers use.</summary>
+        /// <summary>The four masks the layers use.</summary>
         public readonly struct Set
         {
             public readonly AvatarMask Upper;
             public readonly AvatarMask Left;
             public readonly AvatarMask Right;
+            public readonly AvatarMask Arms;
 
-            public Set(AvatarMask upper, AvatarMask left, AvatarMask right)
+            public Set(AvatarMask upper, AvatarMask left, AvatarMask right, AvatarMask arms)
             {
                 Upper = upper;
                 Left = left;
                 Right = right;
+                Arms = arms;
             }
         }
 
@@ -30,14 +32,15 @@ namespace SpaceGame.EditorTools
         public static Set Write()
         {
             HumanoidControllerBuilder.EnsureFolder(Folder);
-            return new Set(UpperBody(), LeftArm(), RightArm());
+            return new Set(UpperBody(), LeftArm(), RightArm(), BothArms());
         }
 
         /// <summary>The masks as they are on disk, without writing anything. Null where missing.</summary>
         public static Set Load() => new Set(
             AssetDatabase.LoadAssetAtPath<AvatarMask>(Folder + "UpperBody.mask"),
             AssetDatabase.LoadAssetAtPath<AvatarMask>(Folder + "LeftArm.mask"),
-            AssetDatabase.LoadAssetAtPath<AvatarMask>(Folder + "RightArm.mask"));
+            AssetDatabase.LoadAssetAtPath<AvatarMask>(Folder + "RightArm.mask"),
+            AssetDatabase.LoadAssetAtPath<AvatarMask>(Folder + "Arms.mask"));
 
         /// <summary>
         /// Chest and both arms, nothing else.
@@ -73,6 +76,20 @@ namespace SpaceGame.EditorTools
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftArm, true);
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFingers, true);
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftHandIK, true);
+        });
+
+        /// <summary>
+        /// Both arms and their fingers, no body: the Hold Arms layer poses a held tool's arms over a spine it
+        /// does not own, so a walking carrier keeps the walk's torso.
+        /// </summary>
+        private static AvatarMask BothArms() => Save("Arms", mask =>
+        {
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFingers, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFingers, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftHandIK, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightHandIK, true);
         });
 
         /// <summary>The mirror of <see cref="LeftArm"/>.</summary>

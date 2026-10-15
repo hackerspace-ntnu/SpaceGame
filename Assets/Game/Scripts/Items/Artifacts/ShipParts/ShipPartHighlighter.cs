@@ -58,7 +58,8 @@ namespace SpaceGame.Items
                 for (int i = 0; i < sockets.Count; i++)
                 {
                     ShipPartSocket socket = sockets[i];
-                    if (socket == null || rack.IsInstalled(i)) continue;
+                    // A broken unit fills its socket, so it is no more "missing" than a fitted one.
+                    if (socket == null || rack.IsInstalled(i) || rack.IsBroken(i)) continue;
 
                     socket.SetGhost(socket == Aimed ? ShipPartGhost.Target : ShipPartGhost.Missing);
                     painted.Add(socket);

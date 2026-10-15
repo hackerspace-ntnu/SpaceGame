@@ -6,9 +6,11 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// Each objective step's briefing, one line per dialog popup, the moment the crew reach it —
-    /// spoken by its chain's <see cref="ObjectiveChain.Speaker"/> (the lander's computer for the
-    /// main chain) — and, where the step asks, the camera turned to what it is about.
+    /// The lander's computer speaking: each quest step's briefing, one line per dialog popup,
+    /// the moment the crew reach it — and, where the step asks, the camera turned to what it is
+    /// about. Every quest is briefed, whichever one the visor follows: a crewmate finishing a step
+    /// of another quest is news. Each line is spoken by its quest's <see cref="ObjectiveChain.Speaker"/>,
+    /// else by <see cref="speaker"/>.
     ///
     /// <para>
     /// <b>Per machine, nothing on the wire.</b> Every machine hears the same step change through
@@ -28,6 +30,9 @@ namespace SpaceGame.Presentation
     [RequireComponent(typeof(LookAtCutscene))]
     public class ObjectiveBriefing : MonoBehaviour
     {
+        [Tooltip("Who is speaking when the quest names nobody. Shown in bold before every line.")]
+        [SerializeField] private string speaker = "LANDER";
+
         [Tooltip("Shortest time a line stays up, seconds. Longer lines stay up as long as they type.")]
         [SerializeField, Min(0.5f)] private float secondsPerLine = 4f;
 
@@ -39,16 +44,28 @@ namespace SpaceGame.Presentation
                  "the hull and being seated in it.")]
         [SerializeField, Min(0f)] private float settleSeconds = 1.5f;
 
-        private readonly Queue<string> pending = new();
+        /// <summary>One line waiting to be said; <see cref="Look"/> turns the camera to its quest's focus as it is.</summary>
+        private struct Line
+        {
+            public Quest Quest;
+            public string Text;
+            public bool Look;
+        }
 
-        /// <summary>Per run, the step last briefed (or found already begun); -1 for none.</summary>
-        private int[] briefedStep = System.Array.Empty<int>();
+        /// <summary>What this machine has already heard of one quest.</summary>
+        private struct Heard
+        {
+            public int Step;
+            public int Remarks;
+        }
+
+        private readonly List<Line> pending = new();
+        private readonly Dictionary<Quest, Heard> heard = new();
 
         private ObjectiveDirector director;
         private LookAtCutscene lookAt;
         private Transform focusPoint;
 
-        private ObjectiveRun focusRun;
         private float presentSince = -1f;
         private float lastVisible = float.NegativeInfinity;
         private bool reportedMissingPopup;
@@ -73,41 +90,57 @@ namespace SpaceGame.Presentation
 
             // Read the state as it is now: a step already begun when this wakes was reached before
             // anybody here could have heard it.
-            briefedStep = new int[director.Runs.Count];
-            foreach (ObjectiveRun run in director.Runs)
-                briefedStep[run.Index] = run.Progress.Begun ? run.Progress.Step : -1;
+            foreach (Quest quest in director.Quests)
+                if (quest.Progress.Begun)
+                    heard[quest] = new Heard { Step = quest.Progress.Step, Remarks = quest.Progress.Remarks };
         }
 
         private void OnDisable()
         {
             if (director != null) director.Changed -= OnChanged;
             pending.Clear();
-            focusRun = null;
+            heard.Clear();
         }
 
-        /// <summary>
-        /// A newer step's briefing replaces whatever is still queued, from any chain: the crew have
-        /// moved on, and lines about the step they left would only mislead.
-        /// </summary>
-        private void OnChanged(ObjectiveRun run, bool live)
+        private void OnChanged(Quest quest, bool live)
         {
-            ObjectiveProgress progress = run.Progress;
-            if (!progress.Begun || progress.Step == briefedStep[run.Index]) return;
+            ObjectiveProgress progress = quest.Progress;
+            if (!progress.Begun) return;
 
-            briefedStep[run.Index] = progress.Step;
+            ObjectiveStep step = quest.Current;
+            if (!heard.TryGetValue(quest, out Heard before)) before = new Heard { Step = -1 };
 
-            ObjectiveStep step = run.Current;
-            if (!live || step == null) return;
+            if (progress.Step != before.Step)
+            {
+                before = new Heard { Step = progress.Step };
+                pending.RemoveAll(line => line.Quest == quest);
 
-            pending.Clear();
-            focusRun = null;
+                if (live && step != null) Enqueue(quest, step.Briefing, step.LookAtFocus);
+            }
 
-            string speaker = run.Chain.Speaker;
-            foreach (string line in step.Briefing)
-                if (!string.IsNullOrWhiteSpace(line))
-                    pending.Enqueue(string.IsNullOrEmpty(speaker) ? line : $"<b>{speaker}</b>  {line}");
+            // A remark said in the same change as the step began (its condition already held) follows
+            // the briefing. One restored or learned on joining is marked heard, never played.
+            int fresh = progress.Remarks & ~before.Remarks;
+            before.Remarks = progress.Remarks;
+            heard[quest] = before;
+            if (!live || step == null || fresh == 0) return;
 
-            if (step.LookAtFocus) focusRun = run;
+            for (int i = 0; i < ObjectiveStep.MaxRemarks; i++)
+                if ((fresh & (1 << i)) != 0) Enqueue(quest, step.RemarkLines(i), look: false);
+        }
+
+        private void Enqueue(Quest quest, IReadOnlyList<string> lines, bool look)
+        {
+            string voice = string.IsNullOrEmpty(quest.Chain.Speaker) ? speaker : quest.Chain.Speaker;
+            foreach (string line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                pending.Add(new Line { Quest = quest, Text = $"<b>{voice}</b>  {line}", Look = look });
+
+                // The first line of the briefing plays under the look; the rest wait for it to end.
+                look = false;
+            }
         }
 
         private void Update()
@@ -147,13 +180,11 @@ namespace SpaceGame.Presentation
 
             if (now < lastVisible + gapSeconds) return;
 
-            if (focusRun != null)
-            {
-                LookAtFocus(player, focusRun);
-                focusRun = null;
-            }
+            Line next = pending[0];
+            pending.RemoveAt(0);
+            if (next.Look) LookAtFocus(next.Quest, player);
 
-            popup.Show(pending.Dequeue(), secondsPerLine);
+            popup.Show(next.Text, secondsPerLine);
             lastVisible = now;
         }
 
@@ -161,15 +192,15 @@ namespace SpaceGame.Presentation
             player != null && (CutsceneDirector.Instance == null || !CutsceneDirector.Instance.IsPlaying);
 
         /// <summary>
-        /// Turns this player's camera to the step's focus and back. The first line of the briefing
+        /// Turns this player's camera to the quest step's focus and back. The first line of the briefing
         /// shows while it turns; the rest wait, because the look is a cutscene and the player is not
         /// "present" until it ends.
         /// </summary>
-        private void LookAtFocus(PlayerController player, ObjectiveRun run)
+        private void LookAtFocus(Quest quest, PlayerController player)
         {
-            ObjectiveStep step = run.Current;
+            ObjectiveStep step = quest.Current;
             if (step == null || CutsceneDirector.Instance == null) return;
-            if (!step.TryGetFocus(run.World, out Vector3 focus)) return;
+            if (!step.TryGetFocus(quest.World, out Vector3 focus)) return;
 
             focusPoint.position = focus;
             CutsceneDirector.Instance.Play(lookAt, player.gameObject);

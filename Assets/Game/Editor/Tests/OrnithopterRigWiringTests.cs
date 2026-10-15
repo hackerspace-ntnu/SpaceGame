@@ -47,8 +47,8 @@ namespace SpaceGame.EditorTools
         private static GameObject LoadCraftPrefab()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CraftPath);
-            Assert.IsNotNull(prefab, $"Ornithopter prefab missing at {CraftPath} — run " +
-                                     "Tools ▸ Vehicles ▸ Build Dune Ornithopter Prefab.");
+            Assert.IsNotNull(prefab, $"Ornithopter prefab missing at {CraftPath} — it is hand-owned, " +
+                                     "with no builder: restore it from git (Ornithopter.md Gotchas).");
             return prefab;
         }
 
@@ -156,8 +156,8 @@ namespace SpaceGame.EditorTools
         public void TheWingPackPointsAtTheCraft()
         {
             var pack = AssetDatabase.LoadAssetAtPath<GameObject>(PackPath);
-            Assert.IsNotNull(pack, $"Wing pack missing at {PackPath} — run " +
-                                   "Tools ▸ Vehicles ▸ Build Wing Pack Item.");
+            Assert.IsNotNull(pack, $"Wing pack missing at {PackPath} — it is hand-owned, " +
+                                   "with no builder: restore it from git (Ornithopter.md Gotchas).");
 
             var item = pack.GetComponent<WingPackItem>();
             Assert.IsNotNull(item, "The held pack carries no WingPackItem.");

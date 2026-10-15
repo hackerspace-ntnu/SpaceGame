@@ -66,11 +66,11 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 4a693198bec0e4a7cbffc3036bde50b7, type: 2}
     - target: {fileID: -7781264986010035940, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -7208130162456446895, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -2859087204828197925, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -86,15 +86,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2334449685290262716, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 3670282228960522352, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 8275005161126063811, guid: 69d8dca288a934f059be294a32093926, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -139,11 +139,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0, y: 1.2798185, z: 1.4748707}
   m_Size: 3.0297413
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.25
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 2716936039759312530}
@@ -152,6 +152,17 @@ LODGroup:
     - renderer: {fileID: 7627455010805551805}
     - renderer: {fileID: 6238186391731033134}
     - renderer: {fileID: 2825393336460775040}
+  - screenRelativeHeight: 0.08
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7471078585651927604}
+    - renderer: {fileID: 7627455010805551805}
+    - renderer: {fileID: 2777103111763375793}
+  - screenRelativeHeight: 0.025
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 7471078585651927604}
+    - renderer: {fileID: 7627455010805551805}
   m_Enabled: 1
 --- !u!23 &7471078585651927604 stripped
 MeshRenderer:

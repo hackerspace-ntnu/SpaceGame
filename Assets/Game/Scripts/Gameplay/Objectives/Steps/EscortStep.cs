@@ -30,7 +30,7 @@ namespace SpaceGame.Gameplay.Objectives
         public override bool IsMet(ObjectiveWorld world)
         {
             if (!QuestSite.TryGet(siteId, out Vector3 site, out float radius)) return false;
-            if (world.NearestCrew(site, out float crewDistance) == null || crewDistance > radius) return false;
+            if (world.NearestCrewDistance(site) > radius) return false;
 
             foreach (string id in escortIds)
                 if (!QuestActor.TryFind(id, out QuestActor actor) || !QuestPlaces.IsInside(actor.transform.position, site, radius))
@@ -45,7 +45,7 @@ namespace SpaceGame.Gameplay.Objectives
             foreach (string id in escortIds)
             {
                 if (!QuestActor.TryFind(id, out QuestActor actor)) continue;
-                if (world.NearestCrew(actor.transform.position, out float distance) != null && distance <= withYouRadius)
+                if (world.NearestCrewDistance(actor.transform.position) <= withYouRadius)
                     with++;
             }
 

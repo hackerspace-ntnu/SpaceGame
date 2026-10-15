@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3051fa97ee7d465395e63f2b3a3ea1ec, type: 3}
+  m_Name: Mill
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SpotUse
+  displayName: the grindstone
+  role: 0
+  holdCue: {fileID: 11400000, guid: 6cbf985ffbf0a4e379e2e2b3120b651b, type: 2}
+  alwaysManned: 0
+  nightManned: 0
+  elevated: 0

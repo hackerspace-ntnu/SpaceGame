@@ -146,7 +146,7 @@ namespace SpaceGame.Gameplay.SpriteHamlet
             if (silencedNow == value) return;
             silencedNow = value;
             foreach (BehaviourModuleBase module in silenced)
-                if (module != null) module.Active = !value;
+                if (module != null) module.SetRuntimeActive(!value);
         }
 
         // ─────────── Lost ───────────

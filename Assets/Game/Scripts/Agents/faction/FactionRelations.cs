@@ -17,10 +17,12 @@
 // so it has to beat that. Asking the table first and patching the answer afterwards is the same
 // logic written in the order that gets it wrong.
 //
-// Everything that hunts goes through EntityFaction.GetRelationshipWith, which is the only caller
-// of this. Nothing else may reach past it to FactionRelationshipTable.Get — a second answer to
-// "are we enemies" is free to drift from the first, and the bug that produces is an agent that
-// chases what it will not shoot.
+// Everything that hunts goes through EntityFaction.GetRelationshipWith. Something that has a side
+// but is not itself an entity — a settlement alarm, a territory — asks through the definition
+// overload, which is the same answer minus the grudge layer (a town cannot be provoked). Nothing
+// else may reach past these to FactionRelationshipTable.Get — a second answer to "are we enemies"
+// is free to drift from the first, and the bug that produces is an agent that chases what it will
+// not shoot, or a town whose alarm rings for a player its own tribe calls an ally.
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -51,6 +53,24 @@ namespace SpaceGame.Agents
             return self.RelationshipTable != null
                 ? self.RelationshipTable.Get(self.Faction, other.Faction)
                 : FactionRelationship.Neutral;
+        }
+
+        /// <summary>
+        /// What a faction that is not an entity — <paramref name="owner"/>, answering by
+        /// <paramref name="table"/> — thinks of <paramref name="other"/> right now. Goodwill, then the
+        /// table: the grudge layer is about one individual and has no individual to ask here.
+        /// </summary>
+        public static FactionRelationship Resolve(FactionDefinition owner, FactionRelationshipTable table,
+                                                  EntityFaction other)
+        {
+            if (owner == null || table == null || other == null)
+                return FactionRelationship.Neutral;
+
+            FactionRelationship? goodwill = ResolveGoodwill(owner, other);
+            if (goodwill.HasValue)
+                return goodwill.Value;
+
+            return table.Get(owner, other.Faction);
         }
 
         /// <summary>
@@ -87,20 +107,24 @@ namespace SpaceGame.Agents
         /// ledger answers the same row either way round.
         /// </para>
         /// </summary>
-        private static FactionRelationship? ResolveGoodwill(EntityFaction self, EntityFaction other)
+        private static FactionRelationship? ResolveGoodwill(EntityFaction self, EntityFaction other) =>
+            ResolveGoodwill(self.Faction, other) ?? ResolveGoodwill(other.Faction, self);
+
+        /// <summary>
+        /// One direction of <see cref="ResolveGoodwill(EntityFaction, EntityFaction)"/>: what the
+        /// tribe <paramref name="tribe"/> thinks of the player behind <paramref name="player"/>, or
+        /// null when <paramref name="tribe"/> keeps no ledger or <paramref name="player"/> is not a
+        /// player. A tribe keeps no opinion of another tribe here — that is the table's business —
+        /// so the other side must be untracked.
+        /// </summary>
+        private static FactionRelationship? ResolveGoodwill(FactionDefinition tribe, EntityFaction player)
         {
             FactionGoodwillLedger ledger = FactionGoodwillLedger.Instance;
             if (ledger == null) return null;
 
-            // Which side is the tribe and which is the player. A tribe keeps no opinion of another
-            // tribe here — that is the table's business — so exactly one side may be tracked.
-            if (ledger.Tracks(self.Faction) && !ledger.Tracks(other.Faction))
-                return FromBand(ledger.BandForEntity(self.Faction, other));
+            if (!ledger.Tracks(tribe) || ledger.Tracks(player.Faction)) return null;
 
-            if (ledger.Tracks(other.Faction) && !ledger.Tracks(self.Faction))
-                return FromBand(ledger.BandForEntity(other.Faction, self));
-
-            return null;
+            return FromBand(ledger.BandForEntity(tribe, player));
         }
 
         /// <summary>

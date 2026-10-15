@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.World;
+using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Agents
 {
@@ -26,13 +27,14 @@ namespace SpaceGame.Agents
 
         private void HandleLookInput(float deltaTime)
         {
-            Vector2 lookInput = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 reading = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 lookInput = PlayerInputManager.LookThisFrame(reading, lookAction?.activeControl);
 
             // The serialized sensitivity is this mount's own scale and the setting is a multiplier
             // on top, matching PlayerLook exactly. Mounted look used to read neither the player's
             // sensitivity preference nor their invert-Y — so every option in the menu silently
             // stopped applying the moment you climbed on something.
-            float scaled = lookSensitivity * GameSettings.MouseSensitivity * deltaTime;
+            float scaled = lookSensitivity * GameSettings.MouseSensitivity;
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
 
             bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
@@ -46,7 +48,7 @@ namespace SpaceGame.Agents
             // Any look input counts, not just yaw. Testing the x axis alone meant that tilting the
             // camera up at the ostrich's head while parked out on its flank left the yaw timer
             // running, and the side view you were holding crept out from under you mid-look.
-            if (lookInput.sqrMagnitude > 0.0001f)
+            if (reading.sqrMagnitude > 0.0001f)
                 timeSinceLastLookInput = 0f;
             else
                 timeSinceLastLookInput += deltaTime;
@@ -202,25 +204,8 @@ namespace SpaceGame.Agents
                 listener.enabled = enabledState;
         }
 
-        // Default third-person camera prefab loaded from Resources/ when no per-vehicle prefab
-        // is wired. Authored with the right URP settings (post-processing on, volume mask, etc.)
-        // so every mountable gets sane visuals out of the box.
-        // Resources.Load paths are relative to the Resources folder, so this has to
-        // track the prefab's subfolder.
-        private const string DefaultThirdPersonCameraResourcePath = "Cameras/Mount Third Person Camera";
-        private static Camera s_defaultThirdPersonCameraPrefab;
-
-        private static Camera ResolveDefaultThirdPersonCameraPrefab()
-        {
-            if (s_defaultThirdPersonCameraPrefab != null)
-                return s_defaultThirdPersonCameraPrefab;
-            s_defaultThirdPersonCameraPrefab = Resources.Load<Camera>(DefaultThirdPersonCameraResourcePath);
-            return s_defaultThirdPersonCameraPrefab;
-        }
-
-        // Spawn the third-person camera. Prefers thirdPersonCameraPrefab (per-vehicle override),
-        // then the project default loaded from Resources/, then a clone of Camera.main, then a
-        // bare Camera as last resort.
+        // Spawn the third-person camera (ThirdPersonCameras: thirdPersonCameraPrefab, else the project default from
+        // Resources/, else a clone of Camera.main, else a bare Camera).
         //
         // Deliberately spawned unparented. LateUpdate below writes the camera's world pose outright,
         // so parenting it to the mount applies the vehicle's motion twice — once through the parent
@@ -232,55 +217,14 @@ namespace SpaceGame.Agents
             if (runtimeThirdPersonCamera != null)
                 return;
 
-            Camera prefabToUse = thirdPersonCameraPrefab != null
-                ? thirdPersonCameraPrefab
-                : ResolveDefaultThirdPersonCameraPrefab();
+            runtimeThirdPersonCamera = ThirdPersonCameras.Spawn(thirdPersonCameraPrefab, $"{name}_MountThirdPersonCamera");
 
-            GameObject cameraObject;
-            if (prefabToUse != null)
-            {
-                cameraObject = Object.Instantiate(prefabToUse.gameObject);
-                cameraObject.name = $"{name}_MountThirdPersonCamera";
-                cameraObject.tag = "Untagged";
-                runtimeThirdPersonCamera = cameraObject.GetComponent<Camera>();
-                runtimeThirdPersonCamera.targetTexture = null;
-            }
-            else if (Camera.main != null)
-            {
-                cameraObject = Object.Instantiate(Camera.main.gameObject);
-                cameraObject.name = $"{name}_MountThirdPersonCamera";
-                cameraObject.tag = "Untagged";
-                foreach (Transform child in cameraObject.transform)
-                    Object.Destroy(child.gameObject);
-                runtimeThirdPersonCamera = cameraObject.GetComponent<Camera>();
-                runtimeThirdPersonCamera.targetTexture = null;
-            }
-            else
-            {
-                cameraObject = new GameObject($"{name}_MountThirdPersonCamera");
-                runtimeThirdPersonCamera = cameraObject.AddComponent<Camera>();
-            }
-
-            if (!cameraObject.GetComponent<AudioListener>())
-                cameraObject.AddComponent<AudioListener>();
-
-            // This object is RUNTIME state and must never reach a scene file.
-            //
-            // It is spawned unparented (see above) into whatever scene is currently open, so in the
-            // editor it is an ordinary root object that Ctrl+S writes to disk like any other. Four
-            // of them once shipped inside persistentScene that way: enabled, depth -1, display 0,
-            // tying with the real Main Camera, so which camera the game rendered through was
-            // arbitrary -- and each carried an AudioListener and a StudioListener besides.
-            //
-            // DontSaveInEditor rather than DontSave, so a scene load in play mode still destroys
-            // it. Nothing destroys it in EDIT mode, though: Unity delivers no OnDestroy to a plain
-            // MonoBehaviour there, so an EditMode test destroying its mount never releases this,
-            // and closing the scene detaches a DontSaveInEditor object rather than destroying it.
-            // What is left is a scene-less, enabled camera that the next play session renders
-            // through. The marker below is what lets it be found and swept -- see
-            // MountRuntimeCamera.
-            cameraObject.hideFlags = HideFlags.DontSaveInEditor;
-            MountRuntimeCamera.Attach(cameraObject, this);
+            // Spawned DontSaveInEditor, which a scene load in play mode still destroys. Nothing destroys it in EDIT
+            // mode, though: Unity delivers no OnDestroy to a plain MonoBehaviour there, so an EditMode test destroying
+            // its mount never releases this, and closing the scene detaches a DontSaveInEditor object rather than
+            // destroying it. What is left is a scene-less, enabled camera that the next play session renders through.
+            // The marker below is what lets it be found and swept -- see MountRuntimeCamera.
+            MountRuntimeCamera.Attach(runtimeThirdPersonCamera.gameObject, this);
 
             // Without the parent to start it in the right place, the first frame must snap rather
             // than lerp — otherwise the camera swoops in from wherever the prefab was authored.

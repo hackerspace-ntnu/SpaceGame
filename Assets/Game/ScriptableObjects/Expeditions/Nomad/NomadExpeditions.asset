@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0a0ecb56aee5433f8cea5b0cf83d385, type: 3}
+  m_Name: NomadExpeditions
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionProfile
+  culture: {fileID: 11400000, guid: 98f1700352364ba9aa28043a52d9ea73, type: 2}
+  goals:
+  - {fileID: 11400000, guid: 6179820bb14cb460d866d56b14b6b521, type: 2}
+  warriorQuotaSmall: {x: 6, y: 8}
+  warriorQuotaLarge: 12
+  largeFromBeds: 40
+  musterUse: {fileID: 11400000, guid: b47e8e4b580be4938b83f90ac710ade7, type: 2}
+  roleQuotas:
+  - role: 4
+    small: {x: 1, y: 2}
+    large: 3

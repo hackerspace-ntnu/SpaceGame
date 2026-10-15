@@ -63,6 +63,17 @@ namespace SpaceGame.Vehicles
 
         public GameObject OccupantAt(int seat) => IsSeat(seat) ? occupants[seat] : null;
 
+        /// <summary>Where an NPC in <paramref name="seat"/> sits, in world space — so one spawned for it is born there.</summary>
+        public (Vector3 position, Quaternion rotation) SeatPose(int seat)
+        {
+            EnsureSeatArrays();
+            if (!IsSeat(seat) || seats[seat] == null)
+                throw new ArgumentOutOfRangeException(nameof(seat), seat,
+                    $"'{name}' has no seat marker {seat} (it has {seats.Length} seats).");
+
+            return NpcSeating.SeatPoseIn(null, seats[seat], seatOffset, Vector3.zero);
+        }
+
         private void Awake()
         {
             EnsureSeatArrays();
@@ -111,7 +122,10 @@ namespace SpaceGame.Vehicles
         /// away from the vessel. Returns the NPC, or null when the seat was empty or this machine is
         /// not the authority.
         /// </summary>
-        public GameObject Unseat(int seat, Vector3 worldPoint)
+        public GameObject Unseat(int seat, Vector3 worldPoint) => Unseat(seat, worldPoint, navMeshReach);
+
+        /// <summary>As <see cref="Unseat(int, Vector3)"/>, onto NavMesh within <paramref name="reach"/> of the point instead of this vessel's own reach.</summary>
+        public GameObject Unseat(int seat, Vector3 worldPoint, float reach)
         {
             GameObject npc = OccupantAt(seat);
             if (npc == null || !Network.Simulates(this)) return null;
@@ -119,7 +133,7 @@ namespace SpaceGame.Vehicles
             // Unity will not reparent out of an inactive hierarchy; the NPC goes down with the hull.
             if (!gameObject.activeInHierarchy) return null;
 
-            if (NavMesh.SamplePosition(worldPoint, out NavMeshHit hit, navMeshReach, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(worldPoint, out NavMeshHit hit, reach, NavMesh.AllAreas))
                 worldPoint = hit.position;
 
             Vector3 away = worldPoint - transform.position;
@@ -131,7 +145,7 @@ namespace SpaceGame.Vehicles
             Vacate(seat);
             NpcSeating.Detach(npc.transform);
             npc.transform.SetPositionAndRotation(worldPoint, facing);
-            records[seat].Restore(npc, navMeshReach);
+            records[seat].Restore(npc, reach);
             RefreshPresented();
             return npc;
         }
@@ -229,6 +243,7 @@ namespace SpaceGame.Vehicles
                 var collisions = new RiderCollisionIgnore();
                 collisions.Apply(npc, transform);
                 presented.Add(npc, collisions);
+                NpcSeating.ParkPresentation(npc.gameObject, parked: true);
                 if (chairPose != null) chairPose.PoseRider(npc);
             }
         }
@@ -242,7 +257,9 @@ namespace SpaceGame.Vehicles
             if (gameObject.activeInHierarchy) collisions.Restore();
             else collisions.Forget();
 
-            if (npc != null && chairPose != null) chairPose.ReleaseRider(npc);
+            if (npc == null) return;
+            NpcSeating.ParkPresentation(npc.gameObject, parked: false);
+            if (chairPose != null) chairPose.ReleaseRider(npc);
         }
 
         private void ReleasePresented()

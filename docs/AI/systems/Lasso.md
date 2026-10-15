@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Resources/Items/Artifacts/Lasso.asset
   - Assets/Game/Editor/Tests/LassoTests.cs
 symptoms:
+  - "Failed to load LeashEnd.cs. File may be corrupted or was serialized with a newer version of Unity"
   - "the thrown loop passes over the animal I aimed at and lands well behind it"
   - "a lasso throw goes where I point only if I aim at the creature's feet"
   - "a fast or lightly-charged throw passes straight through a thin target and reports a miss"
@@ -26,7 +27,7 @@ symptoms:
   - "I respawned still lassoed, or still holding a rope on a creature half a world away"
   - "a laser beam through a live lasso rope does nothing"
 reads_with: [Artifacts, LeashSystem, Multiplayer, Persistence, AgentSystem, RopeCutting]
-updated: 2026-09-09
+updated: 2026-10-04
 ---
 
 # Lasso
@@ -108,6 +109,8 @@ A throwable loop with its own Verlet rope. **Hold to twirl, release to throw** �
 - **A hitched creature needs nothing from this system.** Once tied off it is a `Leash`, and `LeashSaveable` captures it off `Leash.All`.
 
 ## Gotchas
+
+- **A hand-typed GUID can collide with a real asset.** `LassoAim.material` once pointed at `7a1c4e9b…0b01`, a material that never existed, and the same GUID is `LeashEnd.cs`'s. Loading `Lasso.prefab` (any NPC whose loadout can draw the lasso) then logged `Failed to load …LeashEnd.cs. File may be corrupted`, which fails any test that loads it. The field is empty now: an empty material builds the runtime fallback.
 
 - **Loft added to a solved arc is a miss, not a lob.** `throwArcHeight` used to be added straight onto the vertical component of a correct ballistic solution. That is a throw at a *different* target: at the prefab's shipped numbers the loop passed **1.6 m over** a creature aimed at from 12 m and **4.0 m over** one at 30 m, and crossed the target's own altitude a constant **13 m behind it** (`2·arc·speed/g`, which is why the error did not vary with range) — against a catch radius of 0.22–0.8 m. Nothing failed; the arc was real ballistics and the rope drew beautifully, and the item simply did not go where the crosshair was. `TheThrowLandsOnThePointItWasAimedAt` pins it, and `TheThrowArrivesOnTheWayDownAndActuallyArcs` pins the half that a flat rifle shot would otherwise satisfy.
 - **A point-sampled catch tunnels.** A single `OverlapSphere` at the head's position samples a thing moving up to 22 m/s against a 0.22 m mouth. The sweep and the destination overlap are both needed: a `SphereCast` reports nothing for a collider it *started* inside, which is exactly the case of a loop arriving on top of an animal.

@@ -173,5 +173,35 @@ namespace SpaceGame.Tests
             // with a broken list, which reads at runtime as "multiplayer is down" with no clue why.
             Assert.IsEmpty(broken, "Null entries in the network prefab list:\n  " + string.Join("\n  ", broken));
         }
+
+        /// <summary>
+        /// A seat whose rider drives hands the whole mount to the rider's client
+        /// (MountNetworkSync.SeatOnServer). Netcode despawns and destroys everything a
+        /// disconnecting client owns unless DontDestroyWithOwner is ticked, so without it a player
+        /// who quits in the saddle deletes the Appa, the horse or the ship for everybody.
+        /// </summary>
+        [Test]
+        public void EveryRiderDrivenMount_SurvivesItsRiderDisconnecting()
+        {
+            var deleted = new List<string>();
+
+            foreach (GameObject prefab in RegisteredPrefabs(LoadNetworkManager()))
+            {
+                // MountModule.RiderDrives is cached in Awake, which never runs on an asset; it
+                // answers "is there a SteerModule beside the seat", so ask that directly.
+                bool riderDrives = prefab.GetComponentsInChildren<SpaceGame.Agents.MountModule>(true)
+                    .Any(mount => mount.GetComponent<SpaceGame.Agents.SteerModule>() != null);
+                if (!riderDrives) continue;
+
+                var netObject = prefab.GetComponent<NetworkObject>();
+                if (netObject != null && !netObject.DontDestroyWithOwner)
+                    deleted.Add(AssetDatabase.GetAssetPath(prefab));
+            }
+
+            Assert.IsEmpty(deleted,
+                "These mounts hand ownership to their rider but are destroyed when that rider " +
+                "disconnects. Tick DontDestroyWithOwner on the root NetworkObject (in the builder, " +
+                "if one writes the prefab):\n  " + string.Join("\n  ", deleted));
+        }
     }
 }

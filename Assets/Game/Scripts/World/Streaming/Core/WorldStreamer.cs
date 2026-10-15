@@ -23,6 +23,13 @@ namespace SpaceGame.World
         /// <summary>The world this streamer is running, for code that needs the world's identity.</summary>
         public WorldStreamingConfig Config => config;
 
+        /// <summary>The running world's baked site catalog (its towns, settlements and sites), or null before one is baked.</summary>
+        public static WorldSiteCatalog FindSiteCatalog()
+        {
+            WorldStreamer streamer = FindFirstObjectByType<WorldStreamer>();
+            return streamer != null && streamer.config != null ? streamer.config.siteCatalog : null;
+        }
+
         [Header("NavMesh")]
         [Tooltip("How far to search when snapping an agent onto the pre-baked world NavMesh as its " +
                  "chunk loads. The NavMesh is always present (see WorldNavMeshProvider), so this " +
@@ -287,6 +294,28 @@ namespace SpaceGame.World
             public Type OperationType;
             public Vector2Int Coord;
             public Action OnComplete;
+        }
+
+        /// <summary>
+        /// The world's baked sites become destinations now, before any chunk loads — on every machine, since the
+        /// registry is plain data. Awake rather than Start or a network spawn: chunk scenes cannot have loaded
+        /// yet, and a marker in this scene that enabled first keeps its live record (see MergeSites).
+        /// </summary>
+        private void Awake()
+        {
+            if (config == null) return;
+
+            if (config.siteCatalog == null)
+                Debug.LogWarning($"[WorldStreamer] {config.name} has no site catalog, so a site is known only once its " +
+                                 "chunk has loaded. Run Tools/SpaceGame/World/Bake Site Catalog.", this);
+            WorldSiteRegistry.MergeCatalog(config.siteCatalog);
+        }
+
+        /// <summary>The world is being unloaded: its sites go with it, so none leaks into the next world played.</summary>
+        public override void OnDestroy()
+        {
+            WorldSiteRegistry.Clear();
+            base.OnDestroy();
         }
 
         private void Start()

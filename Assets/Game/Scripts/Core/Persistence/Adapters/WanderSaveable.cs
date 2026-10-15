@@ -15,7 +15,7 @@ namespace SpaceGame.Core.Persistence
     /// carried on rather than like everything in it was just switched on.
     ///
     /// <c>WanderModule</c> has no anchor: it picks from wherever the creature is standing, so there
-    /// is no territory here to drift. That is <see cref="AirWanderSaveable"/>'s problem.
+    /// is no territory here to drift and nothing else to save.
     /// </summary>
     [RequireComponent(typeof(WanderModule))]
     public class WanderSaveable : MonoBehaviour, ISaveable

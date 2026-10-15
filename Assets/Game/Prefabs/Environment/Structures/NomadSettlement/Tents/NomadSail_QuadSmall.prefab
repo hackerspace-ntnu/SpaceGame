@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -9209729001657727294, guid: a1250834ca3474909917d273af115c24, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 90
+      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.538938
@@ -19,10 +23,6 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.z
       value: 0.538938
-      objectReference: {fileID: 0}
-    - target: {fileID: -9209729001657727294, guid: a1250834ca3474909917d273af115c24, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 94
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalPosition.x
@@ -114,11 +114,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6492904427357209065, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -6125630824486632626, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -5599652345582063906, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.x
@@ -142,7 +142,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3364690009984672296, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -2461432114973411581, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -234,11 +234,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1858299374066827969, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 2766823533374966772, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 3360467410107979852, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.x
@@ -254,7 +254,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3448095465982823711, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 3606762375166606556, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.x
@@ -310,7 +310,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5094519301150040928, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 5309743213982893465, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_LocalScale.x
@@ -358,7 +358,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7083252333135172172, guid: a1250834ca3474909917d273af115c24, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -436,13 +436,13 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7658896774843754092}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: -0.00000023841858, y: 3.6628237, z: 0}
-  m_Size: 15.025198
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_LocalReferencePoint: {x: 0, y: 3.6628242, z: 0}
+  m_Size: 15.0252
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.3
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 8156551814097105059}
@@ -454,6 +454,26 @@ LODGroup:
     - renderer: {fileID: 6227368145292072826}
     - renderer: {fileID: 2077129737029738774}
     - renderer: {fileID: 3609028084378104949}
+    - renderer: {fileID: 469144671187565181}
+    - renderer: {fileID: 8437679542049154521}
+    - renderer: {fileID: 7343617609189129141}
+    - renderer: {fileID: 6977830893901649376}
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 528995831278441853}
+    - renderer: {fileID: 469144671187565181}
+    - renderer: {fileID: 8437679542049154521}
+    - renderer: {fileID: 7343617609189129141}
+    - renderer: {fileID: 6977830893901649376}
+    - renderer: {fileID: 1750694381064107789}
+    - renderer: {fileID: 6227368145292072826}
+    - renderer: {fileID: 2077129737029738774}
+    - renderer: {fileID: 3609028084378104949}
+  - screenRelativeHeight: 0.01
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 528995831278441853}
     - renderer: {fileID: 469144671187565181}
     - renderer: {fileID: 8437679542049154521}
     - renderer: {fileID: 7343617609189129141}

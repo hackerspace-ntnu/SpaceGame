@@ -25,7 +25,22 @@ namespace SpaceGame.Core
         [Tooltip("Wheel units that make up one slot step, or 0 to measure it from the device.")]
         [SerializeField] private float scrollUnitsPerSlot;
 
+        /// <summary>
+        /// What one mouse count is worth, in seconds of full stick. A pointer reports how far it
+        /// moved this frame and a stick how hard it is held, so only the stick is multiplied by the
+        /// frame time. Scaling the mouse by it too turned every slow frame further than the hand
+        /// moved — each hitch became a lurch of the view. A 60th keeps every look sensitivity
+        /// feeling the way it was tuned at 60 fps.
+        /// </summary>
+        public const float SecondsPerMouseCount = 1f / 60f;
+
         private InputControls inputs;
+
+        /// <summary>
+        /// This frame's look, in seconds of full stick — see <see cref="LookThisFrame"/>. Multiply
+        /// by a look sensitivity (degrees per second of full stick) for degrees, and never by
+        /// <c>Time.deltaTime</c> again: the frame time is already in it, for the stick only.
+        /// </summary>
         public Vector2 LookInput  { get; private set; }
         public Vector2 MoveInput  { get; private set; }
 
@@ -101,6 +116,16 @@ namespace SpaceGame.Core
         /// </para>
         /// </summary>
         public bool JumpHeld { get; private set; }
+
+        /// <summary>
+        /// Whether Interact, and whether Use, is DOWN. For a control that works for as long as its button is held
+        /// (the workshop's hand cogs turn a room that way), which has to be able to ask rather than rebuild the
+        /// answer from a press and a release. Cleared in <see cref="OnDisable"/> like the other held keys.
+        /// </summary>
+        public bool InteractHeld { get; private set; }
+
+        /// <inheritdoc cref="InteractHeld"/>
+        public bool UseHeld { get; private set; }
 
         public event Action OnJumpPressed;
 
@@ -264,6 +289,29 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
+        /// Jump, pressed while knocked down: the player asks to get up now.
+        ///
+        /// <para>
+        /// Its own action for the reason written out on <see cref="SetPackYawEnabled"/>: a
+        /// knocked-down player has this whole component disabled (<c>PlayerRagdoll</c> kills input
+        /// at the source, or jump and dash would still fire), so Jump itself is not listening.
+        /// Off by default and switched on by the ragdoll for as long as the player is down.
+        /// </para>
+        /// </summary>
+        public event Action OnGetUpPressed;
+
+        private InputAction getUp;
+
+        /// <summary>Switches <see cref="OnGetUpPressed"/> on while the player is knocked down.</summary>
+        public void SetGetUpEnabled(bool on)
+        {
+            EnsureInputs();
+
+            if (on) getUp.Enable();
+            else getUp.Disable();
+        }
+
+        /// <summary>
         /// Hands the wheel to the pack-yaw action and takes it back off the hotbar, or the other
         /// way round.
         ///
@@ -360,6 +408,13 @@ namespace SpaceGame.Core
             packRack.AddBinding("<Keyboard>/r").WithGroup("Keyboard&Mouse");
             packRack.AddBinding("<Gamepad>/buttonNorth").WithGroup("Gamepad");
 
+            // Jump's own bindings, copied rather than restated, so the key that gets a player up is
+            // whatever Jump is bound to.
+            getUp = new InputAction("GetUp", InputActionType.Button);
+            foreach (InputBinding binding in inputs.Player.Jump.bindings)
+                if (!binding.isComposite && !binding.isPartOfComposite)
+                    getUp.AddBinding(binding.effectivePath).WithGroups(binding.groups);
+
             BindActions();
         }
 
@@ -388,7 +443,8 @@ namespace SpaceGame.Core
             inputs.Hotbar.HotbarScroll.performed += HandleHotbarScroll;
 
             // World interaction
-            inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
+            inputs.Player.Interact.performed += _ => { InteractHeld = true; OnInteractPressed?.Invoke(); };
+            inputs.Player.Interact.canceled  += _ => InteractHeld = false;
             inputs.Player.Jump.performed     += _ => { JumpHeld = true; HandleJump(); };
             inputs.Player.Jump.canceled      += _ => JumpHeld = false;
             inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
@@ -396,8 +452,8 @@ namespace SpaceGame.Core
             inputs.Player.GauntletRight.performed += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.GauntletRight.canceled  += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
-            inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
-            inputs.Player.Use.canceled    += _ => OnUseReleased?.Invoke();
+            inputs.Player.Use.performed   += _ => { UseHeld = true; OnUsePressed?.Invoke(); };
+            inputs.Player.Use.canceled    += _ => { UseHeld = false; OnUseReleased?.Invoke(); };
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
             inputs.Player.Crouch.performed += _ => { CrouchHeld = true;  OnCrouchPressed?.Invoke(); };
             inputs.Player.Crouch.canceled  += _ => { CrouchHeld = false; OnCrouchReleased?.Invoke(); };
@@ -419,6 +475,7 @@ namespace SpaceGame.Core
             }
 
             packRack.performed += _ => OnPackRackPressed?.Invoke();
+            getUp.performed += _ => OnGetUpPressed?.Invoke();
         }
 
         private void OnEnable()
@@ -439,6 +496,7 @@ namespace SpaceGame.Core
                 foreach (InputAction action in packStow) action?.Disable();
 
             packRack?.Disable();
+            getUp?.Disable();
 
             // Stale axes outlive the disable otherwise — MoveInput and LookInput are only written
             // by Update, so whatever the stick last read stays latched. On death that is a live
@@ -448,6 +506,8 @@ namespace SpaceGame.Core
             CrouchHeld = false;
             SprintHeld = false;
             JumpHeld = false;
+            InteractHeld = false;
+            UseHeld = false;
         }
 
         private void OnDestroy()
@@ -465,6 +525,9 @@ namespace SpaceGame.Core
 
             packRack?.Dispose();
             packRack = null;
+
+            getUp?.Dispose();
+            getUp = null;
         }
 
         /// <summary>
@@ -551,9 +614,21 @@ namespace SpaceGame.Core
             return notches;
         }
 
+        /// <summary>
+        /// A Look reading as this frame's look, the same at any frame rate. Shared by everything
+        /// that reads the Look action itself (mounts, the arrival seat), so a mouse turns every
+        /// camera in the game at one speed.
+        /// </summary>
+        public static Vector2 LookThisFrame(Vector2 reading, InputControl source)
+        {
+            bool isPointer = source != null && source.device is Pointer;
+            return reading * (isPointer ? SecondsPerMouseCount : Time.deltaTime);
+        }
+
         private void Update()
         {
-            LookInput = inputs.Player.Look.ReadValue<Vector2>();
+            InputAction look = inputs.Player.Look;
+            LookInput = LookThisFrame(look.ReadValue<Vector2>(), look.activeControl);
             MoveInput = inputs.Player.Move.ReadValue<Vector2>();
         }
     }

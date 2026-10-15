@@ -96,6 +96,12 @@ namespace SpaceGame.EditorTools
             /// for every human-scale drifter; Raxy's is set by <see cref="Raxy"/>.
             /// </summary>
             public float? Height;
+
+            /// <summary>
+            /// Seconds between its calls for help while it fights (<c>AlertBroadcaster.callForHelpEvery</c>):
+            /// every ally in range is handed its enemy again. 0 announces a fight once. Every Raxy calls.
+            /// </summary>
+            public float CallForHelpEvery;
         }
 
         // Lower-case "agents" is the real folder on disk, beside Nomad.prefab. macOS resolves
@@ -164,6 +170,12 @@ namespace SpaceGame.EditorTools
         /// them. See <see cref="Raxy"/> and <see cref="SculptRecipe.Height"/>.
         /// </summary>
         private const float RaxyHeight = TargetHeight * 0.85f;
+
+        /// <summary>
+        /// A Raxy in a fight shouts for help every second, wherever it is — in a settlement, a caravan or
+        /// alone — to every other Raxy and allied character in earshot (the user's call, 2026-10-02).
+        /// </summary>
+        private const float RaxyCallForHelpSeconds = 1f;
 
         // The clip's actor. Humanoid retargeting scales stride with the skeleton, so a character
         // this much bigger covers proportionally more ground per step.
@@ -352,6 +364,7 @@ namespace SpaceGame.EditorTools
             DialogLines = RaxyDialogLines,
             IdleChatter = RaxyIdleChatter,
             Height = RaxyHeight,
+            CallForHelpEvery = RaxyCallForHelpSeconds,
         };
 
         /// <summary>
@@ -434,6 +447,12 @@ namespace SpaceGame.EditorTools
             WireProjectWide();
             RagdollWiring.WirePrefabs();
 
+            // After CorrectScaleAndSole has measured them: a garment's reduced copy is not a garment
+            // to the measure, so wired before it a hat's copy would count toward the height.
+            var builtPaths = new List<string>();
+            foreach (var prefab in built) builtPaths.Add(AssetDatabase.GetAssetPath(prefab));
+            CharacterLodWiring.Wire(builtPaths);
+
             Debug.Log($"[SculptCharacterBuilder] Built {built.Count} drifter NPC(s) into {CharacterFolder}.");
         }
 
@@ -458,6 +477,7 @@ namespace SpaceGame.EditorTools
                 try
                 {
                     ApplyBehaviour(root, recipe);
+                    CharacterLodWiring.EnsureIfCovered(root, recipe.PrefabPath);
                     PrefabUtility.SaveAsPrefabAsset(root, recipe.PrefabPath, out bool ok);
                     if (ok) updated++;
                     else Debug.LogError($"[SculptCharacterBuilder] Failed to save {recipe.PrefabPath}.");
@@ -1042,8 +1062,10 @@ namespace SpaceGame.EditorTools
             high = float.MinValue;
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
-                // Measured without clothes, so every outfit of one character stands the same height.
-                if (DrifterClothes.IsPartOfGarment(renderer.transform)) continue;
+                // Measured without clothes, so every outfit of one character stands the same height --
+                // and without the reduced copies, among them every garment's.
+                if (DrifterClothes.IsPartOfGarment(renderer.transform) ||
+                    CharacterLodWiring.IsLodCopy(renderer.transform)) continue;
 
                 low = Mathf.Min(low, renderer.bounds.min.y);
                 high = Mathf.Max(high, renderer.bounds.max.y);
@@ -1231,6 +1253,7 @@ namespace SpaceGame.EditorTools
             ConfigureDialog(root, recipe);
             ConfigureChatter(root, recipe);
             ConfigurePerception(root);
+            ConfigureAlerts(root, recipe);
             ConfigureHealth(root);
             ConfigureFaction(root);
             ConfigureWander(root);
@@ -1243,6 +1266,7 @@ namespace SpaceGame.EditorTools
             // hand in the Inspector: a hand-added module is invisible to this list, so the next
             // drifter built is missing it.
             AgentGroundConformWiring.Ensure(root);
+            DistanceDormancyWiring.Ensure(root);
 
             // The blink is part of the face rather than of the temperament, but it lives in this half
             // because this is the half that reaches existing prefabs -- and it touches nothing the
@@ -1369,11 +1393,22 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>How often it calls allies in range to a fight it is in; 0 only when the fight starts.</summary>
+        private static void ConfigureAlerts(GameObject root, SculptRecipe recipe)
+        {
+            var broadcaster = FindComponent(root, "SpaceGame.Agents.AlertBroadcaster");
+            if (broadcaster == null) return;
+
+            var so = new SerializedObject(broadcaster);
+            SetFloat(so, "callForHelpEvery", recipe.CallForHelpEvery);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         /// <summary>
         /// Sets the sight-blocking mask. Left at Nothing the module logs a warning every session
         /// and falls back to this same set, so writing it down just makes the prefab say what it
-        /// means. The angle and memory fields are left alone -- PerceptionModule already defaults
-        /// them to <c>VisionBaseline</c>.
+        /// means. The angle fields are left alone -- PerceptionModule already defaults them to
+        /// <c>VisionBaseline</c>.
         /// </summary>
         private static void ConfigurePerception(GameObject root)
         {

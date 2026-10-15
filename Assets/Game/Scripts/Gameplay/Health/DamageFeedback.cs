@@ -13,7 +13,6 @@ namespace SpaceGame.Gameplay
         [SerializeField] private ShakeData shakeData;
 
         [Header("Audio")]
-        [SerializeField] private SfxId damageId = SfxId.PlayerHurt;
         [SerializeField] private EventReference damageSound;
 
         private void Awake()
@@ -37,11 +36,7 @@ namespace SpaceGame.Gameplay
         private void OnDamaged(int amount)
         {
             CameraShakerHandler.Shake(shakeData);
-
-            // Was AudioManager.Instance.PlayEvent(...), which threw whenever this ran in a scene
-            // entered without passing through Bootstrap — the manager only exists there. Sfx has no
-            // such dependency, and it supplies a default when damageSound was never assigned.
-            Sfx.Play(damageId, transform.position, damageSound, GetInstanceID());
+            Sfx.Play(damageSound, transform.position);
         }
     }
 }

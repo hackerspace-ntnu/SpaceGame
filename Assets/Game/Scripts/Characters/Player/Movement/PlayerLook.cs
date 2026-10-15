@@ -450,8 +450,9 @@ namespace SpaceGame.Characters
         // the whole rotation silently deletes whatever the first one put there.
 
         /// <summary>
-        /// Degrees of view movement per unit of mouse input per second — the rig's own sensitivity
-        /// with the player's setting already folded in.
+        /// Degrees of view movement per second of full stick — the rig's own sensitivity with the
+        /// player's setting already folded in. Multiplies <see cref="PlayerInputManager.LookInput"/>,
+        /// which already carries the frame time for a stick and none for a mouse.
         ///
         /// <para>
         /// Exposed so anything that takes the mouse over can move at the speed the player is used
@@ -578,12 +579,12 @@ namespace SpaceGame.Characters
             // Banked rather than sampled once per step: LookInput is read per rendered frame, and
             // reading it only in FixedUpdate would drop four mouse movements out of five. Summing
             // the same per-frame terms keeps the total rotation, and the feel, exactly as authored.
-            pendingYaw += lookInput.x * scaled * Time.deltaTime;
+            pendingYaw += lookInput.x * scaled;
 
             // Pitch stays here. It turns the camera, which is a plain transform with no Rigidbody
             // and no interpolation to lose, so it can keep answering at the frame rate.
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
-            pitch -= pitchInput * scaled * Time.deltaTime;
+            pitch -= pitchInput * scaled;
             pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
             ApplyLensRotation();
 

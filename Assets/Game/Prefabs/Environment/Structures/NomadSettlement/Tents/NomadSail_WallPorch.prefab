@@ -54,15 +54,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8126014595770354714, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -4795389114225745073, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -4761815216682909923, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -1048603294214435034, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 685802828880388717, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_Name
@@ -82,11 +82,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2419056465459768173, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 3516611785138296431, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 7694225603732477898, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -94,7 +94,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: a4c4fdbb2e14d4a9e9e891923dd8ae8a, type: 2}
     - target: {fileID: 8431041198679506446, guid: aeec786d6eead45e48c82b10b3d5d008, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 94
+      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -124,11 +124,11 @@ LODGroup:
   serializedVersion: 2
   m_LocalReferencePoint: {x: 0.022601128, y: 1.7662164, z: 2.9953723}
   m_Size: 6.0607443
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
+  m_FadeMode: 1
+  m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
   m_LODs:
-  - screenRelativeHeight: 0.02
+  - screenRelativeHeight: 0.3
     fadeTransitionWidth: 0
     renderers:
     - renderer: {fileID: 5314311641711604977}
@@ -140,6 +140,20 @@ LODGroup:
     - renderer: {fileID: 7817945276957705561}
     - renderer: {fileID: 2005385245341726213}
     - renderer: {fileID: 1376937941567034067}
+  - screenRelativeHeight: 0.1
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8576646705585718519}
+    - renderer: {fileID: 9073689033023563774}
+    - renderer: {fileID: 7817945276957705561}
+    - renderer: {fileID: 4305734008806962343}
+    - renderer: {fileID: 5316090652447520815}
+  - screenRelativeHeight: 0.01
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 8576646705585718519}
+    - renderer: {fileID: 9073689033023563774}
+    - renderer: {fileID: 7817945276957705561}
   m_Enabled: 1
 --- !u!23 &1376937941567034067 stripped
 MeshRenderer:

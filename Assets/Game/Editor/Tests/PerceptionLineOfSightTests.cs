@@ -4,6 +4,8 @@
 // standing player completely, because only the body point was ever tried.
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools.Constraints;
+using Is = UnityEngine.TestTools.Constraints.Is;
 using SpaceGame.Agents;
 
 namespace SpaceGame.EditorTools
@@ -100,6 +102,143 @@ namespace SpaceGame.EditorTools
             Physics.SyncTransforms();
 
             Assert.IsFalse(eye.IsVisible(player));
+        }
+
+        // ─────────── Seated crew: the house they ride in is not a wall ───────────
+
+        // A walking house with crew seated inside its walls: the eye is parented under the hull
+        // root (as NpcSeating.Attach parents it under the carrier's NetworkObject) and flagged as
+        // cargo, and a hull wall stands between it and the player.
+        private (PerceptionModule eye, BoxCollider hullWall) SeatedInHouse()
+        {
+            GameObject house = Make("house", Vector3.zero);
+            var wall = new GameObject("Wall");
+            wall.transform.SetParent(house.transform, false);
+            wall.transform.localPosition = new Vector3(0f, 1.5f, 3f);
+            BoxCollider hullWall = wall.AddComponent<BoxCollider>();
+            hullWall.size = new Vector3(20f, 3f, 0.5f);
+
+            PerceptionModule eye = Eye();
+            eye.transform.SetParent(house.transform, false);
+            eye.gameObject.AddComponent<AgentController>().RidesAsPassenger = true;
+            return (eye, hullWall);
+        }
+
+        [Test]
+        public void SeatedCrewSeeOutOfTheirOwnHouse()
+        {
+            (PerceptionModule eye, _) = SeatedInHouse();
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(eye.HasLineOfSightFrom(eye.EyePosition, player),
+                "crew seated inside the house's walls see and shoot out of it (the user's call)");
+        }
+
+        [Test]
+        public void SeatedCrewAreStillBlindedByAWallThatIsNotTheirHouse()
+        {
+            (PerceptionModule eye, _) = SeatedInHouse();
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            Wall(new Vector3(0f, 1.5f, 12f), new Vector3(20f, 3f, 1f));
+            Physics.SyncTransforms();
+
+            Assert.IsFalse(eye.HasLineOfSightFrom(eye.EyePosition, player));
+        }
+
+        [Test]
+        public void AnNpcStandingInAHouseIsBlindedByItsWalls()
+        {
+            (PerceptionModule eye, _) = SeatedInHouse();
+            eye.GetComponent<AgentController>().RidesAsPassenger = false;
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            Physics.SyncTransforms();
+
+            Assert.IsFalse(eye.HasLineOfSightFrom(eye.EyePosition, player),
+                "only cargo looks through its carrier; a parent alone is not a carrier");
+        }
+
+        [Test]
+        public void AWallOnAKinematicBodyBlocksAsTheWallNotAsItsRoot()
+        {
+            // RaycastHit.transform is the Rigidbody's transform, so a wall collider on a child of a
+            // kinematic root reads as the root. Filtering on that would let a target parented under
+            // the same root count the wall as itself.
+            GameObject machine = Make("machine", Vector3.zero);
+            var body = machine.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            var wall = new GameObject("Wall");
+            wall.transform.SetParent(machine.transform, false);
+            wall.transform.localPosition = new Vector3(0f, 1.5f, 10f);
+            wall.AddComponent<BoxCollider>().size = new Vector3(20f, 3f, 1f);
+
+            PerceptionModule eye = Eye();
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            player.SetParent(machine.transform, true);
+            Physics.SyncTransforms();
+
+            Assert.IsFalse(eye.HasLineOfSightFrom(eye.EyePosition, player));
+        }
+
+        [Test]
+        public void ASightCheckAllocatesNothing()
+        {
+            PerceptionModule eye = Eye();
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            Wall(new Vector3(0f, 0.6f, 15f), new Vector3(20f, 1.2f, 1f));
+            Physics.SyncTransforms();
+
+            eye.IsVisible(player);   // warm up: JIT, static buffers
+            // Is.Not.AllocatingGCMemory, not GC.GetAllocatedBytesForCurrentThread: Unity's Mono always
+            // reports 0 for the latter, so a test built on it can never fail (Diagnostics.md).
+            TestDelegate checks = () => { for (int i = 0; i < 1000; i++) eye.IsVisible(player); };
+            Assert.That(checks, Is.Not.AllocatingGCMemory(),
+                "RaycastAll allocates a hit array per ray, per agent, per frame");
+        }
+
+        // ─────────── The throttled check AgentTargeting uses ───────────
+
+        [Test]
+        public void TheCachedCheckHoldsItsAnswerUntilTheIntervalRunsOut()
+        {
+            PerceptionModule eye = Eye();
+            Transform player = Player(new Vector3(0f, 0f, 20f));
+            Physics.SyncTransforms();
+            Assert.IsTrue(eye.CanSeeCached(player));
+
+            BoxCollider wall = Wall(new Vector3(0f, 1.5f, 15f), new Vector3(20f, 3f, 1f));
+            Physics.SyncTransforms();
+            Assert.IsTrue(eye.CanSeeCached(player), "within the interval the last answer stands");
+
+            eye.TickSightRecheck(eye.SightRecheckInterval);
+            Assert.IsFalse(eye.CanSeeCached(player), "past it, the ray is cast again");
+            Object.DestroyImmediate(wall.gameObject);
+        }
+
+        [Test]
+        public void ANewTargetIsCheckedAtOnce()
+        {
+            PerceptionModule eye = Eye();
+            Transform near = Player(new Vector3(0f, 0f, 20f));
+            Transform hidden = Player(new Vector3(5f, 0f, 20f));
+            // Covers the line to `hidden` (x = 3.75 where it crosses z = 15), clear of the one to `near`.
+            Wall(new Vector3(5f, 1.5f, 15f), new Vector3(6f, 3f, 1f));
+            Physics.SyncTransforms();
+
+            Assert.IsTrue(eye.CanSeeCached(near));
+            Assert.IsFalse(eye.CanSeeCached(hidden), "a cached answer belongs to the target it was cast at");
+        }
+
+        [Test]
+        public void TheNomadPrefabRechecksSightOnAnInterval()
+        {
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Prefabs/agents/Characters/Nomad.prefab");
+            Assert.IsNotNull(prefab);
+            var perception = prefab.GetComponent<PerceptionModule>();
+            Assert.IsNotNull(perception);
+            Assert.Greater(perception.SightRecheckInterval, 0f,
+                "a prefab saved before the field existed must take the class default, not 0 (every frame)");
         }
     }
 }

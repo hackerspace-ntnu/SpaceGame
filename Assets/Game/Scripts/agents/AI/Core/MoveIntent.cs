@@ -18,8 +18,6 @@ namespace SpaceGame.Agents
         public AgentIntentType Type;
         public Vector3 TargetPosition;
         public Vector3 FacePosition;
-        public Vector3 FacingDirection;
-        public bool OverrideFacingDirection;
         public float StopDistance;
         public float SpeedMultiplier;
         public bool IsRunning;
@@ -54,16 +52,12 @@ namespace SpaceGame.Agents
             Vector3 targetPosition,
             float stopDistance = 0.2f,
             float speedMultiplier = 1f,
-            bool overrideFacingDirection = false,
-            Vector3 facingDirection = default,
             bool isRunning = false)
         {
             return new MoveIntent
             {
                 Type = AgentIntentType.MoveToPosition,
                 TargetPosition = targetPosition,
-                FacingDirection = facingDirection,
-                OverrideFacingDirection = overrideFacingDirection,
                 StopDistance = Mathf.Max(0.01f, stopDistance),
                 SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier),
                 IsRunning = isRunning

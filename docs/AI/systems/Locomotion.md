@@ -7,7 +7,10 @@ paths:
   - Assets/Game/Scripts/Creatures/
   - Assets/Game/Scripts/Vehicles/DesertCrawler/DesertCrawlerLocomotion.cs
   - Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs
+  - Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs
+  - Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs
   - Assets/Game/Tests/EditMode/WalkerTestRig.cs
+  - Assets/Game/Editor/Tests/WalkerFootfallTests.cs
 symptoms:
   - "the walker stands frozen and never takes a step, with no error in the console"
   - "I moved the creature's transform and it snapped back next frame"
@@ -17,8 +20,8 @@ symptoms:
   - "a mounted ostrich vanishes out from under its rider on the other machine"
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
-reads_with: [AgentSystem, Vehicles, Persistence]
-updated: 2026-09-13
+reads_with: [AgentSystem, Vehicles, Persistence, VehicleDust]
+updated: 2026-10-04
 ---
 
 # Locomotion
@@ -50,7 +53,8 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 
 | Type | File | Role |
 | --- | --- | --- |
-| `LeggedLocomotion` | [Core/LeggedLocomotion.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.cs) | Abstract base; serialized fields, `SetTwist`, `Step(dt)`, diagnostics. Order 100 |
+| `LeggedLocomotion` | [Core/LeggedLocomotion.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.cs) | Abstract base; serialized fields, `SetTwist`, `Step(dt)`, diagnostics. Order 100. `Footfalls` (the feet that came down in the last `Step`) + `StepCount` |
+| `Footfall` | [Core/Footfall.cs](Assets/Game/Scripts/Locomotion/Core/Footfall.cs) | One foot landing: leg index, world contact point, ground normal, `FootprintRadius`. What `FootfallDust` ([VehicleDust.md](VehicleDust.md)) throws sand from |
 | ⤷ `.Rig.cs` | [Core/LeggedLocomotion.Rig.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Rig.cs) | Discovery, per-leg measurement, `MaxSpeed`/`MaxYawRate`, ride-height calibration |
 | ⤷ `.Gait.cs` | [Core/LeggedLocomotion.Gait.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Gait.cs) | Clock, swing timers, foothold resolution, swing lift, load transfer |
 | ⤷ `.Body.cs` | [Core/LeggedLocomotion.Body.cs](Assets/Game/Scripts/Locomotion/Core/LeggedLocomotion.Body.cs) | Path integration, climb gate, `Survey()`, reach correction, gravity, `FollowBody` |
@@ -68,20 +72,21 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 | `AgentGrounding` / `AgentGroundingSettings` | [Ground/AgentGrounding.cs](Assets/Game/Scripts/Locomotion/Ground/AgentGrounding.cs) | Pure per-frame solve for a NavMesh agent's height correction and slope lean. No physics; reuses `WalkerSupportPlane.Tilt` for the lean |
 | `WalkerClimb` | [Ground/WalkerClimb.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerClimb.cs) | Sustained-grade + wall test over a sampled profile; pure arithmetic, no rays |
 | `BodyFeet` | [Ground/BodyFeet.cs](Assets/Game/Scripts/Locomotion/Ground/BodyFeet.cs) | How far *any* body's pivot sits above its soles (the player's is ~1 m off) |
-| `WalkerPath` / `WalkerSteering` | [Steering/](Assets/Game/Scripts/Locomotion/Steering) | Forward-only polyline cursor (flat arrival test); heading error → twist |
-| `LeggedDriver` | [agents/AI/Motors/LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Order 50. Rider (`IRiderControllable`) + AI (`IMovementMotor`) → `SetTwist`. Uses `NavMesh.CalculatePath`, never a `NavMeshAgent` |
+| `WalkerPath` / `WalkerSteering` | [Steering/](Assets/Game/Scripts/Locomotion/Steering) | Forward-only polyline cursor (flat arrival test; `TryGetCornerAfterCurrent` peeks one corner ahead without advancing); heading error → twist |
+| `NavPathFollower` | [agents/AI/Motors/NavPathFollower.cs](Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs) | Plain C# (Assembly-CSharp). Repath-on-stale NavMesh route following for any motor that steers its own body: `SteerTarget` returns the next corner, or the destination when there is no route; `TryGetCornerAfter` for slowing into turns. Corners come from a `CornerSource` delegate — `NavMeshCorners(sampleDistance)` is the real one (`NavMesh.CalculatePath`, never a `NavMeshAgent`), a test passes a fake. Tunables are a `[Serializable] NavPathFollowerSettings` ([NavPathFollowerSettings.cs](Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs): `repathInterval`, `repathTolerance`, `cornerArriveRadius`, `navMeshSampleDistance`, `stillTargetRepathInterval`, `Validate()` floors — the still interval never below `repathInterval`); `new NavPathFollower(settings)` routes on the baked NavMesh. Repath timer: `repathInterval` after a move past `repathTolerance` and while there is no route, `stillTargetRepathInterval` once a route to an unmoved destination is in hand; a body more than `cornerArriveRadius` off its current leg (`WalkerPath.FlatDistanceFromLeg`) drops back to `repathInterval`. The 4-arg constructors set the still interval to `repathInterval` (today's behaviour). The fetch is profiled as `SpaceGame.NavPath.Repath` |
+| `LeggedDriver` | [agents/AI/Motors/LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Order 50. Rider (`IRiderControllable`) + AI (`IMovementMotor`) → `SetTwist`. Delegates route following to a `NavPathFollower` built from its serialized `route` (`NavPathFollowerSettings`, defaults 0.5 s / 2 m / 6 m / 20 m, still target 5 s; `MonowheelMotor` has its own `route`, 3 m tolerance / 8 m corners); keeps the climb detour itself |
 
 ## Creatures
 
 | Creature | Files | Rig notes / policies |
 | --- | --- | --- |
 | Ostrich (biped) | [OstrichLocomotion](Assets/Game/Scripts/Creatures/Ostrich/OstrichLocomotion.cs), [SpineMotion](Assets/Game/Scripts/Creatures/Ostrich/OstrichSpineMotion.cs) (150), [NeckMotion](Assets/Game/Scripts/Creatures/Ostrich/OstrichNeckMotion.cs) (160), [NeckGaze](Assets/Game/Scripts/Creatures/Ostrich/OstrichNeckGaze.cs), [NeckSpring](Assets/Game/Scripts/Creatures/Ostrich/OstrichNeckSpring.cs) | `HipBudgetStride` + `AlternatingGait` + `BobbingBody` + `ArticulatedSole`; authored `maxYawRate`. Spine spends the neck **undoing** the body bob so the head is still in world space; NeckMotion *adds* on top (gaze snaps, never sweeps; 11 vertebrae weighted, not evenly shared) |
-| Crab (4–8 legs) | [CrabLocomotion](Assets/Game/Scripts/Creatures/Crab/CrabLocomotion.cs), [CrabWaveGait](Assets/Game/Scripts/Creatures/Crab/CrabWaveGait.cs), [CrabClaws](Assets/Game/Scripts/Creatures/Crab/CrabClaws.cs) (150), [CrabClawMotion](Assets/Game/Scripts/Creatures/Crab/CrabClawMotion.cs) | `YawArcStride` + `CrabWaveGait` + `LevelDeckBody` (shell hugs the ground) + `FlatSole`. **Travels across its own nose** — wave runs along X in fore/aft antiphase, derived from `HomeLocal` not leg index. Leg count, swing slots and min-planted all derived at `Bind` |
+| Crab (4–8 legs) | [CrabLocomotion](Assets/Game/Scripts/Creatures/Crab/CrabLocomotion.cs), [CrabWaveGait](Assets/Game/Scripts/Creatures/Crab/CrabWaveGait.cs), [CrabClaws](Assets/Game/Scripts/Creatures/Crab/CrabClaws.cs) (150), [CrabClawMotion](Assets/Game/Scripts/Creatures/Crab/CrabClawMotion.cs) | `YawArcStride` + `CrabWaveGait` + `LevelDeckBody` (shell hugs the ground) + `FlatSole`. **Travels across its own nose** — wave runs along X in fore/aft antiphase, derived from `HomeLocal` not leg index. Leg count, swing slots and min-planted all derived at `Bind`. Also walks the Strider elder (four legs, `lateralSteering` off, `slopeFollow` 0.5) |
 | Horse (quadruped) | [HorseLocomotion](Assets/Game/Scripts/Creatures/Horse/HorseLocomotion.cs), [CanterGait](Assets/Game/Scripts/Creatures/Horse/CanterGait.cs), [HorseSpineMotion](Assets/Game/Scripts/Creatures/Horse/HorseSpineMotion.cs), [HorseRideSpring](Assets/Game/Scripts/Creatures/Horse/HorseRideSpring.cs) | `HipBudgetStride` (per-leg matters: forelegs ≠ hind legs) + `CanterGait` (walk→trot→canter/gallop as one continuous fn of `runBlend`, asymmetric lead + suspension) + flat-tuned `BobbingBody` + `ArticulatedSole`. Neck bounce is a **second-order spring**, not a filter |
 | Humanoid | [HumanoidLocomotion](Assets/Game/Scripts/Creatures/Humanoid/HumanoidLocomotion.cs), [ArmSwing](Assets/Game/Scripts/Creatures/Humanoid/HumanoidArmSwing.cs), [SpineMotion](Assets/Game/Scripts/Creatures/Humanoid/HumanoidSpineMotion.cs) | Same four as the ostrich, every amplitude a fraction of it. First rig with **forward** knees — `BendSign` is measured from the rest pose, nothing selects it. Arms are `Arm_` limbs driven from `LastFrame.Phase` + the legs' own offsets (cannot drift); target is an **arc** about the shoulder |
 | Desert Crawler (hexapod vehicle) | [DesertCrawlerLocomotion](Assets/Game/Scripts/Vehicles/DesertCrawler/DesertCrawlerLocomotion.cs), [WalkerPlatformCarrier](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs) | `YawArcStride` + `RippleGait(swingLegs, minPlanted=3)` + `LevelDeckBody` + `FlatSole`. Statically stable (3 feet down); deck follows ~60% of slope, capped, because riders stand on it |
 
-Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.cs) (adds autoWalk idle), [`CrabDriver`](Assets/Game/Scripts/Creatures/Drivers/CrabDriver.cs), [`HorseDriver`](Assets/Game/Scripts/Creatures/Drivers/HorseDriver.cs), [`HumanoidDriver`](Assets/Game/Scripts/Creatures/Drivers/HumanoidDriver.cs), [`DesertCrawlerDriver`](Assets/Game/Scripts/Vehicles/Drivers/DesertCrawlerDriver.cs) — all thin subclasses of `LeggedDriver`.
+Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.cs) (adds autoWalk idle), [`CrabDriver`](Assets/Game/Scripts/Creatures/Drivers/CrabDriver.cs), [`HumanoidDriver`](Assets/Game/Scripts/Creatures/Drivers/HumanoidDriver.cs), [`DesertCrawlerDriver`](Assets/Game/Scripts/Vehicles/Drivers/DesertCrawlerDriver.cs) — all thin subclasses of `LeggedDriver`. `HorseDriver` was deleted 2026-10-02 (no prefab used it), so the horse rig above has **no driver**: nothing drives `HorseLocomotion` from the agent stack until one is written. The rig itself is kept (live rig work).
 
 ## Flows
 
@@ -98,7 +103,7 @@ Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.c
 **Per frame — `LateUpdate` → `Step(dt)` (order 100):**
 1. **Owning** (`AdvancePath`): advance yaw → resolve the body-space twist onto forward/right → `ApplyClimbGate` (once, on the raw command) → integrate `pathPos` → advance the gait clock by `Pace * dt`. **Followed** (`FollowBody`, `ExternallyPosed`): read the transform, back out `commandedWorldVelocity`/`yawRate` (clamped to `MaxSpeed`), advance the clock. No raycasts.
 2. `PoseBody`: `Survey()` (per planted foot: one ray, is it on ground within `CarryTolerance`; fit the support plane in the yaw frame; accumulate load and `LeanX`) → `bodyMotion.Pose` → `ApplyReachCorrection` (drop the body until every grounded foot is back inside 95% reach) → `UpdateFall` **or** `SettleOnto` → write `body.rotation` and `body.position = pathPos + DisplayOffset`.
-3. `UpdateGait`: re-read each leg's phase offset (continuous in `runBlend`), advance in-flight swings, else test slice-opened **or** `MayStepEarly`; on a new step resolve the foothold (`WalkerGait.Foothold` → `WalkerFoothold.Clamp` → ground sample) and freeze `SwingSpan` at lift-off. Then `UpdateLoad`.
+3. `UpdateGait`: re-read each leg's phase offset (continuous in `runBlend`), advance in-flight swings, else test slice-opened **or** `MayStepEarly`; on a new step resolve the foothold (`WalkerGait.Foothold` → `WalkerFoothold.Clamp` → ground sample) and freeze `SwingSpan` at lift-off. A swing that completes appends a `Footfall` to `Footfalls` (cleared at the top of `UpdateGait`; `StepCount` counts every `Step`). Then `UpdateLoad`.
 4. `SolveLegs`: per leg build the `Frame`, ask `footStyle.SoleNormal`, `WalkerLimbSolver.Solve` + `Apply`; mark `Unreachable` only when `ReachFraction > 1`.
 5. `TrackVelocity`. Subclass components run **after** at 150/160 (`OstrichSpineMotion`, `CrabClaws`, …) and call `SolveArms()` themselves — arms are deliberately not part of `Step`.
 
@@ -106,7 +111,7 @@ Drivers: [`OstrichDriver`](Assets/Game/Scripts/Creatures/Drivers/OstrichDriver.c
 
 ## Multiplayer
 
-- The legs simulate **everywhere**. Only who owns the body transform changes.
+- The legs simulate **everywhere**. Only who owns the body transform changes. So `Footfalls` is filled on every machine, owning or following, and anything answering a step (footfall dust) needs no message.
 - [`NetAuthority`](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs) sets `IExternallyPosed.ExternallyPosed = true` on every non-simulated copy (filtered by `SimulationDrivers.BelongsTo`, so it does not reach a parented rider), and **skips disabling** drivers that implement `IExternallyPosed`.
 - Replicates: the body transform (position + rotation), via the normal entity transform sync. Presented locally: gait phase, footholds, IK, bob/lean, neck/arm motion — all re-derived from measured body motion.
 - Neither switching the locomotion **off** (remote slides with still feet) nor leaving it **on** (it overwrites the wire every `LateUpdate`; a mounted ostrich vanishes out from under its rider) is correct — following is.
@@ -122,6 +127,7 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 
 - **Bind the gait pattern before deriving speeds.** An unbound pattern can report duty 0 → `MaxSpeed` 0 → `SetTwist` clamps everything to 0 → the distance-driven clock stops → no slice reopens. Dead machine, no error. (Invariant I1; cost a session on the crawler.)
 - **You cannot move a walker by writing its transform.** `pathPos` overwrites it next frame — silently. Teleports, respawns, save restores and portals must go through `ITeleportAware.OnTeleported`, which rebases path, footholds, normals, swing arcs and arm targets by the same rigid transfer. A **rope** goes through `Drag` instead (below); a leash writing `Rigidbody.MovePosition` moved a towed ostrich not at all.
+- **A machine carried with its locomotion switched off resumes through `ResumeFromCarry`.** A seat (the Strider elder's standing post, `StandingRider`) disables the component so it stops writing the body; re-enabled, its path and feet are still where it was picked up. `ResumeFromCarry` resets the body state from the transform and snaps to the ground (a followed copy only regrounds its feet).
 - **`Drag` moves the path and deliberately NOT the footholds** — that is the whole difference from `OnTeleported`. A transfer carries the feet so the machine arrives in the stance it left; a tow leaves them, because they are still on the ground it is being hauled across, and the over-reach is what makes the legs step rather than skate. `BodyPosition` reads `pathPos`, not the transform, because the transform is only this class's last output.
 - **`ITowable` cannot be implemented here.** It lives in the default assembly and no asmdef may reference it — the same rule that put `LeggedDriver` outside `SpaceGame.Locomotion`. The driver implements it and calls `Drag`, capped at `MaxSpeed` so a rope drags an animal no faster than it could walk. A **thruster** (`RequestThrust`) takes the same road: a booster strapped to a walker sets a direction and the gait sets the speed, so it hauls the machine flat out rather than launching it. See [LeashSystem.md](LeashSystem.md) and [StrapOnBooster.md](StrapOnBooster.md).
 - **Ground probes ignore non-kinematic Rigidbodies** (`WalkerGround.IsLooseBody`). A player standing on the crawler deck was read as ground: deck rises → carrier lifts the rider → probe finds them higher → the machine climbs into the sky. Only ever in the middle of the deck, where the single central ray is.
@@ -132,6 +138,9 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 - **Climb limits:** `maxClimbAngle` (35° default) is deliberately below the NavMesh bake slope limit. Refusal needs a *sustained grade* over the run **or** one segment that is both too steep and rises more than `stepUpHeight` (the tallest single leg lift — not leg reach, or a machine steps onto things taller than itself). Yaw is never gated, reverse probes behind, downhill is never gated — those three are what keep the gate from latching. Missing ground is **never** a refusal (unloaded chunk ≠ void); likewise a fall needs `hasGround && carrying == 0 && above the threshold`.
 - **Foothold clamp:** horizontal-only, and against the hip **at touchdown**. Clamping the 3D vector lifts the foothold off the ground and the machine levitates; clamping against the current hip drags every step short into a thrash.
 - **Don't add a `LateUpdate` to a subclass** — it hides the base's and the machine stops walking. Use a separate component at order 150+ (`CrabClaws` is the model).
+- **`NavPathFollower` copies its tunables when built.** `LeggedDriver` builds it lazily from `route` and `OnValidate` drops it, so an Inspector edit rebuilds it on the next tick. It is lazy rather than built in `Awake` because `AddComponent` in an EditMode test raises no `Awake`, and the old inline code tolerated a pre-`Awake` tick. Its `NavMeshPath` is created on first route for the same reason the old field was built in `Awake`: the constructor is native and forbidden during deserialisation.
+- **Builders write the route as `route.<field>`.** The four fields were flat on `LeggedDriver` until 2026-09-25; the six prefabs holding them were migrated in YAML (values unchanged). A builder still writing `"cornerArriveRadius"` gets `FindProperty` null — both `CrabWalkerBuilder` and `SerializedFields` only log a warning — and the value silently stays at the default.
+- **`Footfalls` is read, never raised as an event,** so nothing outside the gait runs inside the gait loop and a throwing reader cannot leave a frame's legs half-updated. Read it from a component ordered after 100 (`FootfallDust` is 150) and compare `StepCount` with the last one you saw: the list is only valid until the next `Step`, and a disabled locomotion leaves the old one standing. A machine at rest may settle one leg with a real step on its first frame; after that, standing still lands nothing.
 - `IsFalling`, `ClimbBlocked`/`ClimbScale` and `LastFrame` (`Diagnostics`) are the outside view; `ClimbBlocked` is only true while something is *asking* the machine to move.
 
 ## Extending

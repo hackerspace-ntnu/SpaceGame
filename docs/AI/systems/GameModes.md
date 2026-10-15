@@ -9,6 +9,7 @@ paths:
   - Assets/Game/ScriptableObjects/Versus/VersusShipSpawnConfig.asset
 symptoms:
   - "the team ship spawns for the host and nobody else can see it"
+  - "in a disposable session the oxygen plant is never thrown out and the oxygen quest step never comes"
   - "players land inside the wrong team's ship or on top of each other"
   - "the host can pick 8 teams of 12 in a 24-seat lobby"
   - "the second match starts on the previous match's spawn ring"
@@ -18,7 +19,7 @@ symptoms:
   - "pressing F5 in a disposable session says the save was ignored"
   - "a disposable session's ship is standing on the ground already with no descent or blackout"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-09-26
+updated: 2026-10-06
 ---
 
 # Game Modes
@@ -57,6 +58,7 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 | `ShipRespawn` | [Game/Spawning/ShipRespawn.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) | Static resolver: a dead player comes back inside their own ship — team ship in VS, the crew hull otherwise; refuses rather than pick a wrong hull |
 | `RespawnRelease` | [Game/Spawning/RespawnRelease.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/RespawnRelease.cs) | `Everything(body)`: `CuttableRopes.CutEveryRopeOn` + `SnareCatch.Holding(...).FreeEverywhere` + `Hogtie.Untie` + `StatusReceiver.ClearAll`. Called by every respawn path, before the teleport |
 | `ShipGrounding` / `ShipSeat` | [Versus/Runtime/](Assets/Game/Scripts/Gameplay/Versus/Runtime) | Heightmap-first ground probe, raised onto anything standing on the terrain when it is a HULL being landed (`TryResolveLandingSurface` — see [PlayerShip](PlayerShip.md)); seat markers (ordered, component not name) |
+| `LevelGroundSearch` / `HullFootprint` | [Versus/Core/LevelGroundSearch.cs](Assets/Game/Scripts/Gameplay/Versus/Core/LevelGroundSearch.cs), [HullFootprint.cs](Assets/Game/Scripts/Gameplay/Versus/Core/HullFootprint.cs) | Pure flatness: `HullFootprint.Measure` takes nine injected ground samples (centre, mid-edges, corners) and reports the spread; `LevelGroundSearch.TryFind` walks rings of 8 round a preferred point and takes the first spot within `maxSpread`, else settles for the flattest (the ship must land somewhere) — the overload with `out bool level` says which it was; `TryFindFlattest(candidates, …)` takes the flattest of an explicit list within `maxSpread`, ties to the earlier, else false. Also used by the Strider city's start and stops ([Striders.md](Striders.md)); `ShipLandingTests` pins the ship's results, `StriderCityLevelGroundTests` the rest |
 | `RankLayout` | [Versus/Core/RankLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankLayout.cs) | Lobby rank geometry: seat spacing, 4-wide seat wrap, **4-wide team wrap on a shared half-pitch lattice**, team gap, two-axis camera fit, eye lift |
 | `RankGrounding` | [Versus/Core/RankGrounding.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankGrounding.cs) | Drops the flat seats onto the ground through an injected probe; reports the height spread the camera frames |
 | `RankOverlayScale` | [Versus/Core/RankOverlayScale.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankOverlayScale.cs) | Projected spacing to font size + label rung; the floor rung is still a word, never a bare colour |
@@ -77,7 +79,7 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 
 **Spawn / respawn** — `SpawnManager.SpawnPlayerForClient` ensures the default faction, then `SpawnAsPlayerObject`. Respawn is a **state change on the living object** (`SetActive`, `ResetToFull`, re-enable `EntityFaction` + `AgentController`), never despawn/respawn. Movement is routed by `TeleportRpc` to the **owner** because the player's `NetworkTransform` is owner-authoritative.
 
-**Start a disposable session** — `MainMenuUI.StartDisposable` calls `WorldSession.StageNew("Disposable", worldConfig, disposable: true)` and enters the world exactly like singleplayer does — no `WorldSelectUI`, no typed name, because there is no file to name. In the world, `NetworkGameManager`'s spawn coroutine sees `WorldSession.Disposable` and calls `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` *before* its `IsPending` check: that measures the same landing spot `EnsureStoryFlight` would have flown a descent onto (`ShipGrounding.TryResolveHullLanding`), spawns the ship prefab straight there with `HasArrived` set true, and the existing `IsPending` check then reads false for every client — so the ordinary "arrival already happened" path spawns everyone on the ground beside a ship that looks like it has been sitting there the whole session.
+**Start a disposable session** — `MainMenuUI.StartDisposable` calls `WorldSession.StageNew("Disposable", worldConfig, disposable: true)` and enters the world exactly like singleplayer does — no `WorldSelectUI`, no typed name, because there is no file to name. In the world, `NetworkGameManager`'s spawn coroutine sees `WorldSession.Disposable` and calls `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` *before* its `IsPending` check: that measures the same landing spot `EnsureStoryFlight` would have flown a descent onto (`ShipGrounding.TryResolveHullLanding`), spawns the ship prefab straight there with `HasArrived` set true and raises `ArrivalDirector.HullLanded` for it exactly as a touchdown does (so the crash's oxygen beat — the plant thrown out, its quest step, a cabin with no air — happens here too; see [Oxygen](Oxygen.md)), and the existing `IsPending` check then reads false for every client — so the ordinary "arrival already happened" path spawns everyone on the ground beside a ship that looks like it has been sitting there the whole session.
 
 ## Multiplayer
 

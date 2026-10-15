@@ -114,6 +114,21 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// The farthest from the leader any of the first <paramref name="followers"/> followers' slots
+        /// can be, with every member's fixed offset and drift at its extreme. A follower's
+        /// regroupDistance must exceed this, or at its own slot it counts as separated and rides for
+        /// the leader instead.
+        /// </summary>
+        public static float FarthestSlot(int followers, in FormationShape shape)
+        {
+            FormationShape s = shape.Sanitised();
+            float farthest = 0f;
+            for (int i = 0; i < followers; i++)
+                farthest = Mathf.Max(farthest, SlotOffset(i, in s).magnitude);
+            return farthest + s.LateralJitter + s.LongitudinalJitter + 2f * s.DriftAmplitude;
+        }
+
+        /// <summary>
         /// The world position follower <paramref name="followerIndex"/> should be heading for.
         ///
         /// <paramref name="memberSeed"/> must be stable for the lifetime of the member — it is what
@@ -166,6 +181,14 @@ namespace SpaceGame.Agents
             float excess = distanceToSlot - Mathf.Max(0f, tolerance);
             return Mathf.Clamp(1f + excess * gain, minimum, maximum);
         }
+
+        /// <summary>
+        /// Whether a follower steers for its marching slot (true) or the rest ring (false). A
+        /// follower that holds its slot at rest keeps the column's shape when the leader stops,
+        /// which is what machines too big to bunch up need: the rest ring put two walking houses
+        /// 17 m apart with their decks through each other.
+        /// </summary>
+        public static bool UseMarchSlot(bool leaderMoving, bool holdSlotAtRest) => leaderMoving || holdSlotAtRest;
 
         /// <summary>Deterministic 0..1 from two integers. No allocation, no UnityEngine.Random state.</summary>
         public static float Hash01(int seed, int salt)

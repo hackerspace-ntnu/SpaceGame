@@ -1,0 +1,138 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5759050104942942113
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8445816429680129776, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: prefabId
+      value: 6a48438d32a094b2d94d1e17cb67fae0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1959888865734284470, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: faction
+      value: 
+      objectReference: {fileID: 11400000, guid: acfac6dcc51034e60915d44e81aa5710, type: 2}
+    - target: {fileID: 2989735721998109085, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: wanderRadius
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2989735721998109085, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: sampleDistance
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2989735721998109085, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: limitWanderRadius
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2989735721998109085, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: onlyReachableDestinations
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5356867928903480562, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601848853723740563, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8940832018371814185, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      propertyPath: m_Name
+      value: DuneRat_Penned
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8940832018371814185, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2438273443696588526}
+    - targetCorrespondingSourceObject: {fileID: 8940832018371814185, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1206130331056563253}
+  m_SourcePrefab: {fileID: 100100000, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+--- !u!1 &3744873757688296584 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8940832018371814185, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
+  m_PrefabInstance: {fileID: 5759050104942942113}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2438273443696588526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3744873757688296584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2dd9811b69a34a4c83ca0e719373f3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ProvocationModule
+  leashRange: 45
+  calmDownDelay: 60
+  damageThreshold: 0
+  aggressionSettings:
+    hitGain: 1200
+    allyHurtGain: 40
+    gunshotGain: 15
+    menaceGainPerSecond: 20
+    menaceRange: 12
+    menaceDelay: 1.5
+    trespassGainPerSecond: 10
+    calmRate: 10
+    attackAt: 100
+    jostlesToFight: 0
+    settleSeconds: 0
+  drawGizmos: 1
+--- !u!114 &1206130331056563253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3744873757688296584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f973ce6d55ea34d689c807b2b5dc8f26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ProvocationSaveable

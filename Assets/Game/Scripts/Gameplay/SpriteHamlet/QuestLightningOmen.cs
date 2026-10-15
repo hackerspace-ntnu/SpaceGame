@@ -40,17 +40,25 @@ namespace SpaceGame.Gameplay.SpriteHamlet
         private void OnEnable()
         {
             director = ObjectiveDirector.Instance;
-            if (director != null) director.Changed += OnChanged;
+            if (director != null)
+            {
+                director.Started += OnChanged;
+                director.Changed += OnChanged;
+            }
         }
 
         private void OnDisable()
         {
-            if (director != null) director.Changed -= OnChanged;
+            if (director != null)
+            {
+                director.Started -= OnChanged;
+                director.Changed -= OnChanged;
+            }
         }
 
-        private void OnChanged(ObjectiveRun run, bool live)
+        private void OnChanged(Quest quest, bool live)
         {
-            if (!arrival.Notice(run, live, chain, onStep)) return;
+            if (!arrival.Notice(quest, live, chain, onStep)) return;
             if (!QuestSite.TryGet(siteId, out Vector3 site, out _)) return;
 
             LightningStrike.Present(boltPrefab, site + Vector3.up * drawHeight, site, boltLifetime);

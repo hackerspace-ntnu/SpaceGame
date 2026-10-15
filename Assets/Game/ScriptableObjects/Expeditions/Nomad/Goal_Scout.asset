@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b839e34b0c3684db99031b7f52d355be, type: 3}
+  m_Name: Goal_Scout
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.ExpeditionGoal
+  id: scout
+  displayName: scouting
+  weight: 3
+  slots:
+  - role: 1
+    min: 2
+    max: 2
+    any: 0
+    fillFromAnyAdult: 0
+  - role: 4
+    min: 1
+    max: 2
+    any: 0
+    fillFromAnyAdult: 1
+  stages:
+  - kind: 0
+    minutesRange: {x: 0, y: 0}
+    countRange: {x: 0, y: 0}
+  - kind: 1
+    minutesRange: {x: 240, y: 480}
+    countRange: {x: 3, y: 5}
+  - kind: 2
+    minutesRange: {x: 0, y: 0}
+    countRange: {x: 0, y: 0}
+  - kind: 0
+    minutesRange: {x: 0, y: 0}
+    countRange: {x: 0, y: 0}
+  - kind: 1
+    minutesRange: {x: 240, y: 480}
+    countRange: {x: 3, y: 5}
+  - kind: 2
+    minutesRange: {x: 0, y: 0}
+    countRange: {x: 0, y: 0}
+  - kind: 3
+    minutesRange: {x: 0, y: 0}
+    countRange: {x: 0, y: 0}
+  kits:
+  - role: 1
+    kit: {fileID: 11400000, guid: 5cc19b02402594acfaa7427346e81396, type: 2}
+  - role: 4
+    kit: {fileID: 11400000, guid: 906a6a66ef2004da6894f9d892567ab4, type: 2}

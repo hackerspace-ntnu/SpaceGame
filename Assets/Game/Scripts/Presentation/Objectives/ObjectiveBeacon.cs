@@ -5,7 +5,7 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// A column of light standing over whatever the focused objective has left lying in the open —
+    /// A column of light standing over whatever the current objective has left lying in the open —
     /// the module from the wreck, the artifact thrown clear — so it can be picked out from the
     /// ramp a hundred metres away.
     ///
@@ -16,7 +16,7 @@ namespace SpaceGame.Presentation
     /// proper smoke plume or distress flare.
     /// </para>
     /// <para>
-    /// Per machine, drawn from <see cref="ObjectiveStep.TryGetBeacon"/> every frame. The item it
+    /// Per machine, drawn from the active quest's (<see cref="QuestLog.Active"/>) <see cref="ObjectiveStep.TryGetBeacon"/> every frame. The item it
     /// marks replicates on its own, so the column follows it with nothing added to the wire, and
     /// goes out the moment somebody picks it up.
     /// </para>
@@ -79,11 +79,12 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            ObjectiveRun run = ObjectiveDirector.Instance != null ? ObjectiveDirector.Instance.Focused : null;
-            ObjectiveStep step = run?.Current;
+            // The active quest only: a column for every quest would leave the player choosing between lights.
+            Quest quest = QuestLog.Active as Quest;
+            ObjectiveStep step = quest?.Current;
 
             Vector3 at = default;
-            bool shown = step != null && step.TryGetBeacon(run.World, out at);
+            bool shown = step != null && step.TryGetBeacon(quest.World, out at);
 
             if (column.gameObject.activeSelf != shown) column.gameObject.SetActive(shown);
             if (shown) Place(at);

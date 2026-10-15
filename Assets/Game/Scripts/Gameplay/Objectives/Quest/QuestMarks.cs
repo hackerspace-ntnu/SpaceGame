@@ -1,4 +1,3 @@
-using System;
 using SpaceGame.Core;
 using UnityEngine;
 
@@ -24,10 +23,9 @@ namespace SpaceGame.Gameplay.Objectives
     }
 
     /// <summary>
-    /// SERVER: the one place quest-relevant happenings are announced. The director records each one
-    /// into every active run's <see cref="ObjectiveWorld"/>, where a step reads it — the same shape
-    /// as <c>UseChannel.UsedOnServer</c>, so a step never subscribes to anything itself and stays a
-    /// stateless asset.
+    /// SERVER: the one place quest-relevant happenings are announced. Each one is recorded against every
+    /// unfinished quest's current step (<see cref="QuestStepMemory"/>), where a step reads it with
+    /// <c>world.HasMark</c> — so a step never subscribes to anything itself and stays a stateless asset.
     ///
     /// <para>
     /// A mark counts only for the step that is current when it lands: the per-step memory is wiped
@@ -37,8 +35,6 @@ namespace SpaceGame.Gameplay.Objectives
     /// </summary>
     public static class QuestMarks
     {
-        public static event Action<QuestMark, string> RaisedOnServer;
-
         public static void Raise(QuestMark mark, string id)
         {
             if (!Network.Decides)
@@ -49,7 +45,7 @@ namespace SpaceGame.Gameplay.Objectives
 
             if (string.IsNullOrEmpty(id)) return;
 
-            RaisedOnServer?.Invoke(mark, id);
+            QuestStepMemory.Record(mark, id);
         }
     }
 }

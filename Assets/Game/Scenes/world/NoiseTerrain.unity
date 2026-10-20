@@ -683,6 +683,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 4233280692
       objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 30251544
+      objectReference: {fileID: 0}
     - target: {fileID: 2222042421950433602, guid: 97c27ca5afc2b440ea8dbf6236ebb85a, type: 3}
       propertyPath: home
       value: 
@@ -1800,6 +1808,14 @@ PrefabInstance:
     - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 613538715
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
       objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
@@ -3709,7 +3725,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -4758,6 +4774,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1362637808
       objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 945875e2c9c034aca8157a89589e2e6f, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 945875e2c9c034aca8157a89589e2e6f, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2166386945
+      objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 945875e2c9c034aca8157a89589e2e6f, type: 3}
       propertyPath: home
       value: 
@@ -5321,6 +5345,54 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8360403973686042300, guid: dd4b11f6cf59949beb48396923bbb366, type: 3}
   m_PrefabInstance: {fileID: 135656905}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &136561793
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 136561795}
+  - component: {fileID: 136561794}
+  m_Layer: 0
+  m_Name: BountyHuntSite_NimQuickhands
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &136561794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136561793}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf5f164c06a48491ab80df455b601033, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSite
+  hunt: {fileID: 11400000, guid: 5e297cfd233cf438cb6bf677096ecc17, type: 2}
+--- !u!4 &136561795
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136561793}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.8658131, z: 0, w: 0.5003676}
+  m_LocalPosition: {x: 1906, y: 52.61322, z: 1038}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1295806487}
+  - {fileID: 637209181}
+  - {fileID: 971692685}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &138788987
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6399,6 +6471,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 3096095152
       objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3812410787
+      objectReference: {fileID: 0}
     - target: {fileID: 2243987187919898470, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
       propertyPath: m_LocalPosition.x
       value: -53.365112
@@ -6649,6 +6729,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3402236541
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 704464487
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: b1a441d697d7244e5a2d03264d70e8fd, type: 3}
       propertyPath: home
@@ -8981,6 +9069,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 2043015133
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -9794,7 +9890,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -12985,6 +13081,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 2673550877
       objectReference: {fileID: 0}
+    - target: {fileID: 5782536557711457336, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5782536557711457336, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1760299038
+      objectReference: {fileID: 0}
     - target: {fileID: 6407891634087927378, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       propertyPath: m_LocalPosition.x
       value: 146.81567
@@ -13101,7 +13205,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -13292,6 +13396,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1095660472
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 264447634
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
       propertyPath: home
@@ -13634,6 +13746,14 @@ PrefabInstance:
     - target: {fileID: 2047570095979263502, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 32929355
+      objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2047570095979263502, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3812410787
       objectReference: {fileID: 0}
     - target: {fileID: 2243987187919898470, guid: 6eabcf8a2c144405e9b53c006afa32cc, type: 3}
       propertyPath: m_LocalPosition.x
@@ -14064,7 +14184,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -15593,7 +15713,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -16375,6 +16495,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 484154382
       objectReference: {fileID: 0}
+    - target: {fileID: 2940591562934363092, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2940591562934363092, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3652857583
+      objectReference: {fileID: 0}
     - target: {fileID: 6529976249661798213, guid: 192105a79d9644a9ba3346e28a99c798, type: 3}
       propertyPath: authored
       value: 1
@@ -16448,6 +16576,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3783939968
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 29704430
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: ebeb475745d3c4a28afbacf713f00555, type: 3}
       propertyPath: home
@@ -16790,6 +16926,14 @@ PrefabInstance:
     - target: {fileID: 5782536557711457336, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1283536869
+      objectReference: {fileID: 0}
+    - target: {fileID: 5782536557711457336, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5782536557711457336, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1760299038
       objectReference: {fileID: 0}
     - target: {fileID: 6407891634087927378, guid: 562a63fecff42411a8fa6015a4cc0d56, type: 3}
       propertyPath: m_LocalPosition.x
@@ -18748,6 +18892,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 380443302
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 264447634
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: c87391b23c12d4857bc382aa3edc3668, type: 3}
       propertyPath: home
@@ -22502,6 +22654,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5187697466946539238, guid: 4e4dd8b8dd4884984aa688bbae89ecec, type: 3}
   m_PrefabInstance: {fileID: 634836656}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &637209180
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 637209181}
+  - component: {fileID: 637209182}
+  m_Layer: 0
+  m_Name: Spot_Guard_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &637209181
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 637209180}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6.0000367, y: -0.29164886, z: 4.0000257}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 136561795}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &637209182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 637209180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c8f1b98a3d4980a996d7b8870fd79f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSpot
+  spotTag: guard
+  use: {fileID: 0}
+  mode: 2
+  wanderRadius: 8
+  holdRadius: 1.5
+  checkSeconds: 0.5
 --- !u!1001 &638511127
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23060,6 +23262,8 @@ GameObject:
   m_Component:
   - component: {fileID: 659131109}
   - component: {fileID: 659131108}
+  - component: {fileID: 659131111}
+  - component: {fileID: 659131110}
   m_Layer: 0
   m_Name: settlement
   m_TagString: Untagged
@@ -74862,6 +75066,40 @@ Transform:
   - {fileID: 521963933}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &659131110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659131107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 3cea8227286b46cb9268a712a3568264
+  authored: 1
+  scope: 1
+--- !u!114 &659131111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659131107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cf5513ceefb4a63b74046aef1ee9cd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.SettlementBounties
+  townFaction: {fileID: 0}
+  entries:
+  - hunt: {fileID: 11400000, guid: 5e297cfd233cf438cb6bf677096ecc17, type: 2}
+    offeredWhen: 0
+    afterClaimed: {fileID: 0}
+    minGoodwill: 0
 --- !u!1001 &661518522
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -77876,6 +78114,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1197689141
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -79334,7 +79580,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -84205,6 +84451,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1746732010
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -84406,6 +84660,14 @@ PrefabInstance:
     - target: {fileID: 7522138315426747497, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3178724181
+      objectReference: {fileID: 0}
+    - target: {fileID: 7522138315426747497, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7522138315426747497, guid: ea0d7a7c48707469cac37e8ee09deb3a, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1693935576
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -84990,6 +85252,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 574008350
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -85180,7 +85450,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -85484,6 +85754,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1171739856516771735, guid: fdbbb06ae8d8e491b8336ea353453ceb, type: 3}
   m_PrefabInstance: {fileID: 971461718}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &971692684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 971692685}
+  - component: {fileID: 971692686}
+  m_Layer: 0
+  m_Name: Spot_Guard_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &971692685
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971692684}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.000038, y: 0.3917694, z: 4.000024}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 136561795}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &971692686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971692684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c8f1b98a3d4980a996d7b8870fd79f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSpot
+  spotTag: guard
+  use: {fileID: 0}
+  mode: 2
+  wanderRadius: 8
+  holdRadius: 1.5
+  checkSeconds: 0.5
 --- !u!1001 &974656320
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -86706,6 +87026,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 3341942366
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -87467,6 +87795,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: 600a297774679412697efb8407ef232b, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1951025527
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 600a297774679412697efb8407ef232b, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 600a297774679412697efb8407ef232b, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2323023342
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 600a297774679412697efb8407ef232b, type: 3}
       propertyPath: home
@@ -88363,6 +88699,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 4017059408
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -88971,6 +89315,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2659469042
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3039085458
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 9e7fd6836c1eb4625a847a487fc6ea96, type: 3}
       propertyPath: home
@@ -90558,7 +90910,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -96761,6 +97113,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 3582883559
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -97363,7 +97723,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -97563,6 +97923,14 @@ PrefabInstance:
     - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 4232204917
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
       objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
@@ -97972,6 +98340,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8360403973686042300, guid: dd4b11f6cf59949beb48396923bbb366, type: 3}
   m_PrefabInstance: {fileID: 1292465918}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1295806486
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1295806487}
+  - component: {fileID: 1295806488}
+  m_Layer: 0
+  m_Name: Spot_Hideout
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1295806487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295806486}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.00000035762787, y: -0.042678833, z: -3.0000188}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 136561795}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1295806488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295806486}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c8f1b98a3d4980a996d7b8870fd79f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSpot
+  spotTag: hideout
+  use: {fileID: 0}
+  mode: 0
+  wanderRadius: 8
+  holdRadius: 1.5
+  checkSeconds: 0.5
 --- !u!1001 &1298894643
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -97983,6 +98401,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: 172915b40f756480a9df328461e89868, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1650615281
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 172915b40f756480a9df328461e89868, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 172915b40f756480a9df328461e89868, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3869982711
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 172915b40f756480a9df328461e89868, type: 3}
       propertyPath: home
@@ -99165,6 +99591,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 3942273340
       objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: ffd6ce667ab644930862dfe31068fb15, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: ffd6ce667ab644930862dfe31068fb15, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3501574617
+      objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: ffd6ce667ab644930862dfe31068fb15, type: 3}
       propertyPath: home
       value: 
@@ -99447,6 +99881,14 @@ PrefabInstance:
     - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1284877886
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
       objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
@@ -102215,6 +102657,14 @@ PrefabInstance:
     - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1188883911
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
       objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
@@ -106181,147 +106631,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8460078736975120979, guid: 3e5d1f7b5189b45c197d45dd7a94127f, type: 3}
   m_PrefabInstance: {fileID: 1545959990}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1547187886
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: authored
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: instanceId
-      value: 76e98e9f21f2416a83e5897cca0f9f15
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655368, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: beamProbeRays
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655368, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: debugDrawRays
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655368, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: longThrowFalloff
-      value: 0.01
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655368, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: beamHitMask.m_Bits
-      value: 951
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655368, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: longThrowIntensity
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655369, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_Range
-      value: 1000
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655369, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_Intensity
-      value: 50
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655369, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_SpotAngle
-      value: 58.94619
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655369, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_InnerSpotAngle
-      value: 11.538116
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655369, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_Shadows.m_Strength
-      value: 0.505
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655370, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.46
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655370, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.26
-      objectReference: {fileID: 0}
-    - target: {fileID: 3379835115757655370, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.23
-      objectReference: {fileID: 0}
-    - target: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_Name
-      value: PlayerCharacter
-      objectReference: {fileID: 0}
-    - target: {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: startingItems.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: 'startingItems.Array.data[0]'
-      value: 
-      objectReference: {fileID: 11400000, guid: a8ed2d0bd649a40a689b18f4aea02731, type: 2}
-    - target: {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: 'startingItems.Array.data[1]'
-      value: 
-      objectReference: {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
-    - target: {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: 'startingItems.Array.data[2]'
-      value: 
-      objectReference: {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
-    - target: {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: 'startingItems.Array.data[3]'
-      value: 
-      objectReference: {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1437.191
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 59.559772
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 735.6395
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 9193306300937618076, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &1547534148
 GameObject:
   m_ObjectHideFlags: 0
@@ -106376,7 +106685,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -106976,6 +107285,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 2329284148
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -107144,6 +107461,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: d331d99758b16401aa91335195d00b8f, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2113277722
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: d331d99758b16401aa91335195d00b8f, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: d331d99758b16401aa91335195d00b8f, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4261525559
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: d331d99758b16401aa91335195d00b8f, type: 3}
       propertyPath: home
@@ -108465,7 +108790,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -114649,6 +114974,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1730810992
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -115693,7 +116026,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -117022,6 +117355,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 2809860677
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 2477563995
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 26de078b165624b48bab903240fa9b2c, type: 3}
       propertyPath: home
@@ -119013,6 +119354,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 1238353251
       objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412971555672662867, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4228971925
+      objectReference: {fileID: 0}
     - target: {fileID: 3744873757688296584, guid: 6a48438d32a094b2d94d1e17cb67fae0, type: 3}
       propertyPath: m_Name
       value: DuneRat_Penned
@@ -119306,7 +119655,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -119856,6 +120205,14 @@ PrefabInstance:
     - target: {fileID: 412316941071413429, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 3232155846
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3250575084
       objectReference: {fileID: 0}
     - target: {fileID: 4802491617651242581, guid: 42b14c93f650343d9904c00262437ec4, type: 3}
       propertyPath: home
@@ -124802,7 +125159,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 0
@@ -125557,7 +125914,6 @@ SceneRoots:
   - {fileID: 804007714}
   - {fileID: 334534203}
   - {fileID: 738215346}
-  - {fileID: 1547187886}
   - {fileID: 1382472944}
   - {fileID: 1206809181}
   - {fileID: 497741048}
@@ -125566,3 +125922,4 @@ SceneRoots:
   - {fileID: 535313511}
   - {fileID: 344692993}
   - {fileID: 590254009}
+  - {fileID: 136561795}

@@ -12,6 +12,7 @@ paths:
   - Assets/Game/Scripts/World/Bounties/BountyHuntRunState.cs
   - Assets/Game/Scripts/World/Bounties/BountyNoticeBoard.cs
   - Assets/Game/Prefabs/Environment/Decorations/Civic/Deco_NoticeBoard.prefab
+  - Assets/Game/Editor/Posters/WallPosterSpots.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/BountySaveable.cs
   - Assets/Game/Scripts/Presentation/UI/Pages/IPosterOffer.cs
   - Assets/Game/Editor/Posters/BountyHuntRecorder.cs
@@ -21,6 +22,8 @@ symptoms:
   - "reading a wanted poster offers no bounty, or Y does nothing"
   - "the poster says Not yet"
   - "the town's notice board shows no wanted poster"
+  - "a building has no wanted poster on its walls"
+  - "Stamp Settlement Identity or Bake Site Catalog skips the Spillexo settlement"
   - "a hunt can be taken or handed in at the wrong settlement"
   - "residents never say anything about the bounty when I talk to them"
   - "every resident gives the same tip"
@@ -45,8 +48,8 @@ symptoms:
   - "a hunt that expired in an old save is offered again"
   - "[Bounties] ... spawned without a save identity"
   - "[Bounties] ... owns hunts but has no settlement id"
-reads_with: [WantedPosters, Residents, ResidentReputation, Objectives, Multiplayer, Persistence, Combat, LeashSystem, AgentSystem]
-updated: 2026-10-15
+reads_with: [WantedPosters, Residents, ResidentReputation, Objectives, Multiplayer, Persistence, Combat, LeashSystem, AgentSystem, Expeditions]
+updated: 2026-10-20
 ---
 
 # Bounties
@@ -86,7 +89,7 @@ is **no** failure: the hunt carries on as it stands.
 | `BountyHuntSite` / `BountyHuntSpot` | Scenery markers. The site's `Update` asks `WantsCastAt` → `SpawnCast` (server). The spot holds its `use` cue on whoever idles on it, on every machine |
 | `BountyNetwork` | Beside `ObjectiveNetwork`: `NetworkVariable<BountyProgress>`, `NetworkList<int>` (claimed), `TakeRpc` |
 | `BountySaveable` / `BountyHuntRecorder` (editor) | Global saver, key `bounties` / `sceneSaved` → `RecordSite` per site, `RecordOwner(SettlementId)` per owned hunt |
-| `BountyNoticeBoard` | On `Deco_NoticeBoard` (in `NomadMarketPlaza`): every `refreshSeconds` hangs its `Settlement`'s posters in `slots` — the open hunt, then offers newest first (later in `entries`), then claimed ones most recent first. Local, nothing saved |
+| `BountyNoticeBoard` | On `Deco_NoticeBoard` (in `NomadMarketPlaza`, three in `NomadShrinePlaza`) and on a building's `WallPosters` child (slots on its outer walls): every `refreshSeconds` hangs its `Settlement`'s posters in `slots` — the open hunt, then offers newest first (later in `entries`), then claimed ones most recent first. One hunt = one poster per board, in slot 1. Local, nothing saved. Wall slots come from `WallPosterSpots` (editor, *Tools ▸ SpaceGame ▸ Posters ▸ Add Wall Poster Spots (Selected Buildings)*): up to 3 per prefab on its `Model` renderers — upright, flat over a whole sheet, one non-cloth material, a stride clear in front, ≥ 3 m from every `SettlementEntrance`, ≥ 5 m apart, centred 2.0–2.6 m up — nearest the first entrance first. Adds only |
 | `BountyPosters` | Prompt, in order: claimed → nothing; this hunt open → taken; another open → finish it; owner does not offer it (or is not loaded) → `NOT YET`; else `Y: TAKE THIS BOUNTY`. Stamp object `BountyStamp` (CLAIMED), shown or hidden on `RestampAll` |
 | `IPosterOffer` / `PosterViewerUI` | The offer read by the full-screen viewer: `Prompt`, `Stamp`, `StampColour`, `CanTake`, `Take` |
 | `BountyObjective` | Visor: search area round `progress.Site`, then the target; while `OutsideFor > 0` "Out of bounds: return within N s" and the town as waypoint. `FailedLine(failure)`: "Bounty failed: … The hunt starts over" |
@@ -159,7 +162,8 @@ in the catalog is dropped with a warning. Round trips, old formats included, in 
   index. A combat target is server-only, so on a client a guard shooting without moving may keep its loop.
 - **Cast prefabs must have no goal writer of their own** (`NpcTaskModule`, a resident routine): it fights the posts.
 - **Spot keys are positional**: reordering spots under a site while a hunt is open moves pieces after a load.
-- **Never hand-place a hunt's poster for the owning town**: its `BountyNoticeBoard` (under the `Settlement`) hangs it.
+- **Never hand-place a hunt's poster for the owning town**: its `BountyNoticeBoard`s (notice boards and every building's `WallPosters`, under the `Settlement`) hang it. Listing the hunt in `SettlementBounties.entries` is the whole step. **Wall spots live on the building PREFABS**, so every town built from them pastes its own hunts on its walls, Story towns included (none without `SettlementBounties`). 15 nomad buildings carry 1–3 (2026-10-20); open yards, tents and plazas found none; a prefab with a board is skipped and a re-run never moves a spot (delete `WallPosters` to search again). Search renderers, never colliders: `Collision` is hulls and ramps standing proud of the painted wall.
+- **A single-scene world (Spillexo) reaches the editor tools through its `GameWorld`**: `WorldChunkScenes.ScenePaths` returns a chunk-less config's one scene, so *Stamp Settlement Identity*, *Bake Site Catalog* and `EveryHuntsSite_IsInsideItsOwnersBounds` see `NoiseTerrain`. Before 2026-10-20 they read no scene: the settlement had no id and its hunt could never be taken.
 - **`BountyTarget.Release` disables before `Destroy(this)`**, or that frame's `Update` stops the `Remains` countdown.
 - **`pendingDespawn` outlives the hunt** (`FreshRun` carries it): dropping it brings a restarted or claimed hunt's
   people back when their chunk loads.
@@ -183,17 +187,16 @@ in the catalog is dropped with a warning. Round trips, old formats included, in 
   not (the hunt is closed before clients resolve them). `Favor.IsHarm` is an explicit list: handing in is kind.
 - **The corpse drag is the rope's job (LeashSystem).** The bounty only keeps the body (`Remains` held off), saved.
 - **Triggers and actions (Phase 2) must be stateless**: state lives in the run state or the entities, or a reload loses it.
-- **Verified:** 2026-10-14 offline host Play (board hangs the poster, take, post, surrender, hand-in + pay, stamps,
-  save file); 2026-10-15 23/23 `BountyTests`. **Not run:** a failure → start over in Play, a client, a reload, `pendingDespawn`.
+- **Verified:** 2026-10-14 offline host Play (board hangs the poster, take, post, surrender, hand-in + pay, stamps, save file); 2026-10-15 23/23 `BountyTests`; 2026-10-20 offline host Play in `NoiseTerrain` (all 19 boards — market, 3 shrine, 15 walls — hang one `Bounty_NimQuickhands` poster; taken from a shrine board; the target stands at the site as Outlaw) and 23/23 `BountyTests`. **Not run:** a failure → start over in Play, a client, a reload, `pendingDespawn`, Nim's tips and OnFirstTip guards.
 
 ## Extending
 
 1. **A hunt:** bake its poster ([WantedPosters.md](WantedPosters.md)), then *Create ▸ SpaceGame ▸ Bounty Hunt* in
    `Resources/Bounties/`: poster, 2+ tips, rewards, a cast with one Target entry; guards are registered network prefabs
    with a `SaveableEntity`.
-2. **Its site and owner:** a `BountyHuntSite` in a chunk scene with `BountyHuntSpot` children tagged as the cast's
-   `spotTag`s; a `SettlementBounties` on the settlement. Save both scenes; re-bake the site catalog for a new settlement.
-3. **More voices:** `Whereabouts` rows or `Remark × BroughtIn*` rows in the culture's lines.
-4. **Tuning:** the `BountyBoard` on `persistentScene/Objectives`; `boundsRadius` per hunt.
-5. **A new way to fail:** append a `BountyFailure` (on the wire), a flag in `FailureOf`'s precedence, its check in
+2. **Its site and owner:** a `BountyHuntSite` in a chunk scene (or the single world scene) with `BountyHuntSpot` children tagged as the cast's `spotTag`s; an entry in the owner's `SettlementBounties`. Save both scenes; re-bake the site catalog for a new settlement. The town's boards and walls hang the posters. Example: `Bounty_NimQuickhands`, owned by `NoiseTerrain/settlement`, site at (1906, 53, 1038).
+3. **Wall spots for a new building:** select its prefab, *Add Wall Poster Spots (Selected Buildings)*; move an odd slot by hand. A board baked into a model is stripped and replaced by `Deco_NoticeBoard`s, as the shrine plaza's three were ([ArtPipeline.md](ArtPipeline.md)).
+4. **More voices:** `Whereabouts` rows or `Remark × BroughtIn*` rows in the culture's lines.
+5. **Tuning:** the `BountyBoard` on `persistentScene/Objectives`; `boundsRadius` per hunt.
+6. **A new way to fail:** append a `BountyFailure` (on the wire), a flag in `FailureOf`'s precedence, its check in
    `CurrentFailure` (never re-firing on every think), its `FailedLine`.

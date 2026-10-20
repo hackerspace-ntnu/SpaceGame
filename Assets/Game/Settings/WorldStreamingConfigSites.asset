@@ -164,10 +164,20 @@ MonoBehaviour:
       sourcePrefabGuid: 192105a79d9644a9ba3346e28a99c798
       displayName: Parsa
   towns:
+  - id: 36d9dfe3ccd841eb816c313080fc0e00
+    name: ShellbackSettlement
+    position: {x: 1354, y: 103.31983, z: -322}
+    radius: 214.94916
+    faction: {fileID: 11400000, guid: 1667936dfdd647ce9abd312d74fb0efb, type: 2}
+  - id: auto3d0b9c40c5b767f4
+    name: GearThiefCamp
+    position: {x: 2565, y: 107.90917, z: -95}
+    radius: 18.746178
+    faction: {fileID: 0}
   - id: be7fcc75927f414c9b3241715912add8
     name: astronauts_settlement
-    position: {x: 2786.2832, y: 109.87087, z: 533.8228}
-    radius: 138.8741
+    position: {x: 2786.2832, y: 109.87087, z: 81}
+    radius: 124.46799
     faction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   - id: autodeba89fd347a84d3
     name: outpost (1)
@@ -177,7 +187,7 @@ MonoBehaviour:
   - id: 1c3973d9ea094a5bb1c9e91a52a50f8a
     name: Settlement
     position: {x: 2999, y: 128.69003, z: 618}
-    radius: 221.05975
+    radius: 179.9912
     faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
   - id: autob47765c5a81251f8
     name: ClankerSettlement

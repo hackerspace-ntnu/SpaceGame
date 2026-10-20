@@ -76,6 +76,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects | [EditorTooling](systems/EditorTooling.md) |
 | a builder run over unity-mcp reports success and writes the values from the previous version of the script | [StylizedEyes](systems/StylizedEyes.md) |
 | a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0 | [Multiplayer](systems/Multiplayer.md) |
+| a building has no wanted poster on its walls | [Bounties](systems/Bounties.md) |
 | a building looks perfect up close but its foundation smears or its deck has a hole at mid distance | [LevelOfDetail](systems/LevelOfDetail.md) |
 | a building placed by a Settlement reads half-size even though the settlement's own transform is scaled up | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a burning crate takes damage but shows no flames at all | [Flamethrower](systems/Flamethrower.md) |
@@ -1204,6 +1205,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | something invisible shoves me around inside the ship as soon as I step off the middle of the aisle | [PlayerShip](systems/PlayerShip.md) |
 | Spawning NetworkObjects with nested NetworkObjects is only supported for scene objects' when a chunk loads or a captive is released | [Persistence](systems/Persistence.md) |
 | speech bubbles appear for the host but not for a client | [Residents](systems/Residents.md) |
+| Stamp Settlement Identity or Bake Site Catalog skips the Spillexo settlement | [Bounties](systems/Bounties.md) |
 | stand-ins appear next to residents walking in | [Expeditions](systems/Expeditions.md) |
 | state resets to prefab defaults after I save, quit and load the world | [Persistence](systems/Persistence.md) |
 | StationTableTests: the documented station table is stale | [StationTable](systems/StationTable.md) |
@@ -1748,6 +1750,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship's gear wall holds the same stores however many players landed in it | [Backpack](systems/Backpack.md) |
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
 | the shock harpoon bites a body and nothing crackles, or the body never falls | [Artifacts](systems/Artifacts.md) |
+| the shrine plaza shows old board kiosks inside its notice boards after a re-export | [ArtPipeline](systems/ArtPipeline.md) |
 | the signal leads to the Clanker town, a Strider city or the Sky City | [ShipSignal](systems/ShipSignal.md) |
 | the signal leads to the settlement the ship landed next to | [ShipSignal](systems/ShipSignal.md) |
 | the signal's destination changed after a reload, or differs between host and client | [ShipSignal](systems/ShipSignal.md) |
@@ -2530,6 +2533,7 @@ Longest match wins.
 | `Assets/Game/Editor/Animation/ClipPoseSheet.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Dev/StriderCityTeleport.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
+| `Assets/Game/Editor/Posters/WallPosterSpots.cs` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Editor/Support/DustCloudRecipe.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/AgentParkingTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/BoosterClampTests.cs` | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -2555,6 +2559,7 @@ Longest match wins.
 | `Assets/Game/Editor/AssetPipeline/ClipCuts.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Tests/RopeCuttingTests.cs` | [RopeCutting](systems/RopeCutting.md) |
 | `Assets/Game/Editor/Tests/SingularityTests.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Editor/World/WorldChunkScenes.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scenes/Interiors/NomadHome.unity` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/ScriptableObjects/Animation/Cues` | [Stations](systems/Stations.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/` | [AgentSystem](systems/AgentSystem.md) |
@@ -2793,4 +2798,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1960 symptoms, 807 paths, 101 docs -->
+<!-- 1963 symptoms, 809 paths, 101 docs -->

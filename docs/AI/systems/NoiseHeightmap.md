@@ -15,7 +15,7 @@ symptoms:
   - "a terrain rendered in batch mode is solid magenta beyond about 1 km"
   - "changing octaves on a noise layer made the whole map flat or all mountains"
 reads_with: [TerrainGeneration, Scenes, NavMeshSystem]
-updated: 2026-10-19
+updated: 2026-10-20
 ---
 
 # Noise Heightmap
@@ -62,8 +62,11 @@ near-spawn sandstorm and the map hologram ([WorldStreaming.md](WorldStreaming.md
 streamerless world loses). Rewired for this map: `SpawnPoint` on flat ground ~160 m from the
 settlement, `SandstormDirector` area = the terrain, `MapService.config` empty, `SaveHotkeys` reloads
 `NoiseTerrain`. Save identity: [SpillexoWorldStreamingConfig.asset](Assets/Game/Settings/SpillexoWorldStreamingConfig.asset)
-(no chunks; identity only). NavMesh: [NoiseTerrain_NavMesh.asset](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_NavMesh.asset),
-baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)).
+(no chunks; identity only; its site catalog `SpillexoWorldStreamingConfigSites.asset` is baked from this scene).
+NavMesh: [NoiseTerrain_NavMesh.asset](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_NavMesh.asset),
+baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)). The `settlement` (id `3cea8227…`, stamped 2026-10-20)
+owns the bounty hunt `Bounty_NimQuickhands`, whose `BountyHuntSite_NimQuickhands` stands 400 m north-east
+([Bounties.md](Bounties.md)).
 
 **Look:** the terrain's material template is
 [NoiseTerrain_StylizedMars.mat](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_StylizedMars.mat), a

@@ -22,7 +22,7 @@ symptoms:
   - "[Posters] Font 'X' has no glyph for 'Y'"
   - "[Posters] Wanted_X: FAILED VERIFY"
 reads_with: [InteractionSystem, UI, EditorTooling, CharacterClothes, StylizedEyes, Bounties]
-updated: 2026-10-13
+updated: 2026-10-20
 ---
 
 # Wanted Posters
@@ -126,6 +126,7 @@ content and loads with it. Whether its bounty is claimed is the bounty book's (`
 3. **A board:** nest poster variants on a board prefab at the board face; `Deco_WantedBoard.prefab` hangs the first three
    on `Deco_PosterBoard_Empty` (face at z = 0.04). Every other people and creature kind has its own `Wanted_<Name>`
    variant (27 more, 2026-10-12) that no board or scene uses yet; creatures use `portraitSpan` 0.6–0.9.
-4. **A poster with a bounty:** posters register in `BountyPosters` on enable; a `BountyDefinition` whose `poster` prints the
+4. **A poster with a bounty:** posters register in `BountyPosters` on enable; a `BountyHunt` whose `poster` prints the
    same agent and name makes every such sheet offer it and wear the CLAIMED stamp once handed in ([Bounties.md](Bounties.md)).
-   Tearing posters down does not exist.
+   A hunt's posters are never placed by hand: the owning town's `BountyNoticeBoard`s — notice boards, and the
+   `WallPosters` spots `WallPosterSpots` finds on each building prefab's outer walls — hang them.

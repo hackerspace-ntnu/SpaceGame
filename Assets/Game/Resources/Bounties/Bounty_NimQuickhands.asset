@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1325a8e624d342aabee966bfc8f2e68, type: 3}
+  m_Name: Bounty_NimQuickhands
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHunt
+  id: 99d010ddc0d44316aac5c11e90730325
+  poster: {fileID: 3891333557262163447, guid: 77fd23238dcd64e518b76b25f87d5b43, type: 3}
+  tips:
+  - '{target} sold a crate of our tools back to us. Came in from the north-east,
+    where the ground drops toward the flats.'
+  - Saw a cookfire out past the dunes, north-east, an hour's walk at most. {target}
+    never could sit in the dark.
+  - '{target} keeps two carriers to haul what gets lifted. Follow the cart ruts north-east
+    and you''ll find the lot of them.'
+  rewards:
+  - item: {fileID: 11400000, guid: fb57e6c272d0a473cb80019a5671f8e7, type: 2}
+    count: 3
+  otherStateShare: 0.5
+  cast:
+  - who: 0
+    prefab: {fileID: 0}
+    roster: {fileID: 0}
+    role: 0
+    minCount: 1
+    maxCount: 1
+    spotTag: hideout
+    faction: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    spawnWhen: 0
+  - who: 1
+    prefab: {fileID: 2243644416197969276, guid: b8c19aee9010943928af344f9ef10b9a, type: 3}
+    roster: {fileID: 0}
+    role: 0
+    minCount: 1
+    maxCount: 2
+    spotTag: guard
+    faction: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    spawnWhen: 1
+  hasSite: 1
+  sitePosition: {x: 1906, y: 52.61322, z: 1038}
+  siteScene: Assets/Game/Scenes/world/NoiseTerrain.unity
+  boundsRadius: 1500
+  ownerSettlementId: 3cea8227286b46cb9268a712a3568264

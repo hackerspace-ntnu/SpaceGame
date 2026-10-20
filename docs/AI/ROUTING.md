@@ -48,6 +48,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
 | a background Cycles render of a small file fails with Error: out of memory | [ArtPipeline](systems/ArtPipeline.md) |
+| a baked atlas spends most of its pixels on faces nobody can see | [ArtPipeline](systems/ArtPipeline.md) |
 | a baked poster's bandit has no eyes | [WantedPosters](systems/WantedPosters.md) |
 | a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
 | a bandit's skin prints in cream or in the poster colour instead of slate blue | [WantedPosters](systems/WantedPosters.md) |
@@ -289,6 +290,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a metal from the palette looks like matte paint in Unity | [ArtPipeline](systems/ArtPipeline.md) |
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
+| a mirror arrangement that solves the puzzle on paper never fills the seal in game | [SunShrine](systems/SunShrine.md) |
 | a Mixamo take imports as one 27 second clip called mixamo.com | [AnimationCatalog](systems/AnimationCatalog.md) |
 | a mocap action slides a metre or more across the floor, out of the NPC's capsule, and snaps back when it ends | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a model placed from an editor script lies on its side, though the FBX previews upright | [ArtPipeline](systems/ArtPipeline.md) |
@@ -557,6 +559,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a trader stands motionless at its stall holding its scales | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
+| a Unity MCP RunCommand fails with a bare 'Object reference not set' and logs nothing | [ArtPipeline](systems/ArtPipeline.md) |
 | a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
 | a vehicle walking toward the camera stands in front of its dust cloud, legs crisp | [VehicleDust](systems/VehicleDust.md) |
 | a villager offers a quest the crew have already taken on | [Objectives](systems/Objectives.md) |
@@ -617,6 +620,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an effect on a worn item stops the moment the item goes on the body | [BodyEquipment](systems/BodyEquipment.md) |
 | an empty battery still reads as part charged | [SupplyGauge](systems/SupplyGauge.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
+| an exact boolean through a wall of separate blocks keeps the disc and deletes the wall around it | [ArtPipeline](systems/ArtPipeline.md) |
 | an eye texture renders as scrambled checkered patches in Blender but the UV grid looks fine | [StylizedEyes](systems/StylizedEyes.md) |
 | an FBX take is named Scene and runs 250 frames | [ArtPipeline](systems/ArtPipeline.md) |
 | an idle resident stands about with its tool in its hand and never fidgets or gestures | [Residents](systems/Residents.md) |
@@ -1603,6 +1607,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the poster texture is square or squashed in the game | [WantedPosters](systems/WantedPosters.md) |
 | the power cell I fitted is gone after loading the world, and the plant is dark again | [Oxygen](systems/Oxygen.md) |
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
+| the prefab and the scene disagree about the shrine after an edit to one SunShrine prefab | [SunShrine](systems/SunShrine.md) |
 | the prefab still renders the old materials after an FBX reimport | [ArtPipeline](systems/ArtPipeline.md) |
 | the printed bandit is nearly all dots and black | [WantedPosters](systems/WantedPosters.md) |
 | the profiler shows LogStringToConsole under an audio Update every frame while the console looks quiet | [audio](systems/audio.md) |
@@ -1711,6 +1716,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship's gear wall holds the same stores however many players landed in it | [Backpack](systems/Backpack.md) |
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
 | the shock harpoon bites a body and nothing crackles, or the body never falls | [Artifacts](systems/Artifacts.md) |
+| the shrine's sand skirt and entrance stairs are buried in the ground | [SunShrine](systems/SunShrine.md) |
 | the signal leads to the Clanker town, a Strider city or the Sky City | [ShipSignal](systems/ShipSignal.md) |
 | the signal leads to the settlement the ship landed next to | [ShipSignal](systems/ShipSignal.md) |
 | the signal's destination changed after a reload, or differs between host and client | [ShipSignal](systems/ShipSignal.md) |
@@ -1917,6 +1923,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | UnassignedReferenceException: The variable animator of AgentAnimatorDriver has not been assigned, thrown from AggressionTelegraphModule.OnEnable as nomads spawn | [AgentSystem](systems/AgentSystem.md) |
 | Unity crashes with 'Could not allocate memory: System out of memory!' in MeshLodUtility.GenerateMeshLods while baking | [SettlementLods](systems/SettlementLods.md) |
 | Unity says the type ShipSignal could not be found but tools/typecheck.py passes | [ShipSignal](systems/ShipSignal.md) |
+| Unity's triangle count is a few short of Blender's although the export was triangulated | [ArtPipeline](systems/ArtPipeline.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a ladder does nothing | [Ladders](systems/Ladders.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
@@ -1959,6 +1966,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementLayoutResult.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetLayout.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementTerraceField.cs` | [SettlementStreets](systems/SettlementStreets.md) |
+| `Assets/Game/Art/Models/_Source~/models/buildings/textures/sun_shrine_ruin_BaseColor.jpg` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetPaver.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetPlots.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStairChain.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
@@ -2553,6 +2561,7 @@ Longest match wins.
 | `Assets/Game/Editor/AssetPipeline/ClipCuts.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Tests/RopeCuttingTests.cs` | [RopeCutting](systems/RopeCutting.md) |
 | `Assets/Game/Editor/Tests/SingularityTests.cs` | [BottledSingularity](systems/BottledSingularity.md) |
+| `Assets/Game/Prefabs/Puzzles/SunShrine.prefab` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Prefabs/VisualEffects/WitchFight` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scenes/Interiors/NomadHome.unity` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/ScriptableObjects/Animation/Cues` | [Stations](systems/Stations.md) |
@@ -2795,4 +2804,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 1926 symptoms, 843 paths, 105 docs -->
+<!-- 1933 symptoms, 845 paths, 105 docs -->

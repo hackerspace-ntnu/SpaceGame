@@ -1,9 +1,9 @@
 // A town's notice board that hangs the town's own wanted posters by itself: the hunt the crew have open here, then
-// every hunt the town offers now, then the ones that ended here (stamped CLAIMED or EXPIRED, most recent first), as many
+// every hunt the town offers now, then the ones claimed here (stamped CLAIMED, most recent first), as many
 // as it has slots. A hunt appears the moment its owner starts offering it — an earlier hunt claimed, goodwill earned —
 // with nothing placed by hand. The town is the Settlement above the board, and its SettlementBounties says what it offers.
 //
-// Every machine, local only: what hangs is worked out from replicated state (the open hunt, the closed list, this
+// Every machine, local only: what hangs is worked out from replicated state (the open hunt, the claimed list, this
 // machine's own goodwill), so nothing is sent or saved. The server's own copy is what BountyBoard.Take measures the
 // taker's distance against.
 using System.Collections.Generic;
@@ -56,7 +56,7 @@ namespace SpaceGame.World.Bounties
         /// <summary>
         /// The hunts <paramref name="town"/> shows on a board of <paramref name="capacity"/> slots, in slot order: the open
         /// one if it is the town's, then those offered to <paramref name="reader"/> newest first (later in the town's
-        /// list), then the ended ones most recent first.
+        /// list), then the claimed ones most recent first.
         /// </summary>
         public static void Choose(SettlementBounties town, BountyBoard board, Transform reader, int capacity, List<BountyHunt> into)
         {
@@ -69,14 +69,14 @@ namespace SpaceGame.World.Bounties
             for (int i = entries.Count - 1; i >= 0 && into.Count < capacity; i--)
             {
                 BountyHunt hunt = entries[i]?.hunt;
-                if (hunt == null || hunt == open || into.Contains(hunt) || board.IsClosed(BountyCatalog.IndexOf(hunt), out _)) continue;
+                if (hunt == null || hunt == open || into.Contains(hunt) || board.IsClaimed(BountyCatalog.IndexOf(hunt))) continue;
                 if (town.Offers(hunt, board, reader)) into.Add(hunt);
             }
 
-            IReadOnlyList<ClosedHunt> closed = board.Closed;
-            for (int i = closed.Count - 1; i >= 0 && into.Count < capacity; i--)
+            IReadOnlyList<int> claimed = board.Claimed;
+            for (int i = claimed.Count - 1; i >= 0 && into.Count < capacity; i--)
             {
-                BountyHunt hunt = BountyCatalog.At(closed[i].place);
+                BountyHunt hunt = BountyCatalog.At(claimed[i]);
                 if (hunt != null && Owns(entries, hunt) && !into.Contains(hunt)) into.Add(hunt);
             }
 

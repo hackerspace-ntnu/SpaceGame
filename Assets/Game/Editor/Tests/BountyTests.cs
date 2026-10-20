@@ -1,6 +1,7 @@
 // Bounty hunts: every hunt asset is complete enough to play (poster, tips, reward, a site, one owner, a cast whose
-// every member spawns for clients and survives a reload), the rules every machine works out alike, the resident lines
-// that carry the tips, and the hunt book's save round trip, old saves included.
+// every member spawns for clients and survives a reload), the rules every machine works out alike (when a hunt fails
+// and starts over among them), the resident lines that carry the tips, and the hunt book's save round trip, old saves
+// included.
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -151,7 +152,7 @@ namespace SpaceGame.EditorTools
 
                 Assert.IsTrue(BountyRules.FlatWithin(hunt.SitePosition, owner.position, hunt.BoundsRadius),
                               $"{hunt.name}: its site is {Vector3.Distance(hunt.SitePosition, owner.position):0} m from {owner.name}, " +
-                              $"outside its {hunt.BoundsRadius:0} m bounds, so the crew could never reach it without the hunt expiring");
+                              $"outside its {hunt.BoundsRadius:0} m bounds, so the crew could never reach it without the hunt starting over");
             }
         }
 
@@ -242,20 +243,57 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void AClosedHuntStaysClosed_AndRemembersHowItEnded()
+        public void AHuntFails_OnTheMostDirectCause_AndOnlyPastItsLimits()
+        {
+            Assert.AreEqual(BountyFailure.None, BountyRules.FailureOf(3599f, 119f, 3600f, 120f, false, false), "inside both limits");
+            Assert.AreEqual(BountyFailure.OutOfTime, BountyRules.FailureOf(3600f, 0f, 3600f, 120f, false, false));
+            Assert.AreEqual(BountyFailure.OutOfBounds, BountyRules.FailureOf(10f, 120f, 3600f, 120f, false, false));
+            Assert.AreEqual(BountyFailure.TargetKilled, BountyRules.FailureOf(3600f, 120f, 3600f, 120f, true, false),
+                            "the crew are told they killed the one wanted alive, not that the clock ran out");
+            Assert.AreEqual(BountyFailure.TargetLost, BountyRules.FailureOf(3600f, 120f, 3600f, 120f, true, true),
+                            "a target that fell through the world and died of it is lost, not killed");
+        }
+
+        [Test]
+        public void KillingTheTarget_FailsOnlyAHuntThatWantedThemAlive()
+        {
+            Assert.IsTrue(BountyRules.KilledWhenWantedAlive(WantedStatus.Alive, dead: true));
+            Assert.IsFalse(BountyRules.KilledWhenWantedAlive(WantedStatus.Alive, dead: false));
+            Assert.IsFalse(BountyRules.KilledWhenWantedAlive(WantedStatus.Dead, dead: true), "wanted dead is the job done");
+        }
+
+        [Test]
+        public void StartingOver_HandsTheWholeCastToBeTakenAway()
+        {
+            var run = new BountyHuntRunState
+            {
+                spawned = true,
+                pieces =
+                {
+                    new BountyHuntRunState.HuntPiece { body = Entity("target"), target = true, spot = BountyRules.SpotKey("hideout", 0) },
+                    new BountyHuntRunState.HuntPiece { body = SaveRef.None, target = false, spot = string.Empty },
+                },
+                pendingDespawn = { Entity("earlier") },
+            };
+
+            run.WithdrawPieces();
+
+            Assert.IsEmpty(run.pieces, "a restarted hunt would keep driving the old cast");
+            CollectionAssert.AreEqual(new[] { Entity("earlier"), Entity("target") }, run.pendingDespawn,
+                                      "the old cast would stand beside the new one");
+        }
+
+        [Test]
+        public void OnlyAClaimedHuntIsOverForGood()
         {
             var host = new GameObject("BountyBoard");
             try
             {
                 var board = host.AddComponent<BountyBoard>();
-                board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, new BountyHuntRunState(),
-                              new[] { new ClosedHunt(2, BountyClosure.Expired), new ClosedHunt(5, BountyClosure.Claimed) });
+                board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, new BountyHuntRunState(), new[] { 5 });
 
-                Assert.IsTrue(board.IsClosed(2, out BountyClosure expired));
-                Assert.AreEqual(BountyClosure.Expired, expired);
-                Assert.IsTrue(board.IsClosed(5, out BountyClosure claimed));
-                Assert.AreEqual(BountyClosure.Claimed, claimed);
-                Assert.IsFalse(board.IsClosed(3, out _), "a hunt never taken is open to take");
+                Assert.IsTrue(board.IsClaimed(5));
+                Assert.IsFalse(board.IsClaimed(3), "a hunt never handed in is open to take");
             }
             finally
             {
@@ -264,7 +302,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ATownsNoticeBoard_ShowsTheOpenHunt_ThenNewestOffers_ThenEndedOnes()
+        public void ATownsNoticeBoard_ShowsTheOpenHunt_ThenNewestOffers_ThenClaimedOnes()
         {
             if (BountyCatalog.All.Count == 0) Assert.Ignore("No bounty assets in Resources/Bounties.");
 
@@ -287,15 +325,14 @@ namespace SpaceGame.EditorTools
 
                 var shown = new List<BountyHunt>();
                 int place = BountyCatalog.IndexOf(listed);
-                board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, new BountyHuntRunState(),
-                              new[] { new ClosedHunt(place, BountyClosure.Claimed) });
+                board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, new BountyHuntRunState(), new[] { place });
                 BountyNoticeBoard.Choose(town, board, null, 3, shown);
-                CollectionAssert.AreEqual(new[] { newer, older, listed }, shown, "offers newest first, then the ended hunt, stamped");
+                CollectionAssert.AreEqual(new[] { newer, older, listed }, shown, "offers newest first, then the claimed hunt, stamped");
 
                 BountyNoticeBoard.Choose(town, board, null, 1, shown);
-                CollectionAssert.AreEqual(new[] { newer }, shown, "a full board keeps the newest offer, not the ended hunt");
+                CollectionAssert.AreEqual(new[] { newer }, shown, "a full board keeps the newest offer, not the claimed hunt");
 
-                board.Restore(listed, BountyPhase.Located, Vector3.zero, 60f, Vector3.zero, new BountyHuntRunState(), new ClosedHunt[0]);
+                board.Restore(listed, BountyPhase.Located, Vector3.zero, 60f, Vector3.zero, new BountyHuntRunState(), new int[0]);
                 BountyNoticeBoard.Choose(town, board, null, 2, shown);
                 CollectionAssert.AreEqual(new[] { listed, newer }, shown, "the open hunt hangs first, so the crew can always find it");
             }
@@ -377,7 +414,7 @@ namespace SpaceGame.EditorTools
             };
 
             WithReloadedBoard(board => board.Restore(open, BountyPhase.Located, new Vector3(10f, 2f, -3f), 75f, open.SitePosition,
-                                                     run, new List<ClosedHunt>()),
+                                                     run, new List<int>()),
                               (saved, reloaded) =>
                               {
                                   Assert.AreEqual(saved.Progress, reloaded.Progress);
@@ -391,19 +428,18 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ClosedHunts_AndTheirLeftoverCast_SurviveASaveAndLoad_WithNoHuntOpen()
+        public void ClaimedHunts_AndTheirLeftoverCast_SurviveASaveAndLoad_WithNoHuntOpen()
         {
             if (BountyCatalog.All.Count == 0) Assert.Ignore("No hunt assets in Resources/Bounties.");
 
-            var closed = BountyCatalog.All.Select((hunt, place) => new ClosedHunt(place, place % 2 == 0 ? BountyClosure.Expired : BountyClosure.Claimed))
-                                          .ToList();
+            List<int> claimed = Enumerable.Range(0, BountyCatalog.All.Count).Reverse().ToList();
             var run = new BountyHuntRunState { pendingDespawn = { Entity("left-behind") } };
 
-            WithReloadedBoard(board => board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, run, closed),
+            WithReloadedBoard(board => board.Restore(null, BountyPhase.Asking, Vector3.zero, 0f, Vector3.zero, run, claimed),
                               (saved, reloaded) =>
                               {
                                   Assert.IsNull(reloaded.Open);
-                                  CollectionAssert.AreEqual(closed, reloaded.Closed, "a closed hunt reopens after a reload");
+                                  CollectionAssert.AreEqual(claimed, reloaded.Claimed, "a claimed hunt is offered again after a reload");
                                   CollectionAssert.AreEqual(run.pendingDespawn, reloaded.Run.pendingDespawn,
                                                             "an abandoned hunt's people come back after a reload");
                               });
@@ -428,12 +464,12 @@ namespace SpaceGame.EditorTools
                 Assert.AreEqual(1, reloaded.Run.pieces.Count, "the old target must become the run's one piece");
                 Assert.IsTrue(reloaded.Run.pieces[0].target, "the old target must still be the one handed in");
                 Assert.AreEqual(Entity("kessek"), reloaded.Run.pieces[0].body);
-                Assert.IsEmpty(reloaded.Closed);
+                Assert.IsEmpty(reloaded.Claimed);
             });
         }
 
         [Test]
-        public void AnOldSave_WithClaimedBounties_LoadsThemAsClaimedClosures()
+        public void AnOldSave_WithClaimedBounties_LoadsThemAsClaimed()
         {
             if (BountyCatalog.All.Count == 0) Assert.Ignore("No hunt assets in Resources/Bounties.");
 
@@ -443,14 +479,30 @@ namespace SpaceGame.EditorTools
             WithRestoredBoard(old, reloaded =>
             {
                 Assert.IsNull(reloaded.Open);
-                CollectionAssert.AreEqual(new[] { new ClosedHunt(BountyCatalog.IndexOf(claimed), BountyClosure.Claimed) },
-                                          reloaded.Closed, "a bounty handed in before the update is offered again");
+                CollectionAssert.AreEqual(new[] { BountyCatalog.IndexOf(claimed) }, reloaded.Claimed,
+                                          "a bounty handed in before the update is offered again");
             });
         }
 
+        [Test]
+        public void ASaveWhereFailedHuntsEndedForGood_KeepsOnlyTheClaimedOnes()
+        {
+            if (BountyCatalog.All.Count == 0) Assert.Ignore("No hunt assets in Resources/Bounties.");
+
+            BountyHunt hunt = BountyCatalog.All[0];
+            WithRestoredBoard(Closed(hunt.Id, "Claimed"), reloaded =>
+                CollectionAssert.AreEqual(new[] { BountyCatalog.IndexOf(hunt) }, reloaded.Claimed, "a hunt handed in is offered again"));
+            WithRestoredBoard(Closed(hunt.Id, "Expired"), reloaded =>
+                Assert.IsEmpty(reloaded.Claimed, "a hunt that expired in an older save would never be offered again"));
+        }
+
+        /// <summary>The <c>bounties</c> record as saves wrote it while a failed hunt ended for good: one ended hunt.</summary>
+        private static JObject Closed(string id, string closure) =>
+            new JObject { ["closed"] = new JArray(new JObject { ["id"] = id, ["closure"] = closure }) };
+
         private static SaveRef Entity(string id) => new SaveRef { Kind = SaveRef.EntityKind, Id = id };
 
-        /// <summary>The <c>bounties</c> record as saves wrote it before hunts had a cast and could expire.</summary>
+        /// <summary>The <c>bounties</c> record as saves wrote it before hunts had a cast.</summary>
         private static JObject OldSave(string open, BountyPhase phase, Vector3 town, float townRadius, SaveRef target,
                                        bool targetSpawned, params string[] claimed) =>
             new JObject

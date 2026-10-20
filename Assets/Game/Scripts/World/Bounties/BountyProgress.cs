@@ -31,8 +31,8 @@ namespace SpaceGame.World.Bounties
         /// <summary>The target was wanted alive and died.</summary>
         TargetKilled,
 
-        /// <summary>Every player went down at once.</summary>
-        CrewDown,
+        /// <summary>The target fell beneath the ground, out of anyone's reach.</summary>
+        TargetLost,
     }
 
     /// <summary>

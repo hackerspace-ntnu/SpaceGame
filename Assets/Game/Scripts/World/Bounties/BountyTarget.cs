@@ -49,13 +49,13 @@ namespace SpaceGame.World.Bounties
         }
 
         /// <summary>
-        /// Server: no longer wanted. The body goes the usual way once nobody watches: led to <paramref name="ledTo"/> if
-        /// it lives and there is somewhere to lead it (handed in), then cleared away.
+        /// Server: handed in, so no longer wanted. The body goes the usual way once nobody watches: led to
+        /// <paramref name="ledTo"/> if it lives, then cleared away.
         /// </summary>
-        public void Release(Vector3? ledTo, float takenAwaySeconds)
+        public void Release(Vector3 ledTo, float takenAwaySeconds)
         {
-            if (!IsDead && ledTo.HasValue && goal != null)
-                goal.TrySetSampled(ledTo.Value, tuning.followDistance, "bounty handed in", hold: false, facePoint: null);
+            if (!IsDead && goal != null)
+                goal.TrySetSampled(ledTo, tuning.followDistance, "bounty handed in", hold: false, facePoint: null);
             Remains.On(gameObject).Begin(takenAwaySeconds);
 
             // Disabled first: a component being destroyed still gets this frame's Update, which would stop the

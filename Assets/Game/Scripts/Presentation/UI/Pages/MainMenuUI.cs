@@ -1,6 +1,4 @@
-using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
@@ -9,24 +7,31 @@ using SpaceGame.Presentation.Lobbies;
 using SpaceGame.World;
 public class MainMenuUI : MonoBehaviour
 {
-    [SerializeField] private SceneReference gameScene;
+    [Header("Worlds")]
+    [Tooltip("The Story world: the streamed main world. Also what VS and Disposable play in.")]
+    [SerializeField] private GameWorld storyWorld;
+    [Tooltip("The Spillexo world: one authored terrain, no chunk streaming.")]
+    [SerializeField] private GameWorld spillexoWorld;
 
     [Header("World selection")]
-    [Tooltip("The world these saves belong to. Recorded in every save's header so a save cannot " +
-             "be loaded into a different world.")]
-    [SerializeField] private WorldStreamingConfig worldConfig;
     [Tooltip("The prefab every menu entry is cloned from, so the screens this menu opens carry its " +
              "hover animation and sounds. Assigned by Tools ▸ SpaceGame ▸ Menus ▸ Setup World Select.")]
     [SerializeField] private GameObject menuButtonPrefab;
 
+    // Which world the open route leads into. Set by the front-menu entry that started the route,
+    // and read by every screen after it, so the world list, the lobby and the scene load all agree.
+    private bool spillexoChosen;
+
+    private GameWorld ChosenWorld => spillexoChosen ? spillexoWorld : storyWorld;
+
     /// <summary>The world the screens this menu opens stage saves against.</summary>
-    public WorldStreamingConfig WorldConfig => worldConfig;
+    public WorldStreamingConfig WorldConfig => ChosenWorld != null ? ChosenWorld.Identity : null;
 
     /// <summary>
     /// The world scene every route into the game loads. Read by <see cref="LobbyUI"/> so the
     /// lobby and the singleplayer route cannot end up loading different ones.
     /// </summary>
-    public string GameSceneName => gameScene != null ? gameScene.SceneName : null;
+    public string GameSceneName => ChosenWorld != null ? ChosenWorld.SceneName : null;
 
     /// <summary>
     /// The menu's own button, lent to the screens it opens. They are built at runtime and have no
@@ -44,7 +49,8 @@ public class MainMenuUI : MonoBehaviour
     /// </summary>
     public void StartDisposable()
     {
-        WorldSession.StageNew("Disposable", worldConfig, disposable: true);
+        spillexoChosen = false;
+        WorldSession.StageNew("Disposable", WorldConfig, disposable: true);
         EnterWorld();
     }
 
@@ -52,19 +58,34 @@ public class MainMenuUI : MonoBehaviour
     /// Front-menu entry: singleplayer or multiplayer, before anything else — the Story route's own
     /// version of the host/join fork below. Bound by name from MainMenu.unity; do not rename.
     /// </summary>
-    public void StartStory() =>
-        MenuChoiceUI.Open(this, "STORY",
+    public void StartStory() => OpenWorldRoute("STORY", spillexo: false);
+
+    /// <summary>
+    /// Front-menu entry: the Story route into the Spillexo world instead — same choices, same
+    /// world list and lobby, a different scene and save identity. Bound by name from
+    /// MainMenu.unity; do not rename.
+    /// </summary>
+    public void StartSpillexo() => OpenWorldRoute("SPILLEXO", spillexo: true);
+
+    private void OpenWorldRoute(string title, bool spillexo)
+    {
+        spillexoChosen = spillexo;
+        MenuChoiceUI.Open(this, title,
             new MenuChoiceUI.Choice("Singleplayer", StartSinglePlayer),
             new MenuChoiceUI.Choice("Multiplayer", StartMultiPlayer));
+    }
 
     /// <summary>
     /// Front-menu entry: VS is multiplayer-only, so it asks host-or-join directly rather than
     /// singleplayer-or-multiplayer first. Bound by name from MainMenu.unity; do not rename.
     /// </summary>
-    public void StartVersus() =>
+    public void StartVersus()
+    {
+        spillexoChosen = false;
         MenuChoiceUI.Open(this, "VERSUS",
             new MenuChoiceUI.Choice("Host a game", HostVersus),
             new MenuChoiceUI.Choice("Join a game", JoinVersus));
+    }
 
     /// <summary>
     /// Asks host or join before anything else.
@@ -131,33 +152,10 @@ public class MainMenuUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Does the three things every route into the world does, in the order they must happen.
+    /// Enters the chosen world as its singleplayer host, with the world already staged.
     /// Public so WorldSelectUI can finish the job it started.
     /// </summary>
-    public void EnterWorld()
-    {
-        // Up before the load starts, and held until terrain streaming and the NavMesh bake have
-        // finished — those run after the scene reports loaded and are what makes the first few
-        // seconds stutter.
-        LoadingScreenUI.ShowUntilReady(gameScene.SceneName);
-
-        // HostLocal, not HostDirect: singleplayer is a host of one and must keep the NetworkManager
-        // prefab's own port. HostDirect would override it with its LAN defaults, re-breaking the
-        // port the project already had to move once around Unity's leaked UDP socket. What this
-        // still buys over a bare StartHost() is the Relay reset — the transport keeps its last
-        // configuration, so entering singleplayer after a Relay attempt would host on a dead
-        // allocation.
-        SessionResult result = SessionLauncher.HostLocal();
-
-        if (!result.Success)
-        {
-            Debug.LogError($"[Net] Could not start the session: {result.Error}");
-            LoadingScreenUI.Dismiss();
-            return;
-        }
-
-        NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
-    }
+    public void EnterWorld() => SessionEntry.EnterWorld(GameSceneName);
 
     /// <summary>
     /// Opens the lobby, with the host's world already chosen.

@@ -1,5 +1,5 @@
 // Every bounty hunt in the game, in one order every machine agrees on: loaded from Resources/Bounties/ and sorted by
-// id. The wire names a hunt by its place in that order (BountyProgress, ClosedHunt), saves by its id.
+// id. The wire names a hunt by its place in that order (BountyProgress, the claimed list), saves by its id.
 using System;
 using System.Collections.Generic;
 using UnityEngine;

@@ -7,7 +7,7 @@ namespace SpaceGame.World.Bounties
 {
     /// <summary>
     /// The open bounty as the visor shows it: ask around town, search where the tip pointed, bring the target back — and,
-    /// while every player is outside the hunt's bounds, how long the crew have to come back before it expires. Read on
+    /// while every player is outside the hunt's bounds, how long the crew have to come back before it starts over. Read on
     /// every machine from the board's replicated progress and the target's body; holds nothing of its own. One per taken
     /// bounty, so the visor announces a new one.
     /// </summary>
@@ -55,7 +55,21 @@ namespace SpaceGame.World.Bounties
 
         private string Wanted => bounty != null && bounty.Wanted == WantedStatus.Dead
             ? "Wanted dead. Alive pays less"
-            : "Wanted alive: beat them and they give up";
+            : "Wanted alive: beat them until they give up. Kill them and the hunt starts over";
+
+        /// <summary>What the visor says when the hunt has just started over because of <paramref name="failure"/>.</summary>
+        public string FailedLine(BountyFailure failure)
+        {
+            string why = failure switch
+            {
+                BountyFailure.TargetKilled => $"{Name} was wanted alive",
+                BountyFailure.TargetLost => $"{Name} fell beneath the ground",
+                BountyFailure.OutOfTime => "out of time",
+                BountyFailure.OutOfBounds => "the crew left the hunt's bounds",
+                _ => "it went wrong",
+            };
+            return $"Bounty failed: {why}. The hunt starts over";
+        }
 
         /// <summary>
         /// The town while asking, handing in, or out of bounds (the bounds are round it, so it is the way back); the

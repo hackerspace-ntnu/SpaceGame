@@ -32,7 +32,7 @@ symptoms:
   - "Cross scene references are not supported: 'Settlement' has an invalid reference to 'Terrain_X_Y'"
   - "penned animals in a settlement pen walk straight out of the shut gate, or stay stuck inside after it opens"
 reads_with: [WorldStreaming, NavMeshSystem, Environment, SceneTransitions, SkyTribe, SettlementStreets, Outposts]
-updated: 2026-10-09
+updated: 2026-10-19
 ---
 
 # Procedural World Generation
@@ -44,7 +44,7 @@ Two independent edit-time generators — marching-cubes **terrain features** and
 
 ## Model
 
-- **Nothing generates the base heightmap.** Unity `Terrain` heightmaps are authored/sliced by the chunker ([`WorldChunkerEditor`](Assets/Game/Editor/World/WorldChunkerEditor.cs), `Tools/World Streaming/Chunk World`) — see [WorldStreaming.md](WorldStreaming.md). Everything here *adds* geometry on top of that terrain.
+- **The main world's heightmaps are not generated.** Its `Terrain` tiles are authored/sliced by the chunker ([`WorldChunkerEditor`](Assets/Game/Editor/World/WorldChunkerEditor.cs), `Tools/World Streaming/Chunk World`) — see [WorldStreaming.md](WorldStreaming.md). Everything here *adds* geometry on top of a terrain. Generating a whole `Terrain` from stacked Perlin layers is its own system: [NoiseHeightmap.md](NoiseHeightmap.md).
 - **Terrain features** = designer drops a spawner, drags a footprint polygon, picks Mesa or Cliff → a density field → marching cubes → skirt-blended onto the terrain → **baked to a `.asset` mesh**. Runtime only instantiates.
 - **Caves** = seeded random-walk room/corridor graph → smooth-min SDF → marching cubes → NavMesh. Baked mesh + `NavMeshData`; decoration/liquid/lights still run at spawn.
 - **Settlements** come in two flavours, both edit-time only, output baked into the scene:

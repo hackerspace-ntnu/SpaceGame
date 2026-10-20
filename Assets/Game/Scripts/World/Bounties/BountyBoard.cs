@@ -4,9 +4,11 @@
 // resident gives, watches for the target to be caught, and runs the hand-in: a guard or elder comes to whoever brought
 // it in, thanks them in the settlement's own voice, spreads the deed, and drops the reward at their feet. The hunt
 // itself — its cast at the site, their spots, its clock and bounds, taking its people away — is the BountyHuntRun this
-// owns; when the run says the hunt has run out, this expires it. Everything any machine needs to show it — the visor,
-// the poster's prompt and stamp, which tip a resident says — is read from one BountyProgress and the list of ended
-// hunts, which BountyNetwork replicates and BountySaveable saves.
+// owns. A hunt that fails (the target killed when wanted alive or fallen beneath the ground, out of time, out of
+// bounds) starts
+// over in place: still open, its cast stood afresh at their spots. Only a claimed hunt is over for good. Everything any
+// machine needs to show it — the visor, the poster's prompt and stamp, which tip a resident says — is read from one
+// BountyProgress and the list of claimed hunts, which BountyNetwork replicates and BountySaveable saves.
 //
 // Lives in persistentScene beside the ObjectiveDirector. Story worlds only.
 using System;
@@ -20,6 +22,7 @@ using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Objectives;
 using SpaceGame.Presentation;
 using SpaceGame.World.Posters;
+using SpaceGame.World.Safety;
 
 namespace SpaceGame.World.Bounties
 {
@@ -46,14 +49,12 @@ namespace SpaceGame.World.Bounties
             [Min(0.05f)] public float thinkSeconds = 0.5f;
         }
 
-        /// <summary>The stamp laid across an ended hunt's posters: CLAIMED once handed in, EXPIRED once gone for good.</summary>
+        /// <summary>The stamp laid across a claimed hunt's posters.</summary>
         [Serializable]
         public sealed class StampLook
         {
             public string text = "CLAIMED";
             public Color colour = new(0.62f, 0.1f, 0.08f, 0.9f);
-            public string expiredText = "EXPIRED";
-            public Color expiredColour = new(0.25f, 0.25f, 0.25f, 0.9f);
             [Tooltip("Degrees the stamp is turned across the sheet.")]
             public float angle = 14f;
             [Tooltip("How much of the sheet's width the stamp spans.")]
@@ -65,6 +66,9 @@ namespace SpaceGame.World.Bounties
         }
 
         public static BountyBoard Instance { get; private set; }
+
+        // The visor message saying why the hunt started over: one id, so a second failure replaces the first.
+        private const string FailedMessageId = "bounty.failed";
 
         [SerializeField] private CaptiveTuning captive = new();
 
@@ -100,15 +104,27 @@ namespace SpaceGame.World.Bounties
         [Tooltip("The claimant says thanks once this close to whoever brought the target in, in metres.")]
         [SerializeField, Min(1f)] private float thanksRange = 4f;
 
-        [Tooltip("Seconds a hunt's people stay once it has ended, handed in or expired, before they are taken away once nobody watches (Remains).")]
+        [Tooltip("Seconds a hunt's people stay once it has been handed in, before they are taken away once nobody watches (Remains).")]
         [SerializeField, Min(0f)] private float takenAwaySeconds = 30f;
 
-        [Header("Expiry")]
-        [Tooltip("Seconds of server play an open hunt lasts before it expires.")]
+        [Header("Failing")]
+        [Tooltip("Seconds of server play the cast may stand before the hunt fails and starts over.")]
         [SerializeField, Min(1f)] private float maxOpenSeconds = 3600f;
 
-        [Tooltip("Seconds every player may stay outside the hunt's bounds (round the owning settlement) before it expires.")]
+        [Tooltip("Seconds every player may stay outside the hunt's bounds (round the owning settlement) before it fails and starts over.")]
         [SerializeField, Min(1f)] private float outOfBoundsSeconds = 120f;
+
+        [Tooltip("How far beneath the terrain surface the target may be before it counts as fallen through the world and the hunt " +
+                 "starts over, in metres. Well past a body sunk in a dip or a ragdoll clipping the ground, and past the depth an " +
+                 "UnderTerrainGuard lifts at, so a guarded body is rescued rather than failed.")]
+        [SerializeField, Min(0.5f)] private float lostBelowGround = 2f;
+
+        [Tooltip("With no terrain under it to measure, a target below this height has fallen out of the world.")]
+        [SerializeField] private float lostBelowY = -500f;
+
+        [Tooltip("How far under the target to look for a built floor, in metres. Standing on one (a cave, a hull's deck) it is " +
+                 "supported, however far below the heightmap that floor lies.")]
+        [SerializeField, Min(0f)] private float builtFloorReach = 1.7f;
 
         [Tooltip("Seconds between the server's decisions.")]
         [SerializeField, Min(0.05f)] private float thinkSeconds = 0.5f;
@@ -118,10 +134,10 @@ namespace SpaceGame.World.Bounties
         private float nextThink;
         private readonly List<Transform> players = new();
 
-        // Every machine: the hunts that have ended, in the order they ended.
-        private readonly List<ClosedHunt> closed = new();
+        // Every machine: the catalog places of the hunts handed in, in the order they were.
+        private readonly List<int> claimed = new();
 
-        // Server only: the open hunt as it runs, and the people of ended hunts still to be taken away.
+        // Server only: the open hunt as it runs, and the people of ended or restarted hunts still to be taken away.
         private BountyHuntRun running;
 
         // Server only, and not saved: a hand-in under way. A load mid-walk simply starts it again.
@@ -138,15 +154,15 @@ namespace SpaceGame.World.Bounties
         /// <summary>A client's local player asked to take the bounty at this catalog place; BountyNetwork carries it.</summary>
         public event Action<int> TakeRequested;
 
-        /// <summary>The ended hunts changed on this machine: one was claimed or expired, or the list was restored or adopted.</summary>
-        public event Action<IReadOnlyList<ClosedHunt>> ClosedChanged;
+        /// <summary>The claimed hunts changed on this machine: one was handed in, or the list was restored or adopted.</summary>
+        public event Action<IReadOnlyList<int>> ClaimedChanged;
 
         public BountyProgress Progress => progress;
 
-        /// <summary>Every hunt that has ended, and how.</summary>
-        public IReadOnlyList<ClosedHunt> Closed => closed;
+        /// <summary>The catalog places of every hunt handed in. A claimed hunt is never offered again.</summary>
+        public IReadOnlyList<int> Claimed => claimed;
 
-        /// <summary>Server only: the open hunt's cast and clock, and the people of ended hunts still to be taken away.</summary>
+        /// <summary>Server only: the open hunt's cast and clock, and the people of ended or restarted hunts still to be taken away.</summary>
         public BountyHuntRunState Run => Running.State;
 
         private BountyHuntRun Running => running ??= NewRun(null, new BountyHuntRunState());
@@ -196,9 +212,10 @@ namespace SpaceGame.World.Bounties
 
             SessionPlayers.Collect(players);
             Running.Tick(Time.time, progress.Town, players);
-            if (BountyRules.HasExpired(Run.elapsed, Run.outsideFor, maxOpenSeconds, outOfBoundsSeconds))
+            BountyFailure failure = CurrentFailure();
+            if (failure != BountyFailure.None)
             {
-                Expire();
+                StartOver(failure);
                 return;
             }
 
@@ -211,33 +228,22 @@ namespace SpaceGame.World.Bounties
         /// <summary>Takes on what the server says. <paramref name="live"/>: it just happened, rather than being caught up on.</summary>
         public void Adopt(BountyProgress adopted, bool live) => Set(adopted, live);
 
-        /// <summary>Takes on the ended hunts the server says.</summary>
-        public void AdoptClosed(IReadOnlyList<ClosedHunt> adopted)
+        /// <summary>Takes on the claimed hunts the server says.</summary>
+        public void AdoptClaimed(IReadOnlyList<int> adopted)
         {
-            closed.Clear();
-            closed.AddRange(adopted);
-            AnnounceClosed();
+            claimed.Clear();
+            claimed.AddRange(adopted);
+            AnnounceClaimed();
         }
 
-        /// <summary>Whether the hunt at catalog place <paramref name="place"/> has ended, and how.</summary>
-        public bool IsClosed(int place, out BountyClosure closure)
-        {
-            foreach (ClosedHunt hunt in closed)
-            {
-                if (hunt.place != place) continue;
-                closure = hunt.closure;
-                return true;
-            }
-
-            closure = default;
-            return false;
-        }
+        /// <summary>Whether the hunt at catalog place <paramref name="place"/> has been handed in: it is over for good.</summary>
+        public bool IsClaimed(int place) => claimed.Contains(place);
 
         /// <summary>This machine's player asks to take <paramref name="bounty"/>.</summary>
         public void RequestTake(BountyHunt bounty)
         {
             int index = BountyCatalog.IndexOf(bounty);
-            if (!IsRunning || !BountyRules.CanTake(progress, index) || IsClosed(index, out _)) return;
+            if (!IsRunning || !BountyRules.CanTake(progress, index) || IsClaimed(index)) return;
 
             if (Network.Decides) Take(index, GameplayMenuScope.LocalPlayerTransform);
             else TakeRequested?.Invoke(index);
@@ -278,14 +284,14 @@ namespace SpaceGame.World.Bounties
 
         /// <summary>
         /// Server: <paramref name="taker"/> takes the hunt at catalog place <paramref name="index"/>, if its owner offers it
-        /// to them, they stand by one of its posters, it never ended, and the crew have none open. The owner is where it
-        /// is handed in.
+        /// to them, they stand by one of its posters, it was never claimed, and the crew have none open. The owner is
+        /// where it is handed in.
         /// </summary>
         public void Take(int index, Transform taker)
         {
             BountyHunt bounty = BountyCatalog.At(index);
             if (!IsRunning || !Network.Decides || bounty == null || taker == null || !BountyRules.CanTake(progress, index) ||
-                IsClosed(index, out _)) return;
+                IsClaimed(index)) return;
 
             SettlementBounties owner = SettlementBounties.Owner(bounty);
             if (owner == null || !owner.Offers(bounty, this, taker))
@@ -302,7 +308,7 @@ namespace SpaceGame.World.Bounties
             }
 
             Settlement town = owner.Settlement;
-            running = NewRun(bounty, new BountyHuntRunState { pendingDespawn = Run.pendingDespawn });
+            running = FreshRun(bounty);
             EndClaim();
 
             BountyProgress next = progress;
@@ -342,29 +348,17 @@ namespace SpaceGame.World.Bounties
             Watch();
         }
 
-        /// <summary>
-        /// Server: the open hunt is over without a hand-in. It is gone for good: its people are taken away, and its posters
-        /// are stamped EXPIRED.
-        /// </summary>
-        public void Expire()
-        {
-            if (!IsRunning || !Network.Decides || !progress.HasOpen) return;
-
-            Running.TakeAway(null, takenAwaySeconds);
-            Close(BountyClosure.Expired);
-        }
-
         /// <summary>Restores the bounty book from a save. Server and offline only; clients are told by BountyNetwork.</summary>
         public void Restore(BountyHunt open, BountyPhase phase, Vector3 town, float townRadius, Vector3 site,
-                            BountyHuntRunState restoredRun, IReadOnlyList<ClosedHunt> restoredClosed)
+                            BountyHuntRunState restoredRun, IReadOnlyList<int> restoredClaimed)
         {
-            closed.Clear();
-            closed.AddRange(restoredClosed);
+            claimed.Clear();
+            claimed.AddRange(restoredClaimed);
             restoredRun ??= new BountyHuntRunState();
 
             BountyProgress restored = default;
             int openIndex = BountyCatalog.IndexOf(open);
-            bool stillOpen = openIndex >= 0 && !IsClosed(openIndex, out _);
+            bool stillOpen = openIndex >= 0 && !IsClaimed(openIndex);
             if (stillOpen)
             {
                 restored.Open = openIndex + 1;
@@ -377,18 +371,71 @@ namespace SpaceGame.World.Bounties
             else
             {
                 // A cast whose hunt is no longer open (its asset is gone from the catalog) is taken away like an ended one's.
-                foreach (BountyHuntRunState.HuntPiece piece in restoredRun.pieces)
-                    if (piece.body.IsSet) restoredRun.pendingDespawn.Add(piece.body);
-                restoredRun.pieces.Clear();
+                restoredRun.WithdrawPieces();
             }
 
             running = NewRun(stillOpen ? open : null, restoredRun);
             EndClaim();
             Set(restored, live: false);
-            AnnounceClosed();
+            AnnounceClaimed();
         }
 
         private BountyHuntRun NewRun(BountyHunt open, BountyHuntRunState state) => new(open, state, cast, captive);
+
+        /// <summary>A run with nothing stood and its clock at zero, still taking away whoever an earlier one left.</summary>
+        private BountyHuntRun FreshRun(BountyHunt open) => NewRun(open, new BountyHuntRunState { pendingDespawn = Run.pendingDespawn });
+
+        /// <summary>
+        /// Why the open hunt fails at this think, or None. Nothing fails before the cast stands: there is nothing yet to
+        /// start over.
+        /// </summary>
+        private BountyFailure CurrentFailure()
+        {
+            if (!Running.HasStood) return BountyFailure.None;
+
+            BountyTarget target = Running.Target;
+            bool killed = target != null && BountyRules.KilledWhenWantedAlive(Open.Wanted, target.IsDead);
+            bool lost = target != null && BeneathTheWorld(target.transform);
+            return BountyRules.FailureOf(Run.elapsed, Run.outsideFor, maxOpenSeconds, outOfBoundsSeconds, killed, lost);
+        }
+
+        /// <summary>
+        /// Whether <paramref name="body"/> has fallen through the world, by the under-terrain guard's own rule: deeper than
+        /// <c>lostBelowGround</c> under the measured terrain, or below <c>lostBelowY</c> with none to measure. A body that
+        /// is carried or riding, or stands on a built floor, is below the heightmap on purpose and is never lost.
+        /// </summary>
+        private bool BeneathTheWorld(Transform body)
+        {
+            if (body.parent != null || CarriedBody.IsHeld(body.gameObject)) return false;
+
+            Vector3 at = body.position;
+            bool hasTerrain = TerrainProbe.TryGetTerrainHeight(at, out float terrainY);
+            UnderTerrainVerdict verdict = new UnderTerrainRule(lostBelowGround, 0f, lostBelowY).Evaluate(at.y, hasTerrain, terrainY);
+            return verdict.Action != UnderTerrainAction.None && !SpawnClearance.StandsOnStructure(at, builtFloorReach);
+        }
+
+        /// <summary>
+        /// Server: the open hunt failed, so it starts over where it stands. Its whole cast goes at once (the dead and the
+        /// caught too; anyone not loaded goes as they load), and the site stands them afresh at their spots: the same
+        /// people, as the same world deals them. It stays open: the tip the crew heard is kept, a caught target is lost,
+        /// and the clock starts again.
+        /// </summary>
+        private void StartOver(BountyFailure failure)
+        {
+            Run.WithdrawPieces();
+            running = FreshRun(Open);
+            Running.DespawnPending();
+            EndClaim();
+
+            BountyProgress next = progress;
+            if (next.Phase == BountyPhase.Caught) next.Phase = BountyPhase.Located;
+            next.Target = 0;
+            next.TargetDead = false;
+            next.OutsideFor = 0f;
+            next.Resets = unchecked((byte)(next.Resets + 1));
+            next.Failure = failure;
+            Set(next, live: true);
+        }
 
         /// <summary>
         /// What every machine is shown about the open hunt: where the target is, whether it is dead or caught, and how
@@ -462,17 +509,17 @@ namespace SpaceGame.World.Bounties
 
             Settlement town = FindTown();
             Running.TakeAway(town != null ? town.WalkableHeart : progress.Town, takenAwaySeconds);
-            Close(BountyClosure.Claimed);
+            Close();
         }
 
-        /// <summary>Ends the open hunt for good: it joins the closed list and the crew have none open.</summary>
-        private void Close(BountyClosure closure)
+        /// <summary>Ends the open hunt for good, handed in: it joins the claimed list and the crew have none open.</summary>
+        private void Close()
         {
-            closed.Add(new ClosedHunt(progress.OpenIndex, closure));
-            running = NewRun(null, new BountyHuntRunState { pendingDespawn = Run.pendingDespawn });
+            claimed.Add(progress.OpenIndex);
+            running = FreshRun(null);
             EndClaim();
             Set(default, live: true);
-            AnnounceClosed();
+            AnnounceClaimed();
         }
 
         private static void Pay(BountyHunt bounty, bool dead, Transform payee)
@@ -503,10 +550,10 @@ namespace SpaceGame.World.Bounties
             return preferred != null ? preferred : anyone;
         }
 
-        private void AnnounceClosed()
+        private void AnnounceClaimed()
         {
             BountyPosters.RestampAll();
-            ClosedChanged?.Invoke(closed);
+            ClaimedChanged?.Invoke(claimed);
         }
 
         private void EndClaim()
@@ -541,7 +588,12 @@ namespace SpaceGame.World.Bounties
             BountyProgress was = progress;
             progress = next;
             if (progress.Open != was.Open) Retrack();
-            else if (live && objective != null) TrackedObjectives.Track(objective);
+            else if (live && objective != null)
+            {
+                if (progress.Resets != was.Resets)
+                    SystemMessages.Post(FailedMessageId, objective.FailedLine(progress.Failure), MessageSeverity.Notice);
+                TrackedObjectives.Track(objective);
+            }
             Changed?.Invoke(live);
         }
 

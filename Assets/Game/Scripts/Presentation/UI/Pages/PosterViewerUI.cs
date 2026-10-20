@@ -1,7 +1,7 @@
 // A poster held up to the eye: one printed sheet filling most of the screen over a dark backdrop.
 //
 // Opened by WantedPoster when the player right-clicks one. Reading is local; a poster that offers something
-// (IPosterOffer: a bounty) shows its prompt under the sheet, takes it on Y, and stamps the sheet CLAIMED or EXPIRED once it has ended. Built in code like every
+// (IPosterOffer: a bounty) shows its prompt under the sheet, takes it on Y, and stamps the sheet CLAIMED once it has been handed in. Built in code like every
 // overlay here (UI.md): a lazily built DontDestroyOnLoad singleton that holds GameplayMenuScope
 // while it is up.
 using TMPro;

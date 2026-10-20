@@ -24,7 +24,7 @@ symptoms:
   - "a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0"
   - "a client that joined while the host was streaming chunks has every settlement object twice, and 'Server Scene Handle already exist!' in its log"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-10-11
+updated: 2026-10-19
 ---
 
 # Multiplayer / Netcode core
@@ -82,7 +82,7 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 
 1. **Message round trip.** Owner `Present()`s locally, then `NetToServer(id, arg.With(subject))` → `ToServerRpc` → server `Dispatch` → handler guards `Network.Simulates(this)`, re-checks preconditions, mutates, `NetToOthers(id2, arg, except: sender)` → peers `Present()`. On the host that broadcast re-enters `Dispatch` inline (`SendTo.ClientsAndHost`).
 2. **Starting a session.** `EnsureServicesAsync` (UGS init + anon sign-in under `SessionProfile`) → `HostRelayAsync` (allocation → `dtls` endpoint → `SetRelayServerData` → `StartHost`) or `JoinRelayAsync` → `WaitForClientConnectedAsync` (15 s; `StartClient()`'s bool is *not* success).
-3. **A client gets a body.** `NetworkGameManager.OnNetworkSpawn` (every peer) adopts the versus session from the lobby and sends `ReportProfileServerRpc` (+ team). Server then runs `SpawnWhenReady` per client: yield a frame (avoid `SceneEventInProgress`) → await the pending additive scene's `OnLoadEventCompleted` → versus-ship route, or wait for `WorldStreamer.IsReady` and a `SpawnPoint` (15 s) → `TryGetSpawnAnchor` → `WaitForProfile` (5 s) → a saved position overrides the anchor **before** the preload → `PreloadChunksAroundPositions` → resolve the spawn point **once** → a disposable session (`WorldSession.Disposable`) calls `ArrivalDirector.SpawnAlreadyLanded` first, to put the ship down with no descent → `ArrivalDirector.SpawnIntoArrival` or `SpawnManager.SpawnPlayerForClient` (`SpawnAsPlayerObject`) — see [GameModes](GameModes.md).
+3. **A client gets a body.** `NetworkGameManager.OnNetworkSpawn` (every peer) adopts the versus session from the lobby and sends `ReportProfileServerRpc` (+ team). Server then runs `SpawnWhenReady` per client: yield a frame (avoid `SceneEventInProgress`) → await the pending additive scene's `OnLoadEventCompleted` → versus-ship route, or wait for `WorldStreamer.IsReady` (streamed worlds only) and a `SpawnPoint` (15 s) → `TryGetSpawnAnchor` → `WaitForProfile` (5 s) → a saved position overrides the anchor **before** the preload → `PreloadChunksAroundPositions` (streamed worlds only — a single-scene world like Spillexo has no `WorldStreamer` and skips just this step and the `IsReady` wait; save restore and the arrival run the same) → resolve the spawn point **once** → a disposable session (`WorldSession.Disposable`) calls `ArrivalDirector.SpawnAlreadyLanded` first, to put the ship down with no descent → `ArrivalDirector.SpawnIntoArrival` or `SpawnManager.SpawnPlayerForClient` (`SpawnAsPlayerObject`) — see [GameModes](GameModes.md).
 4. **Joiner catch-up.** Server `SnapshotCapture.Build()` → JSON RPC to that client → `SnapshotRestore` retries each entry per frame for 30 s until the named `NetworkObject`s exist locally.
 
 ## Multiplayer

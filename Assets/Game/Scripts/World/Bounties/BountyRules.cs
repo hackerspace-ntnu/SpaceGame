@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using SpaceGame.Agents;
 using SpaceGame.Agents.Residents;
-using SpaceGame.Gameplay;
 using SpaceGame.World.Posters;
 using UnityEngine;
 
@@ -77,35 +76,20 @@ namespace SpaceGame.World.Bounties
             return anyone;
         }
 
-        /// <summary>
-        /// Whether every one of <paramref name="players"/> is down: no health left. False with nobody to ask, and a
-        /// body with no health is never down.
-        /// </summary>
-        public static bool AllDown(IReadOnlyList<Transform> players)
-        {
-            bool anyone = false;
-            foreach (Transform player in players)
-            {
-                if (player == null) continue;
-                if (!player.TryGetComponent(out HealthComponent health) || health.Alive) return false;
-                anyone = true;
-            }
-            return anyone;
-        }
-
         /// <summary>Whether the target died when the poster wanted it alive: that hunt cannot be handed in.</summary>
         public static bool KilledWhenWantedAlive(WantedStatus wanted, bool dead) => dead && wanted != WantedStatus.Dead;
 
         /// <summary>
-        /// Why an open hunt whose cast stands fails now, or <see cref="BountyFailure.None"/>: the target killed when wanted
-        /// alive, the crew all gone down, the cast standing too long, or every player out of its bounds too long. The most
-        /// direct cause wins, so the crew are told what they did.
+        /// Why an open hunt whose cast stands fails now, or <see cref="BountyFailure.None"/>: the target fallen beneath the
+        /// ground, the target killed when wanted alive, the cast standing too long, or every player out of its bounds too
+        /// long. The most direct cause wins, so the crew are told what happened: a target that fell through the world and
+        /// died of it is lost, not killed. The whole crew going down is no failure: the hunt waits for them.
         /// </summary>
         public static BountyFailure FailureOf(float elapsed, float outsideFor, float maxOpenSeconds, float outOfBoundsSeconds,
-                                              bool targetKilled, bool crewWentDown)
+                                              bool targetKilled, bool targetLost)
         {
+            if (targetLost) return BountyFailure.TargetLost;
             if (targetKilled) return BountyFailure.TargetKilled;
-            if (crewWentDown) return BountyFailure.CrewDown;
             if (elapsed >= maxOpenSeconds) return BountyFailure.OutOfTime;
             return outsideFor >= outOfBoundsSeconds ? BountyFailure.OutOfBounds : BountyFailure.None;
         }

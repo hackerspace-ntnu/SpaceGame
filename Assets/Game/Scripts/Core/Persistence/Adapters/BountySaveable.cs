@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using SpaceGame.Gameplay;
@@ -10,7 +11,7 @@ namespace SpaceGame.Core.Persistence
 {
     /// <summary>
     /// Persists the crew's bounty book: the hunt they have open (where it was taken, where its site is, how far they
-    /// are), the server's run of it (its cast, its clock), and every hunt that has ended and how.
+    /// are), the server's run of it (its cast, its clock), and every hunt handed in.
     ///
     /// <para>
     /// A global saver beside <see cref="ObjectiveSaveable"/>: the book belongs to the world, not to any object in it.
@@ -18,8 +19,9 @@ namespace SpaceGame.Core.Persistence
     /// saved entities, named here by identity and found again by the board as their chunks load.
     /// </para>
     /// <para>
-    /// Saves written before hunts had a cast still load: their <c>claimed</c> ids become Claimed closures, their
-    /// <c>target</c> one Target piece, and <c>targetSpawned</c> the run's <c>spawned</c>.
+    /// Saves written before hunts had a cast still load: their <c>target</c> becomes one Target piece, and
+    /// <c>targetSpawned</c> the run's <c>spawned</c>. Saves written while a failed hunt ended for good list ended hunts
+    /// as <c>closed</c>: only the Claimed ones are kept, so an expired hunt can be taken again.
     /// </para>
     /// </summary>
     public class BountySaveable : MonoBehaviour, ISaveable
@@ -31,12 +33,8 @@ namespace SpaceGame.Core.Persistence
 
         public string SaveKey => Key;
 
-        /// <summary>One ended hunt: its id, and <see cref="BountyClosure"/> by name.</summary>
-        public struct ClosedEntry
-        {
-            public string id;
-            public string closure;
-        }
+        // How a save's `closed` entry said a hunt was handed in. Every other way it ended was a failure.
+        private const string ClaimedClosure = "Claimed";
 
         public struct State
         {
@@ -57,16 +55,23 @@ namespace SpaceGame.Core.Persistence
             /// <summary>The server's run of the open hunt, and the cast of ended ones still waiting to be taken away.</summary>
             public BountyHuntRunState run;
 
-            /// <summary>Every hunt that has ended, in the order they ended.</summary>
-            public List<ClosedEntry> closed;
+            /// <summary>The ids of every hunt handed in, in the order they were.</summary>
+            public List<string> claimed;
         }
 
-        /// <summary>The fields of a save written before hunts had a cast. Read, never written.</summary>
+        /// <summary>One ended hunt as saves wrote it while a failed hunt ended for good: its id, and how it ended by name.</summary>
+        private struct ClosedEntry
+        {
+            public string id;
+            public string closure;
+        }
+
+        /// <summary>The fields of older saves. Read, never written.</summary>
         private struct OldState
         {
             public SaveRef target;
             public bool targetSpawned;
-            public List<string> claimed;
+            public List<ClosedEntry> closed;
         }
 
         public object CaptureState()
@@ -74,14 +79,13 @@ namespace SpaceGame.Core.Persistence
             BountyBoard live = Resolve();
             if (live == null || VersusSession.IsActive) return null;
 
-            var closed = new List<ClosedEntry>();
-            foreach (ClosedHunt hunt in live.Closed)
-                if (BountyCatalog.At(hunt.place) is BountyHunt ended)
-                    closed.Add(new ClosedEntry { id = ended.Id, closure = hunt.closure.ToString() });
+            var claimed = new List<string>();
+            foreach (int place in live.Claimed)
+                if (BountyCatalog.At(place) is BountyHunt handedIn) claimed.Add(handedIn.Id);
 
             BountyHunt open = live.Open;
             BountyHuntRunState run = live.Run;
-            if (open == null && closed.Count == 0 && run.pendingDespawn.Count == 0) return null;
+            if (open == null && claimed.Count == 0 && run.pendingDespawn.Count == 0) return null;
 
             BountyProgress progress = live.Progress;
             return new State
@@ -93,7 +97,7 @@ namespace SpaceGame.Core.Persistence
                 hasSite = open != null,
                 site = progress.Site,
                 run = run,
-                closed = closed,
+                claimed = claimed,
             };
         }
 
@@ -113,47 +117,30 @@ namespace SpaceGame.Core.Persistence
 
             Vector3 site = restored.hasSite ? restored.site : open != null ? open.SitePosition : Vector3.zero;
             BountyHuntRunState run = restored.run ?? RunFromOldSave(old);
-            List<ClosedHunt> closed = restored.closed != null ? Closed(restored.closed) : ClaimedFromOldSave(old);
+            IEnumerable<string> claimed = restored.claimed ?? ClaimedOf(old.closed);
 
-            live.Restore(open, phase, restored.town, restored.townRadius, site, run, closed);
+            live.Restore(open, phase, restored.town, restored.townRadius, site, run, Places(claimed));
         }
 
-        private static List<ClosedHunt> Closed(List<ClosedEntry> entries)
+        /// <summary>The catalog places of <paramref name="ids"/>; one no longer in the catalog is dropped, with a warning.</summary>
+        private static List<int> Places(IEnumerable<string> ids)
         {
-            var closed = new List<ClosedHunt>();
-            foreach (ClosedEntry entry in entries)
-            {
-                int place = BountyCatalog.IndexOf(BountyCatalog.ById(entry.id));
-                if (place < 0)
-                {
-                    Debug.LogWarning($"[Save] The ended bounty '{entry.id}' no longer exists; it is dropped from the book.");
-                    continue;
-                }
-
-                if (!Enum.TryParse(entry.closure, out BountyClosure closure))
-                {
-                    Debug.LogWarning($"[Save] Bounty '{entry.id}' ended in an unknown way '{entry.closure}'; it is read as Expired.");
-                    closure = BountyClosure.Expired;
-                }
-
-                closed.Add(new ClosedHunt(place, closure));
-            }
-            return closed;
-        }
-
-        /// <summary>An old save's handed-in ids: every one was Claimed, there being no other way to end then.</summary>
-        private static List<ClosedHunt> ClaimedFromOldSave(OldState old)
-        {
-            var closed = new List<ClosedHunt>();
-            if (old.claimed == null) return closed;
-
-            foreach (string id in old.claimed)
+            var places = new List<int>();
+            foreach (string id in ids)
             {
                 int place = BountyCatalog.IndexOf(BountyCatalog.ById(id));
-                if (place >= 0) closed.Add(new ClosedHunt(place, BountyClosure.Claimed));
+                if (place >= 0) places.Add(place);
+                else Debug.LogWarning($"[Save] The claimed bounty '{id}' no longer exists; it is dropped from the book.");
             }
-            return closed;
+            return places;
         }
+
+        /// <summary>
+        /// The handed-in ids of a save that listed ended hunts as <c>closed</c>. The rest failed, and a failed hunt is
+        /// no longer over for good: it is offered again. None with no such list.
+        /// </summary>
+        private static IEnumerable<string> ClaimedOf(List<ClosedEntry> closed) =>
+            closed == null ? Enumerable.Empty<string>() : closed.Where(entry => entry.closure == ClaimedClosure).Select(entry => entry.id);
 
         /// <summary>An old save's single target is the run's one piece: the poster's own agent, at no spot.</summary>
         private static BountyHuntRunState RunFromOldSave(OldState old)

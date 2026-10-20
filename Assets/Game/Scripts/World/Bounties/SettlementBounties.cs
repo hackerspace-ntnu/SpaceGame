@@ -68,7 +68,7 @@ namespace SpaceGame.World.Bounties
 
         /// <summary>
         /// Whether this settlement offers <paramref name="hunt"/> to <paramref name="reader"/> now: it is one of its hunts,
-        /// and its condition is met. Whether the crew may take it (none open, never closed) is the board's question.
+        /// and its condition is met. Whether the crew may take it (none open, never claimed) is the board's question.
         /// </summary>
         public bool Offers(BountyHunt hunt, BountyBoard board, Transform reader)
         {
@@ -80,8 +80,7 @@ namespace SpaceGame.World.Bounties
                 case OfferCondition.Always:
                     return true;
                 case OfferCondition.AfterClaimed:
-                    return board.IsClosed(BountyCatalog.IndexOf(entry.afterClaimed), out BountyClosure closure) &&
-                           closure == BountyClosure.Claimed;
+                    return board.IsClaimed(BountyCatalog.IndexOf(entry.afterClaimed));
                 case OfferCondition.Goodwill:
                     return StandingOf(reader) >= entry.minGoodwill;
                 default:

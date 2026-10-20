@@ -1,7 +1,7 @@
 // The wanted posters hung in loaded scenes, and what each one offers: its hunt to take, a "not yet" while its owner
-// does not offer it to the reader, or a CLAIMED / EXPIRED stamp once the hunt has ended. Posters register themselves
-// (WantedPoster.OnEnable); the board restamps them whenever the ended hunts change. Every machine, local only: the
-// stamp is drawn from the replicated closed list, never sent.
+// does not offer it to the reader, or a CLAIMED stamp once the hunt has been handed in. Posters register themselves
+// (WantedPoster.OnEnable); the board restamps them whenever the claimed hunts change. Every machine, local only: the
+// stamp is drawn from the replicated claimed list, never sent.
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -51,18 +51,10 @@ namespace SpaceGame.World.Bounties
             return bounty != null && BountyBoard.IsRunning ? new Offer(bounty) : null;
         }
 
-        /// <summary>Stamps, re-inks or clears every hung poster after the ended hunts changed.</summary>
+        /// <summary>Stamps or clears every hung poster after the claimed hunts changed.</summary>
         public static void RestampAll()
         {
             foreach (WantedPoster poster in Hung) Stamp(poster);
-        }
-
-        /// <summary>The stamp's words and ink for a hunt that ended as <paramref name="closure"/>.</summary>
-        private static void Ink(BountyBoard.StampLook look, BountyClosure closure, out string text, out Color colour)
-        {
-            bool expired = closure == BountyClosure.Expired;
-            text = expired ? look.expiredText : look.text;
-            colour = expired ? look.expiredColour : look.colour;
         }
 
         private static void Stamp(WantedPoster poster)
@@ -71,25 +63,22 @@ namespace SpaceGame.World.Bounties
 
             BountyBoard board = BountyBoard.Instance;
             BountyHunt bounty = BountyCatalog.For(poster);
-            BountyClosure closure = default;
-            bool ended = board != null && bounty != null && board.IsClosed(BountyCatalog.IndexOf(bounty), out closure);
+            bool claimed = board != null && bounty != null && board.IsClaimed(BountyCatalog.IndexOf(bounty));
 
+            // A reload or a late join can take a stamp back off: the claimed list it was laid from was replaced.
             Transform existing = poster.transform.Find(StampName);
-            if (!ended)
+            if (!claimed)
             {
                 if (existing != null) existing.gameObject.SetActive(false);
                 return;
             }
 
-            Ink(board.Stamp, closure, out string text, out Color colour);
-
-            // A stamp already laid is re-inked: a reload or a late join can turn CLAIMED into EXPIRED, or back.
             TextMeshPro stamp = existing != null ? existing.GetComponent<TextMeshPro>() : poster.Sheet != null ? MakeStamp(poster, board.Stamp) : null;
             if (stamp == null) return;
 
             stamp.gameObject.SetActive(true);
-            stamp.text = text;
-            stamp.color = colour;
+            stamp.text = board.Stamp.text;
+            stamp.color = board.Stamp.colour;
         }
 
         /// <summary>A rubber stamp across the sheet's face, laid just in front of it. Its words and ink are the caller's.</summary>
@@ -131,11 +120,7 @@ namespace SpaceGame.World.Bounties
 
             private static BountyProgress Progress => Board != null ? Board.Progress : default;
 
-            private bool Ended(out BountyClosure closure)
-            {
-                closure = default;
-                return Board != null && Board.IsClosed(index, out closure);
-            }
+            private bool Claimed => Board != null && Board.IsClaimed(index);
 
             /// <summary>Whether the hunt's owner puts it on offer to the local player now. Not loaded, it offers nothing.</summary>
             private bool Offered
@@ -147,34 +132,18 @@ namespace SpaceGame.World.Bounties
                 }
             }
 
-            public string Stamp
-            {
-                get
-                {
-                    if (!Ended(out BountyClosure closure)) return string.Empty;
-                    Ink(Board.Stamp, closure, out string text, out _);
-                    return text;
-                }
-            }
+            public string Stamp => Claimed ? Board.Stamp.text : string.Empty;
 
-            public Color StampColour
-            {
-                get
-                {
-                    if (!Ended(out BountyClosure closure)) return Color.clear;
-                    Ink(Board.Stamp, closure, out _, out Color colour);
-                    return colour;
-                }
-            }
+            public Color StampColour => Claimed ? Board.Stamp.colour : Color.clear;
 
-            public bool CanTake => BountyRules.CanTake(Progress, index) && !Ended(out _) && Offered;
+            public bool CanTake => BountyRules.CanTake(Progress, index) && !Claimed && Offered;
 
             public string Prompt
             {
                 get
                 {
                     BountyProgress progress = Progress;
-                    if (Ended(out _)) return string.Empty;
+                    if (Claimed) return string.Empty;
                     if (progress.HasOpen && progress.OpenIndex == index) return "YOU HAVE TAKEN THIS BOUNTY: ASK AROUND TOWN";
                     if (progress.HasOpen) return "FINISH YOUR CURRENT BOUNTY FIRST";
                     if (!Offered) return "NOT YET";

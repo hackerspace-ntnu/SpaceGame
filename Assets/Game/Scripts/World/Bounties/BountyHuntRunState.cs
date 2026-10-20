@@ -6,7 +6,7 @@ namespace SpaceGame.World.Bounties
 {
     /// <summary>
     /// The open hunt as only the server knows it: whether its cast has been stood at the site, who they are, and how
-    /// long the hunt has left. Saved whole by <c>BountySaveable</c>; never sent to clients.
+    /// long they have stood. Saved whole by <c>BountySaveable</c>; never sent to clients.
     /// </summary>
     [Serializable]
     public sealed class BountyHuntRunState
@@ -35,13 +35,21 @@ namespace SpaceGame.World.Bounties
 
         public List<HuntPiece> pieces = new();
 
-        /// <summary>Seconds of server play the hunt has been open.</summary>
+        /// <summary>Seconds of server play the cast has stood. Nothing counts before: there is nothing yet to lose.</summary>
         public float elapsed;
 
-        /// <summary>Seconds every player has been outside the hunt's bounds; 0 while anyone is inside.</summary>
+        /// <summary>Seconds every player has been outside the hunt's bounds while the cast stood; 0 while anyone is inside.</summary>
         public float outsideFor;
 
-        /// <summary>Cast of an ended hunt whose chunks were not loaded: despawned as soon as each streams in.</summary>
+        /// <summary>Cast of an ended or restarted hunt not yet gone: despawned as soon as each is loaded.</summary>
         public List<SaveRef> pendingDespawn = new();
+
+        /// <summary>Hands the whole cast to <see cref="pendingDespawn"/>, leaving none: the run no longer keeps them.</summary>
+        public void WithdrawPieces()
+        {
+            foreach (HuntPiece piece in pieces)
+                if (piece.body.IsSet) pendingDespawn.Add(piece.body);
+            pieces.Clear();
+        }
     }
 }

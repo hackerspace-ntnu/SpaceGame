@@ -1,11 +1,11 @@
 // The open hunt as the server runs it (Bounties.md): stands its cast at the site, keeps each of them to their spot,
 // counts its clock and how long the crew have been out of its bounds, and takes its people away when it ends. The
-// BountyBoard owns one, built afresh whenever a hunt is taken, ends or is restored; the board keeps the taking, the
+// BountyBoard owns one, built afresh whenever a hunt is taken, starts over, ends or is restored; the board keeps the taking, the
 // tips, the hand-in and what every machine is told.
 //
 // What is worth keeping lives in BountyHuntRunState, which BountySaveable saves: the cast by identity (a body
 // outlives its chunk, so it is found again by SaveRef as its chunk streams in), the clock, and the people of ended
-// hunts still waiting to be taken away. What is held here besides is re-derived: which stop a patrol walks to next,
+// or restarted hunts still waiting to be taken away. What is held here besides is re-derived: which stop a patrol walks to next,
 // when a wanderer moves on.
 //
 // Server only: a SaveRef resolves only on the server.
@@ -107,6 +107,9 @@ namespace SpaceGame.World.Bounties
         /// <summary>The target, once it is in the world here: spawned, or found again after a load.</summary>
         public BountyTarget Target { get; private set; }
 
+        /// <summary>Whether the cast has stood at the site: before that a hunt has nothing to lose, so its clock waits.</summary>
+        public bool HasStood => state.spawned;
+
         /// <summary>Whether some of the cast is due at the site and not yet stood there.</summary>
         public bool WantsCast(BountyPhase phase) => hunt != null && (!state.spawned || TipCastDue(phase));
 
@@ -158,14 +161,14 @@ namespace SpaceGame.World.Bounties
         }
 
         /// <summary>
-        /// One server step: the clock, the bounds round <paramref name="town"/>, finding the cast again as its chunks
-        /// stream in, and keeping each of them to their spot.
+        /// One server step once the cast stands: the clock, the bounds round <paramref name="town"/>, finding the cast
+        /// again as its chunks stream in, and keeping each of them to their spot.
         /// </summary>
         public void Tick(float now, Vector3 town, IReadOnlyList<Transform> players)
         {
             float delta = lastTick < 0f ? 0f : now - lastTick;
             lastTick = now;
-            if (hunt == null) return;
+            if (hunt == null || !HasStood) return;
 
             state.elapsed += delta;
             state.outsideFor = BountyRules.AllOutside(players, town, hunt.BoundsRadius) ? state.outsideFor + delta : 0f;
@@ -173,11 +176,11 @@ namespace SpaceGame.World.Bounties
         }
 
         /// <summary>
-        /// The hunt is over: the target is let go (led to <paramref name="targetLedTo"/> if it lives and was handed in),
-        /// everyone else here starts the usual countdown to being taken away, and anyone whose chunk is not loaded is
-        /// taken away the moment it is.
+        /// The hunt was handed in: the target is let go (led to <paramref name="targetLedTo"/> if it lives), everyone
+        /// else here starts the usual countdown to being taken away, and anyone whose chunk is not loaded is taken away
+        /// the moment it is.
         /// </summary>
-        public void TakeAway(Vector3? targetLedTo, float takenAwaySeconds)
+        public void TakeAway(Vector3 targetLedTo, float takenAwaySeconds)
         {
             for (int i = 0; i < state.pieces.Count; i++)
             {
@@ -196,7 +199,7 @@ namespace SpaceGame.World.Bounties
         }
 
         /// <summary>
-        /// Takes away the people of ended hunts as their chunks stream in, and forgets those already gone from the
+        /// Takes away the people of ended or restarted hunts as their chunks stream in, and forgets those already gone from the
         /// world. Runs whether or not a hunt is open: they outlive the hunt that stood them.
         /// </summary>
         public void DespawnPending()

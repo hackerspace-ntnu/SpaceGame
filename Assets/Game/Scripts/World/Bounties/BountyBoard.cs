@@ -198,7 +198,7 @@ namespace SpaceGame.World.Bounties
 
         private void OnDestroy()
         {
-            if (objective != null) TrackedObjectives.Untrack(objective);
+            if (objective != null) QuestLog.Close(objective);
             if (Instance == this) Instance = null;
         }
 
@@ -587,12 +587,12 @@ namespace SpaceGame.World.Bounties
 
             BountyProgress was = progress;
             progress = next;
-            if (progress.Open != was.Open) Retrack();
+            if (progress.Open != was.Open) Retrack(live);
             else if (live && objective != null)
             {
                 if (progress.Resets != was.Resets)
                     SystemMessages.Post(FailedMessageId, objective.FailedLine(progress.Failure), MessageSeverity.Notice);
-                TrackedObjectives.Track(objective);
+                QuestLog.Open(objective, acquired: true);
             }
             Changed?.Invoke(live);
         }
@@ -603,12 +603,15 @@ namespace SpaceGame.World.Bounties
             return was.Equals(next);
         }
 
-        /// <summary>A new open bounty is a new objective on the visor, so it is announced as one.</summary>
-        private void Retrack()
+        /// <summary>
+        /// A new open bounty is a new quest, so it is announced as one. <paramref name="live"/>: taken just now, in play,
+        /// so it becomes the active quest; restored from a save or learned on joining, it is listed quietly.
+        /// </summary>
+        private void Retrack(bool live)
         {
-            if (objective != null) TrackedObjectives.Untrack(objective);
+            if (objective != null) QuestLog.Close(objective);
             objective = progress.HasOpen ? new BountyObjective(this, Open) : null;
-            if (objective != null) TrackedObjectives.Track(objective);
+            if (objective != null) QuestLog.Open(objective, acquired: live);
         }
     }
 }

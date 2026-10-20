@@ -9,9 +9,10 @@ namespace SpaceGame.World.Bounties
     /// The open bounty as the visor shows it: ask around town, search where the tip pointed, bring the target back — and,
     /// while every player is outside the hunt's bounds, how long the crew have to come back before it starts over. Read on
     /// every machine from the board's replicated progress and the target's body; holds nothing of its own. One per taken
-    /// bounty, so the visor announces a new one.
+    /// bounty, so the visor announces a new one. A quest in the quest log (<see cref="QuestLog"/>) while the bounty is
+    /// open, and its own objective throughout.
     /// </summary>
-    public sealed class BountyObjective : ITrackedObjective
+    public sealed class BountyObjective : ITrackedObjective, IQuestEntry
     {
         private readonly BountyBoard board;
         private readonly BountyHunt bounty;
@@ -22,15 +23,24 @@ namespace SpaceGame.World.Bounties
             this.bounty = bounty;
         }
 
-        private string Name => bounty != null ? bounty.TargetName : "the outlaw";
+        private string Target => bounty != null ? bounty.TargetName : "the outlaw";
+
+        public string Name => $"Bounty: {Target}";
+
+        public string Summary => $"{Target} is wanted by the town that posted the bounty. Hunt them down and bring them back.";
+
+        /// <summary>Never: the board closes this entry the moment the bounty is no longer open.</summary>
+        public bool IsComplete => false;
+
+        public ITrackedObjective Objective => this;
 
         private bool OutOfBounds => board.Progress.OutsideFor > 0f;
 
         public string Title => board.Progress.Phase switch
         {
-            BountyPhase.Asking => $"Ask around town about {Name}",
-            BountyPhase.Located => $"Find {Name}",
-            _ => board.Progress.TargetDead ? $"Bring {Name}'s body back to town" : $"Bring {Name} back to town",
+            BountyPhase.Asking => $"Ask around town about {Target}",
+            BountyPhase.Located => $"Find {Target}",
+            _ => board.Progress.TargetDead ? $"Bring {Target}'s body back to town" : $"Bring {Target} back to town",
         };
 
         public string Status => OutOfBounds ? $"{OutOfBoundsLine}\n{PhaseStatus}" : PhaseStatus;
@@ -62,8 +72,8 @@ namespace SpaceGame.World.Bounties
         {
             string why = failure switch
             {
-                BountyFailure.TargetKilled => $"{Name} was wanted alive",
-                BountyFailure.TargetLost => $"{Name} fell beneath the ground",
+                BountyFailure.TargetKilled => $"{Target} was wanted alive",
+                BountyFailure.TargetLost => $"{Target} fell beneath the ground",
                 BountyFailure.OutOfTime => "out of time",
                 BountyFailure.OutOfBounds => "the crew left the hunt's bounds",
                 _ => "it went wrong",

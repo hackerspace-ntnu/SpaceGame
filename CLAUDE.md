@@ -56,6 +56,7 @@ Full rules: [docs/AI/CONTRIBUTING.md](docs/AI/CONTRIBUTING.md).
 | --- | --- |
 | [spacegame-agent](.claude/skills/spacegame-agent/SKILL.md) | Creatures, NPCs, enemies, mounts, turrets: AI behaviour and factions |
 | [spacegame-artifact](.claude/skills/spacegame-artifact/SKILL.md) | Usable items: gadgets, spells, weapons, hotbar slots, hold poses |
+| [spacegame-objectives](.claude/skills/spacegame-objectives/SKILL.md) | Quests and objectives: steps, side quests, settlement/event triggers, quest log, briefings |
 | [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md) | Netcode: host works, clients broken; ownership, RPCs, prefab registration |
 | [spacegame-persistence](.claude/skills/spacegame-persistence/SKILL.md) | Save/load: state resets, entities duplicate, savers missing from JSON |
 | [spacegame-tribe](.claude/skills/spacegame-tribe/SKILL.md) | Adding a tribe: roster, war parties, caravans, goodwill |

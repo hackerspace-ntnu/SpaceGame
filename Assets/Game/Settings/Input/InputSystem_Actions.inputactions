@@ -537,7 +537,7 @@
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
-{
+                {
                     "name": "Keyboard",
                     "id": "5d77269d-9dc2-4d03-932a-31955819cbff",
                     "path": "1DAxis",
@@ -911,6 +911,15 @@
                     "name": "BodyInventory",
                     "type": "Button",
                     "id": "cb562c79-37dc-451c-bf33-fff09119c273",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "QuestLog",
+                    "type": "Button",
+                    "id": "2be021eb-fa7a-4d73-b93b-7e6964c26e8e",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -1558,6 +1567,17 @@
                     "processors": "",
                     "groups": ";Gamepad",
                     "action": "BodyInventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "01224eae-bb3d-43fa-8bed-abc7b853514d",
+                    "path": "<Keyboard>/j",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "QuestLog",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

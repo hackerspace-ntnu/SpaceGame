@@ -235,7 +235,7 @@ namespace SpaceGame.World
             if (Network.IsNetworked && !Network.Server)
                 askRoutine = StartCoroutine(Fault.Coroutine(this, "WorkshopMission.Ask",
                     this.NetToServerWhenSpawned(NetMsg.WorkshopMissionAsk, default)));
-            Track();
+            Track(acquired: false);
             ShowTrail();
         }
 
@@ -250,7 +250,7 @@ namespace SpaceGame.World
             if (crane != null) crane.Installed -= OnCoreInstalled;
             if (askRoutine != null) StopCoroutine(askRoutine);
             askRoutine = null;
-            TrackedObjectives.Untrack(objective);
+            QuestLog.Close(objective);
             trail.Hide();
 
             // The Shellbacks are this state's to rebuild, so they go with the workshop when its chunk streams out.
@@ -555,7 +555,7 @@ namespace SpaceGame.World
             if (next.Equals(state)) return;
 
             state = next;
-            Track();
+            Track(acquired: live);
             ShowTrail();
             Changed?.Invoke(live);
         }
@@ -572,17 +572,22 @@ namespace SpaceGame.World
         {
             if (pleaHeard) return;
             pleaHeard = true;
-            Track();
+            Track(acquired: true);
         }
 
-        private void Track()
+        /// <summary>
+        /// Opens the mission on this machine's quest log while it has something to ask, and closes it once it has not.
+        /// <paramref name="acquired"/>: it opens because of something that happened just now, in play — the plea heard,
+        /// the gate solved — so it becomes the active quest; streaming back in or a late join lists it quietly.
+        /// </summary>
+        private void Track(bool acquired)
         {
             if (objective == null) return;
             bool open = state.phase == WorkshopMissionPhase.Gathering || state.phase == WorkshopMissionPhase.Hunting ||
                         state.phase == WorkshopMissionPhase.Vault || state.phase == WorkshopMissionPhase.Locked && pleaHeard;
-            if (open == TrackedObjectives.IsTracked(objective)) return;
-            if (open) TrackedObjectives.Track(objective);
-            else TrackedObjectives.Untrack(objective);
+            if (open == QuestLog.IsOpen(objective)) return;
+            if (open) QuestLog.Open(objective, acquired);
+            else QuestLog.Close(objective);
         }
 
         /// <summary>The thieves' trail lies in the sand while they are being hunted, on every machine.</summary>

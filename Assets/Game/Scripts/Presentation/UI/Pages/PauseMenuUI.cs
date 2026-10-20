@@ -878,6 +878,7 @@ namespace SpaceGame.Presentation
             Binding(page, "Use / fire", "Left Mouse");
             Binding(page, "Interact", "Right Mouse");
             Binding(page, "Backpack", "B");
+            Binding(page, "Quest log", "J");
             Binding(page, "Flashlight", "L");
             Binding(page, "Answer a question", "Y  ·  N");
             Binding(page, "Emote wheel  ·  hold, aim, release", "V");

@@ -9,9 +9,10 @@ namespace SpaceGame.World
     /// The workshop's story as the visor shows it: open the gate, meet the Shellbacks, follow the thieves' trail, raid
     /// their camp, catch the runner, bring the gear home; then turn the main room, find the vault, take the reactor core, carry it to the
     /// crane console and lower it onto the ship. Read on every machine from the mission's replicated state and what is
-    /// in the world; holds nothing of its own.
+    /// in the world; holds nothing of its own. A quest in the quest log while the mission has it open
+    /// (<see cref="QuestLog"/>), and its own objective throughout.
     /// </summary>
-    public sealed class WorkshopMissionObjective : ITrackedObjective
+    public sealed class WorkshopMissionObjective : ITrackedObjective, IQuestEntry
     {
         private enum Step
         {
@@ -31,6 +32,15 @@ namespace SpaceGame.World
         private readonly WorkshopMission mission;
 
         public WorkshopMissionObjective(WorkshopMission mission) => this.mission = mission;
+
+        public string Name => "The Heart Gear";
+
+        public string Summary => "Raiders robbed the Shellbacks' workshop of the Heart Gear that turns its gate. " +
+                                 "Help them, and they may help your ship.";
+
+        public bool IsComplete => mission.Phase == WorkshopMissionPhase.Repaired;
+
+        public ITrackedObjective Objective => IsComplete ? null : this;
 
         public string Title => Now(out _, out _) switch
         {

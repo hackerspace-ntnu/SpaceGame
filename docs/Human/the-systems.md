@@ -625,9 +625,15 @@ Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 t
 
 **Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
 
-### The opening objectives *(Objectives)*
+### Quests *(Objectives)*
 
-After the crash the crew share one short chain of objectives: try the basic controls, haul the oxygen plant back in, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, get the long-range transmitter working (put out its fire, pull it, fetch a working one from the radar dish tower), answer the signal it picks up by walking to the settlement calling, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one. The host decides when a step is done; everyone else sees the result, and the crew's place in the chain is saved with the world.
+The crew can be on several quests at once. Each is a short chain of steps the whole crew shares, and every quest keeps moving whether or not anyone is looking at it. The visor follows one quest at a time: whichever you picked up most recently. Press J to open the quest log, which lists every quest with what it wants from you now, and click another quest to follow that one instead. The opening story is one quest. Others start when something happens in the world, such as walking into a particular settlement, finishing an earlier quest, or a character handing you one. A quest can also start another partway through: either both carry on side by side, or the first waits until the new one is finished. The host decides when a quest starts and when a step is done, everyone else sees the result, and every quest is saved with the world. Which quest each player follows is their own choice and is not saved.
+
+**Worth knowing:** A quest only exists in the game if it is listed in the objectives director's catalog. A quest that is not listed never starts and is never saved, and the game says so in the console. Quests are saved by name, so renaming one makes an old save forget it.
+
+### The opening objectives *(CrashSiteQuest)*
+
+After the crash the crew share one short chain of objectives: try the basic controls, haul the oxygen plant back in, check the damage at the cockpit terminal, walk out to a hull module that came down nearby and fit it back, try an artifact thrown clear in the crash, get the long-range transmitter working (put out its fire, pull it, fetch a working one from the radar dish tower), answer the signal it picks up by walking to the settlement calling, then repair the whole ship. The lander's computer speaks each step through the dialog popup, the visor shows the objective in a panel that flashes when it changes and marks the way, and a light column stands over anything lying in the sand. The first step lists the controls on the visor and waits until every player has used each one.
 
 **Worth knowing:** Each step is one asset, and its type (learn controls, use terminal, recover module, try artifact, fit transmitter, answer signal, repair ship) decides what finishes it. A new kind of step is a new small class; the chain itself does not change.
 

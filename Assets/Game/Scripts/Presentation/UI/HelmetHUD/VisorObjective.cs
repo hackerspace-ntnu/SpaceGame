@@ -6,8 +6,8 @@ using SpaceGame.Gameplay.Objectives;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The crew's current objective on the visor: a panel in the top-right corner under the
-    /// integrity gauge — heading, title, the objective's status lines, range — and a waypoint mark on
+    /// The active quest's current objective on the visor: a panel in the top-right corner under the
+    /// integrity gauge — the quest's name, title, the objective's status lines, range — and a waypoint mark on
     /// the place it points at.
     ///
     /// <para>
@@ -26,9 +26,9 @@ namespace SpaceGame.Presentation
     /// </para>
     /// <para>
     /// On the Annotations layer: it describes the world, so it goes quiet with the middle H level
-    /// along with the reticle. Shows the newest open world mission (<see cref="TrackedObjectives"/>),
-    /// else the crew's chain step (<see cref="ObjectiveDirector"/>), read on this machine every frame;
-    /// it holds nothing of its own, so a late joiner and a reloaded world draw it with no catching up.
+    /// along with the reticle. Shows <see cref="QuestLog.Active"/> — the quest most recently taken on, or
+    /// the one the player chose in the quest log — read on this machine every frame; it holds nothing
+    /// of its own, so a late joiner and a reloaded world draw it with no catching up.
     /// </para>
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
@@ -63,6 +63,7 @@ namespace SpaceGame.Presentation
         [SerializeField] private int titleSize = 28;
         [SerializeField] private int statusSize = 20;
 
+        [Tooltip("The heading when the quest has no name.")]
         [SerializeField] private string heading = "OBJECTIVE";
 
         [Tooltip("Seconds the panel takes to fade in or out when an objective starts or ends.")]
@@ -114,6 +115,7 @@ namespace SpaceGame.Presentation
 
         private float panelAlpha;
         private ITrackedObjective shown;
+        private string shownHeading;
         private float announcedAt = float.NegativeInfinity;
         private float nextTextRefresh;
         private int shownMetres = -1;
@@ -127,8 +129,8 @@ namespace SpaceGame.Presentation
 
         private void LateUpdate()
         {
-            ObjectiveDirector director = ObjectiveDirector.Instance;
-            ITrackedObjective objective = TrackedObjectives.Newest ?? (director != null ? director.Tracked : null);
+            IQuestEntry quest = QuestLog.Active;
+            ITrackedObjective objective = quest?.Objective;
             float now = Time.unscaledTime;
 
             panelAlpha = Mathf.MoveTowards(panelAlpha, objective != null ? 1f : 0f, Time.unscaledDeltaTime / fadeSeconds);
@@ -140,9 +142,11 @@ namespace SpaceGame.Presentation
                 return;
             }
 
+            // A new step, or another quest made active: both are a new objective to the player.
             if (objective != shown)
             {
                 shown = objective;
+                shownHeading = string.IsNullOrEmpty(quest.Name) ? heading : quest.Name.ToUpperInvariant();
                 announcedAt = now;
                 nextTextRefresh = now;
             }
@@ -168,7 +172,7 @@ namespace SpaceGame.Presentation
             float since = now - announcedAt;
             bool announcing = since < announceSeconds;
 
-            SetText(headingLabel, announcing ? announceHeading : heading);
+            SetText(headingLabel, announcing ? announceHeading : shownHeading);
 
             float pop = 1f + announcePop * Mathf.Pow(1f - Mathf.Clamp01(since / popSeconds), 2f);
             panel.localScale = new Vector3(pop, pop, 1f);

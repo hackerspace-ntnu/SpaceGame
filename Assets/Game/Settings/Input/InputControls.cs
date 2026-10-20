@@ -1003,6 +1003,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""QuestLog"",
+                    ""type"": ""Button"",
+                    ""id"": ""2be021eb-fa7a-4d73-b93b-7e6964c26e8e"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""EmoteWheel"",
                     ""type"": ""Button"",
                     ""id"": ""4b0f6c2e-8d57-4a3e-9f21-6b7d3c1e5a90"",
@@ -1649,6 +1658,17 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""01224eae-bb3d-43fa-8bed-abc7b853514d"",
+                    ""path"": ""<Keyboard>/j"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""QuestLog"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""1f8c3a52-7e94-4d0b-b6a1-2c5e9d7f3b48"",
                     ""path"": ""<Keyboard>/v"",
                     ""interactions"": """",
@@ -2108,6 +2128,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_Chat = m_UI.FindAction("Chat", throwIfNotFound: true);
         m_UI_Hud = m_UI.FindAction("Hud", throwIfNotFound: true);
         m_UI_BodyInventory = m_UI.FindAction("BodyInventory", throwIfNotFound: true);
+        m_UI_QuestLog = m_UI.FindAction("QuestLog", throwIfNotFound: true);
         m_UI_EmoteWheel = m_UI.FindAction("EmoteWheel", throwIfNotFound: true);
         m_UI_EmotePage = m_UI.FindAction("EmotePage", throwIfNotFound: true);
         m_UI_EmoteAim = m_UI.FindAction("EmoteAim", throwIfNotFound: true);
@@ -2485,6 +2506,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_Chat;
     private readonly InputAction m_UI_Hud;
     private readonly InputAction m_UI_BodyInventory;
+    private readonly InputAction m_UI_QuestLog;
     private readonly InputAction m_UI_EmoteWheel;
     private readonly InputAction m_UI_EmotePage;
     private readonly InputAction m_UI_EmoteAim;
@@ -2567,6 +2589,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/BodyInventory".
         /// </summary>
         public InputAction @BodyInventory => m_Wrapper.m_UI_BodyInventory;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/QuestLog".
+        /// </summary>
+        public InputAction @QuestLog => m_Wrapper.m_UI_QuestLog;
         /// <summary>
         /// Provides access to the underlying input action "UI/EmoteWheel".
         /// </summary>
@@ -2656,6 +2682,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @BodyInventory.started += instance.OnBodyInventory;
             @BodyInventory.performed += instance.OnBodyInventory;
             @BodyInventory.canceled += instance.OnBodyInventory;
+            @QuestLog.started += instance.OnQuestLog;
+            @QuestLog.performed += instance.OnQuestLog;
+            @QuestLog.canceled += instance.OnQuestLog;
             @EmoteWheel.started += instance.OnEmoteWheel;
             @EmoteWheel.performed += instance.OnEmoteWheel;
             @EmoteWheel.canceled += instance.OnEmoteWheel;
@@ -2727,6 +2756,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @BodyInventory.started -= instance.OnBodyInventory;
             @BodyInventory.performed -= instance.OnBodyInventory;
             @BodyInventory.canceled -= instance.OnBodyInventory;
+            @QuestLog.started -= instance.OnQuestLog;
+            @QuestLog.performed -= instance.OnQuestLog;
+            @QuestLog.canceled -= instance.OnQuestLog;
             @EmoteWheel.started -= instance.OnEmoteWheel;
             @EmoteWheel.performed -= instance.OnEmoteWheel;
             @EmoteWheel.canceled -= instance.OnEmoteWheel;
@@ -3297,6 +3329,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnBodyInventory(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "QuestLog" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnQuestLog(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "EmoteWheel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>

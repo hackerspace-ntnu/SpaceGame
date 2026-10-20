@@ -17,6 +17,8 @@ namespace SpaceGame.EditorTools
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/ShockHarpoon.asset";
         private const string ArcPath = "Assets/Game/Prefabs/VisualEffects/Lightning/HarpoonShockArc.prefab";
         private const string ArcMaterialPath = "Assets/Game/Art/Materials/Weapons/ConjurerLightning.mat";
+        // The laser staff's additive streak, coloured per particle: here, blue.
+        private const string SparkMaterialPath = "Assets/Game/Art/Materials/Weapons/LaserSpark.mat";
         private const string LookPath = "Assets/Game/Resources/" + ShockLook.ResourcePath + ".asset";
         private const string XRayMaterialPath = "Assets/Game/Art/Materials/Effects/ShockXRay.mat";
         private const string BoneMaterialPath = "Assets/Game/Art/Materials/Effects/ShockBone.mat";
@@ -31,6 +33,10 @@ namespace SpaceGame.EditorTools
         private static readonly Color BoneGlow = new Color(0.45f, 0.8f, 1.5f);
         private static readonly Color SocketColour = new Color(0.01f, 0.02f, 0.04f);
 
+        // The wire's sparks: white-blue as they leave the cable, deep blue as they die.
+        private static readonly Color SparkHot = new Color(0.75f, 0.9f, 1f);
+        private static readonly Color SparkCool = new Color(0.2f, 0.5f, 1f);
+
         // Parts of the hunting-tool export (decorations.blend, Coll_Deco_Tool_ElectricHarpoonGun).
         private const string HarpoonPart = "Tool_ElectricHarpoonGun_Harpoon";
         private const string BarrelPart = "Tool_ElectricHarpoonGun_Barrel";
@@ -38,9 +44,8 @@ namespace SpaceGame.EditorTools
         private const string WirePart = "Tool_ElectricHarpoonGun_Wire";
         private const string CableMaterial = "Mat_Deco_Fabric_Rust";
 
-        // Held as long as the Raxy's own (HandToolRoster), in both hands like the other long guns.
-        private const float HoldSize = 1.21f;
-
+        // The Raxy hunter's inert harpoon gun (HandToolRoster): the same model, its grip and back hang already solved.
+        private const string HandToolPath = "Assets/Game/Prefabs/Items/Tools/Hunting/Tool_ElectricHarpoonGun.prefab";
 
         [MenuItem("Tools/SpaceGame/Items/Build Shock Harpoon")]
         public static void Build()
@@ -161,6 +166,8 @@ namespace SpaceGame.EditorTools
             item.itemName = "Shock Harpoon";
             // Unmistakably a weapon pointed at you (MenacingItemTests).
             item.menacing = true;
+            // A guard fires it from the hand (ResidentWeaponModule): OnRequestUse aims an NPC's press.
+            item.npcUsable = true;
             EditorUtility.SetDirty(item);
             return item;
         }
@@ -222,12 +229,7 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetEnumByName(so, "pickupId", "InteractPickupMetal");
                 so.ApplyModifiedPropertiesWithoutUndo();
 
-                ItemGrip grip = root.AddComponent<ItemGrip>();
-                so = new SerializedObject(grip);
-                SerializedFields.SetInt(so, "holdStyle", (int)ItemGrip.HoldStyle.TwoHanded);
-                SerializedFields.SetFloat(so, "holdSize", HoldSize);
-                SerializedFields.Set(so, "sizeReference", drawn.transform);
-                so.ApplyModifiedPropertiesWithoutUndo();
+                CopyHold(root, drawn.transform);
 
                 root.AddComponent<Unity.Netcode.NetworkObject>();
                 root.AddComponent<SpaceGame.Core.NetRelay>();
@@ -243,7 +245,37 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        /// <summary>The arc laid along the cable while the body on the end is shocked.</summary>
+        /// <summary>
+        /// Held and slung exactly as the Raxy hunter's own harpoon gun: the same model at the same place under the root,
+        /// so the grip GripFitter solved on a Raxy hand and the back hang BeltHangs worked out for it fit this prefab
+        /// too. Without the hang a guard could never put it away (BeltCarrier.CanStow).
+        /// </summary>
+        private static void CopyHold(GameObject root, Transform model)
+        {
+            var tool = AssetDatabase.LoadAssetAtPath<GameObject>(HandToolPath);
+            if (tool == null || !tool.TryGetComponent(out ItemGrip solvedGrip) || !tool.TryGetComponent(out BeltMount solvedMount))
+                throw new FileNotFoundException($"[ShockHarpoon] no hand tool with a grip and a belt mount at {HandToolPath}. Build the hand tools first.");
+
+            ItemGrip grip = root.AddComponent<ItemGrip>();
+            EditorUtility.CopySerialized(solvedGrip, grip);
+            var so = new SerializedObject(grip);
+            SerializedFields.Set(so, "sizeReference", model);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Transform solvedHang = solvedMount.Hang;
+            var hang = new GameObject(solvedHang.name).transform;
+            hang.SetParent(root.transform, false);
+            hang.SetLocalPositionAndRotation(tool.transform.InverseTransformPoint(solvedHang.position),
+                                             Quaternion.Inverse(tool.transform.rotation) * solvedHang.rotation);
+
+            BeltMount mount = root.AddComponent<BeltMount>();
+            EditorUtility.CopySerialized(solvedMount, mount);
+            so = new SerializedObject(mount);
+            SerializedFields.Set(so, "hang", hang);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>The arc laid along the cable, and the sparks it throws, while the wire is live.</summary>
         private static WireCurrent BuildCurrent(Transform root, LineRenderer wire)
         {
             var material = AssetDatabase.LoadAssetAtPath<Material>(ArcMaterialPath);
@@ -262,8 +294,45 @@ namespace SpaceGame.EditorTools
             var current = go.AddComponent<WireCurrent>();
             var so = new SerializedObject(current);
             SerializedFields.Set(so, "wire", wire);
+            SerializedFields.Set(so, "sparks", BuildWireSparks(go.transform));
             so.ApplyModifiedPropertiesWithoutUndo();
             return current;
+        }
+
+        /// <summary>
+        /// Short blue streaks spat sideways off the live wire. Emitted into by hand
+        /// (<see cref="WireCurrent"/> hands every spark its place and velocity), so no shape and
+        /// no start speed; a streak's drawn length is <c>size × lengthScale + speed × velocityScale</c>.
+        /// </summary>
+        private static ParticleSystem BuildWireSparks(Transform parent)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(SparkMaterialPath);
+            if (material == null) throw new FileNotFoundException($"[ShockHarpoon] no spark material at {SparkMaterialPath}");
+
+            ParticleSystem ps = PelletGunFxBuilder.Manual(PelletGunFxBuilder.NewSystem(parent, "WireSparks"));
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.06f, 0.18f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.006f, 0.014f);
+            main.gravityModifier = 0.2f;
+            main.maxParticles = 400;
+            main.startColor = new ParticleSystem.MinMaxGradient(SparkHot, SparkCool);
+
+            var shape = ps.shape;
+            shape.enabled = false;
+
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(PelletGunFxBuilder.Ramp(
+                new[] { (Color.white, 0f), (SparkCool, 1f) },
+                new[] { (1f, 0f), (0.8f, 0.5f), (0f, 1f) }));
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            PelletGunFxBuilder.ConfigureRenderer(renderer, material, ParticleSystemRenderMode.Stretch);
+            renderer.velocityScale = 0.03f;
+            renderer.lengthScale = 2f;
+            return ps;
         }
 
         private static Material MaterialNamed(Renderer renderer, string name)

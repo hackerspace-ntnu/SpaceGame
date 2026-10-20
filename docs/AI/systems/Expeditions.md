@@ -8,6 +8,7 @@ paths:
   - Assets/Game/Scripts/Core/Persistence/Adapters/ExpeditionSaveable.cs
   - Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs
   - Assets/Game/Editor/World/WorldSiteCatalogBaker.cs
+  - Assets/Game/Editor/World/WorldChunkScenes.cs
   - Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs
   - Assets/Game/ScriptableObjects/Expeditions/
   - Assets/Game/Resources/Expeditions/
@@ -28,7 +29,7 @@ symptoms:
   - "expedition-host reports STAND_INS=0 though the band is Out, folded and 4/4 away; the console is clean"
   - "an unwatched band is handed off at ~415 m in a second instead of walking out to 150 m"
 reads_with: [Residents, AgentSystem, Persistence, Multiplayer, TerrainGeneration, HandTools]
-updated: 2026-10-06
+updated: 2026-10-20
 ---
 
 # Settlement expeditions
@@ -133,7 +134,7 @@ Elsewhere: profile `warriorQuotaSmall` 6–8 (equal bed bands), `warriorQuotaLar
 **Make another settlement run bands** — nothing in code changes:
 1. The settlement has residents: its `SettlementConfig.culture` is set (`AstronautSettlement.asset` has none today).
 2. **Culture content** (culture-specific, outside the genericity scan): an `ExpeditionProfile` with goals and kits, `culture` ↔ `SettlementCulture.expeditions` both ways, appended to `ExpeditionCatalog.profiles`, and `expeditionRoles` on the culture's archetypes. For the nomads: `Tools/SpaceGame/Expeditions/Author Expedition Content` (`ExpeditionContentMenu`, idempotent, owns `Goal_Scout`, `Kit_*`, `Muster.asset`); copy it for a new culture.
-3. **Stamp Settlement Identity** — an authored `SaveableEntity` (`External`) on every chunk-scene `Settlement`, plus `SettlementExpeditions` where the culture has a profile; on the scene instance, never the prefab.
+3. **Stamp Settlement Identity** — an authored `SaveableEntity` (`External`) on every chunk-scene `Settlement`, plus `SettlementExpeditions` where the culture has a profile; on the scene instance, never the prefab. "Chunk scenes" comes from `WorldChunkScenes.ScenePaths`, which for a world with no chunks (Spillexo) is its one `GameWorld` scene — so it and *Bake Site Catalog* both reach `NoiseTerrain`. Its `settlement` got its id by hand on 2026-10-20 (for its bounty), without `SettlementExpeditions`; the next Stamp run adds that.
 4. **Prepare Resident Prefabs** — `ExpeditionMember` + a disabled `FormationModule` (Social priority) on every `culture.profiles` prefab **and** every `characters`/`specialCharacters` prefab of every `SettlementConfig` whose culture has a profile (a body made for one role has no culture profile); then Sync Network Prefabs → Wire Saveable Prefabs → Ragdoll Wire Prefabs. Re-run after adding characters to such a config.
 5. **Quotas at Generate (a regenerate keeps working):** `Settlement.Populate` moves in first, quota by quota (warriors, then `roleQuotas`), the rolled copies **certain** to have the role (`ExpeditionRules.PlanMoveIn`; candidates are copies whose role has a place here, `ResidentAssignment.Places.CanHost`): a body made for an archetype with the role (`ResidentAssignment.RoleOf`) first, then a body whose every archetype it can be dealt has the role (`ResidentAssignment.CertainOneOf`); the rest fill the beds in the same seeded order as before, and the move-in keeps pool order. The summary line prints `quotas: Warrior 13/12, Scout 5/3` (residents now holding the role / quota) and warns when one is short; `ResidentValidator` reports a short quota as an Error. A config that lists enough bodies made for the roles (`RaxySettlement.asset`, Gotchas) needs no recast.
    **Otherwise** (an existing settlement, or a config without such bodies): **Preview Role Quotas**, then **Apply Role Quotas** (selected settlement): the warrior quota, then each `roleQuotas` row, from beds; recruits (adults whose body suits an archetype with the role and who hold neither it nor Warrior; highest nerve first, ties seeded by the settlement id; at most one role each per run) become the settlement's first fitting archetype with the role (no post, then a standing duty, then suited, then culture order — the Guard for warriors), as an instance override. Bodies made for one role (`ResidentAssignment.RoleOf`) are never recast.

@@ -163,12 +163,24 @@ namespace SpaceGame.EditorTools.Posters
                 Image.DrawRotated(tag, place.center + shadow * 0.5f, style.tagAngle);
             }
 
-            /// <summary>REWARD: and NAME: in two rows, with HT: at the right end of the name row.</summary>
+            /// <summary>
+            /// REWARD: and NAME: in two rows, with HT: at the right end of the name row. A value too
+            /// long for its row is set smaller rather than run into HT: or off the field.
+            /// </summary>
             public void Fields(PosterFonts fonts, string heightText)
             {
                 float labelCap = style.labelCap * unit, valueCap = style.valueCap * unit;
                 string[] labels = { "REWARD:", "NAME:" };
                 string[] values = { poster.Reward, poster.DisplayName };
+
+                float nameBaseline = (style.fieldFirstBaseline + style.fieldLineGap) * unit;
+                PosterMask height = PosterText.Render(fonts.Value, heightText, valueCap, style.valueTracking, out float hb);
+                float right = style.fieldRight * unit - height.Width;
+                Image.PaintAt(height, Mathf.RoundToInt(right), Mathf.RoundToInt(nameBaseline - hb), style.ink);
+                PosterMask ht = PosterText.Render(fonts.Label, "HT:", labelCap, style.labelTracking, out float lb);
+                float htLeft = right - style.heightGap * unit - ht.Width;
+                Label(ht, htLeft, nameBaseline, lb);
+                float[] rowEnds = { style.fieldRight * unit, htLeft - style.heightGap * unit };
 
                 var labelMasks = new PosterMask[labels.Length];
                 var labelBaselines = new float[labels.Length];
@@ -184,16 +196,15 @@ namespace SpaceGame.EditorTools.Posters
                 {
                     float baseline = (style.fieldFirstBaseline + i * style.fieldLineGap) * unit;
                     Label(labelMasks[i], left, baseline, labelBaselines[i]);
-                    PosterMask value = PosterText.Render(fonts.Value, values[i].ToUpperInvariant(), valueCap, style.valueTracking, out float vb);
-                    Image.PaintAt(value, Mathf.RoundToInt(left + column + style.labelGap * unit), Mathf.RoundToInt(baseline - vb), style.ink);
+                    float start = left + column + style.labelGap * unit;
+                    string text = values[i].ToUpperInvariant();
+                    PosterMask value = PosterText.Render(fonts.Value, text, valueCap, style.valueTracking, out float vb);
+                    float room = rowEnds[i] - start;
+                    // Padding does not scale with the cap, so the scaled text always fits the room.
+                    if (value.Width > room)
+                        value = PosterText.Render(fonts.Value, text, valueCap * room / value.Width, style.valueTracking, out vb);
+                    Image.PaintAt(value, Mathf.RoundToInt(start), Mathf.RoundToInt(baseline - vb), style.ink);
                 }
-
-                float nameBaseline = (style.fieldFirstBaseline + style.fieldLineGap) * unit;
-                PosterMask height = PosterText.Render(fonts.Value, heightText, valueCap, style.valueTracking, out float hb);
-                float right = style.fieldRight * unit - height.Width;
-                Image.PaintAt(height, Mathf.RoundToInt(right), Mathf.RoundToInt(nameBaseline - hb), style.ink);
-                PosterMask ht = PosterText.Render(fonts.Label, "HT:", labelCap, style.labelTracking, out float lb);
-                Label(ht, right - style.heightGap * unit - ht.Width, nameBaseline, lb);
             }
 
             private void Label(PosterMask text, float left, float baseline, float textBaseline)

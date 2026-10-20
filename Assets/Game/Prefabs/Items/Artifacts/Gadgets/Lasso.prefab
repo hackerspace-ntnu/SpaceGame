@@ -188,7 +188,6 @@ Transform:
   m_Children:
   - {fileID: 6414195965968571456}
   - {fileID: 4202001528767388540}
-  - {fileID: 8407360529791431135}
   - {fileID: 510351480495275172}
   - {fileID: 6686484516145681275}
   - {fileID: 2995474478887713656}
@@ -323,7 +322,6 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30a33, type: 2}
     snapAmplitude: 0.4
     snapWaves: 3
-  loopRenderer: {fileID: 2281198309816797548}
   loop:
     segments: 28
     coilRadius: 0.22
@@ -339,13 +337,17 @@ MonoBehaviour:
     droop: 0.2
     wobbleAmount: 0.1
     wobbleSpeed: 1.8
-    width: 0.062
-    metresPerTextureRepeat: 0.35
-    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30a33, type: 2}
+  collar:
+    band: 0.12
+    looseLimit: 1.4
+    limbHug: 1.6
+    alongBone: 0.5
   struggle:
     attachFraction: 0.75
     attachHeight: 1.2
     struggleSeconds: 6
+    referenceMass: 80
+    fightScaleRange: {x: 0.5, y: 4}
     struggleSpeed: 4.5
     thrashFrequency: 2.2
     thrashShare: 0.45
@@ -357,6 +359,91 @@ MonoBehaviour:
     recoverySeconds: 3.5
     payOutSpeed: 3.2
     maxLength: 26
+  bindReach: 2.2
+  bindCone: 50
+  tieSeconds: 2.6
+  tieAction: {fileID: 11400000, guid: 690ce80ce18294d24a39be5cc75af0a5, type: 2}
+  standUpSeconds: 0.9
+  tiedBody:
+    mass: 70
+    friction: 0.35
+    linearDamping: 0.3
+    angularDamping: 2
+    ropeSpring: 4000
+    ropeDamper: 1000
+  boundRope:
+    torsoTurns: 6
+    limbTurns: 3
+    width: 0.045
+    looseLimit: 1.5
+    limbHug: 1.4
+    torsoRadiusFraction: 0.11
+    torsoSpanFraction: 0.25
+    limbRadiusFraction: 0.03
+    knotTuck: 0.5
+  tiedPose:
+    armsFrontBack: 0.5
+    armsDownUp: -1
+    forearmsStretch: 1
+    thighsFrontBack: 1
+    kneesStretch: -0.5
+    backFrontBack: 0
+    headNod: 0
+    kneelThighs: 0
+    kneelKnees: -1
+    kneelLean: 15
+    flatKnees: 0.6
+    fallReach: 0.2
+    kneelEnds: 0.3
+    fallEnds: 0.5
+    drawnUpEnds: 0.9
+    windStarts: 0.15
+    wriggle: 0.18
+    wriggleRate: 1.8
+    boutSeconds: 1.6
+    restSeconds: 3.5
+    rollDegrees: 8
+    headLift: 0.5
+    escapeEffort: 2
+    breath: 0.04
+    breathRate: 0.3
+    trailMetres: 1.2
+    shoulderHang: 50
+    shoulderFeetDrop: 8
+    shoulderKnees: -0.1
+    shoulderAnkleGap: 0.6
+    shoulderFeet: 0.8
+    shoulderBack: -0.5
+    shoulderArmsDownUp: 1
+    shoulderArmsFrontBack: 0
+    shoulderForearms: -0.4
+    shoulderHead: 0
+    getUp: {fileID: 11400000, guid: 10b9aeb692f404396b1787ecb512557f, type: 2}
+    releaseSeconds: 0.5
+  dragRange: 3.5
+  dragWeightShare: 0.35
+  dragRopeLength: 2.8
+  haul:
+    gripReach: 3.5
+    haulSpeedFraction: 0.55
+    maxHeightShare: 1.25
+    shoulderLift: 0.41
+    shoulderOut: 0.21
+    shoulderBehind: 0.08
+    shoulderTurn: 20
+    eyeLine: 0.5
+    restSide: 1.1
+    throwAhead: 0.8
+    throwSeconds: 2.2
+    throwArc: 0.5
+    nearGrip: 0.3
+    farGrip: 0.8
+    releaseDistance: 6
+    gripFraction: 0.45
+    takeHoldAction: {fileID: 11400000, guid: 8220e889cdad78c499a218486262f8d4, type: 2}
+    letGoAction: {fileID: 11400000, guid: ee3a7acdc02b4f64a820757ecd01f751, type: 2}
+    fallbackSeconds: 1
+  dragSpeedShare: 0.6
   aim:
     arcSamples: 18
     ringSegments: 20
@@ -774,73 +861,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1001 &2849145357286262156
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2293433729987862684}
-    m_Modifications:
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -2259.8354
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.00005
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -434.92084
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7691657007481231498, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-      propertyPath: m_Name
-      value: line (1)
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
---- !u!120 &2281198309816797548 stripped
-LineRenderer:
-  m_CorrespondingSourceObject: {fileID: 4044869484733418720, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-  m_PrefabInstance: {fileID: 2849145357286262156}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &8407360529791431135 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5991691037974459475, guid: c15bfe27544014ca98e4fffbad296226, type: 3}
-  m_PrefabInstance: {fileID: 2849145357286262156}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6575698837577282704
 PrefabInstance:
   m_ObjectHideFlags: 0

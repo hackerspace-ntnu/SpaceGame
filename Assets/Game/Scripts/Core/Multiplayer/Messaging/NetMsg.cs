@@ -788,5 +788,15 @@ namespace SpaceGame.Core
         //                        land in it (an answer or a restore), bit 3 the let-go just fitted it into a ship.
         public const ushort WorkshopCraneOperate = 138; // driver / hanger → server
         public const ushort WorkshopCraneState   = 139; // server → everyone
+
+        // ── Carrying a captive over the shoulder ──
+        // On the CAPTIVE's channel (a body tied up by the lasso; CaptiveHaul is added to it at runtime, so it has no
+        // NetworkVariable to hold this in). Target = the carrier's body.
+        //   CaptiveHaulRequest A = 1 take hold, 0 let go. The server checks the tie, the reach, the size and that nobody — no other
+        //                      hands, no lasso — already has the captive.
+        //   CaptiveHauled      A = 1 the Target has hold, 0 nobody does (no Target). Absolute state: re-sent to a late
+        //                      joiner, and a no-op for every machine that already shows it.
+        public const ushort CaptiveHaulRequest = 140; // hauler → server
+        public const ushort CaptiveHauled      = 141; // server → everyone
     }
 }

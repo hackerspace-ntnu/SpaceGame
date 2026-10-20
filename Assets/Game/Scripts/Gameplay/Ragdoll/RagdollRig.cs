@@ -891,6 +891,62 @@ namespace SpaceGame.Gameplay.Ragdoll
             Hips = null;
         }
 
+        // ── Being dragged ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Haul the whole limp body <paramref name="distance"/> metres along
+        /// <paramref name="toward"/>, and take away whatever speed it has in the opposite direction —
+        /// a rope dragging a captive. Driving machine only; a no-op anywhere else and on a body that
+        /// is standing.
+        ///
+        /// <para>
+        /// <b>Every bone, by the same step.</b> Hauling only the pelvis leaves the limbs for the
+        /// joint solver to catch up a tenth of a metre every step, which stretches the mesh the way
+        /// handing a blast to the hips alone did (see <see cref="GoLimp"/>). A body being dragged on
+        /// a rope moves as one bundle and flails only from the velocity it keeps.
+        /// </para>
+        /// <para>
+        /// <b>The root is re-seated here, and the settle clock restarted.</b> The drag is a position
+        /// correction with the outward speed taken off, so the bones can be carried across the sand
+        /// at walking pace while their velocities read as nearly still. To <see cref="IsSettled"/>
+        /// that is a body at rest — and a settled body stops <see cref="FixedUpdate"/> dragging the
+        /// root after it, so the captive's root, save record and every watcher's copy would stay
+        /// where they were tied while the bones were hauled away. That is the defect
+        /// <see cref="IsSettled"/>'s corpse-only timeout was written to close, arriving through a
+        /// second door.
+        /// </para>
+        /// <para>
+        /// A public method on the rig rather than the bodies handed out, for the reason
+        /// <see cref="BoneTransforms"/> gives: nothing outside may push a ragdoll it does not drive,
+        /// and the <see cref="Drives"/> check is what enforces that.
+        /// </para>
+        /// </summary>
+        public void Tow(Vector3 toward, float distance)
+        {
+            if (!IsLimp || !Drives || bones.Count == 0 || bones[0].Body == null) return;
+
+            Vector3 step = toward * Mathf.Max(0f, distance);
+
+            foreach (Bone bone in bones)
+            {
+                Rigidbody body = bone.Body;
+                if (body == null || body.isKinematic) continue;
+
+                // Only ever removed, never added: a rope may stop a body leaving and may carry it,
+                // and must never fling it. Same rule as LassoedBody and SnaredBody.
+                float away = -Vector3.Dot(body.linearVelocity, toward);
+                if (away > 0f) body.linearVelocity += toward * away;
+
+                body.position += step;
+                body.WakeUp();
+            }
+
+            if (step.sqrMagnitude <= 0f) return;
+
+            slowSeconds = 0f;
+            FollowHips();
+        }
+
         // ── Per-frame ─────────────────────────────────────────────────────────
 
         /// <summary>

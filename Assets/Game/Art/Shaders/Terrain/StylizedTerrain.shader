@@ -20,9 +20,24 @@ Shader "SpaceGame/StylizedTerrain"
         _SlopeStart    ("Slope Start", Range(0, 1)) = 0.55
         _SlopeEnd      ("Slope End",   Range(0, 1)) = 0.80
 
+        [Header(Cliff Strata)]
+        _ColorStrata   ("Strata Layer", Color) = (0.40, 0.20, 0.14, 1.0)
+        _StrataStrength("Strata Strength", Range(0, 1)) = 0
+        _StrataSpacing ("Strata Layer Height (m)", Float) = 6
+        _StrataEdge    ("Strata Edge Softness", Range(0.01, 1)) = 0.3
+        _StrataWarp    ("Strata Warp (m)", Float) = 8
+        _StrataWarpScale("Strata Warp Scale (m)", Float) = 120
+
+        [Header(Macro Patches)]
+        _ColorMacro    ("Patch Colour", Color) = (0.90, 0.75, 0.60, 1.0)
+        _MacroStrength ("Patch Strength", Range(0, 1)) = 0
+        _MacroScale    ("Patch Scale (m)", Float) = 400
+        _MacroCoverage ("Patch Coverage", Range(0, 1)) = 0.4
+
         [Header(Lighting)]
         [Toggle(_FLAT_SHADING)] _FlatShading ("Flat Shading", Float) = 1
         _AmbientBoost  ("Ambient Boost", Range(0, 1)) = 0.25
+        _ShadowTint    ("Shadow Tint (added to ambient)", Color) = (0, 0, 0, 1)
         _LightWrap     ("Light Wrap", Range(0, 1)) = 0.35
 
         [Header(Atmosphere)]
@@ -85,7 +100,18 @@ Shader "SpaceGame/StylizedTerrain"
                 float  _BandNoiseScale;
                 float  _SlopeStart;
                 float  _SlopeEnd;
+                float4 _ColorStrata;
+                float  _StrataStrength;
+                float  _StrataSpacing;
+                float  _StrataEdge;
+                float  _StrataWarp;
+                float  _StrataWarpScale;
+                float4 _ColorMacro;
+                float  _MacroStrength;
+                float  _MacroScale;
+                float  _MacroCoverage;
                 float  _AmbientBoost;
+                float4 _ShadowTint;
                 float  _LightWrap;
                 float4 _RimColor;
                 float  _RimPower;
@@ -129,6 +155,25 @@ Shader "SpaceGame/StylizedTerrain"
                 float d = hash21(i + float2(1, 1));
                 float2 u = f * f * (3.0 - 2.0 * f);
                 return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+            }
+
+            // Two rotated octaves, so large patches do not show the value-noise grid.
+            float patchNoise(float2 p)
+            {
+                float2 q = float2(p.x * 0.8 - p.y * 0.6, p.x * 0.6 + p.y * 0.8) * 2.03 + 17.0;
+                return valueNoise(p) * 0.67 + valueNoise(q) * 0.33;
+            }
+
+            // Horizontal sediment layers: each layer gets its own 0..1 tone, blended across a
+            // soft edge so distant cliffs do not alias. The layer height is warped by noise so
+            // the bands follow the hillside instead of reading as ruled lines.
+            float strataTone(float3 positionWS)
+            {
+                float warp = (valueNoise(positionWS.xz / max(0.0001, _StrataWarpScale)) - 0.5) * _StrataWarp;
+                float layer = (positionWS.y + warp) / max(0.0001, _StrataSpacing);
+                float index = floor(layer);
+                float blend = smoothstep(1.0 - _StrataEdge, 1.0, frac(layer));
+                return lerp(hash21(float2(index, 7.0)), hash21(float2(index + 1.0, 7.0)), blend);
             }
 
             // Smooth 3-stop blend used for the height palette.
@@ -185,11 +230,17 @@ Shader "SpaceGame/StylizedTerrain"
                                   smoothstep(0.85 - soft, 0.85 + soft, h));
                 float3 albedo = cHP;
 
-                // ---- Slope-based cliff overlay ----
+                // ---- Macro patches (dust drifts / darker regolith) ----
+                float patch = smoothstep(1.0 - _MacroCoverage, 1.0 - _MacroCoverage + 0.2,
+                                         patchNoise(IN.positionWS.xz / max(0.0001, _MacroScale)));
+                albedo = lerp(albedo, _ColorMacro.rgb, patch * _MacroStrength);
+
+                // ---- Slope-based cliff overlay, layered into strata ----
                 // dot(N, up): 1 = flat ground, 0 = vertical cliff.
                 float ndu = saturate(dot(N, float3(0, 1, 0)));
                 float cliff = 1.0 - smoothstep(_SlopeStart, _SlopeEnd, ndu);
-                albedo = lerp(albedo, _ColorCliff.rgb, cliff);
+                float3 cliffColor = lerp(_ColorCliff.rgb, _ColorStrata.rgb, strataTone(IN.positionWS) * _StrataStrength);
+                albedo = lerp(albedo, cliffColor, cliff);
 
                 // ---- Lighting (URP main light + wrapped diffuse) ----
                 float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
@@ -219,8 +270,9 @@ Shader "SpaceGame/StylizedTerrain"
                 // additional-light attenuation so distant terrain still reads.
                 lit += SampleFlashlight(IN.positionWS, N, wrap);
 
-                // SH ambient (sky-tinted) + small flat boost so shadow side reads color.
-                float3 ambient = SampleSH(N) + _AmbientBoost.xxx;
+                // SH ambient (sky-tinted) + small flat boost so shadow side reads color;
+                // the shadow tint colours that lift (e.g. lilac shadows for a pastel look).
+                float3 ambient = SampleSH(N) + _AmbientBoost.xxx + _ShadowTint.rgb;
 
                 float3 color = albedo * (lit + ambient);
 

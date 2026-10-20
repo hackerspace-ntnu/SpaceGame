@@ -58,7 +58,31 @@ namespace SpaceGame.Items
                  "still body gets either way.")]
         [SerializeField, Min(0f)] private float struggleMultiplier = 1.96f;
 
+        [Tooltip("Kilograms at which a tied CREATURE fights its ropes as hard as a player " +
+                 "struggling flat out.\n\n" +
+                 "A creature has no keys to press, so its struggle is its weight: a rat tied up " +
+                 "barely dents the ropes and a habitat-sized walker is out in about forty seconds. " +
+                 "Without it every creature is held for the flat ceiling, which makes a tie the " +
+                 "same thing for an ant and a golem.")]
+        [SerializeField, Min(1f)] private float creatureFullStruggleMass = 300f;
+
+        [Header("The rope round the body")]
+        [SerializeField] private HogtieWrapLook wrap = new HogtieWrapLook();
+
+        [Tooltip("How hard the ropes draw the bound limbs in to the knot, N per metre. This is what " +
+                 "makes a tied body read as tied: limbs left free flop apart and the rope between " +
+                 "them is just a line drawn across a ragdoll.")]
+        [SerializeField, Min(0f)] private float limbPull = 150f;
+
+        [Tooltip("Damping on that pull, so the limbs settle onto the knot instead of bouncing on it.")]
+        [SerializeField, Min(0f)] private float limbPullDamper = 8f;
+
         public float HoldSeconds => Mathf.Max(holdSeconds, 0.01f);
+
+        public float CreatureFullStruggleMass => Mathf.Max(creatureFullStruggleMass, 1f);
+        public HogtieWrapLook Wrap => wrap;
+        public float LimbPull => Mathf.Max(limbPull, 0f);
+        public float LimbPullDamper => Mathf.Max(limbPullDamper, 0f);
 
         /// <summary>
         /// Handed straight to <see cref="SnareStruggleMeter"/>, floor and ceiling included — the

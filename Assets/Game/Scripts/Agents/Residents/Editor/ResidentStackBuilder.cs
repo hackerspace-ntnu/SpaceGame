@@ -21,7 +21,7 @@ namespace SpaceGame.Agents.Residents.EditorTools
         {
             typeof(Resident), typeof(AgentGoal), typeof(GoalTravelModule), typeof(ResidentRoutine),
             typeof(ResidentPresence), typeof(ResidentAwareness), typeof(ResidentVoice),
-            typeof(ResidentSaveable), typeof(NetworkedTeleport), typeof(JostleSensor),
+            typeof(ResidentSaveable), typeof(NetworkedTeleport), typeof(JostleSensor), typeof(ResidentWeaponModule),
         };
 
         /// <summary>

@@ -1,0 +1,185 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac44fc89311d4439a38d5be8105067a, type: 3}
+  m_Name: SpillexoWorldStreamingConfigSites
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorldSiteCatalog
+  sites: []
+  settlements:
+  - settlementId: 3cea8227286b46cb9268a712a3568264
+    name: settlement
+    position: {x: 1559.7582, y: 74.8, z: 838.48553}
+    hasMuster: 0
+    musterPosition: {x: 0, y: 0, z: 0}
+    musterForward: {x: 0, y: 0, z: 0}
+    beds: 70
+    cultureProfileIndex: 0
+    roster:
+    - residentKey: r:0
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 010000000200000003000000040000001500000014000000
+      sourcePrefabGuid: 9e7fd6836c1eb4625a847a487fc6ea96
+      displayName: Varo
+    - residentKey: r:1
+      archetypeIndex: 7
+      roles: 1
+      adult: 1
+      bonds: 000000000200000003000000040000001100000010000000
+      sourcePrefabGuid: c87391b23c12d4857bc382aa3edc3668
+      displayName: Mirza
+    - residentKey: r:2
+      archetypeIndex: 28
+      roles: 0
+      adult: 1
+      bonds: 000000000100000003000000040000001200000013000000
+      sourcePrefabGuid: 6eabcf8a2c144405e9b53c006afa32cc
+      displayName: Tamir
+    - residentKey: r:3
+      archetypeIndex: 14
+      roles: 0
+      adult: 1
+      bonds: 000000000100000002000000040000000f0000000e000000
+      sourcePrefabGuid: 6eabcf8a2c144405e9b53c006afa32cc
+      displayName: Faro
+    - residentKey: r:4
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 000000000100000002000000030000001500000014000000
+      sourcePrefabGuid: ebeb475745d3c4a28afbacf713f00555
+      displayName: Amun
+    - residentKey: r:5
+      archetypeIndex: 17
+      roles: 0
+      adult: 1
+      bonds: 060000000700000008000000090000000200000004000000
+      sourcePrefabGuid: 172915b40f756480a9df328461e89868
+      displayName: Qadi
+    - residentKey: r:6
+      archetypeIndex: 24
+      roles: 0
+      adult: 1
+      bonds: 050000000700000008000000090000000c0000000d000000
+      sourcePrefabGuid: 97c27ca5afc2b440ea8dbf6236ebb85a
+      displayName: Lesh
+    - residentKey: r:7
+      archetypeIndex: 0
+      roles: 0
+      adult: 1
+      bonds: 050000000600000008000000090000001400000015000000
+      sourcePrefabGuid: 42b14c93f650343d9904c00262437ec4
+      displayName: Esra
+    - residentKey: r:8
+      archetypeIndex: 27
+      roles: 0
+      adult: 1
+      bonds: 050000000600000007000000090000001500000014000000
+      sourcePrefabGuid: 945875e2c9c034aca8157a89589e2e6f
+      displayName: Galen
+    - residentKey: r:9
+      archetypeIndex: 29
+      roles: 32
+      adult: 1
+      bonds: 050000000600000007000000080000001400000015000000
+      sourcePrefabGuid: 562a63fecff42411a8fa6015a4cc0d56
+      displayName: Ulla
+    - residentKey: r:10
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 0b0000000c0000000d0000000e0000000600000003000000
+      sourcePrefabGuid: 4f284d4a656604161b70bb841ec01d61
+      displayName: Kesh
+    - residentKey: r:11
+      archetypeIndex: 30
+      roles: 2
+      adult: 1
+      bonds: 0a0000000c0000000d0000000e0000000600000015000000
+      sourcePrefabGuid: 600a297774679412697efb8407ef232b
+      displayName: Asha
+    - residentKey: r:12
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000d0000000e0000000600000014000000
+      sourcePrefabGuid: 192105a79d9644a9ba3346e28a99c798
+      displayName: Imra
+    - residentKey: r:13
+      archetypeIndex: 19
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000c0000000e0000000600000003000000
+      sourcePrefabGuid: ea0d7a7c48707469cac37e8ee09deb3a
+      displayName: Yara
+    - residentKey: r:14
+      archetypeIndex: 4
+      roles: 0
+      adult: 1
+      bonds: 0a0000000b0000000c0000000d0000000600000003000000
+      sourcePrefabGuid: ffd6ce667ab644930862dfe31068fb15
+      displayName: Bina
+    - residentKey: r:15
+      archetypeIndex: 30
+      roles: 2
+      adult: 1
+      bonds: 100000001100000012000000130000001500000014000000
+      sourcePrefabGuid: 26de078b165624b48bab903240fa9b2c
+      displayName: Corin
+    - residentKey: r:16
+      archetypeIndex: 3
+      roles: 8
+      adult: 1
+      bonds: 0f0000001100000012000000130000000600000003000000
+      sourcePrefabGuid: f2a1bce75c71646f698b5d8935877f1b
+      displayName: Jessa
+    - residentKey: r:17
+      archetypeIndex: 28
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000012000000130000000600000003000000
+      sourcePrefabGuid: d331d99758b16401aa91335195d00b8f
+      displayName: Nadia
+    - residentKey: r:18
+      archetypeIndex: 11
+      roles: 0
+      adult: 1
+      bonds: 0f0000001000000011000000130000000200000006000000
+      sourcePrefabGuid: c87391b23c12d4857bc382aa3edc3668
+      displayName: Oren
+    - residentKey: r:19
+      archetypeIndex: 36
+      roles: 8
+      adult: 1
+      bonds: 0f0000001000000011000000120000000200000006000000
+      sourcePrefabGuid: 4f284d4a656604161b70bb841ec01d61
+      displayName: Nour
+    - residentKey: r:20
+      archetypeIndex: 5
+      roles: 0
+      adult: 1
+      bonds: 150000000f0000000c000000
+      sourcePrefabGuid: b1a441d697d7244e5a2d03264d70e8fd
+      displayName: Idris
+    - residentKey: r:21
+      archetypeIndex: 16
+      roles: 0
+      adult: 1
+      bonds: 140000000f0000000c000000
+      sourcePrefabGuid: 562a63fecff42411a8fa6015a4cc0d56
+      displayName: Sefa
+  towns:
+  - id: 3cea8227286b46cb9268a712a3568264
+    name: settlement
+    position: {x: 1559.7582, y: 74.8, z: 838.48553}
+    radius: 207.9666
+    faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}

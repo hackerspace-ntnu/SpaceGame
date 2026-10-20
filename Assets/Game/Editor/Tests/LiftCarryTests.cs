@@ -1,6 +1,7 @@
 // A lifted load is in the carrier's hands every frame, whatever the carrier does, with its far end on the ground and never under
 // it; it slows the walk to the carry pace; Esc and interact put it down; and a save taken mid-carry records it lying where it was
-// carried. Measured on the real player rig and the real loose oxygen plant.
+// carried. Measured on the real player rig and the real loose oxygen plant — and somebody tied up goes over the shoulder with
+// the feet in the carrier's view, measured on real Raxy, Nomad and DuneRat rigs.
 //
 // In Editor/ rather than beside the asmdef'd EditMode tests because these touch Assembly-CSharp types. Nothing runs Awake or
 // OnEnable in EditMode, so the rig is posed only by the carrier's own arm reach — which is exactly the part under test.
@@ -190,11 +191,11 @@ namespace SpaceGame.EditorTools
         [Test]
         public void EscOrInteractPutsTheLoadDownButNotThroughAMenuOrOnTheLiftingPress()
         {
-            Assert.IsTrue(Liftable.PutsDown(true, false, true, false), "Esc did not put the load down.");
-            Assert.IsFalse(Liftable.PutsDown(true, false, false, false), "Esc closing the chat box also dropped the load.");
-            Assert.IsTrue(Liftable.PutsDown(false, true, true, false), "interact did not put the load down.");
-            Assert.IsFalse(Liftable.PutsDown(false, true, true, true), "the press that lifted it put it straight back down.");
-            Assert.IsFalse(Liftable.PutsDown(false, false, true, false), "no input put the load down.");
+            Assert.IsTrue(LiftHands.PutsDown(true, false, true, false), "Esc did not put the load down.");
+            Assert.IsFalse(LiftHands.PutsDown(true, false, false, false), "Esc closing the chat box also dropped the load.");
+            Assert.IsTrue(LiftHands.PutsDown(false, true, true, false), "interact did not put the load down.");
+            Assert.IsFalse(LiftHands.PutsDown(false, true, true, true), "the press that lifted it put it straight back down.");
+            Assert.IsFalse(LiftHands.PutsDown(false, false, true, false), "no input put the load down.");
         }
 
         [Test]
@@ -212,6 +213,219 @@ namespace SpaceGame.EditorTools
             var lift = new SerializedObject(prefab.GetComponent<Liftable>());
             Assert.IsNotNull(lift.FindProperty("liftAction").objectReferenceValue, "the lift plays no clip.");
             Assert.IsNotNull(lift.FindProperty("setDownAction").objectReferenceValue, "the put-down plays no clip.");
+        }
+
+        // ─────────────────────────── A captive ───────────────────────────
+
+        private const string RaxyPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Job_Farmer.prefab";
+        private const string NomadPath = "Assets/Game/Prefabs/agents/Characters/Nomad.prefab";
+        private const string DuneRatPath = "Assets/Game/Prefabs/agents/creatures/DuneRat.prefab";
+
+        /// <summary>Degrees below level the carrier may look and still see the bound feet: straight ahead, and walking with the eyes down.</summary>
+        private static readonly float[] LooksAtTheFeet = { 0f, 20f };
+
+        /// <summary>Degrees below level the carrier looks as they take hold of a body lying at their feet.</summary>
+        private const float PickedUpLookingDown = 45f;
+
+        [TestCase(RaxyPath)]
+        [TestCase(NomadPath)]
+        public void ATiedPersonIsFoldedOverTheShoulderWithTheFeetInView(string captivePath)
+        {
+            // The carry is any ILiftLoad: somebody tied up is heaved onto the RIGHT shoulder and folded over it — hips on
+            // top of it, trunk hanging down the back, the bound legs bent out in front where the carrier sees the feet
+            // without looking for them. Measured on real rigs, because every number in the pose is a humanoid muscle whose
+            // sign was found by trying it — and the legs are fitted per body, so a Nomad's longer ones must land the same.
+            (GameObject body, GameObject person, SpaceGame.Items.BoundBody bound, LiftCarrier carrier) = Shouldered(captivePath);
+            Animator rig = person.GetComponentInChildren<Animator>(true);
+            Camera eye = body.GetComponentInChildren<Camera>(true);
+            Vector3 forward = body.transform.forward;
+
+            Vector3 hips = rig.GetBoneTransform(HumanBodyBones.Hips).position;
+            Vector3 head = rig.GetBoneTransform(HumanBodyBones.Head).position;
+            Vector3 shoulder = carrier.Shoulder(right: true);
+            Assert.Less(Vector3.ProjectOnPlane(hips - shoulder, Vector3.up).magnitude, 0.4f, "the hips are not over the carrier's shoulder.");
+            Assert.Greater(hips.y, shoulder.y + 0.2f, "the hips sit in the carrier's shoulder rather than on top of it.");
+            Assert.Less(head.y, shoulder.y - 0.15f, "the trunk is not hanging down the carrier's back.");
+            Assert.Less(Vector3.Dot(head - body.transform.position, forward), -0.3f, "the head is not down the carrier's back.");
+
+            foreach (HumanBodyBones hand in new[] { HumanBodyBones.LeftHand, HumanBodyBones.RightHand })
+                Assert.Less(rig.GetBoneTransform(hand).position.y, hips.y, $"the tied {hand} stands up past the hips.");
+
+            // A hogtie's legs: the ankles bound together and the knees bent about a right angle.
+            Vector3 leftFoot = rig.GetBoneTransform(HumanBodyBones.LeftFoot).position;
+            Vector3 rightFoot = rig.GetBoneTransform(HumanBodyBones.RightFoot).position;
+            Assert.Less(Vector3.Distance(leftFoot, rightFoot), 0.2f, "the bound ankles are splayed apart.");
+            float knee = Vector3.Angle(rig.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position - rig.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position,
+                                       leftFoot - rig.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position);
+            Assert.That(knee > 60f && knee < 120f, $"the knees are not bent in a hogtie ({knee:0}°).");
+
+            foreach (Vector3 at in new[] { leftFoot, rightFoot })
+            {
+                Assert.Less(at.y, eye.transform.position.y, "a foot stands up past the carrier's eye.");
+                Assert.Greater(Vector3.Distance(at, eye.transform.position), 0.45f, "a foot is in the carrier's face.");
+                Assert.Greater(Vector3.Dot(at - eye.transform.position, forward), 0.3f, "a foot is not out in front of the carrier.");
+
+                foreach (float pitch in LooksAtTheFeet)
+                {
+                    eye.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+                    Vector3 seen = eye.WorldToViewportPoint(at);
+                    Assert.That(seen.z > eye.nearClipPlane && seen.x > 0f && seen.x < 1f && seen.y > 0f && seen.y < 1f,
+                                $"the carrier cannot see the captive's feet looking {pitch}° down (viewport {seen}).");
+                }
+            }
+
+            Assert.IsNotNull(bound.CarriedBy, "the body does not know it is carried.");
+            Assert.IsFalse(bound.LyingCollider != null && bound.LyingCollider.gameObject.activeInHierarchy,
+                           "the lying collider is still there to trip the carrier up.");
+        }
+
+        [TestCase(RaxyPath)]
+        [TestCase(NomadPath)]
+        public void NothingOfACarriedBodyStandsInTheCarriersEyeLineAndTheLegsAreNeverHidden(string captivePath)
+        {
+            // A Nomad's cape follows its spine, so with the trunk hanging down the back it stands up past the hips. Whatever
+            // of a carried body stands above the eye line in the carrier's own view is hidden from that one camera; what is
+            // left there must be nothing, and the mesh the feet are in, which is the point, must never be among the hidden.
+            (GameObject body, GameObject person, _, _) = Shouldered(captivePath);
+            var held = person.GetComponent<SpaceGame.Items.CaptiveHaul>();
+            Camera eye = body.GetComponentInChildren<Camera>(true);
+            var settings = new SpaceGame.Items.CaptiveHaulSettings();
+
+            var baked = new Mesh();
+            var vertices = new List<Vector3>();
+            foreach (SkinnedMeshRenderer skin in person.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!skin.enabled || held.HiddenFromCarrierEye.Contains(skin)) continue;
+
+                skin.BakeMesh(baked, true);
+                baked.GetVertices(vertices);
+                Transform at = skin.transform;
+                foreach (Vector3 v in vertices)
+                {
+                    Vector3 seen = eye.WorldToViewportPoint(at.position + at.rotation * Vector3.Scale(v, at.lossyScale));
+                    Assert.IsFalse(seen.z > eye.nearClipPlane && seen.x >= 0f && seen.x <= 1f && seen.y >= settings.EyeLine && seen.y <= 1f,
+                                   $"'{skin.name}' stands in the carrier's eye line and is not hidden from it.");
+                }
+            }
+            Object.DestroyImmediate(baked);
+
+            Transform foot = person.GetComponentInChildren<Animator>(true).GetBoneTransform(HumanBodyBones.LeftFoot);
+            Assert.IsFalse(person.GetComponentsInChildren<SkinnedMeshRenderer>()
+                                 .Where(skin => skin.bones.Contains(foot))
+                                 .All(skin => held.HiddenFromCarrierEye.Contains(skin)),
+                           "every mesh with a foot in it was hidden, so the carrier cannot see the feet.");
+        }
+
+        [Test]
+        public void ATiedCreatureIsCarriedAcrossTheShouldersBehindTheHead()
+        {
+            // No humanoid avatar: across both shoulders the way a sheep is carried, its long axis across them and its middle
+            // behind the eye, rather than draped down one side of the face.
+            (GameObject body, GameObject creature, SpaceGame.Items.BoundBody bound, _) = Shouldered(DuneRatPath);
+            Bounds extent = SpaceGame.Items.TiedPose.BodyInLocalSpace(creature.transform);
+            Vector3 longAxis = creature.transform.rotation * (extent.size.x >= extent.size.z ? Vector3.right : Vector3.forward);
+            Camera eye = body.GetComponentInChildren<Camera>(true);
+
+            Assert.IsTrue(bound.Pose.CarriedAcross);
+            Assert.Less(Mathf.Abs(Vector3.Dot(longAxis, body.transform.forward)), 0.1f, "the creature lies fore and aft, along the carrier's view.");
+            Assert.Less(Vector3.Dot(creature.transform.TransformPoint(bound.CarryAnchor) - eye.transform.position, body.transform.forward), 0f,
+                        "the creature's middle is in front of the carrier's eye.");
+        }
+
+        [Test]
+        public void ACaptiveThrownOffTheShoulderArcsOntoTheGroundAheadAndTouchesTheCarrierAgain()
+        {
+            (GameObject body, GameObject person, SpaceGame.Items.BoundBody bound, LiftCarrier carrier) = Shouldered(RaxyPath);
+            Collider theirs = body.GetComponentsInChildren<Collider>().First(c => !c.isTrigger && c.enabled);
+            Assert.IsFalse(bound.LyingCollider.gameObject.activeInHierarchy, "a carried body still has its lying collider.");
+
+            var held = person.GetComponent<SpaceGame.Items.CaptiveHaul>();
+            var settings = new SpaceGame.Items.CaptiveHaulSettings();
+            Pose rest = carrier.RestFromHere();
+            Vector3 from = person.transform.position;
+            held.ThrowOff(carrier);
+
+            // Tossed, not lowered: somewhere in the flight the root rides well above the straight line to where it lands.
+            float above = 0f;
+            const float step = 0.02f;
+            int steps = Mathf.CeilToInt(settings.ThrowSeconds / step) + 2;
+            for (int i = 0; i < steps; i++)
+            {
+                carrier.Follow(step);
+                bound.Pose.Apply(0f);
+                Vector3 at = person.transform.position;
+                float along = Mathf.InverseLerp(0f, LiftPoseSolver.Flat(rest.position - from).magnitude, LiftPoseSolver.Flat(at - from).magnitude);
+                above = Mathf.Max(above, at.y - Mathf.Lerp(from.y, rest.position.y, along));
+            }
+
+            Assert.Greater(above, settings.ThrowArc * 0.5f, "the captive is lowered in a straight line, not thrown off the shoulder.");
+            Assert.IsNull(carrier.Load, "the carrier is still holding the captive.");
+            Assert.IsNull(bound.CarriedBy, "the body still thinks it is carried.");
+            Assert.Less(Vector3.Distance(person.transform.position, rest.position), 0.01f, "the captive did not land where it was thrown.");
+            Assert.Greater(Vector3.Dot(rest.position - body.transform.position, body.transform.right), 0.5f, "the captive was thrown onto the carrier's feet.");
+            Assert.Greater(Vector3.Dot(rest.position - body.transform.position, body.transform.forward), 0.5f, "the captive was not thrown ahead.");
+            Assert.AreEqual(Stage, rest.position.y + bound.Pose.GroundBelowRoot, 0.05f, "the captive was put down off the ground.");
+            Assert.IsTrue(bound.LyingCollider.gameObject.activeInHierarchy, "the lying collider did not come back.");
+            Assert.IsFalse(Physics.GetIgnoreCollision(bound.LyingCollider, theirs), "the put-down body passes through its carrier.");
+
+            person.GetComponent<SpaceGame.Gameplay.Status.StatusReceiver>().Clear(SpaceGame.Gameplay.Status.StatusKind.Bound);
+            Assert.IsFalse(((ILiftLoad)person.GetComponent<SpaceGame.Items.CaptiveHaul>()).CanBeHeld, "an untied person can still be carried.");
+        }
+
+        /// <summary>The player standing on the stage with <paramref name="captivePath"/>, tied, already up on their shoulder.</summary>
+        private (GameObject body, GameObject person, SpaceGame.Items.BoundBody bound, LiftCarrier carrier) Shouldered(string captivePath)
+        {
+            MakeGround();
+            var body = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath));
+            body.hideFlags = HideFlags.DontSave;
+            CapsuleCollider capsule = body.GetComponentsInChildren<CapsuleCollider>(true).First(c => !c.isTrigger);
+            float rootAboveFeet = -capsule.transform.TransformPoint(capsule.center - Vector3.up * capsule.height * 0.5f).y;
+            body.transform.SetPositionAndRotation(new Vector3(0f, Stage + rootAboveFeet, 0f), Quaternion.identity);
+            made.Add(body);
+            Animator animator = body.GetComponentInChildren<Animator>(true);
+            animator.Rebind();
+            animator.Update(0f);
+
+            var person = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(captivePath));
+            person.hideFlags = HideFlags.DontSave;
+            person.transform.SetPositionAndRotation(new Vector3(0.5f, Stage, 1.5f), Quaternion.identity);
+            made.Add(person);
+            Animator rig = person.GetComponentInChildren<Animator>(true);
+            rig.Rebind();
+            rig.Update(0f);
+            Physics.SyncTransforms();
+
+            var status = person.GetComponent<SpaceGame.Gameplay.Status.StatusReceiver>();
+            if (status == null) status = person.AddComponent<SpaceGame.Gameplay.Status.StatusReceiver>();
+            SpaceGame.Items.BoundBody.EnsureOn(status, new SpaceGame.Items.HogtieWrapLook(), new SpaceGame.Items.TiedPoseLook(),
+                                               haul: new SpaceGame.Items.CaptiveHaulSettings());
+            ILiftLoad captive = person.GetComponent<SpaceGame.Items.CaptiveHaul>();
+            Assert.IsNotNull(captive, "a tied body has nothing to carry it by.");
+            Assert.IsFalse(captive.CanBeHeld, "somebody nobody has tied can be carried.");
+
+            status.Apply(SpaceGame.Gameplay.Status.StatusKind.Bound, 120f);
+            Assert.IsTrue(captive.CanBeHeld, "a tied person cannot be carried.");
+            Assert.IsTrue(person.GetComponent<SpaceGame.Items.CaptiveHaul>().FitsOnShoulderOf(body), "the captive is too big for the player.");
+
+            var bound = person.GetComponent<SpaceGame.Items.BoundBody>();
+            LiftCarrier carrier = LiftCarrier.On(body);
+
+            // Picked up looking down at the body on the ground, the way it is in play: what is hidden from the eye must be
+            // measured looking ahead, or the feet stand above the eye line and the whole body goes with them.
+            Transform eye = body.GetComponentInChildren<Camera>(true).transform;
+            eye.localRotation = Quaternion.Euler(PickedUpLookingDown, 0f, 0f);
+            Assert.IsTrue(carrier.Lift(captive, 1f, alreadyDone: 1f), "the player rig cannot take hold of a captive.");
+
+            // The carrier places the root (LateUpdate 200), then BoundBody poses the body on it (1000): the same order by hand.
+            for (int i = 0; i < 4; i++)
+            {
+                carrier.Follow(0.02f);
+                bound.Pose.Apply(0f);
+            }
+
+            eye.localRotation = Quaternion.identity;
+            Assert.IsTrue(carrier.IsCarrying);
+            return (body, person, bound, carrier);
         }
 
         // ─────────────────────────── Fixture ───────────────────────────

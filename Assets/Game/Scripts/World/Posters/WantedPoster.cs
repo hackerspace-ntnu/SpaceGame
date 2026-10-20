@@ -1,5 +1,6 @@
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
+using SpaceGame.World.Bounties;
 using UnityEngine;
 
 namespace SpaceGame.World.Posters
@@ -21,6 +22,10 @@ namespace SpaceGame.World.Posters
     /// Scenery: nothing is sent or saved. Reading opens <see cref="PosterViewerUI"/> on the
     /// presser's machine only. Baking happens in the editor; a poster whose agent is set from
     /// code at runtime keeps whatever picture it was saved with.
+    /// </para>
+    /// <para>
+    /// A poster a <see cref="BountyHunt"/> prints offers that hunt while it is read, and is
+    /// stamped CLAIMED or EXPIRED once it has ended (<see cref="BountyPosters"/>).
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
@@ -76,11 +81,20 @@ namespace SpaceGame.World.Posters
         public Texture2D Poster => poster;
         public string BakedFrom => bakedFrom;
 
-        private void OnEnable() => ShowPoster();
+        private void OnEnable()
+        {
+            ShowPoster();
+            if (Application.isPlaying) BountyPosters.Hang(this);
+        }
+
+        private void OnDisable()
+        {
+            if (Application.isPlaying) BountyPosters.TakeDown(this);
+        }
 
         public bool CanInteract() => poster != null;
 
-        public void Interact(Interactor interactor) => PosterViewerUI.Show(poster);
+        public void Interact(Interactor interactor) => PosterViewerUI.Show(poster, BountyPosters.OfferFor(this));
 
         public string Label => $"Wanted: {displayName}";
 

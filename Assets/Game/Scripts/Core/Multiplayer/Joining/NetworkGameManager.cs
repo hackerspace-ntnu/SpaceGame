@@ -182,6 +182,11 @@ namespace SpaceGame.Core
                 yield break;
             }
 
+            // A world without a streamer (one terrain authored straight into the world scene) takes
+            // the same route minus the chunk preload: its ground is already there. Spawn point,
+            // saved-position restore and the arrival all still apply — skipping them along with the
+            // preload is what used to drop a streamerless world's crash landing and leave the host
+            // at the spawn point after every load.
             if (worldStreamer)
             {
                 // NetworkBehaviour.OnNetworkSpawn order across objects in the same scene load is not
@@ -193,123 +198,121 @@ namespace SpaceGame.Core
                 {
                     yield return null;
                 }
+            }
 
-                // Bounded, and loudly. "Not yet" and "never" look identical from here: a point that
-                // is merely late arrives with an additively loaded scene, while one that was never
-                // authored never comes — and polling for it forever is indistinguishable from a
-                // hang. Nothing below this line runs, so there is no player, no chunk preload and
-                // no arrival, and the loading screen it all feeds deliberately never times out
-                // either. The result is a world that streams and simulates behind a Loading caption
-                // with an empty console. That is what this wait cost once already.
-                float spawnPointDeadline = Time.time + spawnPointWaitTimeout;
+            // Bounded, and loudly. "Not yet" and "never" look identical from here: a point that
+            // is merely late arrives with an additively loaded scene, while one that was never
+            // authored never comes — and polling for it forever is indistinguishable from a
+            // hang. Nothing below this line runs, so there is no player, no chunk preload and
+            // no arrival, and the loading screen it all feeds deliberately never times out
+            // either. The result is a world that streams and simulates behind a Loading caption
+            // with an empty console. That is what this wait cost once already.
+            float spawnPointDeadline = Time.time + spawnPointWaitTimeout;
 
-                while (!SpawnManager.Instance.SpawnPointsAvailable())
+            while (!SpawnManager.Instance.SpawnPointsAvailable())
+            {
+                if (Time.time >= spawnPointDeadline)
                 {
-                    if (Time.time >= spawnPointDeadline)
-                    {
-                        Debug.LogError($"[NGM] No SpawnPoint appeared in {spawnPointWaitTimeout}s, so " +
-                                       $"client {clientId} has nowhere to be put and the world has no " +
-                                       "anchor to stream around. Is one authored in the scene?");
-                        yield break;
-                    }
-
-                    yield return new WaitForSeconds(1f);
-                }
-
-                // Two different questions, deliberately asked in this order.
-                //
-                // First, WHICH CHUNKS to load. That only needs the spawn point's authored position,
-                // and it must not need anything more: no ground has loaded yet, so nothing here can
-                // be validated against terrain, and a call that insisted on a validated position
-                // would wait forever for a world that this very preload is responsible for loading.
-                // The result is checked, not discarded. On failure `anchor` is Vector3.zero, and
-                // proceeding with it streams the world around the grid's corner and spawns the
-                // player there — which is how a save came back recording a player at (0,0,0)
-                // instead of where they were standing.
-                if (!SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor))
-                {
-                    Debug.LogError("[NGM] No spawn anchor available — refusing to stream and spawn " +
-                                   "around the world origin. Is a SpawnPoint present in the scene?");
+                    Debug.LogError($"[NGM] No SpawnPoint appeared in {spawnPointWaitTimeout}s, so " +
+                                   $"client {clientId} has nowhere to be put and the world has no " +
+                                   "anchor to stream around. Is one authored in the scene?");
                     yield break;
                 }
 
-                // A remote client's profile arrives on its own channel and may not have landed yet.
-                // Waiting for it is what makes the branch below work for anyone but the host; the
-                // wait is normally already satisfied, since the client has had persistentScene since
-                // before the chunk preload above could finish.
-                yield return WaitForProfile(clientId);
+                yield return new WaitForSeconds(1f);
+            }
 
-                // A loaded save overrides the spawn point — and it has to do so HERE, before the
-                // preload, not later at the spawn call. The preload decides which chunks exist; a
-                // player restored to the far side of the map after the world was prepared around
-                // the spawn point would drop through ground that was never loaded.
-                bool restoringPlayer = TryGetSavedSpawn(clientId, out Vector3 savedPosition, out Quaternion savedRotation);
-                if (restoringPlayer) anchor = savedPosition;
-
-                yield return WaitForWorldReady(new[] { anchor });
-
-                if (restoringPlayer)
-                {
-                    Debug.Log($"[NGM] Restoring client {clientId} to its saved position {savedPosition}.");
-                    SpawnManager.Instance.SpawnPlayerForClient(clientId, savedPosition, savedRotation);
-                    yield break;
-                }
-
-                // Only now, with the terrain in, WHERE TO STAND. This is the position the player is
-                // actually spawned at, resolved once and carried through to the spawn call.
-                // Resolving twice is what put players underground: SpawnPoint scatters inside a
-                // radius, so a second call returns a different position from the one the world was
-                // prepared around.
-                Vector3 spawnPos = anchor;
-                float deadline = Time.time + spawnResolveTimeout;
-
-                while (!SpawnManager.Instance.TryGetSpawnPoint(out spawnPos))
-                {
-                    if (Time.time >= deadline)
-                    {
-                        // Chunks are loaded and the spawn point still cannot find ground. Spawning
-                        // at the anchor is not safe by itself, but SpawnPlayerForClient clamps it
-                        // above the terrain, and stranding the client unspawned is worse.
-                        Debug.LogError($"[NGM] No valid spawn position after {spawnResolveTimeout}s — " +
-                                       "falling back to the spawn point's own position.");
-                        spawnPos = anchor;
-                        break;
-                    }
-
-                    yield return null;
-                }
-
-                // A brand new world starts everybody strapped into a ship on its way down, so it
-                // takes a different route to a body entirely. Checked here, at the very end, and
-                // deliberately AFTER the restoringPlayer branch above has already returned: a
-                // loaded save has had its arrival, and replaying the crash on somebody standing in
-                // the wreck is the one outcome worth engineering against.
-                //
-                // spawnPos is handed on rather than re-resolved, for the reason written out above:
-                // a second resolve returns a different point from the one the terrain was streamed
-                // around.
-                // A disposable session skips the crash entirely: the ship is put down already
-                // landed, at the same spot the arrival would have flown to, and the arrival is
-                // marked done before IsPending is even asked below — so every client just falls
-                // through to the ordinary spawn beneath it, on the ground beside a ship that has
-                // apparently been sitting there the whole time.
-                if (WorldSession.Disposable && ArrivalDirector.Instance != null &&
-                    ArrivalDirector.Instance.IsPending)
-                {
-                    yield return ArrivalDirector.Instance.SpawnAlreadyLanded(spawnPos);
-                }
-
-                if (ArrivalDirector.Instance != null && ArrivalDirector.Instance.IsPending)
-                {
-                    yield return ArrivalDirector.Instance.SpawnIntoArrival(clientId, spawnPos);
-                    yield break;
-                }
-
-                SpawnManager.Instance.SpawnPlayerForClient(clientId, spawnPos);
+            // Two different questions, deliberately asked in this order.
+            //
+            // First, WHICH CHUNKS to load. That only needs the spawn point's authored position,
+            // and it must not need anything more: no ground has loaded yet, so nothing here can
+            // be validated against terrain, and a call that insisted on a validated position
+            // would wait forever for a world that this very preload is responsible for loading.
+            // The result is checked, not discarded. On failure `anchor` is Vector3.zero, and
+            // proceeding with it streams the world around the grid's corner and spawns the
+            // player there — which is how a save came back recording a player at (0,0,0)
+            // instead of where they were standing.
+            if (!SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor))
+            {
+                Debug.LogError("[NGM] No spawn anchor available — refusing to stream and spawn " +
+                               "around the world origin. Is a SpawnPoint present in the scene?");
                 yield break;
             }
 
-            SpawnManager.Instance.SpawnPlayerForClient(clientId);
+            // A remote client's profile arrives on its own channel and may not have landed yet.
+            // Waiting for it is what makes the branch below work for anyone but the host; the
+            // wait is normally already satisfied, since the client has had persistentScene since
+            // before the chunk preload above could finish.
+            yield return WaitForProfile(clientId);
+
+            // A loaded save overrides the spawn point — and it has to do so HERE, before the
+            // preload, not later at the spawn call. The preload decides which chunks exist; a
+            // player restored to the far side of the map after the world was prepared around
+            // the spawn point would drop through ground that was never loaded.
+            bool restoringPlayer = TryGetSavedSpawn(clientId, out Vector3 savedPosition, out Quaternion savedRotation);
+            if (restoringPlayer) anchor = savedPosition;
+
+            if (worldStreamer)
+                yield return WaitForWorldReady(new[] { anchor });
+
+            if (restoringPlayer)
+            {
+                Debug.Log($"[NGM] Restoring client {clientId} to its saved position {savedPosition}.");
+                SpawnManager.Instance.SpawnPlayerForClient(clientId, savedPosition, savedRotation);
+                yield break;
+            }
+
+            // Only now, with the terrain in, WHERE TO STAND. This is the position the player is
+            // actually spawned at, resolved once and carried through to the spawn call.
+            // Resolving twice is what put players underground: SpawnPoint scatters inside a
+            // radius, so a second call returns a different position from the one the world was
+            // prepared around.
+            Vector3 spawnPos = anchor;
+            float deadline = Time.time + spawnResolveTimeout;
+
+            while (!SpawnManager.Instance.TryGetSpawnPoint(out spawnPos))
+            {
+                if (Time.time >= deadline)
+                {
+                    // Chunks are loaded and the spawn point still cannot find ground. Spawning
+                    // at the anchor is not safe by itself, but SpawnPlayerForClient clamps it
+                    // above the terrain, and stranding the client unspawned is worse.
+                    Debug.LogError($"[NGM] No valid spawn position after {spawnResolveTimeout}s — " +
+                                   "falling back to the spawn point's own position.");
+                    spawnPos = anchor;
+                    break;
+                }
+
+                yield return null;
+            }
+
+            // A brand new world starts everybody strapped into a ship on its way down, so it
+            // takes a different route to a body entirely. Checked here, at the very end, and
+            // deliberately AFTER the restoringPlayer branch above has already returned: a
+            // loaded save has had its arrival, and replaying the crash on somebody standing in
+            // the wreck is the one outcome worth engineering against.
+            //
+            // spawnPos is handed on rather than re-resolved, for the reason written out above:
+            // a second resolve returns a different point from the one the terrain was streamed
+            // around.
+            // A disposable session skips the crash entirely: the ship is put down already
+            // landed, at the same spot the arrival would have flown to, and the arrival is
+            // marked done before IsPending is even asked below — so every client just falls
+            // through to the ordinary spawn beneath it, on the ground beside a ship that has
+            // apparently been sitting there the whole time.
+            if (WorldSession.Disposable && ArrivalDirector.Instance != null &&
+                ArrivalDirector.Instance.IsPending)
+            {
+                yield return ArrivalDirector.Instance.SpawnAlreadyLanded(spawnPos);
+            }
+
+            if (ArrivalDirector.Instance != null && ArrivalDirector.Instance.IsPending)
+            {
+                yield return ArrivalDirector.Instance.SpawnIntoArrival(clientId, spawnPos);
+                yield break;
+            }
+
+            SpawnManager.Instance.SpawnPlayerForClient(clientId, spawnPos);
         }
 
         /// <summary>

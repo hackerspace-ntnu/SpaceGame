@@ -180,6 +180,32 @@ namespace SpaceGame.EditorTools
             return player;
         }
 
+        /// <summary>
+        /// A creature on its feet, weighing <paramref name="mass"/> — read off its root Rigidbody,
+        /// which is where <c>LassoTether.EstimateMassOf</c> looks first. Kinematic, as every
+        /// agent's root is.
+        /// </summary>
+        private GameObject NewStandingCreature(float mass)
+        {
+            GameObject creature = NewRagdollBody("Creature");
+
+            var root = creature.AddComponent<Rigidbody>();
+            root.isKinematic = true;
+            root.mass = mass;
+
+            Woken<AgentRagdoll>(creature);
+            return creature;
+        }
+
+        /// <summary>A creature of <paramref name="mass"/>, knocked flat and then tied — the leash's way.</summary>
+        private Hogtie DownedCreatureTie(float mass)
+        {
+            GameObject creature = NewStandingCreature(mass);
+            creature.GetComponent<RagdollRig>().GoLimp(Vector3.zero, settled: true, drives: false);
+
+            return NewTie(creature);
+        }
+
         private Hogtie NewTie(GameObject body, InventoryItem rope = null, bool authority = true)
         {
             Hogtie tie = Hogtie.Ensure(body);
@@ -434,6 +460,118 @@ namespace SpaceGame.EditorTools
                 "would be added to a forearm.");
         }
 
+        [Test]
+        public void ARopeIsWoundRoundATiedBodyAndComesOffWithIt()
+        {
+            // The tie had no rope at all: a tied body read exactly like a netted one. And what is
+            // wound on has to come off with it — a spring left drawing a stood-up player's hands to
+            // their pelvis is a body that recovers into the hogtie pose.
+            GameObject player = NewDownedPlayer(out _);
+            Hogtie tie = NewTie(player);
+
+            Assert.IsTrue(tie.Wrap.IsShown, "A tied body has no rope drawn on it.");
+            Assert.IsNotEmpty(tie.Wrap.Limbs, "The rope binds no limbs.");
+            Assert.IsNotNull(player.transform.Find("HogtieRope"), "No rope renderer was built.");
+            Assert.IsNotEmpty(player.GetComponentsInChildren<SpringJoint>(),
+                "Nothing draws the bound limbs in, so the rope is a line across a flailing ragdoll.");
+
+            tie.Untie();
+
+            Assert.IsFalse(tie.Wrap.IsShown, "The ropes came off and are still drawn.");
+            Assert.IsNull(player.transform.Find("HogtieRope"), "The rope renderer outlived the tie.");
+            Assert.IsEmpty(player.GetComponentsInChildren<SpringJoint>(),
+                "A spring outlived the tie and will pull the body's limbs together as it stands.");
+        }
+
+        [Test]
+        public void ATiedCreatureFightsItsRopesByItsWeight()
+        {
+            // A creature has no keys to press, so without this every creature is held for the flat
+            // ceiling — a tie would be the same thing for a rat and a golem.
+            float heavy = SecondsUntilFree(DownedCreatureTie(300f), struggling: false);
+            float light = SecondsUntilFree(DownedCreatureTie(30f), struggling: false);
+
+            Assert.Less(heavy, AuthoredCeiling * 0.5f,
+                $"A 300 kg creature lay in its ropes for {heavy:F1} s, as long as one that is not " +
+                "fighting at all.");
+            Assert.Greater(light, heavy * 2f,
+                $"A 30 kg creature ({light:F1} s) got out nearly as fast as a 300 kg one " +
+                $"({heavy:F1} s).");
+        }
+
+        [Test]
+        public void AHeavierCreatureStrugglesHarderUpToAFlatOut()
+        {
+            Assert.Less(Hogtie.CreatureStruggleLevel(30f, 300f), Hogtie.CreatureStruggleLevel(150f, 300f));
+            Assert.AreEqual(1f, Hogtie.CreatureStruggleLevel(900f, 300f), 1e-4f,
+                "A creature past the full-struggle mass fights harder than a player can, so the " +
+                "ropes on it break faster than the derived flat-out escape.");
+        }
+
+        [Test]
+        public void AWrapBindsTheLegsAndNotTheHead()
+        {
+            // A creature has no avatar to name its feet, so its limbs are the leaves of its
+            // skeleton that hang below the pelvis — and a head is a leaf too. Binding the head to
+            // the knot drags it down into the bundle.
+            Transform hips = NewObject("Hips").transform;
+            hips.position = new Vector3(0f, 1f, 0f);
+
+            Transform legL = Child(hips, "LegL", new Vector3(-0.2f, 0.2f, 0f));
+            Transform legR = Child(hips, "LegR", new Vector3(0.2f, 0.2f, 0f));
+            Transform spine = Child(hips, "Spine", new Vector3(0f, 1.3f, 0.4f));
+            Transform head = Child(spine, "Head", new Vector3(0f, 1.6f, 0.9f));
+
+            Transform[] limbs = HogtieWrap.LimbsOf(hips.gameObject, hips, new[] { hips, legL, legR, spine, head });
+
+            CollectionAssert.AreEquivalent(new[] { legL, legR }, limbs,
+                "The bound limbs are not the two legs.");
+        }
+
+        [Test]
+        public void ATiedBodyIsDraggedAsAWholeAndItsRootComesWithIt()
+        {
+            // Two silent ways to get this wrong. Haul only the pelvis and the joint solver has to
+            // catch every limb up a tenth of a metre a step, which stretches the mesh. Move the
+            // bones but not the root and the captive's root, save record and every watcher's copy
+            // stay where they were tied while the body is dragged away — a drag reads as nearly
+            // still to the settle check, which stops the rig following on its own.
+            GameObject player = NewStandingPlayer();
+            RagdollRig rig = player.GetComponent<RagdollRig>();
+            rig.GoLimp(Vector3.zero, settled: true, drives: true);
+            NewTie(player);
+
+            Transform hips = rig.Hips;
+            Transform[] bones = rig.BoneTransforms();
+            Transform tip = bones[bones.Length - 1];
+
+            float hipsBefore = hips.position.x;
+            float tipBefore = tip.position.x;
+
+            Transform hand = NewObject("Hand").transform;
+            hand.position = new Vector3(20f, 0.5f, 0f);
+
+            LassoedBody dragged = LassoedBody.Ensure(player);
+            Assert.IsTrue(dragged.Bind(hand, 2f, 80f, 28f));
+            dragged.Step();
+
+            float hauled = hips.position.x - hipsBefore;
+
+            Assert.Greater(hauled, 1f, "A tied body on a taut rope was not dragged at all.");
+            Assert.That(tip.position.x - tipBefore, Is.EqualTo(hauled).Within(0.01f),
+                "The pelvis was dragged and the rest of the body left for the joints to catch up.");
+            Assert.That(Vector3.Distance(player.transform.position, hips.position), Is.LessThan(0.01f),
+                "The body was dragged and its root stayed behind.");
+        }
+
+        private static Transform Child(Transform parent, string name, Vector3 worldPosition)
+        {
+            Transform child = new GameObject(name).transform;
+            child.SetParent(parent, false);
+            child.position = worldPosition;
+            return child;
+        }
+
         // ── Living beside a net ──────────────────────────────────────────────
 
         [Test]
@@ -673,6 +811,225 @@ namespace SpaceGame.EditorTools
 
             Assert.That(tie.StruggleLevel, Is.GreaterThan(0f),
                 "The body threw itself the opposite way and it counted for nothing.");
+        }
+
+        // ── The rope on the skin ─────────────────────────────────────────────
+
+        /// <summary>Semi-axes of the flat test body's trunk: twice as wide as it is deep, like a person's.</summary>
+        private const float TrunkHalfWidth = 0.3f;
+        private const float TrunkHalfDepth = 0.15f;
+
+        [Test]
+        public void TheRopeIsLaidOnAFlatBodyRatherThanRoundIt()
+        {
+            // The rope used to be a circle of the radius 80% of the trunk's vertices fell inside. On a
+            // trunk twice as wide as it is deep that circle sinks into the sides and stands off the
+            // chest and the back by half the depth — the ropes round a tied Raxy floated a hand's
+            // width off it. Every turn now follows the cross-section it crosses.
+            FlatBody body = NewFlatBody();
+            var look = new HogtieWrapLook();
+            var wrap = new HogtieWrap();
+
+            wrap.Wind(body.Root, body.Hips, body.Bones, look, new LeashRope());
+
+            AssertTurnsOnTheTrunk(wrap, body, look, "as tied");
+            wrap.Hide();
+        }
+
+        [Test]
+        public void TheRopeStaysOnABodyLaidDownAfterItWasTied()
+        {
+            // A tie lands on somebody standing and the body is then laid on its face. Measured once,
+            // in the standing pose, in world space, the turns hung where the body had been.
+            FlatBody body = NewFlatBody();
+            var look = new HogtieWrapLook();
+            var wrap = new HogtieWrap();
+
+            wrap.Wind(body.Root, body.Hips, body.Bones, look, new LeashRope());
+            body.Hips.rotation = Quaternion.AngleAxis(90f, Vector3.right) * body.Hips.rotation;
+            body.Hips.position += new Vector3(2f, -0.6f, 1f);
+
+            wrap.Draw(0.5f);
+            AssertTurnsOnTheTrunk(wrap, body, look, "half wound, the body laid down after the tie landed");
+
+            wrap.Draw(1f);
+            AssertTurnsOnTheTrunk(wrap, body, look, "all on, measured again as the body lies");
+            wrap.Hide();
+        }
+
+        [Test]
+        public void TheRopeLiesOnATiedRaxysSkin()
+        {
+            // The report this was written from: "on Raxys the ropes don't fit well". Measured on the
+            // shipped prefab, posed by the lasso's own takedown, against the skin it is drawn on. The
+            // rope this replaced stood 6.8 cm off the wrists and 12.2 cm off the middle on average,
+            // and 24 cm at worst; it now lies within a centimetre or two.
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(RaxyPrefab);
+            GameObject lasso = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(LassoPrefab);
+            Assert.IsNotNull(prefab, $"{RaxyPrefab} is gone; point this test at a Raxy that exists.");
+            Assert.IsNotNull(lasso, $"{LassoPrefab} is gone.");
+
+            var settings = new UnityEditor.SerializedObject(lasso.GetComponent<LassoArtifact>());
+            var look = (HogtieWrapLook)settings.FindProperty("boundRope").boxedValue;
+            var poseLook = (TiedPoseLook)settings.FindProperty("tiedPose").boxedValue;
+
+            var raxy = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab);
+            spawned.Add(raxy);
+            Animator animator = raxy.GetComponentInChildren<Animator>();
+            Assert.IsTrue(animator != null && animator.isHuman, "Raxy lost its humanoid avatar; the tie cannot pose it.");
+
+            var pose = new TiedPose();
+            var wrap = new HogtieWrap();
+            pose.Begin(raxy, poseLook, 1f);
+            wrap.Wind(raxy, animator.GetBoneTransform(HumanBodyBones.Hips), new List<Transform>(BodyFrame.BonesOf(raxy.transform)).ToArray(),
+                      look, new LeashRope());
+            pose.Apply(Time.time + RaxyPoseSettleSeconds);
+            wrap.Draw(1f);
+
+            List<Vector3> skin = BakedSkin(raxy);
+            float half = look.Width * 0.5f;
+            var gaps = new List<float>();
+            foreach (Vector3 point in wrap.Points)
+                if (point != wrap.Knot) gaps.Add(Mathf.Abs(Mathf.Sqrt(NearestSquared(skin, point)) - half));
+
+            wrap.Hide();
+            pose.End();
+
+            Assert.IsNotEmpty(gaps, "No rope was drawn on Raxy at all.");
+            float mean = 0f;
+            foreach (float gap in gaps) mean += gap / gaps.Count;
+            gaps.Sort();
+            float mostly = gaps[(gaps.Count - 1) * 9 / 10];
+
+            Assert.Less(mean, RaxyMeanGap, $"The rope round a tied Raxy sits {mean * 100f:F1} cm off the skin on average.");
+            Assert.Less(mostly, RaxyMostGap, $"A tenth of the rope round a tied Raxy is {mostly * 100f:F1} cm or more off the skin.");
+        }
+
+        internal const string RaxyPrefab = "Assets/Game/Prefabs/agents/Characters/Raxy/Drifter_RaxyClassic.prefab";
+        private const string LassoPrefab = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/Lasso.prefab";
+
+        /// <summary>Past the takedown: <see cref="TiedPose.Apply"/> is handed a clock this far on, so the body is hogtied.</summary>
+        private const float RaxyPoseSettleSeconds = 100f;
+
+        /// <summary>Mean distance of the cord from the skin. About 1 cm on the shipped Raxy; the circles this replaced averaged 9.</summary>
+        private const float RaxyMeanGap = 0.02f;
+
+        /// <summary>
+        /// Nine-tenths of the cord lies closer than this. Not the single worst point: a cord pulled over an arm
+        /// lying along the back bridges the hollow between them, as a real one does.
+        /// </summary>
+        private const float RaxyMostGap = 0.04f;
+
+        /// <summary>
+        /// A body with a flat trunk — an elliptical tube skinned to its spine — and two thin legs:
+        /// the shape a circle cannot fit, built in code so nothing about it can drift.
+        /// </summary>
+        private struct FlatBody
+        {
+            public GameObject Root;
+            public Transform Hips;
+            public Transform Spine;
+            public Transform[] Bones;
+        }
+
+        private FlatBody NewFlatBody()
+        {
+            GameObject root = NewObject("FlatBody");
+            Transform hips = Child(root.transform, "Hips", new Vector3(0f, 1f, 0f));
+            Transform spine = Child(hips, "Spine", new Vector3(0f, 1.6f, 0f));
+            Transform legL = Child(hips, "LegL", new Vector3(-0.15f, 0.1f, 0f));
+            Transform legR = Child(hips, "LegR", new Vector3(0.15f, 0.1f, 0f));
+            Transform[] bones = { hips, spine, legL, legR };
+
+            var vertices = new List<Vector3>();
+            var weights = new List<BoneWeight>();
+            Tube(vertices, weights, 1, Vector3.zero, 1f, 1.9f, TrunkHalfWidth, TrunkHalfDepth);
+            Tube(vertices, weights, 2, new Vector3(-0.15f, 0f, 0f), 0.1f, 0.9f, 0.06f, 0.06f);
+            Tube(vertices, weights, 3, new Vector3(0.15f, 0f, 0f), 0.1f, 0.9f, 0.06f, 0.06f);
+
+            var mesh = new UnityEngine.Mesh { name = "FlatBody" };
+            mesh.SetVertices(vertices);
+            mesh.boneWeights = weights.ToArray();
+            var binds = new Matrix4x4[bones.Length];
+            for (int i = 0; i < bones.Length; i++) binds[i] = bones[i].worldToLocalMatrix * root.transform.localToWorldMatrix;
+            mesh.bindposes = binds;
+            assets.Add(mesh);
+
+            var skin = root.AddComponent<SkinnedMeshRenderer>();
+            skin.sharedMesh = mesh;
+            skin.bones = bones;
+            skin.rootBone = hips;
+
+            return new FlatBody { Root = root, Hips = hips, Spine = spine, Bones = bones };
+        }
+
+        /// <summary>Rings of an elliptical tube up the world Y axis, every vertex weighted wholly to <paramref name="bone"/>.</summary>
+        private static void Tube(List<Vector3> vertices, List<BoneWeight> weights, int bone, Vector3 axis,
+                                 float bottom, float top, float halfWidth, float halfDepth)
+        {
+            const int rings = 40, around = 48;
+            for (int r = 0; r <= rings; r++)
+                for (int a = 0; a < around; a++)
+                {
+                    float angle = a * Mathf.PI * 2f / around;
+                    vertices.Add(axis + new Vector3(Mathf.Cos(angle) * halfWidth, Mathf.Lerp(bottom, top, r / (float)rings),
+                                                    Mathf.Sin(angle) * halfDepth));
+                    weights.Add(new BoneWeight { boneIndex0 = bone, weight0 = 1f });
+                }
+        }
+
+        /// <summary>
+        /// Every turn round the middle, as drawn, half a rope's width outside the trunk's ellipse along its
+        /// own direction from the trunk's axis — asked in the spine's space, so it holds however the body lies.
+        /// </summary>
+        private static void AssertTurnsOnTheTrunk(HogtieWrap wrap, FlatBody body, HogtieWrapLook look, string when)
+        {
+            int count = look.TorsoTurns * HogtieWrap.PointsPerTurn + 1;
+            Assert.GreaterOrEqual(wrap.Points.Count, count, $"{when}: the rope is shorter than the turns round the middle.");
+
+            float half = look.Width * 0.5f;
+            float a = TrunkHalfWidth, b = TrunkHalfDepth;
+            float worst = 0f;
+            for (int i = wrap.Points.Count - count; i < wrap.Points.Count; i++)
+            {
+                Vector3 local = body.Spine.InverseTransformPoint(wrap.Points[i]);
+                var across = new Vector2(local.x, local.z);
+                float angle = Mathf.Atan2(across.y, across.x);
+                float onEllipse = a * b / Mathf.Sqrt(Mathf.Pow(b * Mathf.Cos(angle), 2f) + Mathf.Pow(a * Mathf.Sin(angle), 2f));
+                worst = Mathf.Max(worst, Mathf.Abs(across.magnitude - (onEllipse + half)));
+            }
+
+            // Within the cord's own half-thickness: a hull of sampled vertices cuts the corners between
+            // them, and a cord that sinks a third of its width into the skin still reads as lying on it.
+            Assert.Less(worst, half,
+                $"{when}: a turn round the middle stands {worst * 100f:F1} cm off a trunk {a * 2f:F2} m wide and {b * 2f:F2} m deep.");
+        }
+
+        /// <summary>Every vertex the body draws, world space, as skinned right now. Shared with the lasso's collar test.</summary>
+        internal static List<Vector3> BakedSkin(GameObject body)
+        {
+            var skin = new List<Vector3>();
+            var baked = new UnityEngine.Mesh();
+            var vertices = new List<Vector3>();
+            foreach (SkinnedMeshRenderer renderer in body.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!renderer.enabled || renderer.sharedMesh == null) continue;
+                renderer.BakeMesh(baked, true);
+                baked.GetVertices(vertices);
+                Transform at = renderer.transform;
+                foreach (Vector3 vertex in vertices)
+                    skin.Add(at.position + at.rotation * Vector3.Scale(vertex, at.lossyScale));
+            }
+
+            Object.DestroyImmediate(baked);
+            return skin;
+        }
+
+        internal static float NearestSquared(List<Vector3> among, Vector3 point)
+        {
+            float nearest = float.PositiveInfinity;
+            foreach (Vector3 other in among) nearest = Mathf.Min(nearest, (other - point).sqrMagnitude);
+            return nearest;
         }
     }
 }

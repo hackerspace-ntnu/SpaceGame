@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1325a8e624d342aabee966bfc8f2e68, type: 3}
+  m_Name: Bounty_KessekVorr
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHunt
+  id: 0c13c761e69c41f6b278d3155edc483d
+  poster: {fileID: 5249387039615431247, guid: 351f5ba93858c48b2a68a673ec0eb5b5, type: 3}
+  tips:
+  - '{target} trades scrap with the caravans after dark, out past the last well.'
+  - A herder saw smoke from a camp in the rocks. That will be {target}, half a day
+    out.
+  - '{target} never sleeps in the same hollow twice, but never far from the old wreck
+    either.'
+  rewards:
+  - item: {fileID: 11400000, guid: dd9d116f0128b4edbb21e258697e2395, type: 2}
+    count: 4
+  otherStateShare: 0.5
+  cast:
+  - who: 0
+    prefab: {fileID: 0}
+    roster: {fileID: 0}
+    role: 1
+    minCount: 1
+    maxCount: 1
+    spotTag: hideout
+    faction: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    spawnWhen: 0
+  hasSite: 1
+  sitePosition: {x: 3260, y: 105.21883, z: 820}
+  siteScene: Assets/Game/Scenes/world/Chunks/Chunk_6_3.unity
+  boundsRadius: 1500
+  ownerSettlementId: 1c3973d9ea094a5bb1c9e91a52a50f8a

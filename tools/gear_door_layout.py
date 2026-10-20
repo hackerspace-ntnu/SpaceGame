@@ -3,13 +3,14 @@
     python3 tools/gear_door_layout.py Assets/Game/Editor/Workshop/GearDoorLayout.json
     python3 tools/gear_door_layout.py vault Assets/Game/Editor/Workshop/VaultDoorLayout.json
 
-Lays a chain of gears from the drive to the lock on the shut door, adds lure pegs (one exact spacing off a chain gear,
-leading nowhere) and filler pegs, and keeps the first layout where EVERY way of carrying the drive to the lock with the
-pile's gears uses the whole chain. Some chain gears start on their pegs (`preinstalled`); the rest, and nothing else,
-lie in the pile. Deterministic: the same constants write the same file. Rebuild Workshop Prefab afterwards;
-GearDoorLayoutTests checks the result again.
+Lays a chain of gears from the drive to the lock in the door's plane, adds lure pegs (one exact spacing off a chain
+gear, leading nowhere) and filler pegs, and keeps the first layout where EVERY way of carrying the drive to the lock
+with the pile's gears uses the whole chain. Some chain gears may start on their pegs (`preinstalled`); the rest, and
+nothing else, lie in the pile. Deterministic: the same constants write the same file. Rebuild Workshop Prefab
+afterwards; GearDoorLayoutTests checks the result again.
 
-Door-plane coordinates: u along the shut door (the player's right facing it), v up from the floor.
+Door-plane coordinates: u along the shut door (the player's right facing it), v up from the floor. A pile spot is `out`
+metres in front of the door's face and `u` along it.
 """
 import json, math, random, sys
 
@@ -18,7 +19,6 @@ ADDENDUM = 0.06           # outer radius = pitch radius + this
 CLEAR = 0.06              # two gears that do not mesh must stand this far apart, tip to tip
 TOL = 0.02                # how far off the exact spacing two gears still mesh
 FIXED_CLEAR = 0.3         # no peg this close to the drive's or the lock's rim
-WANDER = 1.25             # radians the chain may turn off the line to the lock at each gear
 
 
 def outer(t): return t * PER_TOOTH + ADDENDUM
@@ -31,6 +31,7 @@ class Gate:
     DRIVER = ('Skeleton', 48, (-7.2, 2.9))
     OUTPUT = ('Flywheel', 56, (6.9, 3.4))
     CHAIN = 9                 # gears between the drive and the lock
+    WANDER = 1.25             # radians the chain may turn off the line to the lock at each gear
     PREINSTALLED = (3, 5, 7)  # chain gears already on their pegs at the start (0 is next to the drive); not in the pile
     LURES = 9
     PEGS = 46
@@ -71,20 +72,29 @@ class Gate:
 
 
 class Vault:
-    """The Shellbacks' vault: one round door, a small drive and lock, three small cogs between them, one already in
-    place, and the two missing ones lying on the bench beside the door: five cogs in all. Every gear stays on the door's clear face
-    (vault_build.py keeps a disc of FACE_R round the door's centre free of everything proud of the face)."""
+    """The Shellbacks' vault: one round door with seven gears on its face when it works. A small iron drive turns on
+    the left, a rust lock on the right works the latch, and the five cogs between them are all missing: they lie where
+    they fell, on the floor in front of the door. Every gear stays on the door's clear face (vault_build.py keeps a
+    disc of FACE_R round the door's centre free of everything proud of the face). The drive and the lock sit low and
+    apart so a chain of five has room to wind between them; nearer together, no chain longer than three fitted."""
     KINDS = {'XS': 10, 'S': 14, 'M': 20}
     CENTRE = (0.0, 2.3)       # the door's centre on its face, measured off the model
     FACE_R = 1.8              # every gear's rim stays this close to the centre
-    DRIVER = ('Fixed_S', 14, (-0.85, 2.3))
-    OUTPUT = ('Fixed_M', 20, (0.75, 2.3))
-    CHAIN = 3
-    PREINSTALLED = (1,)
-    LURES = 3
-    PEGS = 10
-    PEG_SPACING = 0.45
-    TRAY_GAP = 0.02           # the loose cogs lie flat in a row along the bench beside the door, this far apart
+    DRIVER = ('Fixed_S', 14, (-1.0, 1.72))
+    OUTPUT = ('Fixed_M', 20, (0.94, 2.14))
+    CHAIN = 5
+    WANDER = 1.7              # winding: the face is too small for five cogs in a line
+    PREINSTALLED = ()         # nothing to go by: every cog of the way has to be found
+    LURES = 6
+    PEGS = 16
+    PEG_SPACING = 0.42
+    # The clear floor in front of the door, measured off the model 2026-10-12 (flat within 3 cm, 2.4 m clear above;
+    # the portal's side posts, its threshold, the cog bench and the rocks left out), as (out, u) corners: `out` metres
+    # from the door's face, `u` along it, the player's right facing the door. The loose cogs lie inside it.
+    FLOOR = ((0.45, 1.95), (0.45, -1.95), (2.45, -1.95), (2.55, -1.1), (4.55, -0.55), (6.4, -0.55), (6.4, 3.0),
+             (5.5, 2.9), (4.5, 2.3), (3.6, 2.0), (2.45, 1.95))
+    PILE_CLEAR = 0.1          # a loose cog's rim stays this far inside the floor
+    PILE_GAP = 0.25           # and this far from the next one
 
     def fits(self, c, t):
         return math.dist(c, self.CENTRE) + outer(t) <= self.FACE_R
@@ -94,14 +104,42 @@ class Vault:
         return (self.CENTRE[0] + r * math.cos(a), self.CENTRE[1] + r * math.sin(a))
 
     def pile(self, sizes):
-        """In a row along the bench, its middle at the bench's centre: `u` along it, `out` unused."""
-        widths = [2 * outer(self.KINDS[n]) for n in sizes]
-        total = sum(widths) + self.TRAY_GAP * (len(widths) - 1)
-        at, spots, rng = -0.5 * total, [], random.Random(7)
-        for name, w in zip(sizes, widths):
-            spots.append({'kind': name, 'out': 0.0, 'u': round(at + 0.5 * w, 3), 'yaw': round(rng.uniform(0, 360), 1)})
-            at += w + self.TRAY_GAP
-        return spots
+        """Where the loose cogs lie: strewn over the floor in front of the door, the big ones first while there is room."""
+        rng = random.Random(7)
+        outs, us = [p[0] for p in self.FLOOR], [p[1] for p in self.FLOOR]
+        spots = []
+        for name in sorted(sizes, key=lambda n: -self.KINDS[n]):
+            r = outer(self.KINDS[name])
+            for _ in range(5000):
+                c = (rng.uniform(min(outs), max(outs)), rng.uniform(min(us), max(us)))
+                if not inside(c, self.FLOOR) or edge_distance(c, self.FLOOR) < r + self.PILE_CLEAR:
+                    continue
+                if all(math.dist(c, sc) >= r + sr + self.PILE_GAP for sc, sr, _ in spots):
+                    spots.append((c, r, name))
+                    break
+            else:
+                raise SystemExit('no room on the floor for ' + name)
+        return [{'kind': n, 'out': round(c[0], 3), 'u': round(c[1], 3), 'yaw': round(rng.uniform(0, 360), 1)}
+                for c, _, n in spots]
+
+
+def inside(p, poly):
+    """Whether `p` lies inside the polygon `poly` (even-odd rule)."""
+    hit = False
+    for (x1, y1), (x2, y2) in zip(poly, poly[1:] + poly[:1]):
+        if (y1 > p[1]) != (y2 > p[1]) and p[0] < x1 + (p[1] - y1) * (x2 - x1) / (y2 - y1):
+            hit = not hit
+    return hit
+
+
+def edge_distance(p, poly):
+    """How far `p` is from the nearest edge of `poly`."""
+    best = float('inf')
+    for a, b in zip(poly, poly[1:] + poly[:1]):
+        ab = (b[0] - a[0], b[1] - a[1])
+        f = max(0.0, min(1.0, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / (ab[0] ** 2 + ab[1] ** 2)))
+        best = min(best, math.dist(p, (a[0] + f * ab[0], a[1] + f * ab[1])))
+    return best
 
 
 def relation(c1, t1, c2, t2):
@@ -139,7 +177,7 @@ def chain(door, rng, sizes):
         else:
             base = math.atan2(lock[0][1] - at[1], lock[0][0] - at[0])
             cands = [(at[0] + r * math.cos(ang), at[1] + r * math.sin(ang))
-                     for ang in (base + rng.uniform(-WANDER, WANDER) for _ in range(30))]
+                     for ang in (base + rng.uniform(-door.WANDER, door.WANDER) for _ in range(30))]
         chosen = None
         for c in cands:
             if not door.fits(c, t):

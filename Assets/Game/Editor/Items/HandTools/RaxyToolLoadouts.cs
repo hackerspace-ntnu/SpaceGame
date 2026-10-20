@@ -51,7 +51,9 @@ namespace SpaceGame.EditorTools
             ("Drover", "Tool_Lasso", System.Array.Empty<string>()),
             ("Hunter", "Tool_ElectricHarpoonGun", new[] { "Tool_SkinningKnife", "Tool_HuntingKnife" }),
             ("Scout", "Tool_Spyglass", new[] { "Tool_HuntingKnife" }),
-            ("Guard", "Tool_Spear_Stone", new[] { "Tool_SignalHorn" }),
+            // A guard's is a weapon it fires (ResidentWeaponModule), not a prop: the working shock harpoon.
+            ("Guard", "ShockHarpoon", new[] { "Tool_SignalHorn" }),
+            ("TowerGuard", "ShockHarpoon", new[] { "Tool_SignalHorn" }),
             ("Lookout", "Tool_SignalFlag", new[] { "Tool_SignalHorn" }),
             ("Trader", "Tool_HandScales", System.Array.Empty<string>()),
         };
@@ -86,8 +88,12 @@ namespace SpaceGame.EditorTools
             return true;
         }
 
+        /// <summary>A carried tool, or an artifact a profession uses for real (a guard's harpoon).</summary>
         private static InventoryItem Item(string id) =>
-            AssetDatabase.LoadAssetAtPath<InventoryItem>($"Assets/Game/Resources/Items/Tools/{id}.asset");
+            ItemFolders.Select(folder => AssetDatabase.LoadAssetAtPath<InventoryItem>($"{folder}{id}.asset"))
+                       .FirstOrDefault(item => item != null);
+
+        private static readonly string[] ItemFolders = { "Assets/Game/Resources/Items/Tools/", "Assets/Game/Resources/Items/Artifacts/" };
 
         /// <summary>Only prefabs that already are residents; a Raxy that never leaves its spot carries nothing.</summary>
         private static bool WirePrefab(string path)

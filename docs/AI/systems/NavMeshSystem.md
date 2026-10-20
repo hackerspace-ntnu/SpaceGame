@@ -32,7 +32,7 @@ symptoms:
   - "penned animals walk out through the fence although the gate is shut"
   - "an NPC leaps over a thin wall or fence"
 reads_with: [WorldStreaming, AgentSystem, Locomotion, SkyTribe]
-updated: 2026-10-09
+updated: 2026-10-19
 ---
 
 # NavMesh
@@ -44,6 +44,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 
 ## Model
 - **One mesh, not per-chunk.** [WorldNavMeshBaker](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) opens all 48 chunk scenes at once, collects sources, and calls `NavMeshBuilder.BuildNavMeshData` once over their union bounds. Chunk scenes carry no `NavMeshSurface` and no NavMesh data of their own.
+- **A world authored as one scene bakes that scene.** `WorldNavMeshBaker.BakeScene` (menu `World/Bake Open World Scene NavMesh`) collects the open scene the same way and writes the asset that scene's own `WorldNavMeshProvider` names — Spillexo's is [NoiseTerrain_NavMesh.asset](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_NavMesh.asset) (settings copied from the main asset, `config` = `SpillexoWorldStreamingConfig`). It edits nothing in the scene: no terrain alignment, no spawned feature meshes (a `TerrainFeatureSpawner` there is reported, not baked). `IsSingleSceneWorld` is the test — a provider whose asset is neither `WorldNavMesh.asset` nor bound to a config with chunks — and a settlement's **Generate + Bake World NavMesh** uses it to pick this route in such a scene.
 - **Runtime is load-only.** [WorldNavMeshProvider](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) on the `NavMesh` GameObject in [persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) does `AddNavMeshData` in `OnEnable`, `Remove()` in `OnDisable`. No bake, no rebuild, no dirty flag. The `NavMeshSourceCache` / park-and-release system the older revision of this doc described is **deleted**.
 - **Collision, not render meshes.** Sources are `Terrain` + non-trigger `Collider`s, filtered by [`NavMeshSources.IsBakeable`](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshSources.cs) (runtime assembly, shared with a settlement's throwaway character-placement bake — see [TerrainGeneration.md](TerrainGeneration.md)): colliders on a non-kinematic `Rigidbody` are skipped (scenery that moves must not be frozen into a permanent mesh), and so is anything under a `NavMeshAgent` (a walker is never part of what it walks on — see Gotchas).
 - **Bake mirrors the runtime.** The baker snaps each chunk's `Terrain` to its grid X/Z (mirroring `WorldStreamer.CacheTerrainForChunk`) and calls `TerrainFeatureSpawner.SpawnBaked()` before collecting, then discards those edits. Skip either and the mesh is silently offset from the ground.
@@ -82,7 +83,7 @@ Areas: Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not Walk
 | `WorldNavMeshAsset` | [WorldNavMeshAsset.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshAsset.cs) | ScriptableObject: `NavMeshData` sub-asset + bake settings + per-chunk dependency-hash stamps |
 | `WorldNavMeshBakeSettings` | same file | Serialized bake inputs (deliberately not a raw `NavMeshBuildSettings`) |
 | `WorldNavMeshProvider` | [WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | `AddNavMeshData` on enable; `LogError` (never a silent fallback) if unassigned |
-| `WorldNavMeshBaker` | [Editor/WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | `World/Streaming/Bake World NavMesh` menu item; asset path `Assets/Game/Settings/WorldNavMesh.asset` |
+| `WorldNavMeshBaker` | [Editor/WorldNavMeshBaker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshBaker.cs) | `World/Streaming/Bake World NavMesh` menu item (streamed world → `Assets/Game/Settings/WorldNavMesh.asset`); `World/Bake Open World Scene NavMesh` (`BakeScene`, single-scene world → its provider's own asset). Both share `BuildAndStore` |
 | `StaticNavMeshData` | [StaticNavMeshData.cs](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) | `AddNavMeshData(data, transform.position, transform.rotation)` on enable, remove on disable; `LogError` if unassigned. No scale |
 | `SkyCityNavMeshBaker` | Editor/Environment/SkyCityNavMeshBaker.cs | `World/Streaming/Bake Sky City NavMesh`; bakes `SkyCityFleet.prefab` into `Assets/Game/Settings/SkyCityNavMesh.asset` and puts `StaticNavMeshData` on the fleet root |
 | `WorldNavMeshStaleness` / `WorldNavMeshBuildCheck` | [Editor/WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | `World/Streaming/Check World NavMesh Is Current`; fails the player build when stale |

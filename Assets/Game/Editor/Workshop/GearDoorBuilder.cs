@@ -3,8 +3,8 @@
 //
 // The leaves come from workshop_export.py as hinged nodes in their modelled (open) pose, each naming its door. This
 // shuts them, gives them a solid hull, puts the pegs, the drive gear and the lock gear on them from the door's layout,
-// lays the pile of loose gears (on the ground in front of the gate, on the tray beside the vault's door), and makes the
-// gear items the piles are made of. It is part of Rebuild: hand edits to any of it are lost on the next rebuild.
+// lays the pile of loose gears on the ground in front of the door (out of the gate's leaves' sweep), and makes the gear
+// items the piles are made of. It is part of Rebuild: hand edits to any of it are lost on the next rebuild.
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -30,10 +30,9 @@ namespace SpaceGame.EditorTools
         private const string GateDoor = "";
         private const string VaultDoor = "Vault";
         private const string FaceMark = "VaultDoor_Face";
-        private const string TrayMark = "VaultDoor_CogTray";
-        // The vault's cogs lie on a tray under its frame: the pile looks for its ground this far above each spot, so
-        // it lands on the tray and not on the frame overhead.
-        private const float TrayProbeHeight = 0.3f;
+        // The vault's loose cogs lie in a rock tunnel that hangs low in places: the pile looks for its ground this far
+        // above each spot, so it lands on the floor and not on an overhang.
+        private const float VaultPileProbeHeight = 0.5f;
 
         /// <summary>A gear the pile is made of: what the layout calls it, its model, its teeth, and what the player sees.</summary>
         private readonly struct GearItem
@@ -79,13 +78,13 @@ namespace SpaceGame.EditorTools
             foreach (ShutLeaf leaf in leaves) face = Mathf.Max(face, leaf.Shut.max.x);
             var plane = new Pose(new Vector3(face, 0f, 0f), Quaternion.identity);
 
-            gate = Build(root, "GearDoor", GateDoor, GearDoorLayout.Load(), leaves, plane, plane, groundProbe: null);
+            gate = Build(root, "GearDoor", GateDoor, GearDoorLayout.Load(), leaves, plane, groundProbe: null);
             return Describe("gear door", gate, leaves.Count);
         }
 
         /// <summary>
-        /// Build the vault's door into <paramref name="root"/>: one round leaf, its face and the cog tray beside it where
-        /// the model marks them (VaultDoor_Face, VaultDoor_CogTray).
+        /// Build the vault's door into <paramref name="root"/>: one round leaf, its face where the model marks it
+        /// (VaultDoor_Face), and its loose cogs on the floor in front of it.
         /// </summary>
         public static string AttachVault(GameObject root, WorkshopLayout layout, Dictionary<string, Transform> nodes, out GearDoor vault)
         {
@@ -99,10 +98,8 @@ namespace SpaceGame.EditorTools
             Vector3 along = Vector3.Cross(Vector3.up, -outward).normalized;
             var plane = new Pose(marked.position, Quaternion.LookRotation(along, Vector3.up));
 
-            // The tray's own forward runs along it: the pile's +Z.
-            Pose tray = layout.PoseOf(TrayMark);
-            vault = Build(root, "VaultDoor", VaultDoor, GearDoorLayout.Load(GearDoorLayout.VaultPath), leaves, plane, tray,
-                          groundProbe: TrayProbeHeight);
+            vault = Build(root, "VaultDoor", VaultDoor, GearDoorLayout.Load(GearDoorLayout.VaultPath), leaves, plane,
+                          groundProbe: VaultPileProbeHeight);
             return Describe("vault door", vault, leaves.Count);
         }
 
@@ -155,10 +152,10 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// One gear door: its drive and lock, its pegs and the gears standing on them, on the leaves, in
         /// <paramref name="plane"/> (prefab space; +X out of the door, +Z along it, origin on the face at floor level
-        /// below the door's middle), and its pile laid in <paramref name="pileFrame"/> (+X `out`, +Z `u`).
+        /// below the door's middle), and its pile on the ground in front of it (+X `out`, +Z `u`).
         /// </summary>
         private static GearDoor Build(GameObject root, string name, string saveId, GearDoorLayout puzzle, List<ShutLeaf> leaves,
-                                      Pose plane, Pose pileFrame, float? groundProbe)
+                                      Pose plane, float? groundProbe)
         {
             Transform doorRoot = new GameObject(name).transform;
             doorRoot.SetParent(root.transform, false);
@@ -200,11 +197,12 @@ namespace SpaceGame.EditorTools
                 return made;
             }
 
-            Transform Seat(string seatName, Vector2 at)
+            Transform Seat(string seatName, Vector2 at, out Transform post)
             {
                 Transform leaf = LeafAt(at.x);
                 Vector3 bolted = doorRoot.TransformPoint(new Vector3(0f, at.y, at.x));
-                GearDoor.PlaceModel(peg, OnLeaf(leaf, seatName + "_Peg", bolted), ModelScale);
+                post = OnLeaf(leaf, seatName + "_Peg", bolted);
+                GearDoor.PlaceModel(peg, post, ModelScale);
 
                 Transform seat = OnLeaf(leaf, seatName, bolted + outward * SeatOut);
                 Transform spinner = new GameObject("Spinner").transform;
@@ -214,7 +212,7 @@ namespace SpaceGame.EditorTools
 
             GearDoor.FixedGear Fixed(string seatName, GearDoorLayout.Fixed spec)
             {
-                Transform seat = Seat(seatName, GearDoorLayout.V(spec.at));
+                Transform seat = Seat(seatName, GearDoorLayout.V(spec.at), out _);
                 Transform spinner = seat.Find("Spinner");
                 GameObject model = LoadModel(FixedModels[spec.kind]);
                 GearDoor.PlaceModel(model, spinner, ModelScale);
@@ -230,7 +228,10 @@ namespace SpaceGame.EditorTools
 
             var pegs = new GearDoor.Peg[puzzle.pegs.Length];
             for (int i = 0; i < pegs.Length; i++)
-                pegs[i] = new GearDoor.Peg { seat = Seat($"Seat_{i:00}", GearDoorLayout.V(puzzle.pegs[i])), plane = GearDoorLayout.V(puzzle.pegs[i]) };
+            {
+                Vector2 at = GearDoorLayout.V(puzzle.pegs[i]);
+                pegs[i] = new GearDoor.Peg { seat = Seat($"Seat_{i:00}", at, out Transform post), plane = at, post = post };
+            }
 
             // The part of the train still standing: drawn already, so the door looks right in the editor too.
             foreach (GearDoorLayout.Placed standing in puzzle.preinstalled)
@@ -240,12 +241,9 @@ namespace SpaceGame.EditorTools
                 GearDoor.PlaceModel(kinds[holding.startKind].model, holding.seat.Find("Spinner"), ModelScale);
             }
 
-            // The pile, lying front up: on the floor in front of the gate, out of both leaves' sweep, or along the
-            // vault's cog tray.
+            // The pile, lying front up on the floor in front of the door (out of the gate's leaves' sweep).
             Transform pileRoot = new GameObject("Pile").transform;
-            pileRoot.SetParent(root.transform, false);
-            pileRoot.SetLocalPositionAndRotation(pileFrame.position, pileFrame.rotation);
-            pileRoot.SetParent(doorRoot, true);
+            pileRoot.SetParent(doorRoot, false);
             var pile = new GearDoor.PileSpot[puzzle.pile.Length];
             for (int i = 0; i < pile.Length; i++)
             {

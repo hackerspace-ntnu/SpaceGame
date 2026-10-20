@@ -105,17 +105,41 @@ namespace SpaceGame.Items
         private AgentRagdoll creature;
         private HealthComponent health;
 
+        /// <summary>The rope round the body. See <see cref="HogtieWrap"/>.</summary>
+        private readonly HogtieWrap wrap = new HogtieWrap();
+
+        /// <summary>
+        /// How hard a tied CREATURE fights, 0-1, fixed for the life of the tie. A creature has no
+        /// keys for <see cref="meter"/> to read, so its struggle is its weight — see
+        /// <see cref="CreatureStruggleLevel"/>. Zero for a player.
+        /// </summary>
+        private float creatureStruggle;
+
         private bool bound;
         private bool authoritative;
 
         /// <summary>Is this body tied right now?</summary>
         public bool IsBound => bound;
 
+        /// <summary>The rope drawn round the body. For tests.</summary>
+        public HogtieWrap Wrap => wrap;
+
         /// <summary>1 when the ropes are fresh, 0 when they are about to give. For the HUD and tests.</summary>
         public float HoldFraction => integrity?.Fraction ?? 0f;
 
         /// <summary>How hard this body is fighting, 0-1, as the AUTHORITY scores it.</summary>
-        public float StruggleLevel => meter?.Level ?? 0f;
+        public float StruggleLevel => Body != null ? meter?.Level ?? 0f : creatureStruggle;
+
+        /// <summary>Is <paramref name="body"/> tied up right now?</summary>
+        public static bool IsTied(GameObject body) =>
+            body != null && body.TryGetComponent(out Hogtie tie) && tie.IsBound;
+
+        /// <summary>
+        /// How hard a creature of <paramref name="mass"/> kilograms fights its ropes, as a share of a
+        /// player struggling flat out. Linear in mass up to <paramref name="fullStruggleMass"/>.
+        /// </summary>
+        public static float CreatureStruggleLevel(float mass, float fullStruggleMass) =>
+            Mathf.Clamp01(mass / Mathf.Max(fullStruggleMass, 1f));
 
         public static Hogtie Ensure(GameObject body)
         {
@@ -170,8 +194,7 @@ namespace SpaceGame.Items
         /// </summary>
         public static bool CanTie(GameObject body)
         {
-            if (body == null) return false;
-            if (body.TryGetComponent(out Hogtie already) && already.IsBound) return false;
+            if (body == null || IsTied(body)) return false;
 
             PlayerRagdoll asPlayer = body.GetComponentInParent<PlayerRagdoll>();
             if (asPlayer != null) return asPlayer.IsHeldOrDown;
@@ -216,6 +239,15 @@ namespace SpaceGame.Items
             sendMeter = new SnareStruggleMeter(settings.MaxUsefulStruggleRate,
                                                settings.StruggleDecaySeconds);
             input.ForgetHeading();
+
+            creatureStruggle = Body == null
+                ? CreatureStruggleLevel(LassoTether.EstimateMassOf(gameObject), settings.CreatureFullStruggleMass)
+                : 0f;
+
+            // The leash's own cord, from the one place its look is resolved, so the tie round the
+            // body and the rope it came off are visibly the same thing.
+            LeashArtifact.TryResolveSettings(out Leash.Settings ropeSettings);
+            wrap.Show(gameObject, settings, ropeSettings.rope);
 
             // Registered here rather than in an OnEnable this component deliberately does not have,
             // and dropped in Release, so the subscription lasts exactly as long as the tie. The
@@ -318,7 +350,7 @@ namespace SpaceGame.Items
             // tie; it already takes the greater of the idle rot and load/ReferenceLoad, and a
             // struggling body simply arrives as more mass.
             integrity.Drain(SnareIntegrity.ReferenceLoad
-                            * (1f + settings.StruggleMultiplier * meter.Level), delta);
+                            * (1f + settings.StruggleMultiplier * StruggleLevel), delta);
 
             if (integrity.IsSpent) Untie();
         }
@@ -389,6 +421,12 @@ namespace SpaceGame.Items
             Step(Time.deltaTime, jumpPressed, move);
         }
 
+        /// <summary>After physics and animation, so the rope is laid on the body as it is drawn.</summary>
+        private void LateUpdate()
+        {
+            if (bound) wrap.Draw();
+        }
+
         /// <summary>
         /// Teardown: let go LOCALLY, and say nothing.
         ///
@@ -440,8 +478,13 @@ namespace SpaceGame.Items
             meter = null;
             sendMeter = null;
             settings = null;
+            creatureStruggle = 0f;
             input.ForgetHeading();
             input.Release();
+
+            // Before the claim goes: the wrap's springs hold the limbs to the knot, and a body that
+            // starts standing up with them still attached recovers into the hogtie pose.
+            wrap.Hide();
 
             Unclaim();
         }

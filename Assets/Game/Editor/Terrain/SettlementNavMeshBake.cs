@@ -13,7 +13,9 @@ namespace SpaceGame.EditorTools
     /// A <see cref="Settlement"/>'s inspector button, or right-click it or a
     /// <see cref="RobotSettlementGenerator"/> → "Generate + Bake World NavMesh": generates it (a Settlement
     /// through <see cref="SettlementEditor.Generate"/>, residents and all), saves its chunk scene, and
-    /// re-bakes the world NavMesh so agents can walk the new layout.
+    /// re-bakes the world NavMesh so agents can walk the new layout. In a world authored as one scene
+    /// (<see cref="WorldNavMeshBaker.IsSingleSceneWorld"/>) it bakes that scene into its own NavMesh
+    /// instead — <see cref="WorldNavMeshBaker.BakeScene"/>.
     ///
     /// A plain Generate leaves the world NavMesh stale — it is one author-time bake of every chunk
     /// scene as saved on disk (NavMeshSystem.md), so NPCs keep pathing through the new buildings
@@ -45,32 +47,42 @@ namespace SpaceGame.EditorTools
 
         private static void GenerateAndBake(Component settlement, Action generate)
         {
-            WorldStreamingConfig config = WorldNavMeshBaker.LoadConfig();
-            if (config == null)
-            {
-                EditorUtility.DisplayDialog(DialogTitle,
-                    "No world streaming config to bake for — see the console.", "OK");
-                return;
-            }
-
             Scene scene = settlement.gameObject.scene;
-            if (!IsChunkScene(config, scene.path))
-            {
-                EditorUtility.DisplayDialog(DialogTitle,
-                    $"'{settlement.name}' is in '{scene.path}', which is not one of the world's chunk " +
-                    "scenes, so the world NavMesh never sees it. Move it into a chunk scene first.", "OK");
-                return;
-            }
 
-            // The bake closes every chunk scene and reopens it from disk, so an unsaved edit in any
-            // open scene would be thrown away.
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-            string unsaved = DirtyScenes();
-            if (unsaved.Length > 0)
+            // A world authored as one scene (no chunk streaming) bakes that scene, in place, into
+            // its own NavMesh; nothing is closed or reloaded, so none of the chunk route's checks apply.
+            bool singleSceneWorld = WorldNavMeshBaker.IsSingleSceneWorld(scene);
+            WorldStreamingConfig config = null;
+
+            if (!singleSceneWorld)
             {
-                EditorUtility.DisplayDialog(DialogTitle,
-                    "The bake reloads chunk scenes from disk. Save or revert these first:\n" + unsaved, "OK");
-                return;
+                config = WorldNavMeshBaker.LoadConfig();
+                if (config == null)
+                {
+                    EditorUtility.DisplayDialog(DialogTitle,
+                        "No world streaming config to bake for — see the console.", "OK");
+                    return;
+                }
+
+                if (!IsChunkScene(config, scene.path))
+                {
+                    EditorUtility.DisplayDialog(DialogTitle,
+                        $"'{settlement.name}' is in '{scene.path}', which is neither one of the world's " +
+                        "chunk scenes nor a world scene with its own WorldNavMeshProvider, so no world " +
+                        "NavMesh sees it. Move it into one first.", "OK");
+                    return;
+                }
+
+                // The bake closes every chunk scene and reopens it from disk, so an unsaved edit in
+                // any open scene would be thrown away.
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+                string unsaved = DirtyScenes();
+                if (unsaved.Length > 0)
+                {
+                    EditorUtility.DisplayDialog(DialogTitle,
+                        "The bake reloads chunk scenes from disk. Save or revert these first:\n" + unsaved, "OK");
+                    return;
+                }
             }
 
             generate();
@@ -85,9 +97,17 @@ namespace SpaceGame.EditorTools
             }
             SaveSculptedTerrain();
 
-            GlobalObjectId selected = GlobalObjectId.GetGlobalObjectIdSlow(settlement.gameObject);
-            string report = BakeWithChunkScenesClosed(config);
-            Selection.activeObject = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(selected);
+            string report;
+            if (singleSceneWorld)
+            {
+                report = WorldNavMeshBaker.BakeScene(scene);
+            }
+            else
+            {
+                GlobalObjectId selected = GlobalObjectId.GetGlobalObjectIdSlow(settlement.gameObject);
+                report = BakeWithChunkScenesClosed(config);
+                Selection.activeObject = GlobalObjectId.GlobalObjectIdentifierToObjectSlow(selected);
+            }
 
             Debug.Log(report);
             EditorUtility.DisplayDialog(DialogTitle, report, "OK");

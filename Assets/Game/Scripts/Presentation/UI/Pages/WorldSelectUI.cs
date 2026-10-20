@@ -297,7 +297,9 @@ namespace SpaceGame.Presentation
                 return;
             }
 
-            if (!WorldSession.StageExisting(selectedWorldId, WorldConfig, out string error))
+            string configId = WorldConfig != null ? WorldConfig.ConfigId : string.Empty;
+
+            if (!WorldSession.StageExisting(selectedWorldId, configId, out string error))
             {
                 SetMessage(error);
                 return;

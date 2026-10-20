@@ -32,6 +32,7 @@ namespace SpaceGame.Agents.Residents
         private readonly NetworkVariable<bool> attending = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private readonly NetworkVariable<int> seat = new(NoSeat, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private readonly NetworkVariable<int> cart = new(NoCart, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<bool> armed = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         /// <summary>Holding at no place: walking, talking, sheltering.</summary>
         public const int NoPlace = -1;
@@ -51,6 +52,7 @@ namespace SpaceGame.Agents.Residents
         private bool decidedAttending;
         private int decidedSeat = NoSeat;
         private int decidedCart = NoCart;
+        private bool decidedArmed;
 
         // What this machine currently shows, so applying the same state twice does nothing.
         private Activity shownActivity;
@@ -58,6 +60,7 @@ namespace SpaceGame.Agents.Residents
         private bool shownHidden;
         private int shownPlace = NoPlace;
         private bool shownAttending;
+        private bool shownArmed;
         private int shownSeatId = NoSeat;
         private Seat shownSeat;
         private int shownCartId = NoCart;
@@ -86,6 +89,9 @@ namespace SpaceGame.Agents.Residents
         /// <summary>Turned to look at a player: the worker has let go of its work loop until it looks away.</summary>
         public bool Attending => Mirrors ? attending.Value : decidedAttending;
 
+        /// <summary>In a fight with a weapon it fires (<see cref="ResidentWeaponModule"/>): the weapon is in the hand.</summary>
+        public bool Armed => Mirrors ? armed.Value : decidedArmed;
+
         /// <summary>Raised on every machine when the shown activity changes.</summary>
         public event Action<Activity> Changed;
 
@@ -108,10 +114,11 @@ namespace SpaceGame.Agents.Residents
 
         /// <summary>Server only. Writes the state every machine derives its presentation from.</summary>
         public void Publish(Activity newActivity, byte newProp, bool newHidden, int heldPlace = NoPlace, bool newAttending = false,
-                            int newSeat = NoSeat, int newCart = NoCart)
+                            int newSeat = NoSeat, int newCart = NoCart, bool newArmed = false)
         {
             if (!Network.Decides) return;
 
+            decidedArmed = newArmed;
             decidedActivity = newActivity;
             decidedProp = newProp;
             decidedHidden = newHidden;
@@ -139,6 +146,7 @@ namespace SpaceGame.Agents.Residents
                 attending.OnValueChanged += OnAttendingChanged;
                 seat.OnValueChanged += OnSeatChanged;
                 cart.OnValueChanged += OnCartChanged;
+                armed.OnValueChanged += OnArmedChanged;
             }
 
             // Read once as well as subscribing: a late joiner gets the current value with the spawn.
@@ -154,6 +162,7 @@ namespace SpaceGame.Agents.Residents
             attending.OnValueChanged -= OnAttendingChanged;
             seat.OnValueChanged -= OnSeatChanged;
             cart.OnValueChanged -= OnCartChanged;
+            armed.OnValueChanged -= OnArmedChanged;
         }
 
         private void WriteReplicatedCopy()
@@ -165,6 +174,7 @@ namespace SpaceGame.Agents.Residents
             attending.Value = decidedAttending;
             seat.Value = decidedSeat;
             cart.Value = decidedCart;
+            armed.Value = decidedArmed;
         }
 
         private void OnStateChanged(byte previous, byte next) => Apply();
@@ -178,6 +188,8 @@ namespace SpaceGame.Agents.Residents
         private void OnSeatChanged(int previous, int next) => Apply();
 
         private void OnCartChanged(int previous, int next) => Apply();
+
+        private void OnArmedChanged(bool previous, bool next) => Apply();
 
         private void OnEnable() => hands.Bind();
 
@@ -208,7 +220,7 @@ namespace SpaceGame.Agents.Residents
                 if (cueStale) Apply();
             }
             if (hands.Update() && body != null) body.DropGesturesOverHands();
-            if (heldCue != null && body != null && !shownAttending && hands.Ready) body.Hold(heldCue, shownPlace);
+            if (heldCue != null && body != null && !shownAttending && !shownArmed && hands.Ready) body.Hold(heldCue, shownPlace);
         }
 
         // After the animator has posed the body: a sitter is moved until its hips rest on the seat's sit point. A floor sit
@@ -227,6 +239,13 @@ namespace SpaceGame.Agents.Residents
                 // Looking up from the work: the loop lets go (through its exit clip), and Update picks it up
                 // again when the resident looks away.
                 if (shownAttending && heldCue != null && body != null) body.Release(heldCue);
+            }
+            if (shownArmed != Armed)
+            {
+                shownArmed = Armed;
+                hands.Armed(shownArmed);
+                // A weapon drawn for a fight: the work loop lets go the same way, and Update picks it up when the fight is over.
+                if (shownArmed && heldCue != null && body != null) body.Release(heldCue);
             }
             if (shownSeatId != SeatId) ShowSeat(SeatId);
             if (shownCartId != CartId) ShowCart(CartId);

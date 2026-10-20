@@ -16,8 +16,10 @@ namespace SpaceGame.EditorTools.Posters
         [Tooltip("Spot colour for skin, the ALIVE tag and the label shadows.")]
         public Color slate = new(0.247f, 0.322f, 0.408f, 1f);
         public Color slateLight = new(0.376f, 0.463f, 0.549f, 1f);
-        [Tooltip("Opaque highlight ink, and the fill of undyed cloth.")]
+        [Tooltip("The light ink the wash is mixed from.")]
         public Color cream = new(0.945f, 0.914f, 0.847f, 1f);
+        [Tooltip("Undyed cloth and accent highlights print as cream mixed this far toward the accent. 0 is bare cream, which prints white suits paper white: they light past every tone band.")]
+        [Range(0f, 1f)] public float washTint = 0.4f;
         [Tooltip("The DEAD tag.")]
         public Color dead = new(0.722f, 0.227f, 0.173f, 1f);
 
@@ -32,7 +34,7 @@ namespace SpaceGame.EditorTools.Posters
         public float rimLight = 0.8f;
 
         [Header("Screenprint: tone")]
-        [Tooltip("Tone above this prints as a cream highlight.")]
+        [Tooltip("Tone above this prints as a highlight: the wash on accent cloth, slate light on skin.")]
         [Range(0f, 1f)] public float highlight = 0.80f;
         [Tooltip("Tone below this gets a band of shadow dots.")]
         [Range(0f, 1f)] public float shadow = 0.44f;

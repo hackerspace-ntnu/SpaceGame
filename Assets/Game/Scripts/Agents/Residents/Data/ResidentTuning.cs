@@ -209,6 +209,9 @@ namespace SpaceGame.Agents.Residents
         public float favorForThreat = -10f;
         public float favorForKilling = -100f;
         public float favorForDefending = 25f;
+        [Tooltip("A wanted outlaw handed in to a resident (Bounties.md): alive, then dead. Alive is the harder deed.")]
+        public float favorForBountyAlive = 30f;
+        public float favorForBountyDead = 15f;
         [Tooltip("The share of a deed's favor a resident takes when it was done to their family, a friend, a coworker, " +
                  "or anyone else in the settlement. The resident it was done to takes all of it.")]
         [Range(0f, 1f)] public float familyShare = 0.75f;

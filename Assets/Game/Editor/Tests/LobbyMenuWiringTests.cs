@@ -26,6 +26,7 @@ namespace SpaceGame.Tests
         private const BindingFlags Public = BindingFlags.Public | BindingFlags.Instance;
 
         [TestCase("StartStory")]
+        [TestCase("StartSpillexo")]
         [TestCase("StartVersus")]
         [TestCase("StartMultiPlayer")]
         [TestCase("StartSinglePlayer")]

@@ -138,6 +138,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4255484557135339109}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2691671180183238626}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5980991961165461593}
+    - targetCorrespondingSourceObject: {fileID: 6521133302145211711, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8175320953807486908}
   m_SourcePrefab: {fileID: 100100000, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}
 --- !u!114 &581510452240182704 stripped
 MonoBehaviour:
@@ -200,6 +209,8 @@ MonoBehaviour:
   shocked:
     seconds: 3
     immunity: 2
+  bound:
+    seconds: 120
   inflationTarget: {fileID: 0}
 --- !u!114 &2737323903992251379
 MonoBehaviour:
@@ -226,7 +237,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityInventoryComponent
   inventorySize: 4
-  startingItems: []
+  startingItems:
+  - {fileID: 11400000, guid: 389c3378f71bb489a923ddc9f01a635d, type: 2}
 --- !u!114 &7400625483242385876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -241,7 +253,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityLootTable
   lootEntries: []
   dropInventoryContents: 1
-  dropOnDespawn: 0
+  lootLifetime: 180
+  landedHeight: 1.5
+  groundSearchDepth: 600
 --- !u!114 &7496427407832353042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -269,6 +283,76 @@ MonoBehaviour:
   isCarrier: 0
   carrySlot: 1
   postArriveRadius: 1
+--- !u!114 &2691671180183238626
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c03ca8b264bf1426e9df2bdda0971901, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityEquipmentController
+  handSocket: {fileID: 0}
+  handBone: 18
+  handBoneNameHints:
+  - RightHand
+  - Hand_R
+  - R_Hand
+  - hand.R
+  - mixamorig:RightHand
+  startingSlot: 0
+  aimHeldItem: 1
+  aimTurnSpeed: 540
+  holdScaleMultiplier: 1
+  eyeHeight: 1.5
+--- !u!114 &5980991961165461593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ccab4434762d49a88cea06ccea44c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityEquipmentSaveable
+--- !u!114 &8175320953807486908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5313219942120696332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4980d40c944f4adebc01619497237987, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NpcItemUseModule
+  priority: 22
+  active: 1
+  trigger: 0
+  minRange: 3
+  maxRange: 18
+  hurtThreshold: 0.4
+  cooldown: 1.4
+  burstCount: 1
+  burstInterval: 0.14
+  reactionDelay: 0.45
+  targetHeightOffset: 1.1
+  leadSeconds: 0.25
+  spreadDegrees: 2.5
+  requireLineOfSight: 1
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  claimFacing: 1
+  facingPriority: 22
+  slotIndex: 0
+  equipBeforeUse: 1
 --- !u!195 &5313473792478608161 stripped
 NavMeshAgent:
   m_CorrespondingSourceObject: {fileID: 6520826408304708626, guid: b568062c3d17f49eb86ec98608b3657e, type: 3}

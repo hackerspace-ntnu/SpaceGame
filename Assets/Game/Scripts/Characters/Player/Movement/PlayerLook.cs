@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -17,8 +17,9 @@ namespace SpaceGame.Characters
 
         [Tooltip("Everything between this player's eye and the world now that the camera sits " +
                  "inside the helmet: the helmet itself, the scarf. Hidden from their own view " +
-                 "only — shadows and every other camera keep them. Gear worn at runtime joins " +
-                 "this through SetWornHidden rather than being listed here.")]
+                 "only — shadows and every other camera keep them. Gear worn at runtime, and " +
+                 "anything carried over the shoulder, joins this through HideFromEye rather than " +
+                 "being listed here.")]
         [SerializeField] private Renderer[] firstPersonHidden;
 
         public Transform playerBody;
@@ -110,12 +111,13 @@ namespace SpaceGame.Characters
         private bool firstPersonHiddenActive = true;
 
         /// <summary>
-        /// The renderers of gear this body is WEARING, hidden from its own eye alongside
-        /// <see cref="firstPersonHidden"/>. Replaces whatever was registered before; null or empty
-        /// clears it.
+        /// Renderers hidden from this body's own eye alongside <see cref="firstPersonHidden"/>, one
+        /// set per <paramref name="owner"/>: the pack this body WEARS (<c>BackpackController</c>), the
+        /// parts of somebody carried over its shoulder that would stand in front of the eye
+        /// (<c>CaptiveHaul</c>). Replaces whatever that owner registered before; null or empty clears it.
         ///
         /// <para>
-        /// Separate from the serialized array because worn gear is instantiated at runtime and does
+        /// Separate from the serialized array because these are instantiated at runtime and do
         /// not hold still: the backpack is built in <c>BackpackController.Awake</c>, and the items
         /// strapped to it are display copies rebuilt every time its contents change, so there is no
         /// set of renderers a prefab field could have named. <c>BackpackController</c> re-registers
@@ -139,17 +141,18 @@ namespace SpaceGame.Characters
         /// <c>Off</c> would come back on, so do not register one.
         /// </para>
         /// </summary>
-        public void SetWornHidden(Renderer[] renderers)
+        public void HideFromEye(object owner, Renderer[] renderers)
         {
             // The outgoing set gets its shadows back first. A pack that has just left the player's
             // back is theirs to look at from this frame on, and once it is off the register nothing
             // else would ever write ShadowsOnly off it again.
-            Apply(wornHidden, ShadowCastingMode.On);
+            if (hiddenFromEye.TryGetValue(owner, out Renderer[] outgoing)) Apply(outgoing, ShadowCastingMode.On);
 
-            wornHidden = renderers ?? Array.Empty<Renderer>();
+            if (renderers == null || renderers.Length == 0) hiddenFromEye.Remove(owner);
+            else hiddenFromEye[owner] = renderers;
         }
 
-        private Renderer[] wornHidden = Array.Empty<Renderer>();
+        private readonly Dictionary<object, Renderer[]> hiddenFromEye = new Dictionary<object, Renderer[]>();
 
         private void ApplyFirstPersonVisibility(ScriptableRenderContext context, Camera renderingCamera)
         {
@@ -158,7 +161,7 @@ namespace SpaceGame.Characters
                 : ShadowCastingMode.On;
 
             Apply(firstPersonHidden, mode);
-            Apply(wornHidden, mode);
+            foreach (Renderer[] renderers in hiddenFromEye.Values) Apply(renderers, mode);
         }
 
         private static void Apply(Renderer[] renderers, ShadowCastingMode mode)

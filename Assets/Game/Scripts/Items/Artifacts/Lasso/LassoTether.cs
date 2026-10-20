@@ -65,6 +65,27 @@ namespace SpaceGame.Items
         /// <summary>Set when this tether — and not something else — made the body dynamic.</summary>
         private bool madeDynamic;
 
+        /// <summary>Whether the body fell under gravity before this tether made it dynamic. Put back on release.</summary>
+        private bool hadGravity;
+
+        /// <summary>
+        /// Let go in the air: the rope is off, but the body is still this tether's until it lands. See
+        /// <see cref="Release"/>.
+        /// </summary>
+        private bool landing;
+
+        /// <summary>Did the body touch something it could stand on in the last physics step? Read and cleared each FixedUpdate.</summary>
+        private bool touchingGround;
+
+        /// <summary>Has the rope pulled the body upward since it last stood on something?</summary>
+        private bool hoisted;
+
+        /// <summary>
+        /// A contact whose normal points up at least this much is ground under the body (60° from
+        /// level); anything steeper is a wall it is against.
+        /// </summary>
+        private const float GroundNormalY = 0.5f;
+
         /// <summary>Whether a rope currently holds this creature.</summary>
         public bool IsBound => bound;
 
@@ -124,9 +145,15 @@ namespace SpaceGame.Items
         /// </summary>
         public float Mass => mass;
 
+        /// <summary>
+        /// Seconds of fight this creature had when it was caught — <see cref="LassoStruggle.FightSecondsFor"/>
+        /// its own weight, so a heavy animal takes longer to wear out than a light one.
+        /// </summary>
+        private float fightSeconds = 1f;
+
         /// <summary>1 for an animal that has just been caught, 0 for one that has given up.</summary>
         public float StruggleFraction =>
-            settings == null ? 0f : Mathf.Clamp01(1f - struggleClock / settings.StruggleSeconds);
+            settings == null ? 0f : Mathf.Clamp01(1f - struggleClock / fightSeconds);
 
         /// <summary>
         /// Take hold of this creature. False when somebody else's rope already has it.
@@ -142,6 +169,9 @@ namespace SpaceGame.Items
         {
             if (bound && binder != ropeAnchor) return false;
 
+            // Caught again before it landed from the last rope: the body is still dynamic and its
+            // legs still taken, both of which Release recorded and will put back exactly once.
+            landing = false;
             binder = ropeAnchor;
 
             // A rope on somebody riding an animal takes them off it first, before anything below
@@ -162,7 +192,8 @@ namespace SpaceGame.Items
             animatorDriver = GetComponentInChildren<AgentAnimatorDriver>();
 
             mass = EstimateMass();
-            attachHeight = AttachHeightFor(gameObject, settings.AttachFraction, settings.AttachHeight);
+            fightSeconds = settings.FightSecondsFor(mass);
+            attachHeight = AttachHeightFor(gameObject, settings.AttachFractionFor(gameObject), settings.AttachHeight);
 
             // Hand the transform over properly rather than switching a component off behind the
             // AI's back. SuspendSelfDrive records whether the agent was enabled to begin with,
@@ -182,9 +213,15 @@ namespace SpaceGame.Items
             // the rope, because Release used not to put it back, and that a quit-time autosave
             // could capture. Simulates was the wrong question: it is true on the server for every
             // remote player's and every ridden mount's replica.
+            //
+            // With gravity, which an agent's kinematic body is authored without: a roped body hangs
+            // from the rope when it is lifted (a jetpack climbing off it) and falls back when the
+            // rope goes slack, rather than floating wherever the last correction left it.
             if (body != null && body.isKinematic && Network.Owns(body))
             {
+                hadGravity = body.useGravity;
                 body.isKinematic = false;
+                body.useGravity = true;
                 madeDynamic = true;
             }
 
@@ -209,9 +246,35 @@ namespace SpaceGame.Items
 
             bound = false;
             binder = null;
+            anchor = null;
 
-            // Put back exactly what Bind changed, and only if Bind was the thing that changed it.
-            if (madeDynamic && body != null) body.isKinematic = true;
+            // Let go in the air — a jetpack pilot dropping what they hoisted — the body falls first.
+            // Handed back up there it would be kinematic again with nothing under it, and an agent
+            // further than its NavMesh search from the ground hangs in the sky for good.
+            if (madeDynamic && body != null && hoisted && !touchingGround)
+            {
+                landing = true;
+                body.WakeUp();
+                return;
+            }
+
+            GiveBack();
+        }
+
+        /// <summary>
+        /// Put back exactly what <see cref="Bind"/> changed, and only if Bind was the thing that changed
+        /// it: the body kinematic, its gravity, the creature's legs, its place on the NavMesh.
+        /// </summary>
+        private void GiveBack()
+        {
+            landing = false;
+            hoisted = false;
+
+            if (madeDynamic && body != null)
+            {
+                body.isKinematic = true;
+                body.useGravity = hadGravity;
+            }
             madeDynamic = false;
 
             selfDriving?.ResumeSelfDrive();
@@ -224,7 +287,6 @@ namespace SpaceGame.Items
                 && NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 6f, NavMesh.AllAreas))
                 navAgent.Warp(hit.position);
 
-            anchor = null;
             agent = null;
             navAgent = null;
             body = null;
@@ -234,8 +296,18 @@ namespace SpaceGame.Items
         /// <summary>Going away releases whatever holds this creature, whoever that is.</summary>
         private void OnDestroy() => Release(binder);
 
+        private void OnCollisionEnter(Collision contact) => NoteGround(contact);
+
+        private void OnCollisionStay(Collision contact) => NoteGround(contact);
+
+        private void NoteGround(Collision contact)
+        {
+            for (int i = 0; i < contact.contactCount && !touchingGround; i++)
+                touchingGround = contact.GetContact(i).normal.y >= GroundNormalY;
+        }
+
         /// <summary>Advance the struggle clock without a frame. The seam the EditMode tests use.</summary>
-        public void AdvanceStruggle(float seconds) => struggleClock += Mathf.Max(0f, seconds);
+        public void AdvanceStruggle(float seconds) => Tire(Mathf.Max(0f, seconds));
 
         /// <summary>
         /// Wind the struggle clock back as slack would, without a frame. The other half of the
@@ -254,6 +326,18 @@ namespace SpaceGame.Items
 
         private void FixedUpdate()
         {
+            // Contacts arrive after each physics step; this reads the last step's and starts the next.
+            bool grounded = touchingGround;
+            touchingGround = false;
+            if (grounded) hoisted = false;
+
+            // A sleeping body is lying on something, and reports no contacts to say so.
+            if (landing)
+            {
+                if (grounded || body == null || body.IsSleeping()) GiveBack();
+                return;
+            }
+
             if (!bound || anchor == null) return;
 
             float dt = Time.fixedDeltaTime;
@@ -300,11 +384,26 @@ namespace SpaceGame.Items
         {
             if (IsTaut)
             {
-                struggleClock += dt;
+                Tire(dt);
                 return;
             }
 
             Rest(dt);
+        }
+
+        /// <summary>
+        /// Spend <paramref name="seconds"/> of fight, down to empty and no further.
+        ///
+        /// <para>
+        /// Bounded where it used not to be: the clock ran on for as long as the rope was taut, so a
+        /// creature held for a minute needed most of a minute of slack before it would pull again.
+        /// </para>
+        /// </summary>
+        private void Tire(float seconds)
+        {
+            if (settings == null) return;
+
+            struggleClock = Mathf.Min(struggleClock + seconds, fightSeconds);
         }
 
         /// <summary>
@@ -319,7 +418,7 @@ namespace SpaceGame.Items
             if (settings == null) return;
 
             struggleClock = Mathf.Max(
-                0f, struggleClock - seconds * settings.StruggleSeconds / settings.RecoverySeconds);
+                0f, struggleClock - seconds * fightSeconds / settings.RecoverySeconds);
         }
 
         /// <summary>How far the creature has got outside the rope, in metres. Zero when slack.</summary>
@@ -345,8 +444,8 @@ namespace SpaceGame.Items
             Vector3 radial = rope / distance;
             float creatureShare = 1f - LassoArtifact.PlayerPullShare(mass);
 
-            Vector3 onRope = anchor.position + radial * ropeLength;
-            Vector3 correction = (onRope - AttachPoint) * creatureShare;
+            Vector3 correction = radial * ((ropeLength - distance) * creatureShare);
+            if (correction.y > 0f) hoisted = true;
 
             // Cancel the velocity that is lengthening the rope before moving the body, or the next
             // physics step spends it going straight back out through the constraint and the rope

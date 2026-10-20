@@ -97,12 +97,21 @@ namespace SpaceGame.Items
         /// carrying or riding, and — the case that matters — on the animal already on the other end
         /// of the rope, which would be a loop that constrains nothing.
         /// </para>
+        /// <para>
+        /// <b>The ground is not a hitching post either.</b> The same press lets go when it points at
+        /// nothing, and a player looking down to let go is looking at the sand: tying there knotted
+        /// the catch to the ground with a leash nobody meant to make. Terrain is refused outright, and
+        /// any other surface that faces up within <paramref name="groundAngle"/> degrees — a floor, the
+        /// top of a rock — is ground too. A post, a wall, a rail or a cliff face still takes a knot.
+        /// </para>
         /// </summary>
-        public static bool IsHitchable(Collider surface, Transform holder, Transform caught)
+        public static bool IsHitchable(RaycastHit hit, Transform holder, Transform caught, float groundAngle)
         {
+            Collider surface = hit.collider;
             if (surface == null || holder == null) return false;
             if (surface.transform.IsChildOf(holder)) return false;
             if (caught != null && surface.transform.IsChildOf(caught)) return false;
+            if (surface is TerrainCollider || Vector3.Angle(hit.normal, Vector3.up) <= groundAngle) return false;
 
             // A creature is not a hitching post. Tying one animal to another is a rope between two
             // things that both walk off, which the leash can do and the lasso should not be the way

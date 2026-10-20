@@ -420,7 +420,7 @@ namespace SpaceGame.EditorTools
         /// fit the hand, and a hit on a distant wall must not be drawn at the size of the gun.
         /// </para>
         /// </summary>
-        private static ParticleSystem Manual(ParticleSystem ps)
+        public static ParticleSystem Manual(ParticleSystem ps)
         {
             var main = ps.main;
             main.loop = true;
@@ -435,7 +435,8 @@ namespace SpaceGame.EditorTools
             return ps;
         }
 
-        private static ParticleSystem NewSystem(Transform parent, string name)
+        /// <summary>A stopped, world-space system that plays nothing until told to.</summary>
+        public static ParticleSystem NewSystem(Transform parent, string name)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -469,7 +470,8 @@ namespace SpaceGame.EditorTools
             shape.radius = radius;
         }
 
-        private static void ConfigureRenderer(ParticleSystemRenderer renderer, Material material,
+        /// <summary>Unlit, unshadowed, unsorted: how every weapon particle is drawn.</summary>
+        public static void ConfigureRenderer(ParticleSystemRenderer renderer, Material material,
                                               ParticleSystemRenderMode mode)
         {
             renderer.sharedMaterial = material;
@@ -481,7 +483,8 @@ namespace SpaceGame.EditorTools
             renderer.sortMode = ParticleSystemSortMode.None;
         }
 
-        private static Gradient Ramp((Color colour, float time)[] colours,
+        /// <summary>A gradient from (colour, time) and (alpha, time) keys.</summary>
+        public static Gradient Ramp((Color colour, float time)[] colours,
                                      (float alpha, float time)[] alphas)
         {
             var gradient = new Gradient();

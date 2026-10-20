@@ -12,7 +12,8 @@ namespace SpaceGame.Agents.Residents
     public static class Favor
     {
         /// <summary>Is this deed harm (and so a grudge), rather than a kindness?</summary>
-        public static bool IsHarm(ActKind act) => act != ActKind.Defended;
+        public static bool IsHarm(ActKind act) =>
+            act is ActKind.Hit or ActKind.Threatened or ActKind.HarmedKin or ActKind.KilledKin or ActKind.Killed;
 
         /// <summary>What <paramref name="act"/> is worth to the resident it was done to; kin readings count as the act itself.</summary>
         public static float ValueOf(ActKind act, ResidentTuning tuning) => act switch
@@ -21,6 +22,8 @@ namespace SpaceGame.Agents.Residents
             ActKind.Killed or ActKind.KilledKin => tuning.favorForKilling,
             ActKind.Threatened => tuning.favorForThreat,
             ActKind.Defended => tuning.favorForDefending,
+            ActKind.BroughtInAlive => tuning.favorForBountyAlive,
+            ActKind.BroughtInDead => tuning.favorForBountyDead,
             _ => 0f,
         };
 

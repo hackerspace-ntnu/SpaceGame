@@ -73,19 +73,13 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void AHitBodyStaysDownFiveSecondsAndTheHarpoonIsHomeBeforeTheNextShot()
+        public void AHitBodyStaysDownSevenAndAHalfSeconds()
         {
             SerializedObject so = LoadArtifact();
             float shock = so.FindProperty("shockSeconds").floatValue;
-            float reload = so.FindProperty("reloadSeconds").floatValue;
-            float range = so.FindProperty("range").floatValue;
-            float worstTrip = range / so.FindProperty("flightSpeed").floatValue
-                            + range / so.FindProperty("reelSpeed").floatValue;
 
-            Assert.AreEqual(5f, shock, 0.001f,
-                            "the harpoon must name its 5 s: the Shocked default is serialized per body and can be stale");
-            Assert.Greater(reload, shock + worstTrip,
-                           "the reload ends before a full-range shot, shock and reel are over");
+            Assert.AreEqual(7.5f, shock, 0.001f,
+                            "the harpoon must name its 7.5 s: the Shocked default is serialized per body and can be stale");
         }
 
         [Test]

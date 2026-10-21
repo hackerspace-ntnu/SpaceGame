@@ -43,7 +43,7 @@ namespace SpaceGame.World
         public bool CanInteract(Interactor interactor) => Destination != null && interactor != null;
 
         /// <summary>Does this dock take <paramref name="load"/>, so a press at it means "set it in" rather than "put it down"?</summary>
-        public bool Takes(Liftable load) => load != null && Destination != null && Destination.Accepts(load);
+        public bool Takes(ILiftLoad load) => load is Liftable prop && prop != null && Destination != null && Destination.Accepts(prop);
 
         public void Interact(Interactor interactor)
         {

@@ -59,11 +59,14 @@ namespace SpaceGame.EditorTools
             CollectionAssert.AreEqual(needed, pile);
         }
 
-        /// <summary>A gear already on the gate is a piece of the way to the lock, on its own peg, so it is a hint.</summary>
+        /// <summary>
+        /// A gear already on the gate is a piece of the way to the lock, on its own peg, so it is a hint. The gate has
+        /// some; the vault's door starts bare, on purpose: it is the harder one.
+        /// </summary>
         [Test]
         public void TheGearsAlreadyOnTheGateAreOnTheirSolutionPegs()
         {
-            Assert.IsNotEmpty(layout.preinstalled);
+            if (path == GearDoorLayout.Path) Assert.IsNotEmpty(layout.preinstalled);
             foreach (GearDoorLayout.Placed standing in layout.preinstalled)
                 Assert.IsTrue(layout.solution.Any(s => s.peg == standing.peg && s.kind == standing.kind),
                               $"peg {standing.peg} starts with {standing.kind}, which the solution does not put there");
@@ -119,13 +122,14 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ThePileLiesOutOfBothLeavesSweep()
         {
-            if (path != GearDoorLayout.Path) Assert.Ignore("only the gate's pile lies on the ground; the vault's is on a bench");
+            if (path != GearDoorLayout.Path) Assert.Ignore("the vault's leaf swings in, away from its pile");
 
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(WorkshopPrefabBuilder.PrefabPath);
             GearDoor door = GearDoor.GateOf(prefab);
             Assert.IsNotNull(door, "Workshop.prefab has no gear door: rebuild it");
 
-            var leaves = prefab.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("Gate_Door_")).ToList();
+            // The door's own leaves, not a name match: the LOD pass hangs a Gate_Door_*_LOD1 under each.
+            List<Transform> leaves = Leaves(door);
             Assert.AreEqual(2, leaves.Count);
 
             Transform pile = door.transform.Find("Pile");
@@ -141,6 +145,15 @@ namespace SpaceGame.EditorTools
                     Assert.Greater(distance, reach + geometry.OuterRadius(teeth), $"{spot.name} lies in {leaf.name}'s sweep");
                 }
             }
+        }
+
+        private static List<Transform> Leaves(GearDoor door)
+        {
+            SerializedProperty leaves = new SerializedObject(door).FindProperty("leaves");
+            var nodes = new List<Transform>();
+            for (int i = 0; i < leaves.arraySize; i++)
+                nodes.Add((Transform)leaves.GetArrayElementAtIndex(i).FindPropertyRelative("node").objectReferenceValue);
+            return nodes;
         }
 
         private static float LeafReach(Transform leaf)

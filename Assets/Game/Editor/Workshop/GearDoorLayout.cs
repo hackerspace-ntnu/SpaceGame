@@ -2,8 +2,8 @@
 // seeded search (tools/gear_door_layout.py) and checked by a solver.
 //
 // Door-plane coordinates: u along the shut door (the player's right facing it; prefab +z on the gate), v up from the
-// floor, both in metres from the door's middle at floor level. A gate pile spot is `out` metres in front of the gate's
-// face and `u` along it; a vault pile spot is `u` along the cog tray beside the door.
+// floor, both in metres from the door's middle at floor level. A pile spot is `out` metres in front of the door's face
+// and `u` along it, on the floor.
 using System;
 using UnityEngine;
 

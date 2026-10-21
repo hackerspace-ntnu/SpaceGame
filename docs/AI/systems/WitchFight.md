@@ -34,7 +34,7 @@ symptoms:
   - "the witch never shows up, I cannot find her"
   - "rue burned all three herbs and the finisher never played"
 reads_with: [SpriteHamletQuest, AgentSystem, CarriedAgent, Cutscenes, Multiplayer, Artifacts]
-updated: 2026-10-15
+updated: 2026-10-21
 ---
 
 # The witch fight
@@ -81,10 +81,10 @@ How the crew beats Morwen at her glade: freeze her with the Oathbranch so the ke
 
 | What | Carrier | Authority |
 | --- | --- | --- |
-| Spin start | `NetMsg.WitchSpiral` (142), witch relay | Server; balls flown everywhere, billed by server copies |
-| Bomb throw | `NetMsg.RueBombThrown` (143), keeper relay | Server |
-| Lift / set down | `NetMsg.KeeperLift` (144) → server, judged on the sender's body | Server writes `carrierId`, `slot` NetworkVariables |
-| Fail / finish | `NetMsg.WitchFightFailed` (145) / `WitchFinisher` (146), witch relay | Server; cutscenes local |
+| Spin start | `NetMsg.WitchSpiral` (144), witch relay | Server; balls flown everywhere, billed by server copies |
+| Bomb throw | `NetMsg.RueBombThrown` (145), keeper relay | Server |
+| Lift / set down | `NetMsg.KeeperLift` (146) → server, judged on the sender's body | Server writes `carrierId`, `slot` NetworkVariables |
+| Fail / finish | `NetMsg.WitchFightFailed` (147) / `WitchFinisher` (148), witch relay | Server; cutscenes local |
 | Poison count | `PoisonTally` NetworkVariable | Server (damage filter) |
 | Cloak, pulse, footprints, poses, pips | derived from replicated state + `SharedClock` | Every machine |
 | Shove on a player | `NetMsg.Flung` | Victim's owner |

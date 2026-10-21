@@ -620,10 +620,8 @@ namespace SpaceGame.Characters
             var health = GetComponent<HealthComponent>();
             if (health)
             {
-                // The landing knocks the player flat for exactly the fall's time, and the damage
-                // that follows is not priced as a hit on top. The request goes FIRST: both travel on
-                // this body's relay in order, so the damage lands on a body already down, and a hit
-                // on a downed body does not knock it — see RagdollController.KnockHere.
+                // The landing knocks the player flat for exactly the fall's time; the damage that
+                // follows costs health only — damage never knocks a body down on its own.
                 RagdollController.RequestFallKnockdown(this);
 
                 // Only the owner measures its own fall, but the server owns the health that

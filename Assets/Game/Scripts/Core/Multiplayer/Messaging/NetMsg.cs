@@ -789,18 +789,29 @@ namespace SpaceGame.Core
         public const ushort WorkshopCraneOperate = 138; // driver / hanger → server
         public const ushort WorkshopCraneState   = 139; // server → everyone
 
+        // ── Carrying a captive over the shoulder ──
+        // On the CAPTIVE's channel (a body tied up by the lasso; CaptiveHaul is added to it at runtime, so it has no
+        // NetworkVariable to hold this in). Target = the carrier's body.
+        //   CaptiveHaulRequest A = 1 take hold, 0 let go. The server checks the tie, the reach, the size and that nobody — no other
+        //                      hands, no lasso — already has the captive.
+        //   CaptiveHauled      A = 1 the Target has hold, 0 nobody does (no Target). Absolute state: re-sent to a late
+        //                      joiner, and a no-op for every machine that already shows it.
+        public const ushort CaptiveHaulRequest = 140; // hauler → server
+        public const ushort CaptiveHauled      = 141; // server → everyone
+
         // ── Dial puzzles (the weathervane ring, the sun shrine's mirrors) ──
         // A set of cranked dials whose whole arrangement is one small number of shared world state,
         // so it travels in A rather than one message per dial, and a machine can never hold half a
         // turn. The same ask/announce shape as LatchSet/LatchState, on the SET's relay (DialSet).
-        // Named VaneTurn/VaneState until the mirrors became the second user. Renumbered from 117/118 when
-        // the branch met main, which had taken 117–139 for residents, seats, airlocks and the workshop.
+        // Named VaneTurn/VaneState until the mirrors became the second user. Renumbered from 117/118 and then
+        // 140/141 as the branch met main, which had taken 117–141 for residents, seats, airlocks, the
+        // workshop and captive hauling.
         //
         //   DialTurn   A = the crank's dial index, or -1 for "what state is the set in?".
         //   DialState  A = the whole arrangement, packed by the set. B = the dial whose crank was
         //              turned, or -1 to land instantly — a joiner's answer, or a load.
-        public const ushort DialTurn  = 140; // player → server, on the SET's relay
-        public const ushort DialState = 141; // server → everyone, on the SET's relay
+        public const ushort DialTurn  = 142; // player → server, on the SET's relay
+        public const ushort DialState = 143; // server → everyone, on the SET's relay
 
         // ── The witch fight (SpriteHamletQuest.md) ──
         // Discrete moments the server decides and every machine has to draw. Every projectile in
@@ -818,10 +829,10 @@ namespace SpaceGame.Core
         //                  machine shows the failure screen; the server resets the fight under it.
         //   WitchFinisher  on the WITCH's relay. Every machine near her plays the finishing
         //                  cutscene while the server sends the keepers up her hat.
-        public const ushort WitchSpiral      = 142; // server → everyone
-        public const ushort RueBombThrown    = 143; // server → everyone
-        public const ushort KeeperLift       = 144; // player → server
-        public const ushort WitchFightFailed = 145; // server → everyone
-        public const ushort WitchFinisher    = 146; // server → everyone
+        public const ushort WitchSpiral      = 144; // server → everyone
+        public const ushort RueBombThrown    = 145; // server → everyone
+        public const ushort KeeperLift       = 146; // player → server
+        public const ushort WitchFightFailed = 147; // server → everyone
+        public const ushort WitchFinisher    = 148; // server → everyone
     }
 }

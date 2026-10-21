@@ -1190,7 +1190,7 @@ namespace SpaceGame.Items
         {
             if (look == null || Pack == null) return;
 
-            look.SetWornHidden(Pack.IsWorn ? Pack.GetComponentsInChildren<Renderer>(true) : null);
+            look.HideFromEye(this, Pack.IsWorn ? Pack.GetComponentsInChildren<Renderer>(true) : null);
         }
 
         /// <summary>

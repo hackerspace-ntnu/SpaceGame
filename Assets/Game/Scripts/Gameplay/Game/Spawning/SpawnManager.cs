@@ -479,17 +479,6 @@ namespace SpaceGame.Gameplay
             return nearest;
         }
 
-        public void SpawnPlayerForClient(ulong clientId)
-        {
-            if (!TryGetSpawnPoint(out Vector3 spawnPosition))
-            {
-                Debug.LogError($"Cannot spawn client {clientId}: no valid SpawnPoint position!");
-                return;
-            }
-
-            SpawnPlayerForClient(clientId, spawnPosition);
-        }
-
         /// <summary>
         /// Spawns at a position the caller already resolved.
         ///

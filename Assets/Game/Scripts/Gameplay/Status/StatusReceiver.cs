@@ -1,4 +1,4 @@
-// Timed conditions on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, stasis.
+// Timed conditions on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound, stasis.
 //
 // Five of the new artifacts leave a condition behind on whatever they touch. Without one place for
 // that, each of them grows its own timer, its own replication and its own answer to "what does a
@@ -43,6 +43,7 @@ namespace SpaceGame.Gameplay.Status
         [SerializeField] private FoamedStatus foamed = new FoamedStatus();
         [SerializeField] private SwallowedStatus swallowed = new SwallowedStatus();
         [SerializeField] private ShockedStatus shocked = new ShockedStatus();
+        [SerializeField] private BoundStatus bound = new BoundStatus();
         [SerializeField] private StasisStatus stasis = new StasisStatus();
 
         [Header("Body")]
@@ -63,7 +64,13 @@ namespace SpaceGame.Gameplay.Status
             public float TotalSeconds;
             public float Magnitude;
 
-            public bool Running => Seconds > 0f;
+            /// <summary>
+            /// Set by Activate, cleared only by Deactivate — never read off <see cref="Seconds"/>.
+            /// Derived from the clock, a condition stopped running the frame its time ran out, so
+            /// Update's expiry check skipped it and nothing it took (a ragdoll hold, a light) was
+            /// ever given back.
+            /// </summary>
+            public bool Running;
         }
 
         private readonly ActiveStatus[] active = new ActiveStatus[StatusKinds.Count];
@@ -272,7 +279,7 @@ namespace SpaceGame.Gameplay.Status
         {
             if (!Decides || !IsKind(kind)) return;
 
-            StatusBehaviour behaviour = BehaviourFor(kind);
+            StatusBehaviour behaviour = BehaviourOf(kind);
             if (behaviour == null) return;
 
             // The kind's own veto, asked before anything is sent. A continuous source re-applies
@@ -393,6 +400,7 @@ namespace SpaceGame.Gameplay.Status
             int index = (int)kind;
             bool wasRunning = active[index].Running;
 
+            active[index].Running = true;
             active[index].Seconds = seconds;
             active[index].TotalSeconds = seconds;
             active[index].Magnitude = magnitude;
@@ -492,7 +500,11 @@ namespace SpaceGame.Gameplay.Status
             }
         }
 
-        private StatusBehaviour BehaviourFor(StatusKind kind) => IsKind(kind) ? Behaviours[(int)kind] : null;
+        /// <summary>
+        /// The behaviour that runs <paramref name="kind"/> on this body — for presentation that reads a condition's own
+        /// progress (how far a captive is through working free). Null for a kind this receiver has none for.
+        /// </summary>
+        public StatusBehaviour BehaviourOf(StatusKind kind) => IsKind(kind) ? Behaviours[(int)kind] : null;
 
         private static bool IsKind(StatusKind kind) => (int)kind >= 0 && (int)kind < StatusKinds.Count;
 
@@ -515,6 +527,7 @@ namespace SpaceGame.Gameplay.Status
                 Slot(foamed);
                 Slot(swallowed);
                 Slot(shocked);
+                Slot(bound);
                 Slot(stasis);
                 return behaviours;
             }

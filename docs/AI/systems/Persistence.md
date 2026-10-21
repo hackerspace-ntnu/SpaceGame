@@ -30,7 +30,7 @@ symptoms:
   - "pressing F5 warns that this is a disposable session and is never saved"
   - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables, Expeditions]
-updated: 2026-10-11
+updated: 2026-10-19
 ---
 
 # Persistence / Save-Load
@@ -99,7 +99,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 
 **Teardown** (`SaveManager.HandleNetworkShuttingDown`, on `NetworkManager.OnPreShutdown`): the same `Capturing` + `CaptureLoadedScenes()` a save takes, then `worldStore.Seal()` — after which every `Dehydrate`/`DehydrateLoaded` is a no-op and the quit-save that follows writes this capture instead of redoing it. Needed because Netcode's shutdown destroys every dynamically spawned NetworkObject, and in the editor that whole shutdown runs from Netcode's own `playModeStateChanged` hook at ExitingPlayMode — *before* Unity delivers any `OnApplicationQuit`, whatever its execution order. Players are not part of it: `PlayerSaveSync` captures each one as it despawns.
 
-**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`. `StageNew(name, config, disposable: true)` — the main menu's **Disposable** entry ([GameModes](GameModes.md)) — stages a session `SaveManager.Save` never writes; see Gotchas.
+**World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, configId, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world — against `WorldSession.WorldConfigId`, the id of the world in play, not a live `WorldStreamer`'s config, so a world with no streamer (Spillexo) quickloads too — and reloads via `NetworkManager.SceneManager.LoadScene(Single)`. `StageNew(name, config, disposable: true)` — the main menu's **Disposable** entry ([GameModes](GameModes.md)) — stages a session `SaveManager.Save` never writes; see Gotchas.
 
 **Deferred pass** runs: once per world load, again on **every** `PlayerBound`, and again per scene hydrated after the first pass (`HandleSceneHydrated`). `OnLoadComplete` must be idempotent.
 
@@ -160,7 +160,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | **EMPTY** `prefabId` (not merely unresolvable) | `[Save] Dropped N runtime record(s) that named no prefab at all` at SAVE time, then silence — the object is absent on load with nothing said, because `Compact` deletes a record that can never name anything. Total loss, not degradation | Stamp the prefab. The two are opposites on purpose: an id nobody has registered is recoverable, a blank one is not |
 | A prefab written by a BUILD SCRIPT while the editor is in Play mode | `SaveableWiring` refuses in Play mode; a builder that ignores the refusal saves an asset with no `prefabId` and none of the savers its components imply, and reports success. `PlayerShip.prefab` shipped exactly that | Guard the builder on `EditorApplication.isPlaying`, and check `SaveableWiring.TryWirePrefabs()`'s return. Repair: **Tools ▸ Save System ▸ Wire Saveable Prefabs**, stopped |
 | Checking `prefabId` by asking Unity | `entity.PrefabId` is filled by `OnValidate` the instant an asset loads, so it is correct in the editor on a prefab whose FILE is blank — and the file is what a build ships | Read the file: `SaveablePrefabFile.IsStampedCorrectly`. Automated by `PrefabPersistenceTests.EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk` |
-| Playing a world scene opened directly in the editor | `Save ignored: no world is active` — no `WorldSession`, so nothing saves | Enter via the main menu |
+| Playing a scene that is not a `GameWorld` (a test scene, the Ferdinand world) opened directly in the editor | `Save ignored: no world is active` — no `WorldSession`, so nothing saves | Enter via the main menu. A world scene (persistentScene, NoiseTerrain) no longer hits this: Play in it stages a new world `Editor <World>` and hosts it ([Scenes](Scenes.md)) |
 | Saver on a child under a nested `SaveableEntity` | State lands in the child's record | Collection stops at any nested `SaveableEntity` |
 | A saver caching its component in `Awake` | EditMode round-trip tests cannot exercise it | Lazy `GetComponent` property |
 | Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring`. It is also true on a client applying the server's value, so a reaction that must tell an OLD death (a save) from a fresh one asks `IsLoading` — set only by `HealthSaveable`'s `LoadHealth`; the ragdoll does, so a replicated death still falls |

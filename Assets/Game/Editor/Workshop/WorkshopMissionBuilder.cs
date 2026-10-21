@@ -43,6 +43,12 @@ namespace SpaceGame.EditorTools
         private const float CarrierSafeRadius = 70f;
         private const float CarrierFleeSpeed = 1.35f;
 
+        // The thieves are bandits with a gravel blaster each: a pipe shotgun whose spread tapers past 15 m, so they open
+        // up inside that and leave the last few metres to their fists.
+        private const string ThiefGunPath = "Assets/Game/Resources/Items/Artifacts/GravelBlaster.asset";
+        private const float ThiefShortestShot = 3f;
+        private const float ThiefLongestShot = 18f;
+
         // The Heart Gear: the gear kit's biggest carried gear, drawn smaller than on the gate so it can be carried off.
         private const string HeartGearModel = "gear_xl";
         private const int HeartGearTeeth = 40;
@@ -218,12 +224,12 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A gear thief is an outlaw with a bag, and a loot table that drops it when he falls. The carrier also runs
-        /// (FleeModule, above everything but a cutscene) when the band raises the alarm. Idempotent.
+        /// A gear thief is an outlaw with a gun and a bag, and a loot table that drops both when he falls. The carrier
+        /// also runs (FleeModule, above everything but a cutscene) when the band raises the alarm. Idempotent.
         /// </summary>
         private static void MakeThief(GameObject thief, bool carrier)
         {
-            Ensure<EntityInventoryComponent>(thief);
+            ArmThief(thief, carrier);
             if (!thief.TryGetComponent(out EntityLootTable _))
             {
                 var loot = new SerializedObject(thief.AddComponent<EntityLootTable>());
@@ -246,6 +252,34 @@ namespace SpaceGame.EditorTools
                 run.ApplyModifiedPropertiesWithoutUndo();
             }
             SaveablePolicy.Ensure(thief, out _);
+        }
+
+        /// <summary>
+        /// The gravel blaster in the bag's first slot, drawn at spawn and fired by an NpcItemUseModule. A fixed starting
+        /// item, not a roll: every machine builds the same bag, so a peer's hand holds the slot the server fires from
+        /// (EntityEquipmentController.OnItemUsedElsewhere). The carrier keeps his gun but never fires it: his job is to
+        /// run, and a runner shooting back over his shoulder would turn the chase into a gunfight.
+        /// </summary>
+        private static void ArmThief(GameObject thief, bool carrier)
+        {
+            var gun = AssetDatabase.LoadAssetAtPath<InventoryItem>(ThiefGunPath);
+            if (gun == null) throw new FileNotFoundException($"No gravel blaster at {ThiefGunPath} to arm the thieves with.");
+
+            var bag = new SerializedObject(Ensure<EntityInventoryComponent>(thief));
+            SerializedProperty starting = bag.FindProperty("startingItems");
+            starting.arraySize = 1;
+            starting.GetArrayElementAtIndex(0).objectReferenceValue = gun;
+            bag.ApplyModifiedPropertiesWithoutUndo();
+
+            Ensure<EntityEquipmentController>(thief);
+            Ensure<EntityEquipmentSaveable>(thief);
+
+            var shooting = new SerializedObject(Ensure<NpcItemUseModule>(thief));
+            shooting.FindProperty("priority").intValue = ModulePriority.RangedAttack;
+            shooting.FindProperty("active").boolValue = !carrier;
+            shooting.FindProperty("minRange").floatValue = ThiefShortestShot;
+            shooting.FindProperty("maxRange").floatValue = ThiefLongestShot;
+            shooting.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

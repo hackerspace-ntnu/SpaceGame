@@ -12969,6 +12969,56 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5189633967919220681, guid: 1cef22382b29b442aa39a8a8b5910972, type: 3}
   m_PrefabInstance: {fileID: 600149171}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &602368220
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 602368221}
+  - component: {fileID: 602368222}
+  m_Layer: 0
+  m_Name: Spot_hideout
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &602368221
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 602368220}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1524942497}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &602368222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 602368220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c8f1b98a3d4980a996d7b8870fd79f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSpot
+  spotTag: hideout
+  use: {fileID: 0}
+  mode: 0
+  wanderRadius: 8
+  holdRadius: 1.5
+  checkSeconds: 0.5
 --- !u!1001 &603519492
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13685,83 +13735,6 @@ Transform:
   - {fileID: 1799346751}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1675300911
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2964416317321759552, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: authored
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2964416317321759552, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: instanceId
-      value: 3026bcb13a084bc28eeef81bd2b22fa8
-      objectReference: {fileID: 0}
-    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 1322249500
-      objectReference: {fileID: 0}
-    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 3118178409
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 3160
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 116.65
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 925
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.23938085
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.97092575
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8108776566775187444, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
-      propertyPath: m_Name
-      value: SatelliteTower
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
 --- !u!1001 &630102145
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -32359,6 +32332,52 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8973788136582169284, guid: 3300004d27e944a3493cbef014586a67, type: 3}
   m_PrefabInstance: {fileID: 1523215947}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1524942495
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1524942497}
+  - component: {fileID: 1524942496}
+  m_Layer: 0
+  m_Name: BountyHuntSite_KessekVorr
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1524942496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524942495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf5f164c06a48491ab80df455b601033, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyHuntSite
+  hunt: {fileID: 11400000, guid: 859a4e4bd4a34b7c80a6d69d8cd40e02, type: 2}
+--- !u!4 &1524942497
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524942495}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.89778924, z: 0, w: -0.44042537}
+  m_LocalPosition: {x: 3260, y: 105.21883, z: 820}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 602368221}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1526910191
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36142,6 +36161,83 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8460078736975120979, guid: 3e5d1f7b5189b45c197d45dd7a94127f, type: 3}
   m_PrefabInstance: {fileID: 1672877763}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1675300911
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2964416317321759552, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2964416317321759552, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: instanceId
+      value: 3026bcb13a084bc28eeef81bd2b22fa8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1322249500
+      objectReference: {fileID: 0}
+    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5084668025478572960, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3118178409
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3160
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 116.65
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 925
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.23938085
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.97092575
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6312553083224400815, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8108776566775187444, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
+      propertyPath: m_Name
+      value: SatelliteTower
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cec9b40dc420f1b4a9e7c6da4b34a0c2, type: 3}
 --- !u!1001 &1683811852
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38952,6 +39048,7 @@ GameObject:
   - component: {fileID: 1799346750}
   - component: {fileID: 1799346752}
   - component: {fileID: 1799346753}
+  - component: {fileID: 1799346754}
   m_Layer: 0
   m_Name: Settlement
   m_TagString: Untagged
@@ -78645,6 +78742,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e97f5d3e836834d299320574ec3c377e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Expeditions.SettlementExpeditions
+--- !u!114 &1799346754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1799346749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cf5513ceefb4a63b74046aef1ee9cd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.SettlementBounties
+  townFaction: {fileID: 0}
+  entries:
+  - hunt: {fileID: 11400000, guid: 859a4e4bd4a34b7c80a6d69d8cd40e02, type: 2}
+    offeredWhen: 0
+    afterClaimed: {fileID: 0}
+    minGoodwill: 0
 --- !u!1001 &1803118994
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -86366,3 +86481,4 @@ SceneRoots:
   m_Roots:
   - {fileID: 629172532}
   - {fileID: 1675300911}
+  - {fileID: 1524942497}

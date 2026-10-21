@@ -17,7 +17,7 @@ namespace SpaceGame.EditorTools.Posters
         Skin,
         /// <summary>Dyed, warm cloth: the poster's accent colour.</summary>
         Accent,
-        /// <summary>Everything else: cream, shaded with dense dots.</summary>
+        /// <summary>Everything else: the wash (cream tinted toward the accent), dense dots in shadow.</summary>
         Neutral,
         /// <summary>Kept in full colour.</summary>
         Eye,

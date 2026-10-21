@@ -19,7 +19,7 @@ symptoms:
   - "pressing F5 in a disposable session says the save was ignored"
   - "a disposable session's ship is standing on the ground already with no descent or blackout"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-10-06
+updated: 2026-10-19
 ---
 
 # Game Modes
@@ -79,7 +79,7 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 
 **Spawn / respawn** — `SpawnManager.SpawnPlayerForClient` ensures the default faction, then `SpawnAsPlayerObject`. Respawn is a **state change on the living object** (`SetActive`, `ResetToFull`, re-enable `EntityFaction` + `AgentController`), never despawn/respawn. Movement is routed by `TeleportRpc` to the **owner** because the player's `NetworkTransform` is owner-authoritative.
 
-**Start a disposable session** — `MainMenuUI.StartDisposable` calls `WorldSession.StageNew("Disposable", worldConfig, disposable: true)` and enters the world exactly like singleplayer does — no `WorldSelectUI`, no typed name, because there is no file to name. In the world, `NetworkGameManager`'s spawn coroutine sees `WorldSession.Disposable` and calls `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` *before* its `IsPending` check: that measures the same landing spot `EnsureStoryFlight` would have flown a descent onto (`ShipGrounding.TryResolveHullLanding`), spawns the ship prefab straight there with `HasArrived` set true and raises `ArrivalDirector.HullLanded` for it exactly as a touchdown does (so the crash's oxygen beat — the plant thrown out, its quest step, a cabin with no air — happens here too; see [Oxygen](Oxygen.md)), and the existing `IsPending` check then reads false for every client — so the ordinary "arrival already happened" path spawns everyone on the ground beside a ship that looks like it has been sitting there the whole session.
+**Start a disposable session** — `MainMenuUI.StartDisposable` calls `WorldSession.StageNew("Disposable", WorldConfig, disposable: true)` (always the Story world) and enters the world exactly like singleplayer does — no `WorldSelectUI`, no typed name, because there is no file to name. In the world, `NetworkGameManager`'s spawn coroutine sees `WorldSession.Disposable` and calls `ArrivalDirector.SpawnAlreadyLanded(spawnPos)` *before* its `IsPending` check: that measures the same landing spot `EnsureStoryFlight` would have flown a descent onto (`ShipGrounding.TryResolveHullLanding`), spawns the ship prefab straight there with `HasArrived` set true and raises `ArrivalDirector.HullLanded` for it exactly as a touchdown does (so the crash's oxygen beat — the plant thrown out, its quest step, a cabin with no air — happens here too; see [Oxygen](Oxygen.md)), and the existing `IsPending` check then reads false for every client — so the ordinary "arrival already happened" path spawns everyone on the ground beside a ship that looks like it has been sitting there the whole session.
 
 ## Multiplayer
 

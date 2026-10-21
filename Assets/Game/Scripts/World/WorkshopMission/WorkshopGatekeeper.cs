@@ -92,7 +92,7 @@ namespace SpaceGame.World
         {
             "The vault lies past the turning rooms. Turn the main room to face a new hallway, and follow it in.",
             "Every room has its own hand cog. Hold it and the room turns; its doorway stays wherever you leave it.",
-            "The vault door has a little gear lock. The missing cogs are kept on the bench beside it.",
+            "The vault door has a gear lock, and all five of its cogs are off it. They lie on the floor in front of the door; every one of them is needed.",
             "That core is far too heavy to bolt on by hand. The hoist does it - work it from the console on the third floor.",
         };
 

@@ -21,17 +21,18 @@ namespace SpaceGame.Gameplay.Ragdoll
     /// the deciding machine and <c>NetMsg.Knockdown</c> carries it to everyone, so every machine
     /// stands the body up together. Death has no down-time: a corpse stays limp until it despawns.
     /// </para>
+    ///
+    /// <para>
+    /// Taking damage never puts a body down on its own. A body goes limp only to a specific event
+    /// that calls <see cref="Knock"/> (a blast, a hard landing), a hold (a net, a tie, a shock), or
+    /// death. Hits used to knock bodies over past a severity threshold; that was removed
+    /// 2026-10-12, so being shot costs health and a flinch, never control (GDC-L1-FEEL-0002).
+    /// </para>
     /// </summary>
     [RequireComponent(typeof(RagdollRig))]
     public abstract class RagdollController : MonoBehaviour
     {
         [SerializeField] private KnockdownTuning knockdown = new KnockdownTuning();
-
-        [Tooltip("Speed a knockdown-worthy HIT throws the body at, m/s, away from the attacker. The " +
-                 "hit carries no knockback of its own, so this stands in for it in the price too: " +
-                 "KnockdownPolicy counts it as the hit's knockback, and raising it makes hits both " +
-                 "knock down more easily and keep the body down longer.")]
-        [SerializeField] private float hitImpulse = 3f;
 
         protected RagdollRig rig;
         protected HealthComponent health;
@@ -58,13 +59,6 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         /// <summary>Earliest this body may stand up. See <see cref="OnKnockdown"/>.</summary>
         private float standAt;
-
-        /// <summary>
-        /// When this body last got up off the ground — what hit immunity is measured from. Only a
-        /// body that actually went limp stamps it: a hold the rig refused, or a standing hold let
-        /// go, never put anything on the ground and earns no immunity.
-        /// </summary>
-        private float stoodUpAt = float.NegativeInfinity;
 
         // TEMPORARY (2026-09-25): a switch to turn every ragdoll off while hunting lag. Deaths,
         // knockdowns, hits and nets all stop here when true. Back to false on 2026-10-04 so the
@@ -152,7 +146,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             this.NetOn(NetMsg.Knockdown, OnKnockdown);
             this.NetOn(NetMsg.KnockdownRequest, OnKnockdownRequest);
-            if (health != null) health.OnDamage += OnDamaged;
             if (health != null) health.OnDeath += OnDeath;
             if (health != null) health.OnRevive += OnRevive;
         }
@@ -161,7 +154,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             this.NetOff(NetMsg.Knockdown, OnKnockdown);
             this.NetOff(NetMsg.KnockdownRequest, OnKnockdownRequest);
-            if (health != null) health.OnDamage -= OnDamaged;
             if (health != null) health.OnDeath -= OnDeath;
             if (health != null) health.OnRevive -= OnRevive;
         }
@@ -249,7 +241,7 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         /// <summary>
         /// The deciding machine only: price a knockdown and tell every machine. The single door every
-        /// knockdown source goes through — a blast, a hit, a fall — so no source owns a duration of
+        /// knockdown source goes through — a blast, a fall — so no source owns a duration of
         /// its own and a boss and a rat can price the same blast differently (their
         /// <see cref="KnockdownTuning"/>). A no-op anywhere else, and on anything with no controller.
         /// </summary>
@@ -304,12 +296,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// The owner's half of a fall knockdown: ask the server. A fall is measured only by the
         /// machine that owns the body, and only the server may broadcast the knockdown. Offline, and
         /// on a host, this dispatches locally and lands in <see cref="OnKnockdownRequest"/> at once.
-        ///
-        /// <para>
-        /// Send it BEFORE the fall's damage: both travel on the victim's relay, reliable and in
-        /// order, so the server has marked the damage as the fall's by the time it lands. See
-        /// <see cref="OnDamaged"/>.
-        /// </para>
         /// </summary>
         public static void RequestFallKnockdown(Component body)
         {
@@ -335,22 +321,12 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (RagdollsDisabled) return;
             if (dead || !CanBeKnockedDown) return;
 
-            // A hit on a body already down does not keep it down. Every round of automatic fire into
-            // a downed body used to push its stand-up time out again, so under fire nobody ever got
-            // up. A blast still can: it is a deliberate throw, and OnKnockdown keeps the later of
-            // the two stand-up times. This is also what keeps a fall's own damage from being
-            // priced as a hit — the fall's request arrives first and the body is already down.
-            if (rig.IsLimp && cause == RagdollCause.Hit) return;
-
-            if (KnockdownPolicy.Immune(cause, Time.time - stoodUpAt, knockdown)) return;
-
             float healthLeft = health != null && health.GetMaxHealth > 0
                 ? (float)health.GetHealth / health.GetMaxHealth
                 : 1f;
 
             float seconds = KnockdownPolicy.Seconds(
                 new KnockdownEvent(cause, damageFraction, healthLeft, impulse.magnitude), knockdown);
-            if (seconds <= 0f) return;
 
             NetMessaging.NetSendTo(gameObject, NetMsg.Knockdown, new NetArg
             {
@@ -358,32 +334,6 @@ namespace SpaceGame.Gameplay.Ragdoll
                 A = Mathf.RoundToInt(seconds * 1000f),
                 B = (int)cause,
             }, NetTo.All);
-        }
-
-        /// <summary>
-        /// Damage lands only where it is decided (the server, or offline), so this runs there and
-        /// nowhere else — a client's copy of the health changes through <c>RestoreHealth</c>, which
-        /// raises no <c>OnDamage</c>. A killing blow is death's business, and a save restoring
-        /// health is not a hit.
-        ///
-        /// <para>
-        /// Nor, in effect, is a fall's own damage: the fall's request arrives first (see
-        /// <see cref="RequestFallKnockdown"/>), so its damage lands on a body already down, and a
-        /// hit on a downed body does not knock it (<see cref="KnockHere"/>).
-        /// </para>
-        /// </summary>
-        private void OnDamaged(int amount)
-        {
-            if (!Network.Decides || health == null || health.IsRestoring) return;
-            if (health.GetHealth <= 0 || health.GetMaxHealth <= 0) return;
-
-            Transform source = health.LastDamageSource;
-
-            Vector3 away = source != null
-                ? Vector3.ProjectOnPlane(transform.position - source.position, Vector3.up).normalized
-                : -transform.forward;
-
-            Knock(gameObject, RagdollCause.Hit, away * hitImpulse, (float)amount / health.GetMaxHealth);
         }
 
         /// <summary>
@@ -569,7 +519,6 @@ namespace SpaceGame.Gameplay.Ragdoll
             if (!suspended) return;
             suspended = false;
             standAt = 0f;
-            if (rig.IsLimp) stoodUpAt = Time.time;
 
             TeleportMove move = rig.Recover();
             RestoreLayers(move);

@@ -5,7 +5,10 @@ using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using SpaceGame.Agents;
 using SpaceGame.Audio;
+using SpaceGame.Gameplay.Ragdoll;
+using SpaceGame.Gameplay.Status;
 using SpaceGame.Gameplay.Trading;
+using SpaceGame.Items;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Gameplay
@@ -139,6 +142,38 @@ namespace SpaceGame.Gameplay
         }
 
         /// <summary>
+        /// Is this character roped, tied up, held by a condition or on the ground? Then it is not
+        /// talking to anybody.
+        ///
+        /// <para>
+        /// Interact is the right mouse button, and so is the lasso's reel. Reeling in a character you
+        /// had roped opened a conversation with them — and the conversation then held the controls
+        /// the hogtie needs, so a character with dialogue could not be tied up at all. A captive is
+        /// not chatting either way: the rope, the tie and the ragdoll take the button over, and the
+        /// "RMB: talk" prompt goes with it, because this is the gate the crosshair asks too.
+        /// </para>
+        /// <para>
+        /// Asked of the ropes registry rather than of the lasso's tether, because the tether exists
+        /// only on the server and the player pressing the button is very often a client.
+        /// </para>
+        /// </summary>
+        public bool IsRestrained
+        {
+            get
+            {
+                if (CuttableRopes.AnyBinds(gameObject)) return true;
+
+                // Tied up by the lasso, frozen, set in foam: a condition that holds the body holds
+                // its tongue too.
+                StatusReceiver conditions = StatusReceiver.Of(gameObject);
+                if (conditions != null && conditions.Suppressed) return true;
+
+                RagdollController ragdoll = GetComponentInParent<RagdollController>();
+                return ragdoll != null && ragdoll.IsHeldOrDown;
+            }
+        }
+
+        /// <summary>
         /// Both halves of "in a fight with", because either can be true on its own.
         ///
         /// The acquired target is the live answer, but it is dropped the moment the player ducks
@@ -176,6 +211,11 @@ namespace SpaceGame.Gameplay
 
         public bool CanInteract()
         {
+            // Not per person, so here rather than in the contextual gate: a captive is silent to
+            // everybody, and answering false here is what lets a drag on the same body be chosen
+            // over this dialogue (Interactor.OfferingAlong).
+            if (IsRestrained) return false;
+
             if (useDelayBetweenDialogues && !dialogueSessionActive && Time.time < nextDialogueAvailableTime)
             {
                 return false;

@@ -47,12 +47,16 @@ namespace SpaceGame.Agents.Residents
         public static bool EmptyHandsFor(CharacterCue station) => station != null && (station.BareHands || station.NeedsFreeHands);
 
         /// <summary>
-        /// Hands on a cart's handles hold nothing else. Otherwise a carried errand item wins the hand, then the tool, when the
-        /// activity needs it or when it has nowhere to hang (<paramref name="toolStowable"/> false), else nothing.
+        /// Hands on a cart's handles hold nothing else. A resident in a fight with a weapon it fires (<paramref name="armed"/>,
+        /// <see cref="ResidentWeaponModule"/>) holds the weapon, whatever it was doing. Otherwise a carried errand item wins the
+        /// hand, then the tool, when the activity needs it or when it has nowhere to hang (<paramref name="toolStowable"/>
+        /// false), else nothing.
         /// </summary>
-        public static HandContents Wanted(Activity activity, bool atPlace, bool carrying, bool toolStowable, bool pushing = false)
+        public static HandContents Wanted(Activity activity, bool atPlace, bool carrying, bool toolStowable, bool pushing = false,
+                                          bool armed = false)
         {
             if (pushing) return HandContents.Empty;
+            if (armed) return HandContents.Tool;
             if (carrying) return HandContents.Carried;
             return NeedsTool(activity, atPlace) || !toolStowable ? HandContents.Tool : HandContents.Empty;
         }

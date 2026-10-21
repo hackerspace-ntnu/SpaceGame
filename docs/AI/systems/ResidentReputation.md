@@ -17,7 +17,7 @@ symptoms:
   - "residents fighting me run straight past a neighbour who never joins in"
   - "a resident indoors never hears what her family saw me do"
 reads_with: [Residents, AgentSystem, Persistence]
-updated: 2026-10-02
+updated: 2026-10-13
 ---
 
 # Resident reputation
@@ -29,7 +29,7 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
 
 | Idea | Mechanism |
 |---|---|
-| A deed is a remembered fact | `ResidentMemory.Deed {profile, act, victim, day, expires, heard}` — harm (`Hit`, `Threatened`, `Killed`, kin readings) or kindness (`Defended`); `victim` is whoever it was done to |
+| A deed is a remembered fact | `ResidentMemory.Deed {profile, act, victim, day, expires, heard}` — harm (`Hit`, `Threatened`, `Killed`, kin readings) or kindness (`Defended`, `BroughtInAlive`, `BroughtInDead`); `victim` is whoever it was done to |
 | Residents know what they saw or were told | `Gossip.Witness` (the subject + everyone in `noticeRadius` with line of sight), then word of mouth |
 | Word of mouth, no hop limit | [`Rumours`](Assets/Game/Scripts/agents/Residents/Mind/Rumours.cs) (ticked by the settlement's `SettlementSociety`): whoever knows tells every resident within `earshot`; listeners pass it on. News moves favor, never starts a fight |
 | Fights spread by calling for help, not by news | the character's own `AlertBroadcaster.callForHelpEvery` (every Raxy: 1 s, in or out of a settlement) — [AgentSystem.md](AgentSystem.md). A resident answers by temperament (`Resident.HandleAllyHurt`) |
@@ -43,9 +43,9 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
 |---|---|
 | [`ResidentMemory`](Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs) | per resident, keyed by save profile: familiarity, favor, deeds; `Regard`, `Holds`, `HoldsPersonalGrudge`, `KinHarmedBy` |
 | [`Gossip`](Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs) | `Witness`, `Pass` (word of mouth), `SpreadAtBedtime` / `SpreadAtHearth` (the day's close), `Learn` (remember + weigh once), `ObservationOf` (the line a deed is told with) |
-| `Favor` | pure: `ValueOf(act)`, `ShareOf(listener, subject)` (closest bond either holds), `Apply` (±`favorLimit`), `IsHarm` |
+| `Favor` | pure: `ValueOf(act)`, `ShareOf(listener, subject)` (closest bond either holds), `Apply` (±`favorLimit`), `IsHarm` (an explicit harm list) |
 | `Rumours` | news: who is within earshot of whom, every `rumourSweepSeconds` (0.5), one hop per `rumourTellSeconds` |
-| `ResidentTuning` | `favorFor{Hit,Threat,Killing,Defending}`, `{family,friend,coworker,neighbour}Share`, `favorLimit`, `warmAt`, `coldAt`, `rumourTellSeconds` |
+| `ResidentTuning` | `favorFor{Hit,Threat,Killing,Defending,BountyAlive,BountyDead}`, `{family,friend,coworker,neighbour}Share`, `favorLimit`, `warmAt`, `coldAt`, `rumourTellSeconds` |
 
 ## Flows
 
@@ -72,6 +72,8 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
    `AtTheHearth_…` and `OnlyANaturalDayChange_EndsADay`.
 7. **Speech.** The teller says a `Rumour` line naming the subject when a player can hear, it is not mid-line, not
    fighting and not the subject. `Conversations` opens a pair's talk with today's deed (`Gossip` × its observation).
+8. **A bounty handed in** ([Bounties.md](Bounties.md)): `Gossip.Witness(claimant, deliverer, BroughtInAlive|BroughtInDead)`; the
+   claimant thanks them (`Remark` × the same observation). Alive is worth more (`favorForBountyAlive` 30, dead 15).
 
 ## Multiplayer
 
@@ -101,7 +103,8 @@ starts nobody mid-alarm. Witnessed-hit timestamps are runtime too.
 - **Favor is never forgiven by time.** A grudge expires after its forgive days; the favor a deed cost does not come back
   on its own. Talks (familiarity) and good deeds are the way back — regard is the sum.
 - **`ActKind` and `Observation` are saved and compared by number** (Newtonsoft writes enums as ints). Append only —
-  `Defended` and `Defending` went at the end.
+  `Defended` and `Defending`, then `BroughtInAlive`/`BroughtInDead` (both enums, 2026-10-13), went at the end.
+- **`Favor.IsHarm` lists the harms.** It was `act != Defended`, which made every later kindness a grudge.
 - **Word of mouth is part of the settlement, not a component on it.** It used to be a `SettlementRumours` component that
   had to be added to the root; one added from the Editor was never saved into `Chunk_6_3`, so in play nobody told
   anybody, with a clean console. Since 2026-10-02 `Rumours` is a plain class every `SettlementSociety` owns, so a

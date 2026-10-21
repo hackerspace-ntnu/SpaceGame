@@ -50,6 +50,9 @@ namespace SpaceGame.World
             public Transform seat;
             public Vector2 plane;
 
+            [Tooltip("The peg's own model: hidden while a gear on another peg lies over it, so it does not poke through.")]
+            public Transform post;
+
             [Tooltip("The gear kind on this peg at the start (part of the train still standing), or -1 for a bare peg.")]
             public int startKind = -1;
         }
@@ -504,6 +507,8 @@ namespace SpaceGame.World
                 index.Add(i);
             }
 
+            ShowPosts();
+
             var solvedSpeeds = new float[standing.Count];
             bool nowLocked = GearTrain.Drive(standing, 0, geometry, solvedSpeeds);
             System.Array.Clear(speeds, 0, speeds.Length);
@@ -559,6 +564,21 @@ namespace SpaceGame.World
         }
 
         private bool Stands(int gear) => gear < FirstPeg || slots[gear - FirstPeg] != Empty;
+
+        /// <summary>A bare peg under a standing gear's disc is hidden; it shows again when that gear is taken off.</summary>
+        private void ShowPosts()
+        {
+            for (int p = 0; p < pegs.Length; p++)
+            {
+                if (pegs[p].post == null) continue;
+
+                bool covered = false;
+                for (int i = 0; i < specs.Length && !covered; i++)
+                    covered = Stands(i) && i != FirstPeg + p &&
+                              Vector2.Distance(specs[i].Centre, pegs[p].plane) < geometry.OuterRadius(specs[i].Teeth);
+                pegs[p].post.gameObject.SetActive(!covered);
+            }
+        }
 
         private float ToothOf(int gear) => gear switch
         {

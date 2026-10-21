@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -11,6 +12,13 @@ namespace SpaceGame.Items
     /// existed: the wind-up, where a player winding a rope over their head is visible across the
     /// map, and the cinch, where an open loop closes onto a neck. Everything else about a lasso is
     /// a line moving; those two are the lasso.
+    /// </para>
+    /// <para>
+    /// <b>It draws nothing of its own.</b> The loop is the last few feet of the rope tied back on
+    /// itself, so it is drawn as the end of the rope's own line (<see cref="LassoRope.Bind"/> takes
+    /// it): one strip, one width, one braid running unbroken from the hand through the honda and
+    /// round. Drawn as a second LineRenderer it read as a ring and a rope — two ends, two texture
+    /// starts and two ribbons turning to the camera on their own at the knot.
     /// </para>
     /// <para>
     /// <b>The drawn radius is the catch radius.</b> <see cref="Radius"/> is what the artifact tests
@@ -39,7 +47,8 @@ namespace SpaceGame.Items
         [Tooltip("Fully charged: the mouth of a rope wound properly over the head.")]
         [SerializeField] private float openRadius = 0.8f;
 
-        [Tooltip("After the cinch — a collar, not a hoop.")]
+        [Tooltip("After the cinch — a collar, not a hoop. Only for a catch with no skin to close onto; " +
+                 "anything that draws a body gets the loop pulled shut on it (LassoCollar).")]
         [SerializeField] private float collarRadius = 0.45f;
 
         [Header("Motion")]
@@ -87,39 +96,31 @@ namespace SpaceGame.Items
 
         [SerializeField] private float wobbleSpeed = 1.8f;
 
-        [Tooltip("Metres. Keep this equal to LassoRope's width — the loop is not a separate object, " +
-                 "it is the last few feet of the same rope tied back on itself, and a loop drawn " +
-                 "thinner than the rope it hangs from reads as two different things.")]
-        [SerializeField] private float width = 0.062f;
-
-        [Tooltip("Metres of rope one repeat of the texture covers. Keep equal to LassoRope's — the " +
-                 "loop is the last few feet of the same rope, and a braid at two different pitches " +
-                 "is two different ropes.")]
-        [SerializeField] private float metresPerTextureRepeat = 0.35f;
-
-        [Tooltip("Keep this the SAME material asset as LassoRope's. The loop is not a separate " +
-                 "object — it is the last few feet of the rope tied back on itself.")]
-        [SerializeField] private Material material;
-
-        private LineRenderer line;
+        private bool shown;
         private float angle;
         private float radius;
         private float spin;
         private float cinchElapsed;
         private float cinchFrom;
+        private float closed = 1f;
         private bool cinching;
+
+        private readonly List<Vector3> shape = new List<Vector3>();
+        private readonly List<Vector3> fitted = new List<Vector3>();
 
         // The throat profile's own maximum, cached against the pinch it was measured for.
         // See ThroatPeak.
         private float throatPeak = 1f;
         private float throatPeakFor = float.NaN;
 
-        public bool IsBound => line != null;
-
         /// <summary>The radius the loop is drawn at right now, and therefore what it can catch.</summary>
         public float Radius => radius;
 
-        public void Bind(LineRenderer renderer) => line = renderer;
+        /// <summary>
+        /// The loop as last drawn, world space: from the honda, all the way round, and back to it —
+        /// so the first point is where the rope arrives and the last closes on it. Empty while hidden.
+        /// </summary>
+        public IReadOnlyList<Vector3> Shape => shown ? shape : (IReadOnlyList<Vector3>)System.Array.Empty<Vector3>();
 
         public void Show()
         {
@@ -127,37 +128,11 @@ namespace SpaceGame.Items
             spin = spinSpeed;
             cinching = false;
             cinchElapsed = 0f;
-
-            if (line == null) return;
-
-            line.positionCount = Mathf.Max(4, segments) + 1;
-
-            // Flat curve as well as the multiplier: a tapering curve authored on the prefab's
-            // LineRenderer is applied UNDERNEATH the multiplier, so setting the multiplier alone
-            // leaves the loop thinning out to nothing around its far side.
-            line.widthCurve = AnimationCurve.Constant(0f, 1f, 1f);
-            line.widthMultiplier = width;
-            line.numCornerVertices = 2;
-
-            // The same treatment the rope gets, and for the same reason: the loop IS the rope, so a
-            // braid that tiles on one and smears on the other reads as two different objects tied
-            // together. See LassoRope.ApplyMaterialSettings.
-            if (material != null) line.material = material;
-
-            line.textureMode = LineTextureMode.Tile;
-            line.textureScale = new Vector2(1f / Mathf.Max(metresPerTextureRepeat, 0.01f), 1f);
-            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            line.receiveShadows = false;
-            line.alignment = LineAlignment.View;
-
-            line.enabled = true;
+            shape.Clear();
+            shown = true;
         }
 
-        public void Hide()
-        {
-            if (line == null) return;
-            line.enabled = false;
-        }
+        public void Hide() => shown = false;
 
         /// <summary>
         /// Over the head, winding up. <paramref name="charge"/> runs 0 to 1 and is the only thing
@@ -207,6 +182,7 @@ namespace SpaceGame.Items
             cinching = true;
             cinchElapsed = 0f;
             cinchFrom = radius;
+            closed = 0f;
         }
 
         /// <summary>
@@ -217,13 +193,25 @@ namespace SpaceGame.Items
         /// perpendicular to the rope, which is where a rope under tension actually sits.
         /// </summary>
         /// <returns>The honda: where the rope's far end belongs this frame.</returns>
-        public Vector3 Ride(Vector3 centre, Vector3 ropeDirection, float deltaTime)
+        public Vector3 Ride(Vector3 centre, Vector3 ropeDirection, float deltaTime) =>
+            Ride(centre, ropeDirection, deltaTime, null, centre);
+
+        /// <summary>
+        /// Riding the target, closing onto <paramref name="collar"/>'s ring when it has one: over the
+        /// cinch the open loop is drawn in onto the skin, and from then on it IS the ring, riding the
+        /// bone it was measured on. The honda is the ring's point nearest <paramref name="ropeStart"/>,
+        /// where a rope pulled from there would draw the knot. Without a ring — nothing to measure —
+        /// this is the plain collar circle.
+        /// </summary>
+        /// <returns>The honda: where the rope's far end belongs this frame.</returns>
+        public Vector3 Ride(Vector3 centre, Vector3 ropeDirection, float deltaTime, LassoCollar collar, Vector3 ropeStart)
         {
             if (cinching)
             {
                 cinchElapsed += deltaTime;
                 float t = Mathf.Clamp01(cinchElapsed / Mathf.Max(cinchDuration, 0.0001f));
-                radius = Mathf.Lerp(cinchFrom, collarRadius, Mathf.SmoothStep(0f, 1f, t));
+                closed = Mathf.SmoothStep(0f, 1f, t);
+                radius = Mathf.Lerp(cinchFrom, collarRadius, closed);
                 if (t >= 1f) cinching = false;
             }
 
@@ -231,7 +219,7 @@ namespace SpaceGame.Items
             angle += spin * deltaTime;
 
             Vector3 axis = ropeDirection.sqrMagnitude < 1e-4f ? Vector3.forward : ropeDirection.normalized;
-            return Draw(centre, axis, 0f);
+            return Draw(centre, axis, 0f, collar != null && collar.IsFitted ? collar : null, ropeStart);
         }
 
         /// <summary>
@@ -248,7 +236,10 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         /// <returns>The honda's world position.</returns>
-        private Vector3 Draw(Vector3 centre, Vector3 axis, float tilt)
+        private Vector3 Draw(Vector3 centre, Vector3 axis, float tilt) => Draw(centre, axis, tilt, null, centre);
+
+        /// <param name="collar">A ring to close onto by <see cref="closed"/>, or null for the loop alone.</param>
+        private Vector3 Draw(Vector3 centre, Vector3 axis, float tilt, LassoCollar collar, Vector3 ropeStart)
         {
             Quaternion basis = Quaternion.LookRotation(axis);
             Quaternion tilted = Quaternion.AngleAxis(tilt, basis * Vector3.right) * basis;
@@ -266,15 +257,39 @@ namespace SpaceGame.Items
 
             Vector3 honda = centre + Offset(0f, right, up, peak, sag);
 
-            if (line == null || !line.enabled) return honda;
-
             int count = Mathf.Max(4, segments);
-            if (line.positionCount != count + 1) line.positionCount = count + 1;
-
+            shape.Clear();
             for (int i = 0; i <= count; i++)
-                line.SetPosition(i, centre + Offset(i / (float)count * Mathf.PI * 2f, right, up, peak, sag));
+                shape.Add(centre + Offset(i / (float)count * Mathf.PI * 2f, right, up, peak, sag));
 
-            return honda;
+            return collar != null ? CloseOnto(collar, ropeStart, honda) : honda;
+        }
+
+        /// <summary>
+        /// Draw <see cref="shape"/> in onto the collar's ring by <see cref="closed"/>, point for point
+        /// round from the honda, and say where the honda now is: the ring's point nearest the rope's start.
+        /// </summary>
+        private Vector3 CloseOnto(LassoCollar collar, Vector3 ropeStart, Vector3 honda)
+        {
+            fitted.Clear();
+            collar.AddTo(fitted);
+            int around = fitted.Count - 1;
+            if (around < 3) return honda;
+
+            int knot = 0;
+            for (int i = 1; i < around; i++)
+                if ((fitted[i] - ropeStart).sqrMagnitude < (fitted[knot] - ropeStart).sqrMagnitude) knot = i;
+
+            int count = shape.Count - 1;
+            for (int i = 0; i <= count; i++)
+            {
+                float at = knot + i / (float)count * around;
+                int below = Mathf.FloorToInt(at);
+                Vector3 onRing = Vector3.Lerp(fitted[below % around], fitted[(below + 1) % around], at - below);
+                shape[i] = Vector3.Lerp(shape[i], onRing, closed);
+            }
+
+            return Vector3.Lerp(honda, fitted[knot], closed);
         }
 
         /// <summary>

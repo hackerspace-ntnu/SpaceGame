@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using SpaceGame.Persistence;
-using SpaceGame.World;
 
 namespace SpaceGame.Core.Persistence
 {
@@ -127,7 +126,7 @@ namespace SpaceGame.Core.Persistence
 
             // Restages THIS world rather than a global quicksave slot, so quickloading cannot pull
             // a different world's session into the one being played.
-            if (!WorldSession.StageExisting(WorldSession.WorldId, ActiveConfig(), out string error))
+            if (!WorldSession.StageExisting(WorldSession.WorldId, WorldSession.WorldConfigId, out string error))
             {
                 Debug.LogWarning($"[Save] Quickload failed: {error}");
                 return;
@@ -147,17 +146,6 @@ namespace SpaceGame.Core.Persistence
                 Unity.Netcode.NetworkManager.Singleton.SceneManager.LoadScene(target, LoadSceneMode.Single);
             else
                 SceneManager.LoadScene(target, LoadSceneMode.Single);
-        }
-
-        /// <summary>
-        /// The config of the world being played, so a quickload validates against the same world it
-        /// is reloading. Found from the live streamer rather than a serialized reference, which
-        /// would be one more thing to wire per world scene and to get wrong.
-        /// </summary>
-        private static WorldStreamingConfig ActiveConfig()
-        {
-            var streamer = Object.FindFirstObjectByType<WorldStreamer>();
-            return streamer != null ? streamer.Config : null;
         }
     }
 }

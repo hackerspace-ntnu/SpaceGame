@@ -68,26 +68,41 @@ namespace SpaceGame.Items
         private LineRenderer line;
         private float biteUntil;
 
+        /// <summary>Thickness of the slack rope, in metres.</summary>
+        public float Width => width;
+
+        /// <summary>Braid repeats per metre at <see cref="Width"/>.</summary>
+        public float BraidsPerMetre => braidsPerMetre;
+
         /// <summary>Build the renderer this rope draws into, on the rope's own GameObject.</summary>
         public void Build(GameObject host)
         {
-            line = host.AddComponent<LineRenderer>();
-
-            if (material != null) line.material = material;
-            line.startColor = color;
-            line.endColor = color;
-            line.useWorldSpace = true;
-            line.numCornerVertices = cornerVertices;
-            line.numCapVertices = capVertices;
-            line.textureMode = LineTextureMode.Tile;
-            line.alignment = LineAlignment.View;
+            line = Dress(host.AddComponent<LineRenderer>());
             line.positionCount = Mathf.Max(2, segments);
+        }
+
+        /// <summary>
+        /// Give <paramref name="target"/> this rope's look: material, colour, braid tiling, joints
+        /// and shadows. Shared with <see cref="HogtieWrap"/>, which winds the same cord round a body
+        /// and must not read as a second, different rope.
+        /// </summary>
+        public LineRenderer Dress(LineRenderer target)
+        {
+            if (material != null) target.material = material;
+            target.startColor = color;
+            target.endColor = color;
+            target.useWorldSpace = true;
+            target.numCornerVertices = cornerVertices;
+            target.numCapVertices = capVertices;
+            target.textureMode = LineTextureMode.Tile;
+            target.alignment = LineAlignment.View;
 
             // Off for casting — a camera-facing billboard casts a shadow that swivels with the
             // viewer — but on for receiving, so a rope lying in a building's shade is not the one
             // bright thing in it. The braid normal map does the rest of the shaping.
-            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            line.receiveShadows = true;
+            target.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            target.receiveShadows = true;
+            return target;
         }
 
         /// <summary>Copy tuning from another rope. Used to build a saved rope like an authored one.</summary>

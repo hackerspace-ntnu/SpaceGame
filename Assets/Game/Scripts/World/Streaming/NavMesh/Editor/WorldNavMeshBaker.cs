@@ -49,6 +49,17 @@ namespace SpaceGame.World.NavMeshTools
         [MenuItem("World/Streaming/Bake World NavMesh", validate = true)]
         private static bool CanBake() => !EditorApplication.isPlaying;
 
+        [MenuItem("World/Bake Open World Scene NavMesh", priority = 2)]
+        public static void BakeOpenSceneMenu()
+        {
+            var report = BakeScene(SceneManager.GetActiveScene());
+            Debug.Log(report);
+            EditorUtility.DisplayDialog("World NavMesh", report, "OK");
+        }
+
+        [MenuItem("World/Bake Open World Scene NavMesh", validate = true)]
+        private static bool CanBakeOpenScene() => !EditorApplication.isPlaying;
+
         /// <summary>
         /// Replaces the asset's link list with the links its current mesh edges allow. Derived data:
         /// whatever was there is discarded, so a link never outlives the geometry it crossed. Only the
@@ -109,7 +120,6 @@ namespace SpaceGame.World.NavMeshTools
                        string.Join(", ", alreadyOpen);
 
             var asset = LoadOrCreateAsset();
-            var settings = asset.settings.ToBuildSettings();
 
             var opened = new List<Scene>();
             var sources = new List<NavMeshBuildSource>();
@@ -170,39 +180,14 @@ namespace SpaceGame.World.NavMeshTools
                     return "[WorldNavMeshBaker] collected no NavMesh sources — nothing baked. " +
                            "Check the layer mask on " + AssetPath;
 
-                bounds.Expand(2f);
+                if (!BuildAndStore(asset, config, sources, bounds, stamps, out string bakeReport))
+                    return $"[WorldNavMeshBaker] {bakeReport}";
 
-                EditorUtility.DisplayProgressBar("Baking world NavMesh",
-                    $"baking {sources.Count} sources over {bounds.size.x:0} x {bounds.size.z:0} m", 0.55f);
-
-                var t0 = DateTime.UtcNow;
-                var data = NavMeshBuilder.BuildNavMeshData(
-                    settings, sources, bounds, Vector3.zero, Quaternion.identity);
-                double bakeMs = (DateTime.UtcNow - t0).TotalMilliseconds;
-
-                if (data == null)
-                    return "[WorldNavMeshBaker] BuildNavMeshData returned null — nothing baked.";
-
-                EditorUtility.DisplayProgressBar("Baking world NavMesh", "writing asset", 0.95f);
-                StoreBakedData(asset, data);
-
-                string linkReport = StoreAutoLinks(asset);
-
-                asset.config = config;
-                asset.stamps = stamps.ToArray();
-                asset.sourceCount = sources.Count;
-                asset.bakedAtUtc = DateTime.UtcNow.ToString("u");
-                EditorUtility.SetDirty(asset);
-                AssetDatabase.SaveAssets();
-
-                return $"[WorldNavMeshBaker] baked {sources.Count} sources from " +
-                       $"{stamps.Count} chunk scenes in {bakeMs / 1000.0:0.0} s.\n" +
-                       $"bounds {bounds.size.x:0} x {bounds.size.y:0} x {bounds.size.z:0} m, " +
-                       $"voxel {asset.settings.voxelSize:0.###} m\n" +
+                return $"[WorldNavMeshBaker] {stamps.Count} chunk scenes: {bakeReport}\n" +
                        $"features spawned for bake: {featuresSpawned}" +
                        (unbakedFeatures > 0 ? $", WITHOUT baked meshes: {unbakedFeatures}" : "") +
                        (missingScenes > 0 ? $", missing scenes: {missingScenes}" : "") +
-                       $"\n{linkReport}\nwrote {AssetPath}";
+                       $"\nwrote {AssetPath}";
             }
             finally
             {
@@ -216,6 +201,156 @@ namespace SpaceGame.World.NavMeshTools
                         EditorSceneManager.CloseScene(opened[i], true);
                 }
             }
+        }
+
+        /// <summary>
+        /// Bakes a world authored as ONE scene — its terrain placed directly in it, no chunk
+        /// streaming — into the asset that scene's <see cref="WorldNavMeshProvider"/> names.
+        ///
+        /// The scene is the open one the user is editing, so unlike <see cref="Bake"/> this changes
+        /// nothing in it: no terrain alignment (nothing streams it, so it already sits where it
+        /// plays) and no spawned feature meshes, which would land in the user's scene as edits.
+        /// A <see cref="TerrainFeatureSpawner"/> in the scene is reported instead of baked.
+        /// </summary>
+        public static string BakeScene(Scene scene)
+        {
+            if (!TryGetSceneNavMesh(scene, out WorldNavMeshAsset asset, out string refusal))
+                return $"[WorldNavMeshBaker] {refusal}";
+
+            string assetPath = AssetDatabase.GetAssetPath(asset);
+            int unbakedFeatures = 0;
+            foreach (var root in scene.GetRootGameObjects())
+                unbakedFeatures += root.GetComponentsInChildren<TerrainFeatureSpawner>(true).Length;
+
+            var sources = new List<NavMeshBuildSource>();
+            bool haveBounds = false;
+            var bounds = new Bounds();
+
+            try
+            {
+                EditorUtility.DisplayProgressBar("Baking world NavMesh", "collecting sources", 0.1f);
+                Physics.SyncTransforms();
+                CollectScene(scene, asset.settings.layerMask, sources, ref bounds, ref haveBounds);
+
+                if (!haveBounds || sources.Count == 0)
+                    return "[WorldNavMeshBaker] collected no NavMesh sources — nothing baked. " +
+                           "Check the layer mask on " + assetPath;
+
+                var stamps = new List<WorldNavMeshAsset.Stamp>
+                {
+                    new WorldNavMeshAsset.Stamp
+                    {
+                        sceneGuid = AssetDatabase.AssetPathToGUID(scene.path),
+                        sceneName = scene.name,
+                        dependencyHash = AssetDatabase.GetAssetDependencyHash(scene.path).ToString(),
+                    },
+                };
+
+                if (!BuildAndStore(asset, asset.config, sources, bounds, stamps, out string bakeReport))
+                    return $"[WorldNavMeshBaker] {bakeReport}";
+
+                return $"[WorldNavMeshBaker] {scene.name}: {bakeReport}" +
+                       (unbakedFeatures > 0
+                           ? $"\n{unbakedFeatures} TerrainFeatureSpawner(s) NOT in the bake (their meshes spawn at runtime)"
+                           : "") +
+                       $"\nwrote {assetPath}";
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        /// <summary>
+        /// True when the scene is a world authored as one scene: its own
+        /// <see cref="WorldNavMeshProvider"/> names a NavMesh that is not a streamed world's. A chunk
+        /// scene has no provider; the streamed world's root has one, pointing at <see cref="AssetPath"/>.
+        /// </summary>
+        public static bool IsSingleSceneWorld(Scene scene) => TryGetSceneNavMesh(scene, out _, out _);
+
+        /// <summary>
+        /// The NavMesh asset a single-scene world bakes into, or why the scene is not one.
+        /// Refuses the chunked world's own asset and any asset whose config lists chunks: baking one
+        /// scene over those would replace a whole streamed world's NavMesh.
+        /// </summary>
+        private static bool TryGetSceneNavMesh(Scene scene, out WorldNavMeshAsset asset, out string refusal)
+        {
+            asset = null;
+            WorldNavMeshProvider provider = null;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                provider = root.GetComponentInChildren<WorldNavMeshProvider>(true);
+                if (provider != null) break;
+            }
+
+            if (provider == null)
+            {
+                refusal = $"'{scene.name}' has no WorldNavMeshProvider — nothing to bake into.";
+                return false;
+            }
+
+            asset = new SerializedObject(provider).FindProperty("worldNavMesh").objectReferenceValue as WorldNavMeshAsset;
+            if (asset == null)
+            {
+                refusal = $"the WorldNavMeshProvider in '{scene.name}' has no asset. Create a " +
+                          "WorldNavMeshAsset for this world, set its Config, and assign it.";
+                return false;
+            }
+
+            string assetPath = AssetDatabase.GetAssetPath(asset);
+            if (assetPath == AssetPath || (asset.config != null && asset.config.chunks != null && asset.config.chunks.Length > 0))
+            {
+                refusal = $"'{scene.name}' points at {assetPath}, a streamed world's NavMesh. Give this " +
+                          "scene its own WorldNavMeshAsset; bake streamed worlds with Bake World NavMesh.";
+                asset = null;
+                return false;
+            }
+
+            refusal = null;
+            return true;
+        }
+
+        /// <summary>
+        /// The half of a bake both routes share: build the mesh from collected sources, replace the
+        /// asset's data and links, record what produced it, save. <paramref name="report"/> is the
+        /// size/time/links line, or why nothing was written.
+        /// </summary>
+        private static bool BuildAndStore(WorldNavMeshAsset asset, WorldStreamingConfig config,
+                                          List<NavMeshBuildSource> sources, Bounds bounds,
+                                          List<WorldNavMeshAsset.Stamp> stamps, out string report)
+        {
+            bounds.Expand(2f);
+
+            EditorUtility.DisplayProgressBar("Baking world NavMesh",
+                $"baking {sources.Count} sources over {bounds.size.x:0} x {bounds.size.z:0} m", 0.55f);
+
+            var t0 = DateTime.UtcNow;
+            var data = NavMeshBuilder.BuildNavMeshData(
+                asset.settings.ToBuildSettings(), sources, bounds, Vector3.zero, Quaternion.identity);
+            double bakeMs = (DateTime.UtcNow - t0).TotalMilliseconds;
+
+            if (data == null)
+            {
+                report = "BuildNavMeshData returned null — nothing baked.";
+                return false;
+            }
+
+            EditorUtility.DisplayProgressBar("Baking world NavMesh", "writing asset", 0.95f);
+            StoreBakedData(asset, data);
+
+            string linkReport = StoreAutoLinks(asset);
+
+            asset.config = config;
+            asset.stamps = stamps.ToArray();
+            asset.sourceCount = sources.Count;
+            asset.bakedAtUtc = DateTime.UtcNow.ToString("u");
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+
+            report = $"baked {sources.Count} sources in {bakeMs / 1000.0:0.0} s.\n" +
+                     $"bounds {bounds.size.x:0} x {bounds.size.y:0} x {bounds.size.z:0} m, " +
+                     $"voxel {asset.settings.voxelSize:0.###} m\n{linkReport}";
+            return true;
         }
 
         /// <summary>

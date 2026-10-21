@@ -127,6 +127,10 @@ namespace SpaceGame.Agents.Residents
         Jostling,
         /// <summary>Not read off a player: names a defence in lines about it (thanks, gossip, rumour).</summary>
         Defending,
+        /// <summary>Not read off a player: a wanted outlaw handed in alive (thanks, gossip, rumour). Bounties.md.</summary>
+        BroughtInAlive,
+        /// <summary>Not read off a player: a wanted outlaw handed in dead.</summary>
+        BroughtInDead,
     }
 
     /// <summary>What a line is about. The <c>topic</c> column of the line TSV.</summary>
@@ -146,6 +150,8 @@ namespace SpaceGame.Agents.Residents
         Grief,
         /// <summary>Passing on news of an attack that just happened (Rumours); the subject is the victim.</summary>
         Rumour,
+        /// <summary>Where the open bounty's target was seen: a tip, said while the crew hunt (Bounties.md). Uses {tip}.</summary>
+        Whereabouts,
     }
 
     /// <summary>The shape of a line, which is what a reply in a chained conversation answers.</summary>
@@ -167,7 +173,7 @@ namespace SpaceGame.Agents.Residents
 
     /// <summary>
     /// A named deed a player did to (or for) a resident: what residents remember, retell and weigh in favor
-    /// (<see cref="Favor"/>). Every kind but <see cref="Defended"/> is harm, and a grudge.
+    /// (<see cref="Favor"/>). Harm, and a grudge, unless it is a kindness (<see cref="Favor.IsHarm"/>).
     /// </summary>
     public enum ActKind : byte
     {
@@ -178,6 +184,10 @@ namespace SpaceGame.Agents.Residents
         Killed,
         /// <summary>Hurt whoever was attacking the resident.</summary>
         Defended,
+        /// <summary>Handed a wanted outlaw in to the resident, alive.</summary>
+        BroughtInAlive,
+        /// <summary>Handed a wanted outlaw in to the resident, dead.</summary>
+        BroughtInDead,
     }
 
     /// <summary>The one live deviation from the day plan a resident can carry.</summary>

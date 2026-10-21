@@ -69,11 +69,11 @@ namespace SpaceGame.Core.Persistence
         /// Reads a world's save and stages it for the next world load.
         ///
         /// Stages nothing on failure, so a refused load leaves the previous choice untouched rather
-        /// than half-applied. <paramref name="config"/> is the world being loaded INTO — the caller
-        /// supplies it because WorldSession must not depend on how a config is found (the menu has
-        /// a serialized reference, SaveHotkeys asks the live streamer).
+        /// than half-applied. <paramref name="configId"/> identifies the world being loaded INTO —
+        /// the caller supplies it because WorldSession must not depend on how a world is found (the
+        /// menu reads its serialized config; a quickload passes <see cref="WorldConfigId"/>).
         /// </summary>
-        public static bool StageExisting(string worldId, WorldStreamingConfig config, out string error)
+        public static bool StageExisting(string worldId, string configId, out string error)
         {
             var slots = new SaveSlots(SaveManager.DefaultRoot);
             SaveFileStore.ReadResult result = SaveFileStore.Read(slots.PathFor(worldId));
@@ -97,7 +97,6 @@ namespace SpaceGame.Core.Persistence
             }
 
             SaveDocument document = result.Document.Normalized();
-            string configId = config != null ? config.ConfigId : string.Empty;
 
             if (!WorldIdentity.AcceptsConfig(document.Header, configId, out error))
                 return false;

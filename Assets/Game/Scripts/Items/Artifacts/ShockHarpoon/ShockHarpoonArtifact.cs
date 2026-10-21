@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SpaceGame.Audio;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Status;
@@ -26,13 +27,13 @@ namespace SpaceGame.Items
     /// </para>
     /// <para>
     /// <b>What it costs</b> (GDC-L1-BAL-0004): one dart, visibly in flight, on a short line; a miss
-    /// still spends the whole reload; and the victim cannot be kept down by alternating shooters,
+    /// still costs the whole trip out and back on the reel; and the victim cannot be kept down by alternating shooters,
     /// because <see cref="ShockedStatus"/> refuses a second shock until the first has worn off and a
     /// breather has passed. It is a control tool, not an execution — the harpoon's own bite is small.
     /// </para>
     /// <para>
-    /// <b>Persistence:</b> nothing, as a decision. The only runtime state is a dart in flight and a
-    /// reload a few seconds long; a gun restored with its harpoon half way to a target would be a bug.
+    /// <b>Persistence:</b> nothing, as a decision. The only runtime state is a dart a few seconds
+    /// out; a gun restored with its harpoon half way to a target would be a bug.
     /// The shock itself is a status, which is deliberately not saved either (StatusEffects.md).
     /// </para>
     /// </summary>
@@ -54,18 +55,18 @@ namespace SpaceGame.Items
         [Tooltip("Harpoon speed, metres per second. Slow enough to be seen in flight — the wire " +
                  "paying out behind it is half of what the item looks like.")]
         [SerializeField] private float flightSpeed = 45f;
-        [Tooltip("Speed the reel winds the harpoon home, metres per second.")]
+        [Tooltip("Speed the reel winds the harpoon home, metres per second. There is no reload " +
+                 "beyond it: the gun fires again the moment the harpoon is back in the barrel.")]
         [SerializeField] private float reelSpeed = 30f;
-        [Tooltip("Seconds from one press to the next. The whole cost of a miss, and longer than a " +
-                 "shot, a full shock and the reel together, so a second harpoon never fires while " +
-                 "the first is still out.")]
-        [SerializeField] private float reloadSeconds = 7f;
 
         [Header("Shock")]
         [Tooltip("Seconds the victim stays down, then gets up. Named here rather than left to the " +
                  "Shocked condition's own default: that default is serialized into every body's " +
                  "StatusReceiver, so a prefab saved earlier would keep its old number. Zero uses it anyway.")]
-        [SerializeField] private float shockSeconds = 5f;
+        [SerializeField] private float shockSeconds = 7.5f;
+        [Tooltip("Seconds the harpoon stays in a body before the reel pulls it out. The shock outlasts " +
+                 "it: the body stays down and crackling after the harpoon is home.")]
+        [SerializeField] private float bodyHoldSeconds = 1.5f;
         [Tooltip("Seconds the harpoon waits in a body for the shock to take before giving up and " +
                  "reeling in — the body was immune, or already dead. Covers the round trip to the server.")]
         [SerializeField] private float shockGrace = 0.6f;
@@ -124,7 +125,6 @@ namespace SpaceGame.Items
         private float wireLength;
         private float nextArc;
         private float nextCrackle;
-        private float cooldownUntil;
         private readonly List<Transform> arcTargets = new List<Transform>();
 
         // ── Authority. A second clock on purpose — see WristBladeArtifact: on a host Present runs
@@ -134,18 +134,23 @@ namespace SpaceGame.Items
         private GameObject authVictim;
 
         /// <summary>
-        /// Owner, before the press leaves: the one machine with a live camera. The hit point and
-        /// the thing hit travel, so every machine flies its dart to the same place on the same body.
+        /// Owner, before the press leaves: the one machine with a live camera, or the server for an
+        /// NPC holder. The hit point and the thing hit travel, so every machine flies its dart to the
+        /// same place on the same body.
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            arg.B = Refused;
-            if (phase != Phase.Loaded || Time.time < cooldownUntil || aimProvider == null) return;
+            // An NPC's press arrives with the shot already aimed (NpcItemFire.AimedArg): from its hand
+            // in P, towards its target in R. A press with neither aims nowhere.
+            bool npc = aimProvider == null;
+            Ray aim = npc ? new Ray(arg.P, arg.R * Vector3.forward) : aimProvider.GetAimRay();
 
-            Ray aim = aimProvider.GetAimRay();
+            arg.B = Refused;
+            if (phase != Phase.Loaded || (npc && arg.P == Vector3.zero)) return;
+
             arg.R = Quaternion.LookRotation(aim.direction);
 
-            if (aimProvider.TryGetAimHit(range, out RaycastHit hit))
+            if (npc ? TryNpcAimHit(aim, out RaycastHit hit) : aimProvider.TryGetAimHit(range, out hit))
             {
                 arg.B = FiredAtSurface;
                 arg.P = hit.point;
@@ -168,7 +173,10 @@ namespace SpaceGame.Items
                 return;
             }
 
-            authCooldownUntil = Time.time + reloadSeconds;
+            // The gun is ready when its harpoon is home, which only the machines drawing the dart
+            // see. The authority refuses only what no real shot could do: fire again before the
+            // harpoon has had time to go out to the hit and be reeled back.
+            authCooldownUntil = Time.time + FlightSeconds(UseArg.P) + ReelSeconds(UseArg.P);
 
             authVictim = UseArg.B == FiredAtSurface ? LivingBody(UseArg.Resolve()) : null;
             if (authVictim == null) return;
@@ -187,7 +195,6 @@ namespace SpaceGame.Items
             // rather than flying two harpoons off one barrel.
             EndShot();
 
-            cooldownUntil = Time.time + reloadSeconds;
             struckSurface = UseArg.B == FiredAtSurface;
 
             GameObject hit = struckSurface ? UseArg.Resolve() : null;
@@ -216,6 +223,9 @@ namespace SpaceGame.Items
 
             wire.Bind(wireLine);
             wire.Show();
+            // The gun fires the harpoon live: the wire crackles all the way out, whatever it is
+            // aimed at. Only once it bites does the current follow the victim's condition.
+            if (current != null) current.Live = true;
 
             Sfx.Play(fireSoundId, muzzle.position, GetInstanceID());
         }
@@ -285,12 +295,12 @@ namespace SpaceGame.Items
                 CollectArcTargets(aimHost);
                 currentSeen = false;
                 Sfx.Play(bodyBiteSoundId, tip, GetInstanceID() + 1);
-                // No length of its own: the current runs exactly as long as the replicated
-                // condition does — see TickStuck.
-                BeginPhase(Phase.Stuck, 0f);
+                BeginPhase(Phase.Stuck, bodyHoldSeconds);
             }
             else
             {
+                // Earthed in a wall: the charge it flew out with is spent.
+                if (current != null) current.Live = false;
                 Sfx.Play(surfaceBiteSoundId, tip, GetInstanceID() + 1);
                 BeginPhase(Phase.Stuck, surfaceHoldSeconds);
             }
@@ -324,10 +334,11 @@ namespace SpaceGame.Items
                 currentSeen = true;
                 TickCurrent();
             }
-            else if (currentSeen || Time.time - phaseStart > shockGrace)
-            {
+
+            // Out after its hold whatever the shock is doing, or early once the shock has gone or
+            // never came.
+            if (Progress() >= 1f || (!live && (currentSeen || Time.time - phaseStart > shockGrace)))
                 StartReel();
-            }
         }
 
         /// <summary>The current running: arcs from the harpoon into the body, and its crackle.</summary>
@@ -354,7 +365,7 @@ namespace SpaceGame.Items
             if (current != null) current.Live = false;
             dart.Free();
             tailFrom = dart.Tail;
-            BeginPhase(Phase.Reeling, Vector3.Distance(tailFrom, muzzle.position) / Mathf.Max(reelSpeed, 0.1f));
+            BeginPhase(Phase.Reeling, ReelSeconds(tailFrom));
         }
 
         private void TickReel()
@@ -406,8 +417,21 @@ namespace SpaceGame.Items
         /// <summary>Where the dart is going: the hit point, carried along by whatever it was on.</summary>
         private Vector3 AimPoint() => aimHost != null ? aimHost.TransformPoint(aimLocal) : aimPoint;
 
+        /// <summary>What an NPC's shot meets first along the wire, its own body and the gun skipped.</summary>
+        private bool TryNpcAimHit(Ray aim, out RaycastHit hit)
+        {
+            int count = Physics.RaycastNonAlloc(aim, NpcHits, range, ~0, QueryTriggerInteraction.Ignore);
+            Transform holder = owner != null ? owner.transform : transform;
+            return AimProvider.NearestOutside(NpcHits, count, holder, transform, out hit);
+        }
+
+        private static readonly RaycastHit[] NpcHits = new RaycastHit[16];
+
         private float FlightSeconds(Vector3 to) =>
             muzzle == null ? 0f : Vector3.Distance(muzzle.position, to) / Mathf.Max(flightSpeed, 0.1f);
+
+        private float ReelSeconds(Vector3 from) =>
+            muzzle == null ? 0f : Vector3.Distance(from, muzzle.position) / Mathf.Max(reelSpeed, 0.1f);
 
         /// <summary>
         /// The living thing <paramref name="hit"/> belongs to — the object carrying its health — or
@@ -425,37 +449,49 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The bone (any transform carrying a collider) nearest the hit, so the dart rides the limb it
-        /// went into when the body goes limp, rather than hanging off a root that stays where it fell.
+        /// The skeleton bone whose segment (the bone to its child) passes nearest the hit, so the dart
+        /// rides the limb it went into when the body goes limp. Bones, not colliders: the standing
+        /// body's root capsule encloses every hit point, and the root stays where the body stood
+        /// while the rig falls — a dart pinned to it hangs in the air over a body on the floor.
         /// </summary>
         private static Transform NearestBone(Transform body, Vector3 point)
         {
+            HashSet<Transform> bones = BodyFrame.BonesOf(body);
             Transform best = body;
             float bestDistance = float.MaxValue;
 
-            foreach (Collider bone in body.GetComponentsInChildren<Collider>())
+            foreach (Transform bone in bones)
             {
-                float d = (bone.bounds.ClosestPoint(point) - point).sqrMagnitude;
+                Transform parent = bone.parent;
+                if (parent == null || !bones.Contains(parent)) continue;
+
+                Vector3 closest = ClosestOnSegment(parent.position, bone.position, point);
+                float d = (closest - point).sqrMagnitude;
                 if (d >= bestDistance) continue;
 
                 bestDistance = d;
-                best = bone.transform;
+                best = parent;
             }
 
             return best;
         }
 
-        /// <summary>Every bone of the body the current can jump to.</summary>
+        private static Vector3 ClosestOnSegment(Vector3 from, Vector3 to, Vector3 point)
+        {
+            Vector3 along = to - from;
+            float lengthSq = along.sqrMagnitude;
+            if (lengthSq < 1e-8f) return from;
+            return from + along * Mathf.Clamp01(Vector3.Dot(point - from, along) / lengthSq);
+        }
+
+        /// <summary>Every bone of the body the current can jump to — the skeleton, which falls with it.</summary>
         private void CollectArcTargets(Transform host)
         {
             arcTargets.Clear();
             if (host == null) return;
 
             GameObject body = LivingBody(host.gameObject);
-            Transform root = body != null ? body.transform : host;
-
-            foreach (Collider bone in root.GetComponentsInChildren<Collider>())
-                if (!bone.isTrigger) arcTargets.Add(bone.transform);
+            if (body != null) arcTargets.AddRange(BodyFrame.BonesOf(body.transform));
 
             if (arcTargets.Count == 0) arcTargets.Add(host);
         }
@@ -477,9 +513,9 @@ namespace SpaceGame.Items
             range = Mathf.Max(1f, range);
             flightSpeed = Mathf.Max(1f, flightSpeed);
             reelSpeed = Mathf.Max(1f, reelSpeed);
-            reloadSeconds = Mathf.Max(0.1f, reloadSeconds);
             shockSeconds = Mathf.Max(0f, shockSeconds);
             shockGrace = Mathf.Max(0.1f, shockGrace);
+            bodyHoldSeconds = Mathf.Max(shockGrace, bodyHoldSeconds);
             damage = Mathf.Max(0, damage);
             arcInterval = Mathf.Max(0.02f, arcInterval);
             crackleInterval = Mathf.Max(0.1f, crackleInterval);

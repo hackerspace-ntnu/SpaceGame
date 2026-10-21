@@ -19,7 +19,7 @@ symptoms:
   - "a creature streamed out mid-hoist comes back unable to move at all"
   - "an animal in the air leans into the dune underneath it"
 reads_with: [AgentSystem, LeashSystem, Jetpack, Locomotion, NavMeshSystem]
-updated: 2026-09-13
+updated: 2026-10-14
 ---
 
 # Carried agents
@@ -36,7 +36,7 @@ it in the air.
 
 **Not this system:** a knockdown. `AgentRagdoll.HoldDown` takes the body away from its motor and
 lets it go limp — the net's meaning, a captured animal. A carried one stays upright, animated and
-angry (`GDC-L1-SYS-0005`: a carry that disabled it would be doing the net's job too).
+angry (`GDC-L1-SYS-0005`: a carry that disabled it would be doing the net's job too). Nor a **lasso** catch: its legs are suspended, so this motor refuses its asks, and `LassoTether` lifts it as a dynamic body with gravity — [Lasso.md](Lasso.md).
 
 ## Model
 

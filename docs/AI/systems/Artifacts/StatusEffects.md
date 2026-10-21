@@ -2,9 +2,11 @@
 system: StatusEffects
 status: implemented
 layer: items
-summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, stasis — owned by the server, presented everywhere"
+summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound, stasis — server-owned, shown everywhere"
 consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity, Artifacts, Oathbranch, SpriteHamletQuest]
-updated: 2026-10-15
+symptoms:
+  - "a status runs out but the body stays down, held, or still lit — the shock light, a frozen player"
+updated: 2026-10-21
 ---
 
 # Status effects
@@ -27,7 +29,7 @@ question. This is that system, written once.
   cryo sprayer both go through it, because a flame and a plume that disagreed about what a body is
   would be two rules to keep in step.
 - **A status is a kind plus an expiry.** `StatusKind` is an enum — `Burning`, `Frozen`, `Slick`,
-  `Inflated`, `Foamed`, `Swallowed`, `Shocked` (6), `Stasis` (7). Reapplying a kind refreshes its expiry rather than stacking a second copy;
+  `Inflated`, `Foamed`, `Swallowed`, `Shocked` (6), `Bound` (7), `Stasis` (8). Reapplying a kind refreshes its expiry rather than stacking a second copy;
   a body is burning or it is not. A kind that must not be extended by the source holding it there
   refuses the refresh through `StatusBehaviour.CanApply` — `Burning` does, so a fire is five seconds
   whatever keeps announcing it.
@@ -56,7 +58,7 @@ question. This is that system, written once.
 | `Slick` | 20 s | Grip 0.03 of normal. Ropes, lassos and nets slide off. Laid by the cryo sprayer on the first touch, ten seconds longer than the `Frozen` that follows |
 | `Inflated` | While pumped, deflates when not | Scale and mass driven by one signed scalar |
 | `Foamed` | 10 s | Held in place (ragdolled, unlike `Frozen`). Broken early by damage |
-| `Shocked` | 3 s default (the Shock Harpoon applies 5 s), not extendable, 2 s immunity after | Helpless and on the floor: a player limp through `BodyHold.Take`, a creature through `AgentRagdoll.HoldDown` (the net's claim), both on every machine off the replicated flag, released the frame it clears. No damage of its own. Applied by the Shock Harpoon ([Artifacts.md](../Artifacts.md)). Drawn by `ShockedVisual`: the body flashes to an X-ray (a ghost of each renderer in `SpaceGame/XRayShell`) with a cartoon skeleton inside (`BodySkeleton`: a bone between every pair of the rig's joints, a skull with eye sockets, ribs), arcs jump along and across the bones, and a blue point light wavers over it. Tuned in `Resources/Effects/ShockLook.asset` |
+| `Shocked` | 3 s default (the Shock Harpoon applies 7.5 s), not extendable, 2 s immunity after | Helpless and on the floor: a player limp through `BodyHold.Take`, a creature through `AgentRagdoll.HoldDown` (the net's claim), both on every machine off the replicated flag, released the frame it clears. No damage of its own. Applied by the Shock Harpoon ([Artifacts.md](../Artifacts.md)). Drawn by `ShockedVisual`: the body flashes to an X-ray (a ghost of each renderer in `SpaceGame/XRayShell`) with a cartoon skeleton inside (`BodySkeleton`: a bone between every pair of the rig's joints, a skull with eye sockets, ribs), arcs jump along and across the bones, and a blue point light wavers over it. Tuned in `Resources/Effects/ShockLook.asset` |
 | `Stasis` | 5 s, **never extended** | Helpless like `Frozen`, inside a shimmering shell. Laid by the Oathbranch's bolt and the sprite hamlet's dome. The look belongs to the kind: `StasisStatus.OnApplied` puts a `StasisShell` on the body on every machine, which holds the animator and draws an ellipsoid fitted to the body's renderers, flickering in the last quarter. Who it passes is `StasisPass` (players + listed factions) |
 | `Swallowed` | Named by the caller (the singularity's is ~3 s) | A flag and a clock, and nothing else — it does **not** suppress. The body has been moved into an interior by whatever ate it; this is how everything else knows. Never extended by a second source |
 
@@ -88,16 +90,18 @@ frozen at the moment of a save reloads thawed and free, which is a small gift ra
 - **Frozen and a save.** A frozen agent has a suppressed motor. If the suppression is written to the
   agent rather than derived from the status every frame, a load restores a creature that never moves
   again. Derive it; do not store it.
+- **`Bound` is `Frozen` with a different look.** Both derive `HeldStandingStatus` (suppresses; a player is held by `BodyHold.TakeStanding`), so the body is HELD standing — root, collider, agent upright — while the lasso's `BoundBody` DRAWS it lying hogtied. The lasso applies it for its own `boundSeconds`; nothing struggles out of it. See [Lasso](../Lasso.md).
 - **A hold is not always a ragdoll.** `BodyHold.Take` puts a player down limp (`Foamed`, the net,
   a hogtie); `BodyHold.TakeStanding` takes control and leaves them upright with the collider on and
   the camera in the helmet, which is what `Frozen` uses — a statue that collapses into a heap is not
   a statue. Both take a claim on the same `PlayerRagdoll` claim set, so two captors cannot free each
   other's captive.
+- **`ActiveStatus.Running` is a stored flag, never `Seconds > 0`.** Activate sets it and only Deactivate clears it. Derived from the clock, a condition stopped "running" the frame its time ran out, Update's expiry check skipped it, and neither `OnCleared` nor `StatusChanged` ever fired: `Has()` read false while the ragdoll hold, the `BodyHold` and the shocked light stayed on for good.
 - **A stun must not be chainable.** `Shocked` refuses a refresh while it runs and refuses a new shock for `immunity` (2 s) after it ends, on the deciding machine (`CanApply`). Without it two shooters taking turns keep a victim on the floor for good (GDC-L1-BAL-0004). A creature's fall goes through `AgentRagdoll.HoldDown`/`ReleaseHold` from `OnApplied`/`OnCleared` — not `NetMsg.Knockdown` — so an early clear stands it up at once rather than when a knock-down timer runs out.
 - **The shocked X-ray never touches the body's materials.** `XRayGhost` adds a second renderer bound to the same mesh and bones (marked `BodyAttachment`, so the ragdoll and the skeleton skip it) and hides the original with `Renderer.forceRenderingOff` — a flag nothing else in the game writes (the singularity's `BodyVeil` uses `enabled`, first person's head hide uses `shadowCastingMode`). Write it from another system and a shock that ends will show that body again behind its back. A `LODGroup` body is ghosted by LOD 0 only, with every level hidden; a ghost per level would draw them all at once, additively.
 - **`BodyFrame` measures which way the face points while the body still stands.** The rigs here face +Z, -Y or whatever their .blend did, so a head bone's axes say nothing; the root's forward does, until the body is limp. The harpoon adds `ShockedVisual` in `Present`, a flight time before the shock lands, for exactly this. A future shock source that adds it to a body already on the floor gets the skull's eye sockets on whatever side the body faced as it lay.
 - **The X-ray strobe is held under three flashes a second** (`ShockLook.xraySeconds` + `normalSeconds`, pinned by `ShockHarpoonTests.TheXRayStrobesUnderThePhotosensitivityLimit`). The game has no reduce-flashing setting, so a full-body flash faster than that would be unsafe as shipped (GDC-L1-FEEL-0006). The light wavers with noise instead of strobing.
-- **A condition's default duration is serialized into every body that carries a receiver.** `StatusReceiver` holds each behaviour as a serialized field, so a prefab saved after `Shocked` existed (`Raider_GearThief`) keeps `seconds: 3` even if `ShockedStatus.DefaultDuration` changes. A source that needs a definite length passes it to `Apply` — the Shock Harpoon does (5 s).
+- **A condition's default duration is serialized into every body that carries a receiver.** `StatusReceiver` holds each behaviour as a serialized field, so a prefab saved after `Shocked` existed (`Raider_GearThief`) keeps `seconds: 3` even if `ShockedStatus.DefaultDuration` changes. A source that needs a definite length passes it to `Apply` — the Shock Harpoon does (7.5 s).
 - **`ShockLook` numbers live in the asset, not in code.** The field initialisers only seed a NEW asset; once `ShockLook.asset` exists, changing a default in `ShockLook.cs` changes nothing on screen.
 - **A condition that must not be lethal must not be a `DamageWatchingStatus`.** `Frozen` used to
   watch damage and kill above a threshold; a victim who can see it coming and can do nothing once it

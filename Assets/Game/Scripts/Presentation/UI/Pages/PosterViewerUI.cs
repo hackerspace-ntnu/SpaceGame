@@ -1,7 +1,7 @@
 // A poster held up to the eye: one printed sheet filling most of the screen over a dark backdrop.
 //
-// Opened by WantedPoster when the player right-clicks one. Purely local — reading a poster changes
-// nothing in the world, so there is nothing to send and nothing to save. Built in code like every
+// Opened by WantedPoster when the player right-clicks one. Reading is local; a poster that offers something
+// (IPosterOffer: a bounty) shows its prompt under the sheet, takes it on Y, and stamps the sheet CLAIMED once it has been handed in. Built in code like every
 // overlay here (UI.md): a lazily built DontDestroyOnLoad singleton that holds GameplayMenuScope
 // while it is up.
 using TMPro;
@@ -16,6 +16,8 @@ namespace SpaceGame.Presentation
         private const float SheetHeight = 900f;
         private const float OpenSeconds = 0.14f;
         private const int SortingOrder = 2030;
+        private const float StampAngle = 14f;
+        private const int StampSize = 120;
 
         private static PosterViewerUI instance;
 
@@ -29,9 +31,15 @@ namespace SpaceGame.Presentation
         private CanvasGroup group;
         private RectTransform sheet;
         private RawImage picture;
+        private TextMeshProUGUI prompt;
+        private TextMeshProUGUI stamp;
+        private IPosterOffer offer;
 
-        /// <summary>Put <paramref name="poster"/> in front of the local player until they put it down.</summary>
-        public static void Show(Texture poster)
+        /// <summary>
+        /// Put <paramref name="poster"/> in front of the local player until they put it down, with what it
+        /// <paramref name="offers"/> (null for nothing).
+        /// </summary>
+        public static void Show(Texture poster, IPosterOffer offers = null)
         {
             if (poster == null) return;
 
@@ -42,10 +50,10 @@ namespace SpaceGame.Presentation
                 instance = go.AddComponent<PosterViewerUI>();
             }
 
-            instance.ShowInternal(poster);
+            instance.ShowInternal(poster, offers);
         }
 
-        private void ShowInternal(Texture poster)
+        private void ShowInternal(Texture poster, IPosterOffer offers)
         {
             if (!open)
             {
@@ -55,6 +63,8 @@ namespace SpaceGame.Presentation
 
             if (!built) Build();
 
+            offer = offers;
+            ShowOffer();
             picture.texture = poster;
             sheet.sizeDelta = new Vector2(SheetHeight * poster.width / poster.height, SheetHeight);
 
@@ -69,6 +79,7 @@ namespace SpaceGame.Presentation
             if (!open) return;
 
             open = false;
+            offer = null;
             group.blocksRaycasts = false;
             GameplayMenuScope.Exit(this);
         }
@@ -81,7 +92,16 @@ namespace SpaceGame.Presentation
 
         private void Update()
         {
-            if (open && Time.frameCount != openedFrame && PutDownPressed()) Close();
+            if (open && Time.frameCount != openedFrame)
+            {
+                ShowOffer();
+                if (TakePressed() && offer != null && offer.CanTake)
+                {
+                    offer.Take();
+                    Close();
+                }
+                else if (PutDownPressed()) Close();
+            }
 
             if (!built) return;
 
@@ -96,6 +116,16 @@ namespace SpaceGame.Presentation
 
             if (visibility <= 0f) group.gameObject.SetActive(false);
         }
+
+        private void ShowOffer()
+        {
+            if (!built) return;
+            prompt.text = offer != null ? offer.Prompt : string.Empty;
+            stamp.text = offer != null ? offer.Stamp : string.Empty;
+            if (offer != null) stamp.color = offer.StampColour;
+        }
+
+        private static bool TakePressed() => Keyboard.current != null && Keyboard.current.yKey.wasPressedThisFrame;
 
         private static bool PutDownPressed()
         {
@@ -137,6 +167,19 @@ namespace SpaceGame.Presentation
             hint.sizeDelta = new Vector2(0f, 30f);
             UIBuilder.Label(hint, "CLICK OR ESC TO PUT IT DOWN", UITheme.CaptionSize, UITheme.Faint,
                 TextAlignmentOptions.Center, FontStyles.Bold);
+
+            RectTransform offerLine = UIBuilder.Rect("Offer", root);
+            offerLine.anchorMin = Vector2.zero;
+            offerLine.anchorMax = new Vector2(1f, 0f);
+            offerLine.pivot = new Vector2(0.5f, 0f);
+            offerLine.anchoredPosition = new Vector2(0f, 64f);
+            offerLine.sizeDelta = new Vector2(0f, 34f);
+            prompt = UIBuilder.Label(offerLine, string.Empty, UITheme.LabelSize, UITheme.AccentWarm,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+
+            RectTransform stampRect = UIBuilder.Fill(UIBuilder.Rect("Stamp", sheet));
+            stampRect.localRotation = Quaternion.Euler(0f, 0f, StampAngle);
+            stamp = UIBuilder.Label(stampRect, string.Empty, StampSize, UITheme.Danger, TextAlignmentOptions.Center, FontStyles.Bold);
 
             visibility = 0f;
             group.gameObject.SetActive(false);

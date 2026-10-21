@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -11,7 +10,6 @@ using SpaceGame.Items;
 using SpaceGame.Locomotion;
 using SpaceGame.Persistence;
 using SpaceGame.Presentation;
-using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.World
 {
@@ -37,7 +35,7 @@ namespace SpaceGame.World
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class Liftable : NetworkBehaviour, IInteractable, IContextualInteractable, IInteractionReadout,
+    public sealed class Liftable : NetworkBehaviour, ILiftLoad, IInteractable, IContextualInteractable, IInteractionReadout,
                                    IInteractionMoment, IPersistentEntity, ISavedPose
     {
         [Tooltip("What this load is, for a destination deciding whether it belongs there.")]
@@ -158,17 +156,17 @@ namespace SpaceGame.World
         private bool spawned;
 
         // This machine's own player, while it is the carrier.
-        private PlayerMovement localMovement;
-        private PlayerController localController;
-        private CharacterActions localActions;
-        private PlayerInputManager localInputs;
-        private Interactor localInteractor;
-        private IPlayerInventory localInventory;
+        private LiftHands hands;
         private float liftRequestedAt = float.NegativeInfinity;
         private bool puttingDown;
-        private float settleEndsAt = -1f;
         private int handledFrame = -1;
-        private int grantedFrame = -1;
+
+        // The ground under a carried load, probed down from above the hands.
+        private float probeFrom, lastGround;
+        private Func<float, float, float> groundAt;
+
+        // Where above the hands the ground probes start: under a cabin roof, over a ramp lip.
+        private const float ProbeAboveHands = 1.5f;
 
         private Vector3 lastFoot;
         private float slid;
@@ -305,15 +303,8 @@ namespace SpaceGame.World
         /// A body that may lift this load: standing within reach of its grips, alive, its own hands free (no cart, no seat), and
         /// with the arms a lift needs.
         /// </summary>
-        private bool MayLift(GameObject who)
-        {
-            if (who == null || !WithinReach(who.transform.position)) return false;
-            if (who.TryGetComponent(out PlayerController controller) && controller.IsDead) return false;
-            if (who.TryGetComponent(out PlayerSeating seating) && seating.IsSeated) return false;
-            if (who.TryGetComponent(out PlayerPushing pushing) && pushing.IsPushing) return false;
-            if (who.TryGetComponent(out PlayerMovement movement) && movement.IsHauling && !IsCarriedBy(who)) return false;
-            return LiftCarrier.On(who).CanReach;
-        }
+        private bool MayLift(GameObject who) =>
+            who != null && WithinReach(who.transform.position) && LiftHands.MayTakeHold(who, IsCarriedBy(who));
 
         private bool WithinReach(Vector3 point)
         {
@@ -349,9 +340,9 @@ namespace SpaceGame.World
 
             puttingDown = true;
             Pose restPose = carrier.RestFromHere();
-            float seconds = PlayOnCarrier(setDownAction);
+            float seconds = LiftHands.Play(carrier.gameObject, setDownAction, fallbackSeconds);
             carrier.Lower(restPose, seconds);
-            settleEndsAt = Time.time + seconds;
+            Hands.SettleEndsAt = Time.time + seconds;
 
             var arg = new NetArg { A = 0, P = restPose.position, R = restPose.rotation }.With(carrier.gameObject);
             this.NetToServer(NetMsg.LiftRequest, arg);
@@ -426,8 +417,7 @@ namespace SpaceGame.World
         private void Update()
         {
             if (Network.Decides) Judge();
-            if (CarriedByLocalPlayer) ReadLocalInput();
-            TrackLocalPace();
+            Hands.Tick();
             Present(Time.deltaTime);
         }
 
@@ -460,7 +450,9 @@ namespace SpaceGame.World
                 if (carrier != null)
                 {
                     // The carrier's own machine is already lowering onto this pose; anyone else starts now.
-                    float seconds = settleEndsAt > Time.time ? settleEndsAt - Time.time : SecondsOf(setDownAction, carrier.gameObject);
+                    float seconds = Hands.SettleEndsAt > Time.time
+                        ? Hands.SettleEndsAt - Time.time
+                        : LiftHands.SecondsOf(setDownAction, carrier.gameObject, fallbackSeconds);
                     carrier.Lower(restPose, seconds);
                     carrier = null;
                 }
@@ -476,142 +468,30 @@ namespace SpaceGame.World
             if (who == null) return;                       // not resolved here yet: Present asks again
 
             LiftCarrier next = LiftCarrier.On(who);
-            if (carrier == next && next.Load == this) return;
+            if (carrier == next && ReferenceEquals(next.Load, this)) return;
 
             carrier = next;
             bool own = Network.Owns(who.transform);
-            float liftSeconds = own ? PlayOnCarrier(liftAction) : SecondsOf(liftAction, who);
+            float liftSeconds = own
+                ? LiftHands.Play(who, liftAction, fallbackSeconds)
+                : LiftHands.SecondsOf(liftAction, who, fallbackSeconds);
             carrier.Lift(this, liftSeconds, skipLift ? 1f : 0f);
-            settleEndsAt = own ? Time.time + liftSeconds : -1f;
 
-            grantedFrame = Time.frameCount;
-            if (own) TakeLocalHands(who);
+            if (!own) return;
+            Hands.Take(who);
+            Hands.SettleEndsAt = Time.time + liftSeconds;
         }
 
-        /// <summary>The carrier's own player: hands emptied, input heard, the walk slowed. Given back by <see cref="TrackLocalPace"/>.</summary>
-        private void TakeLocalHands(GameObject who)
-        {
-            ReleaseLocalHands();
-            localMovement = who.GetComponent<PlayerMovement>();
-            localController = who.GetComponent<PlayerController>();
-            if (localController == null) return;
-
-            localInventory = localController.PlayerInventory;
-            if (localInventory != null)
-            {
-                // Both hands are on the load: whatever was in them goes away, and drawing something puts the load down.
-                if (localInventory.SelectedSlotIndex >= 0) localInventory.SelectSlot(localInventory.SelectedSlotIndex);
-                localInventory.OnSlotSelected += OnLocalSlotSelected;
-            }
-
-            localInputs = localController.Input;
-            if (localInputs != null) localInputs.OnInteractPressed += OnLocalInteractPressed;
-        }
-
-        private void ReleaseLocalHands()
-        {
-            if (localInventory != null) localInventory.OnSlotSelected -= OnLocalSlotSelected;
-            if (localInputs != null) localInputs.OnInteractPressed -= OnLocalInteractPressed;
-            localInventory = null;
-            localInputs = null;
-            localInteractor = null;
-            if (localMovement != null) localMovement.StopHauling();
-            localMovement = null;
-            localController = null;
-        }
-
-        // Interact anywhere puts the load down, not only with the crosshair on it. Not on the frame the lift was granted:
-        // offline the grant lands inside the very press that asked for it.
-        private void OnLocalInteractPressed()
-        {
-            if (carrier == null || AimsAtDock()) return;
-            if (PutsDown(false, true, true, Time.frameCount == grantedFrame)) OnLocalInteract(carrier.gameObject);
-        }
-
-        // The same press at a dock that takes this load means "set it in", which the dock asks for itself.
-        private bool AimsAtDock()
-        {
-            if (localInteractor == null) localInteractor = carrier.GetComponentInChildren<Interactor>(true);
-            return localInteractor != null && localInteractor.HoveredInteractable is LiftDock dock && dock.Takes(this);
-        }
-
-        private void OnLocalSlotSelected(InventorySlot slot)
-        {
-            if (slot != null && !slot.IsEmpty && CarriedByLocalPlayer) PutDownLocal();
-        }
-
-        /// <summary>
-        /// This machine's carrier walks at the carry pace, and stands still while the lift or the set-down plays: a body that
-        /// walked off mid-heave would leave its hands behind. Given back the frame the load is out of its hands.
-        /// </summary>
-        private void TrackLocalPace()
-        {
-            if (localMovement == null) return;
-
-            bool carrying = CarriedByLocalPlayer;
-            bool settling = Time.time < settleEndsAt;
-
-            if (!carrying && !settling)
-            {
-                ReleaseLocalHands();
-                return;
-            }
-
-            localMovement.StartHauling(settling ? 0f : localMovement.WalkSpeed * carrySpeedFraction);
-        }
-
-        /// <summary>Esc or death puts the load down — the carrier's own machine only. Interact and a drawn item are events.</summary>
-        private void ReadLocalInput()
-        {
-            if (carrier == null || localController == null) return;
-
-            if (localController.IsDead)
-            {
-                PutDownLocal();
-                return;
-            }
-
-            // Gated on the shared menu scope, as the seat's Esc is: the chat box and the settings fields use Esc for "never
-            // mind", and closing one of those must not drop the load as a side effect.
-            Keyboard keys = Keyboard.current;
-            if (keys != null && PutsDown(keys.escapeKey.wasPressedThisFrame, false, GameplayMenuScope.AcceptsGameplayInput, false))
-                PutDownLocal();
-        }
-
-        /// <summary>
-        /// Does this frame's input put a carried load down? Esc does — unless a menu, the chat box or a settings field has it,
-        /// where Esc means "never mind" — and interact does, except on the frame the lift was granted (offline that is the very
-        /// press that asked for it).
-        /// </summary>
-        public static bool PutsDown(bool escape, bool interact, bool gameplayInput, bool grantedThisFrame) =>
-            (escape && gameplayInput) || (interact && !grantedThisFrame);
-
-        /// <summary>Plays <paramref name="action"/> on this machine's carrier and answers how long it lasts.</summary>
-        private float PlayOnCarrier(CharacterAction action)
-        {
-            GameObject who = carrier != null ? carrier.gameObject : BodyOf(State.Carrier);
-            if (who == null) return fallbackSeconds;
-
-            if (localActions == null || localActions.gameObject != who) localActions = who.GetComponentInChildren<CharacterActions>(true);
-            if (action != null && localActions != null) localActions.Play(action);
-            return SecondsOf(action, who);
-        }
-
-        /// <summary>How long <paramref name="action"/> plays on <paramref name="who"/>: the same on every machine, from the body's own seed.</summary>
-        private float SecondsOf(CharacterAction action, GameObject who)
-        {
-            if (action == null || who == null) return fallbackSeconds;
-
-            CharacterActions actions = who.GetComponentInChildren<CharacterActions>(true);
-            float speed = actions != null ? actions.PlaybackSpeed(action) : 1f;
-            return action.Seconds(0, speed);
-        }
+        /// <summary>This machine's player's hands while they carry the load. See <see cref="LiftHands"/>.</summary>
+        private LiftHands Hands => hands ??= new LiftHands(this, () => CarriedByLocalPlayer, PutDownLocal,
+                                                           () => { if (carrier != null) OnLocalInteract(carrier.gameObject); },
+                                                           () => carrySpeedFraction);
 
         private void LetGoHere()
         {
-            if (carrier != null && carrier.Load == this) carrier.Drop();
+            if (carrier != null && ReferenceEquals(carrier.Load, this)) carrier.Drop();
             carrier = null;
-            ReleaseLocalHands();
+            Hands.Release();
         }
 
         /// <summary>
@@ -664,18 +544,72 @@ namespace SpaceGame.World
         /// </summary>
         public void SetHeldBy(LiftCarrier by)
         {
+            if (heldBy != null) SetSeenByGround(heldByColliders, true);
             heldBy = by;
+
             if (by != null)
             {
+                // The carrier's own body is not ground to rest the far end on.
+                heldByColliders = by.GetComponentsInChildren<Collider>(false);
+                SetSeenByGround(heldByColliders, false);
+                lastGround = transform.position.y;
+                groundAt ??= GroundAt;
+
                 offWhileHeld.Clear();
                 foreach (Collider c in ownColliders)
                     if (c != null && c.enabled) { c.enabled = false; offWhileHeld.Add(c); }
                 return;
             }
 
+            heldByColliders = Array.Empty<Collider>();
             foreach (Collider c in offWhileHeld) if (c != null) c.enabled = true;
             offWhileHeld.Clear();
+
+            // Let go where it is: the kinematic body back in step with the transform it was posed by.
+            Place(new Pose(transform.position, transform.rotation));
         }
+
+        private Collider[] heldByColliders = Array.Empty<Collider>();
+
+        // ── In the hands (ILiftLoad) ─────────────────────────────────────────
+
+        bool ILiftLoad.CanBeHeld => Shape.IsValid;
+
+        Vector3 ILiftLoad.Axis => transform.rotation * Shape.Axis;
+
+        Vector3 ILiftLoad.GripOf(Pose pose) => pose.position + pose.rotation * Shape.Grip;
+
+        void ILiftLoad.Grips(Transform carrier, Vector3 grip, out Vector3 left, out Vector3 right)
+        {
+            left = gripLeft.position;
+            right = gripRight.position;
+        }
+
+        /// <summary>
+        /// Posed rigidly from the hands: the near end on the grip, the far end pitched down until it touches the ground under
+        /// it (<see cref="LiftPoseSolver"/>), blended from where it lay while the hands close and onto its rest as they let go.
+        /// </summary>
+        void ILiftLoad.Hold(in LiftFrame frame)
+        {
+            probeFrom = Mathf.Max(frame.CarryPoint.y, transform.position.y) + ProbeAboveHands;
+
+            Pose pose = LiftPoseSolver.Solve(Shape, frame.Grip, frame.Heading, groundAt);
+            if (frame.FromStart < 1f)
+                pose = new Pose(Vector3.Lerp(frame.From.position, pose.position, frame.FromStart),
+                                Quaternion.Slerp(frame.From.rotation, pose.rotation, frame.FromStart));
+            if (frame.ToRest > 0f)
+                pose = new Pose(Vector3.Lerp(pose.position, frame.Rest.position, frame.ToRest),
+                                Quaternion.Slerp(pose.rotation, frame.Rest.rotation, frame.ToRest));
+
+            Place(pose);
+            lastGround = pose.position.y;
+        }
+
+        /// <summary>Lying on its underside along the ground's slope where it is now.</summary>
+        public Pose RestFromHere() =>
+            LiftPoseSolver.Rest(Shape, new Pose(transform.position, transform.rotation), groundAt ??= GroundAt);
+
+        private float GroundAt(float x, float z) => GroundY(x, z, probeFrom, lastGround);
 
         /// <summary>
         /// Ground height at a world x, z, probed down from <paramref name="fromY"/>; <paramref name="fallback"/> where nothing is
@@ -720,7 +654,7 @@ namespace SpaceGame.World
         public Vector3 PositionToSave => SavedPose.position;
         public Quaternion RotationToSave => SavedPose.rotation;
 
-        private Pose SavedPose => heldBy != null && heldBy.Load == this
+        private Pose SavedPose => heldBy != null && ReferenceEquals(heldBy.Load, this)
             ? heldBy.RestFromHere()
             : new Pose(transform.position, transform.rotation);
 

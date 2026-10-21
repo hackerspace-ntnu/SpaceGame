@@ -35,6 +35,7 @@ namespace SpaceGame.Agents.Residents
         private InventoryItem carried;
         private CharacterCue station;
         private bool pushing;
+        private bool armed;
         private int wantedSlot = NoSlot;
         private bool dirty = true;
         private bool failed;
@@ -103,6 +104,15 @@ namespace SpaceGame.Agents.Residents
             dirty = true;
         }
 
+        /// <summary>Whether it is in a fight with a weapon it fires (<see cref="ResidentWeaponModule"/>): the weapon is drawn.</summary>
+        public void Armed(bool now)
+        {
+            if (armed == now) return;
+
+            armed = now;
+            dirty = true;
+        }
+
         /// <summary>What an errand has put in its arms; null when it carries nothing.</summary>
         public void Carrying(InventoryItem item)
         {
@@ -148,16 +158,17 @@ namespace SpaceGame.Agents.Residents
             string refusal = belt == null ? "the resident has no BeltCarrier" : null;
             bool stowable = toolSlot != NoSlot && belt != null && belt.CanStow(toolSlot, out refusal);
 
-            HandContents contents = ResidentHandsRule.Wanted(activity, atPlace, carriedSlot != NoSlot, stowable, pushing);
+            bool wantsTool = armed || ResidentHandsRule.NeedsTool(activity, atPlace);
+            HandContents contents = ResidentHandsRule.Wanted(activity, atPlace, carriedSlot != NoSlot, stowable, pushing, armed);
             // Work whose clips are done with empty hands (wiping, rummaging) or move both arms like a gesture (explaining at a stall):
-            // the tool goes on the belt, if it can.
-            if (contents == HandContents.Tool && stowable && ResidentHandsRule.EmptyHandsFor(station) && ResidentHandsRule.NeedsTool(activity, atPlace))
+            // the tool goes on the belt, if it can. Not a drawn weapon: the fight outranks the station.
+            if (contents == HandContents.Tool && stowable && !armed && ResidentHandsRule.EmptyHandsFor(station) && ResidentHandsRule.NeedsTool(activity, atPlace))
                 contents = HandContents.Empty;
 
-            if (contents == HandContents.Tool && toolSlot != NoSlot && !ResidentHandsRule.NeedsTool(activity, atPlace) && refusal != null)
+            if (contents == HandContents.Tool && toolSlot != NoSlot && !wantsTool && refusal != null)
                 ReportNotStowable(tool, refusal);
 
-            if (contents == HandContents.Tool && ResidentHandsRule.NeedsTool(activity, atPlace) && tool != null && toolSlot == NoSlot)
+            if (contents == HandContents.Tool && wantsTool && tool != null && toolSlot == NoSlot)
             {
                 toolMissing = true;
                 Report($"no tool:{resident.name}:{tool.name}",

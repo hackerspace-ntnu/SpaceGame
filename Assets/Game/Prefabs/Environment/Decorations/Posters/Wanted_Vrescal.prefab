@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &7917451836822220283
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4238879560891250814, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_Name
+      value: Wanted_Vrescal
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: agent
+      value: 
+      objectReference: {fileID: 2563642616604865102, guid: d5f32909fa9d847598b3f53e90ad3cdd, type: 3}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: poster
+      value: 
+      objectReference: {fileID: 2800000, guid: 94b407054bae142b18e9578f9d585565, type: 3}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: reward
+      value: 900 jugs of water
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: status
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: accent.b
+      value: 0.38
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: accent.g
+      value: 0.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: accent.r
+      value: 0.72
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: bakedFrom
+      value: 18c0fcb5ed
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: displayName
+      value: Vrescal
+      objectReference: {fileID: 0}
+    - target: {fileID: 4851137976307949973, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: portraitSpan
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9062932165122316797, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b79ddd61c58b54200801e6b63d0ef558, type: 3}

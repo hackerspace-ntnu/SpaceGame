@@ -30,18 +30,18 @@ namespace SpaceGame.Agents
 
         [Tooltip("Closest the target may be. Below this the module passes, so a melee module or a " +
                  "back-off module handles it instead.")]
-        [SerializeField] private float minRange = 3f;
+        [SerializeField] protected float minRange = 3f;
 
         [Tooltip("Furthest the target may be. Also widens AgentTargeting's acquisition range at " +
                  "startup, so an NPC equipped to shoot 40 m actually notices things at 40 m.")]
-        [SerializeField] private float maxRange = 30f;
+        [SerializeField] protected float maxRange = 30f;
 
         [Range(0f, 1f)]
         [Tooltip("WhenHurt only: use once health falls to this fraction of maximum.")]
         [SerializeField] private float hurtThreshold = 0.4f;
 
         [Header("Cadence")]
-        [SerializeField] private float cooldown = 1.4f;
+        [SerializeField] protected float cooldown = 1.4f;
 
         [Tooltip("Shots per trigger. 1 for a single shot.")]
         [SerializeField] private int burstCount = 1;

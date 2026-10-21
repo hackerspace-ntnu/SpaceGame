@@ -7,7 +7,8 @@ using UnityEngine.Rendering;
 namespace SpaceGame.Tests
 {
     /// <summary>
-    /// The register of worn gear <c>PlayerLook</c> keeps out of its own camera's view.
+    /// The register of runtime renderers <c>PlayerLook</c> keeps out of its own camera's view — the
+    /// worn pack, and the parts of somebody carried over the shoulder.
     ///
     /// <para>
     /// What this pins is the HAND-BACK, not the hiding. Hiding is decided per camera render by a
@@ -41,6 +42,9 @@ namespace SpaceGame.Tests
             spawned.Clear();
         }
 
+        /// <summary>The owner the pack registers under, as <c>BackpackController</c> does with itself.</summary>
+        private static readonly object Pack = new object();
+
         private PlayerLook Look()
         {
             var go = new GameObject("Player");
@@ -62,14 +66,14 @@ namespace SpaceGame.Tests
             PlayerLook look = Look();
             Renderer pack = Renderer("Pack");
 
-            look.SetWornHidden(new[] { pack });
+            look.HideFromEye(Pack, new[] { pack });
 
             // Stand in for the frame the wearer's own camera rendered while the pack was on their
             // back: that is the only thing that ever writes this mode, and it is what has to be
             // undone.
             pack.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
 
-            look.SetWornHidden(null);
+            look.HideFromEye(Pack, null);
 
             Assert.That(pack.shadowCastingMode, Is.EqualTo(ShadowCastingMode.On),
                         "a pack that has left the player's back must be drawn to them again");
@@ -82,14 +86,14 @@ namespace SpaceGame.Tests
             Renderer oldCopy = Renderer("Old display copy");
             Renderer newCopy = Renderer("New display copy");
 
-            look.SetWornHidden(new[] { oldCopy });
+            look.HideFromEye(Pack, new[] { oldCopy });
             oldCopy.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
 
             // What every contents change does: the display copies are rebuilt wholesale and the
             // register is replaced with the new set. The outgoing copies are usually destroyed with
             // the rebuild, but not always — the rig's own meshes survive it — so the hand-back has
             // to happen on a replacement and not only on a clear.
-            look.SetWornHidden(new[] { newCopy });
+            look.HideFromEye(Pack, new[] { newCopy });
 
             Assert.That(oldCopy.shadowCastingMode, Is.EqualTo(ShadowCastingMode.On),
                         "a renderer dropped from the register must be drawn again");
@@ -101,14 +105,36 @@ namespace SpaceGame.Tests
             PlayerLook look = Look();
             Renderer copy = Renderer("Display copy");
 
-            look.SetWornHidden(new[] { copy });
+            look.HideFromEye(Pack, new[] { copy });
 
             // The ordinary case, not an edge one: a rebuild destroys every display copy before the
             // controller hands over the new set, so the register is always holding dead entries by
             // the time it is replaced.
             Object.DestroyImmediate(copy.gameObject);
 
-            Assert.DoesNotThrow(() => look.SetWornHidden(null));
+            Assert.DoesNotThrow(() => look.HideFromEye(Pack, null));
+        }
+
+        [Test]
+        public void OneOwnerClearingItsSetLeavesAnotherOwnersHidden()
+        {
+            PlayerLook look = Look();
+            Renderer pack = Renderer("Pack");
+            Renderer cape = Renderer("Carried captive's cape");
+            var captive = new object();
+
+            look.HideFromEye(Pack, new[] { pack });
+            look.HideFromEye(captive, new[] { cape });
+            pack.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            cape.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+
+            // Putting the captive down must not hand the pack back to the eye it was hidden from: the
+            // register used to be one slot, and a second user would have replaced the pack's set.
+            look.HideFromEye(captive, null);
+
+            Assert.That(cape.shadowCastingMode, Is.EqualTo(ShadowCastingMode.On), "the put-down captive's cape stayed hidden from the eye");
+            Assert.That(pack.shadowCastingMode, Is.EqualTo(ShadowCastingMode.ShadowsOnly),
+                        "clearing the captive's set gave the pack back too");
         }
     }
 }

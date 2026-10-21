@@ -18,7 +18,7 @@ symptoms:
   - "the gust drops me halfway up, or carries me past the plateau"
   - "the ring is scrambled again after loading a save"
 reads_with: [SunShrine, InteractionSystem, Multiplayer, Persistence, PlayerCharacter, ArtPipeline]
-updated: 2026-09-30
+updated: 2026-10-21
 ---
 
 # Weathervane Puzzle
@@ -71,7 +71,7 @@ permanent**: the cranks lock and the gust stays open, so nobody is stranded on t
 
 ## Multiplayer
 
-- `NetMsg.DialTurn` (140, player → server) and `DialState` (141, server → all) on the **ring's** relay (named `VaneTurn`/`VaneState` until the sun shrine shared them; 117/118 until the 2026-10-15 merge with main, which had taken 117–139). A client asks once spawned through `NetMessaging.NetToServerWhenSpawned`, as `NetLatch` does — the ask/announce shape of `LatchSet`/`LatchState`, widened to a packed ring.
+- `NetMsg.DialTurn` (142, player → server) and `DialState` (143, server → all) on the **ring's** relay (named `VaneTurn`/`VaneState` until the sun shrine shared them; 117/118 until the 2026-10-15 merge with main, which had taken 117–139; 140/141 until the 2026-10-21 merge, which took those for captive hauling). A client asks once spawned through `NetMessaging.NetToServerWhenSpawned`, as `NetLatch` does — the ask/announce shape of `LatchSet`/`LatchState`, widened to a packed ring.
 - **Server decides the arrangement; every machine presents it; each owner flies its own body.** The gust is never applied by the server: the player's `NetworkTransform` is owner-authoritative. Remote riders are seen through transform sync.
 - **Until a client has heard the arrangement, `IsKnown` is false**: cranks refuse and the gust stays shut. Before that the default positions are all zero, which *is* solved.
 - The root needs an in-scene `NetworkObject` + `NetRelay`. Without them the ring still works on each machine alone.

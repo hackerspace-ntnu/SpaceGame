@@ -1,9 +1,11 @@
 // Fills the {tokens} in a resident's line from the speaker and the resident the line is about.
-// Runs on every machine when a line arrives, from baked roster data only, so every machine resolves
-// the same sentence. A token with nothing to name becomes a neutral word, never raw braces.
+// Runs on every machine when a line arrives, from baked roster data and the replicated bounty (BountyBoard)
+// only, so every machine resolves the same sentence. A token with nothing to name becomes a neutral word,
+// never raw braces.
 using System;
 using System.Collections.Generic;
 using System.Text;
+using SpaceGame.World.Bounties;
 
 namespace SpaceGame.Agents.Residents
 {
@@ -20,7 +22,12 @@ namespace SpaceGame.Agents.Residents
             { "{ambition}", "a quiet life" },
             { "{need}", "water" },
             { "{place}", "here" },
+            { "{target}", "that outlaw" },
+            { TipToken, "I haven't heard a thing." },
         };
+
+        /// <summary>A whole sentence: the open bounty's tip this speaker gives, which may itself name {target}.</summary>
+        private const string TipToken = "{tip}";
 
         public static IReadOnlyCollection<string> Known => Fallbacks.Keys;
 
@@ -45,12 +52,16 @@ namespace SpaceGame.Agents.Residents
         /// speaker's first such bond. <c>{item}</c> is what the speaker's archetype carries.
         /// <c>{place}</c> is what the speaker's held spot is called (its use's display name), or "here" when it holds none.
         /// <c>{ambition}</c> and <c>{need}</c> have no data behind them yet and always say the neutral word.
+        /// <c>{tip}</c> is the open bounty's tip this speaker gives and <c>{target}</c> its target's name (Bounties.md);
+        /// the tip goes in first, so a tip may name the target too.
         /// </summary>
         public static string Resolve(string text, Resident speaker, Resident subject)
         {
             if (string.IsNullOrEmpty(text) || text.IndexOf('{') < 0) return text;
 
             var builder = new StringBuilder(text);
+            BountyBoard bounties = BountyBoard.Instance;
+            builder.Replace(TipToken, (bounties != null ? bounties.TipFor(speaker) : null) ?? Fallbacks[TipToken]);
             foreach (KeyValuePair<string, string> token in Fallbacks)
             {
                 int at = IndexOf(builder, token.Key);
@@ -74,6 +85,7 @@ namespace SpaceGame.Agents.Residents
                 ? speaker.archetype.heldItem.itemName
                 : null,
             "{place}" => PlaceNameOf(speaker),
+            "{target}" => BountyBoard.Instance != null ? BountyBoard.Instance.TargetName : null,
             _ => null,
         };
 

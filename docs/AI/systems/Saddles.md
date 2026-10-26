@@ -26,7 +26,7 @@ symptoms:
   - "the rider crouches on the animal with the knees at the chest instead of sitting in the saddle"
   - "the rider's sitting position looks extremely unnatural"
 reads_with: [AgentSystem, Backpack, Artifacts, Vehicles]
-updated: 2026-10-21
+updated: 2026-10-26
 ---
 
 # Saddles
@@ -46,7 +46,7 @@ Three pieces, each living where it belongs:
 | `MountedRiderPose` | the **animal** (every saddled one) | Sits the rider in the `Ride` clip (seated mocap, legs round the barrel) and, with a saddle on, the pelvis held `hipsAboveSeat` over `RiderSeat` every frame and rocked by `swayFollow` of the saddle's tilt, so the rider rides the animal's back ([Vehicles.md](Vehicles.md)). Esko, Sandloper, Appa (NomadAppa inherits it), RobotHorse, ClankerOutrider. |
 | `AppaSaddle.prefab` / `SandloperSaddle.prefab` | instantiated onto a bone | The visual, the `PackContainer`, the removal trigger. The robot horse and the Esko wear the Sandloper's (narrow, boards behind the cantle). The Esko copies Appa's whole stack, but Appa's saddle is 2.5 m wide in root units against its 0.86 m back. |
 | `SaddlePlacement` | the **item** | The saddle is a [placeable](Placeables.md); this is its rule. Criteria: an animal with a free socket that accepts a saddle. Logic: `Fit()`. Refusal hint for a wary animal: `wary`. |
-| `CreatureTrust` | the **animal**, optional | An animal that must be won over first: `SaddleSocket.AcceptsSaddle` is false until enough pets (`PettableModule.Petted`, counted by the owner, `NetMsg.TrustSet`, saved by `CreatureTrustSaveable`). `Decide` refuses too, so a stale client cannot force one on. Without it a socket accepts at once. The ranch's eskos carry it ([Ranch.md](Ranch.md)). |
+| `CreatureTrust` | the **animal**, optional | An animal that must be won over first: `SaddleSocket.AcceptsSaddle` is false until `CreatureTrust.IsTame` (enough pets, `PettableModule.Petted`, counted on the server, replicated by its `NetworkVariable`, saved by `CreatureTrustSaveable`). `Decide` refuses too, so a stale client cannot force one on. Without it a socket accepts at once. The ranch's eskos carry it ([Ranch.md](Ranch.md)). |
 | `SteerModule` | the **animal** | Rider input to the motor. Always on; it self-gates on `IsMounted`. |
 | `SaddleQuickRelease` | the **animal** | `Q` while standing beside it. Same `Request(false)` as the grips. |
 

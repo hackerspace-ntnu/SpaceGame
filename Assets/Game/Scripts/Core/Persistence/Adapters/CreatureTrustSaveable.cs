@@ -6,37 +6,37 @@ using SpaceGame.Persistence;
 namespace SpaceGame.Core.Persistence
 {
     /// <summary>
-    /// Persists how far an animal has come to trust people (<see cref="CreatureTrust"/>). It cannot be recomputed:
-    /// nothing in the world records the pets that won it over, and without this a trusting animal reloads wary and
-    /// refuses the saddle it was ready for.
+    /// Keeps a creature as tame as the players made it (<see cref="CreatureTrust"/>). It cannot be recomputed:
+    /// nothing in the world records the gifts or pets that won it over, so a creature that forgets it on load
+    /// hands back every item it was given for nothing, or refuses the saddle it was ready for.
+    /// Whether it is dead is not here: that is <see cref="HealthSaveable"/>'s.
     /// </summary>
     [RequireComponent(typeof(CreatureTrust))]
     public class CreatureTrustSaveable : MonoBehaviour, ISaveable
     {
-        public const string Key = "trust";          // written into save files — NEVER rename
+        public const string Key = "creatureTrust";   // written into save files — NEVER rename
 
-        private CreatureTrust trust;
+        private CreatureTrust creatureTrust;
 
-        private CreatureTrust Trust => trust != null ? trust : trust = GetComponent<CreatureTrust>();
+        // Lazy, NOT cached in Awake: EditMode tests never run Awake.
+        private CreatureTrust Trust => creatureTrust != null ? creatureTrust : creatureTrust = GetComponent<CreatureTrust>();
 
         public string SaveKey => Key;
 
         public struct State
         {
-            public int pets;
+            public float trust;
         }
 
-        public object CaptureState()
-        {
-            // Null for an animal nobody has petted, so the common case costs no bytes.
-            if (Trust == null || Trust.Pets == 0) return null;
-            return new State { pets = Trust.Pets };
-        }
+        public object CaptureState() =>
+            Trust != null && Trust.Trust > 0f ? new State { trust = Trust.Trust } : null;
 
         public void RestoreState(JObject state)
         {
             if (Trust == null) return;
-            Trust.Restore(state == null ? 0 : state.ToObject<State>(SaveSerializer.Serializer).pets);
+
+            // No entry means wild, and it has to be said: a previous restore may have tamed it.
+            Trust.Restore(state != null ? state.ToObject<State>(SaveSerializer.Serializer).trust : 0f);
         }
     }
 }

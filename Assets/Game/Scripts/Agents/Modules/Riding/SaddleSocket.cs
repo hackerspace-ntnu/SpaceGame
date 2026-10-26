@@ -90,7 +90,7 @@ namespace SpaceGame.Agents
         /// Whether it would let a saddle on: true unless it is an animal that must be won over first
         /// (<see cref="CreatureTrust"/>) and has not been yet.
         /// </summary>
-        public bool AcceptsSaddle => trust == null || trust.IsTrusting;
+        public bool AcceptsSaddle => trust == null || trust.IsTame;
 
         /// <summary>The live saddle, or null. The pack container hangs off this.</summary>
         public GameObject Saddle => saddleInstance;

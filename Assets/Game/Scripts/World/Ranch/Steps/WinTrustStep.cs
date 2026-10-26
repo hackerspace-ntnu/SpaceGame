@@ -18,13 +18,13 @@ namespace SpaceGame.World
         public override bool IsMet(ObjectiveWorld world)
         {
             CreatureTrust tame = Tame;
-            return tame != null && tame.IsTrusting;
+            return tame != null && tame.IsTame;
         }
 
         public override string Status(ObjectiveWorld world)
         {
             CreatureTrust tame = Tame;
-            return tame != null ? string.Format(progress, tame.Pets, tame.PetsToTrust) : string.Empty;
+            return tame != null ? string.Format(progress, tame.PetsWon, tame.PetsToTame) : string.Empty;
         }
 
         public override bool TryGetWaypoint(ObjectiveWorld world, out Vector3 position)

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36ae9c76b2c6b7c4c9c646bd6c36b623, type: 3}
+  m_Name: hamlet-escort-keepers
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.EscortStep
+  id: hamlet-escort-keepers
+  title: Lead the Oathkeepers to the witch's hut
+  briefing: []
+  lookAtFocus: 0
+  siteId: witch-hut
+  escortIds:
+  - keeper-bramble
+  - keeper-pip
+  - keeper-wisteria
+  withYouRadius: 15
+  statusFormat: Oathkeepers with you  <b>{0}/{1}</b>

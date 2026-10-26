@@ -1,0 +1,196 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &1391213538900215452
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 721406942356391028, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2645125712
+      objectReference: {fileID: 0}
+    - target: {fileID: 721406942356391028, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 4143882496
+      objectReference: {fileID: 0}
+    - target: {fileID: 1375402022796731716, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: prefabId
+      value: 31f40f1a48d9c8c4c8e41e975d5d847b
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6191886827059924758, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6567108366551290792, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: maxHealth
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 6567108366551290792, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: currentHealth
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      propertyPath: m_Name
+      value: Merob
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 2777163030642892890, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1381328186334933644}
+    - targetCorrespondingSourceObject: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5554345067988145348}
+    - targetCorrespondingSourceObject: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 663969117030828508}
+    - targetCorrespondingSourceObject: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 609830158386544370}
+  m_SourcePrefab: {fileID: 100100000, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+--- !u!114 &96399989118391204 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1304053845602358584, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+  m_PrefabInstance: {fileID: 1391213538900215452}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
+--- !u!114 &532869791844205943 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1453456614818677739, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+  m_PrefabInstance: {fileID: 1391213538900215452}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a42115e4550cb04d8a43d9fb6f2be74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ConjurerCastModule
+--- !u!1 &5198765150680677030 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6587407307961596986, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+  m_PrefabInstance: {fileID: 1391213538900215452}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7919604950248414825 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9126126734686017781, guid: 1e29c17687ad1a24e8fd678ee1ffab1a, type: 3}
+  m_PrefabInstance: {fileID: 1391213538900215452}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1381328186334933644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d074487125818e242beed49a74e554a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestActor
+  actorId: merob
+  talkRange: 8
+--- !u!114 &5554345067988145348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3e2265adfef3d14199b1dd6bd9fa367, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SubduableModule
+  priority: 100
+  active: 1
+  subdueFraction: 0.15
+--- !u!114 &663969117030828508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09f670350ae069c42882acc95c829013, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SpriteHamlet.MerobQuestState
+  cursedAsleep:
+    chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+    from: 
+    until: hamlet-return
+  freed:
+    chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+    from: hamlet-merob-gift
+    until: 
+  freedFaction: {fileID: 11400000, guid: 866b48df6336dc847b3ab427e49b175d, type: 2}
+--- !u!114 &609830158386544370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7919604950248414825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99285a64c18cb0840b1556f9589d9bd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestStateGate
+  window:
+    chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+    from: 
+    until: hamlet-merob-gift
+  activeInside:
+  - {fileID: 5198765150680677030}
+  activeOutside: []
+  enabledInside:
+  - {fileID: 532869791844205943}
+  - {fileID: 96399989118391204}

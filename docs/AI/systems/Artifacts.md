@@ -109,7 +109,7 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 ## Flows
 
 **Press**
-1. `PlayerInputManager.OnUsePressed` → `EquipmentController.OnUse()` → the hand `UseChannel.Press()` (Q/E/double-Space reach a worn channel the same way).
+1. `PlayerInputManager.OnUsePressed` → `EquipmentController.OnUse()` → the hand `UseChannel.Press()` (Q/E/double-Space reach a worn channel the same way). Two things take the press first: a gear wall under the crosshair (`WallAimController.Aiming`), and full arms — [`ArmsLoad`](Assets/Game/Scripts/Items/Inventory/Components/ArmsLoad.cs).`PressUse` hands it to whatever is carried (keepers in the witch fight: set them down), and while the arms are full `EquipmentController` veils the held item on every machine ([WitchFight.md](WitchFight.md)).
 2. Owner builds `NetArg { A = selected slot }`, calls `usable.OnRequestUse(ref arg)`.
 3. Owner calls `PlayUse` **immediately** (sound + `Present()`), before any hop.
 4. If `Authority == Owner`, owner also calls `TryUse` now.

@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs
   - Assets/Game/ScriptableObjects/Objectives/
   - Assets/Game/Editor/Tests/QuestTests.cs
+  - Assets/Game/Editor/Tests/ObjectiveChainsTests.cs
   - Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs
 symptoms:
@@ -22,8 +23,10 @@ symptoms:
   - "a side quest is gone after loading the world"
   - "the visor shows the wrong quest after I picked up a new one"
   - "pressing J does nothing"
-reads_with: [CrashSiteQuest, Visor, UI, Multiplayer, Persistence, WorkshopMission, Expeditions]
-updated: 2026-10-20
+  - "a villager offers a quest the crew have already taken on"
+  - "talking to the elder before the step that asks for it finished the step early"
+reads_with: [CrashSiteQuest, Visor, UI, Multiplayer, Persistence, WorkshopMission, Expeditions, SpriteHamletQuest]
+updated: 2026-10-26
 ---
 
 # Objectives

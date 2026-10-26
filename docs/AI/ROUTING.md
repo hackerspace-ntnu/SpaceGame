@@ -52,6 +52,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
 | a .blend in the library will not open: 'not a blend file | [ArtPipeline](systems/ArtPipeline.md) |
 | a background Cycles render of a small file fails with Error: out of memory | [ArtPipeline](systems/ArtPipeline.md) |
+| a baked atlas spends most of its pixels on faces nobody can see | [ArtPipeline](systems/ArtPipeline.md) |
 | a baked poster's bandit has no eyes | [WantedPosters](systems/WantedPosters.md) |
 | a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
 | a bandit's skin prints in cream or in the poster colour instead of slate blue | [WantedPosters](systems/WantedPosters.md) |
@@ -125,6 +126,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client logs NetworkObject has been destroyed but you are still trying to access it from MigrateNetworkObjectsIntoScenes | [WorldStreaming](systems/WorldStreaming.md) |
 | a client quit while riding and the creature or ship they were on vanished for everyone | [Vehicles](systems/Vehicles.md) |
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
+| a client sees the gust open for a moment on joining, or can turn a crank the host has not seen | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | a client sees the objective but never hears the lander's briefing | [Objectives](systems/Objectives.md) |
 | a client sits on the loading screen forever and the console repeats still waiting on terrain streaming | [UI](systems/UI.md) |
 | a client sits on the loading screen forever, still waiting on terrain streaming, while the host is already playing | [WorldStreaming](systems/WorldStreaming.md) |
@@ -310,11 +312,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a mesh built under a pack surface lands tens of metres away | [Backpack](systems/Backpack.md) |
 | a mesh renders inside-out in Unity and looks correct in Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a MeshCollider I added is missing from the bake and nothing errors | [NavMeshSystem](systems/NavMeshSystem.md) |
+| a metal from the palette looks like matte paint in Unity | [ArtPipeline](systems/ArtPipeline.md) |
 | a mid-air quicksave reloads standing still in the sky | [Wingsuit](systems/Wingsuit.md) |
 | a mid-air save reloads with the ornithopter falling out of the sky | [Ornithopter](systems/Ornithopter.md) |
 | a midrib or rib smears off its leaf into a wide fin | [VegetationFamilies](systems/VegetationFamilies.md) |
+| a mirror arrangement that solves the puzzle on paper never fills the seal in game | [SunShrine](systems/SunShrine.md) |
 | a Mixamo take imports as one 27 second clip called mixamo.com | [AnimationCatalog](systems/AnimationCatalog.md) |
 | a mocap action slides a metre or more across the floor, out of the NPC's capsule, and snaps back when it ends | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| a model placed from an editor script lies on its side, though the FBX previews upright | [ArtPipeline](systems/ArtPipeline.md) |
 | a model ships local materials although every generator links from the palette | [ArtPipeline](systems/ArtPipeline.md) |
 | a module I just resized no longer fits the backpack rack at any angle | [PlayerShip](systems/PlayerShip.md) |
 | a moment is raised but the body does nothing | [HumanoidAnimation](systems/HumanoidAnimation.md) |
@@ -373,6 +378,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
 | a player's punch shows BLOCKED and does no damage | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a PNG named after a Blender image appeared beside the .blend after an export | [ArtPipeline](systems/ArtPipeline.md) |
+| a poison ball over a keeper says BLOCKED | [WitchFight](systems/WitchFight.md) |
+| a polished surface reflects a flat pale grey instead of what is around it | [ProjectConfig](systems/ProjectConfig.md) |
 | A polygon of Mesh ... is self-intersecting and has been discarded | [ArtPipeline](systems/ArtPipeline.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a pose sheet shows the same figure in every cell | [AnimationCatalog](systems/AnimationCatalog.md) |
@@ -391,6 +398,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a pushed cart floats in the air, is held overhead or waves about in the hands | [Pushables](systems/Pushables.md) |
 | a pushed cart stands in a wall, or a resident works at a pen with empty hands although a cart stands beside it | [Pushables](systems/Pushables.md) |
 | a Quaternius clip plays with the character turned round, facing away from where it walks | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| a quest waypoint never appears for a place in another chunk | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | a queued headless run leaves Unity on the modal Scene(s) Have Been Modified dialog over an Untitled scene and every MCP call stops answering | [Testing](systems/Testing.md) |
 | a quicksave in mid-air cools the pack down for free | [Jetpack](systems/Jetpack.md) |
 | a ramp cannot be climbed until a few seconds after it is sprayed | [FoamGun](systems/FoamGun.md) |
@@ -409,6 +417,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a re-unwrapped eye still renders the old mesh although its normals and file are correct | [StylizedEyes](systems/StylizedEyes.md) |
 | a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
+| a realtime reflection probe has no texture in the editor | [ProjectConfig](systems/ProjectConfig.md) |
 | a rebuilt DesertCrawler lost its mass, its UnderTerrainGuard or its tuned network transform | [Striders](systems/Striders.md) |
 | a refused click beeps on the body but is silent on the rail | [BodyEquipment](systems/BodyEquipment.md) |
 | a reloaded city has no scouts out, or a different pair out | [Striders](systems/Striders.md) |
@@ -603,8 +612,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a triangulated export comes into Unity a few triangles short, with a pinhole in the face | [ArtPipeline](systems/ArtPipeline.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | a tuned water default does nothing on an existing material | [StylizedWater](systems/StylizedWater.md) |
+| a Unity MCP RunCommand fails with a bare 'Object reference not set' and logs nothing | [ArtPipeline](systems/ArtPipeline.md) |
 | a vehicle at the back of the Strider column keeps riding up to the lead house | [Striders](systems/Striders.md) |
 | a vehicle walking toward the camera stands in front of its dust cloud, legs crisp | [VehicleDust](systems/VehicleDust.md) |
+| a villager offers a quest the crew have already taken on | [Objectives](systems/Objectives.md) |
 | a villager stands still until I walk within about 250 m | [SimulationDistance](systems/SimulationDistance.md) |
 | a villager warns me when I punch him instead of fighting back | [Residents](systems/Residents.md) |
 | a volumetric effect renders on some frames and is completely absent on others | [StormFlask](systems/StormFlask.md) |
@@ -656,6 +667,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an aimed arm snaps level on every shot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | an ambience or engine loop keeps playing after the object was destroyed | [audio](systems/audio.md) |
 | an animal in the air leans into the dune underneath it | [CarriedAgent](systems/CarriedAgent.md) |
+| an animated creature exports with no takes at all | [ArtPipeline](systems/ArtPipeline.md) |
 | an arch, doorway or pen gate in a settlement is blocked by an invisible solid that is much bigger than the object | [ArtPipeline](systems/ArtPipeline.md) |
 | an artifact's tank refills itself when I stow it on the pack | [SupplyCharge](systems/SupplyCharge.md) |
 | an authored interior fog volume fades out as soon as I step into the room it is in | [Environment](systems/Environment.md) |
@@ -665,6 +677,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an effect on a worn item stops the moment the item goes on the body | [BodyEquipment](systems/BodyEquipment.md) |
 | an empty battery still reads as part charged | [SupplyGauge](systems/SupplyGauge.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
+| an exact boolean through a wall of separate blocks keeps the disc and deletes the wall around it | [ArtPipeline](systems/ArtPipeline.md) |
 | an eye texture renders as scrambled checkered patches in Blender but the UV grid looks fine | [StylizedEyes](systems/StylizedEyes.md) |
 | an FBX take is named Scene and runs 250 frames | [ArtPipeline](systems/ArtPipeline.md) |
 | an idle resident stands about with its tool in its hand and never fidgets or gestures | [Residents](systems/Residents.md) |
@@ -828,6 +841,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every creature standing in one patch takes damage once per player in the session | [Flamethrower](systems/Flamethrower.md) |
 | every decoration in a settlement lies on its side | [ArtPipeline](systems/ArtPipeline.md) |
 | every eye colour variant looks like the same pale white blob in game | [StylizedEyes](systems/StylizedEyes.md) |
+| every face of a scripted mesh wears the same material after its slots were rebuilt | [ArtPipeline](systems/ArtPipeline.md) |
 | every gear is on the gate and it still does not open | [GearDoor](systems/GearDoor.md) |
 | every grass biome sways with the same wind no matter what I set on its profile | [Grass](systems/Grass.md) |
 | every hull module is the same square on the mat and on the ship's gear wall | [PlayerShip](systems/PlayerShip.md) |
@@ -836,6 +850,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | every kind of water looks the same blue from underneath | [StylizedWater](systems/StylizedWater.md) |
 | every left-side vertex group of a copied character is empty | [ArtPipeline](systems/ArtPipeline.md) |
 | every limb of the ragdoll is jointed straight to one hub instead of down the limb | [Combat](systems/Combat.md) |
+| every mirror shows the same big dark wedge | [SunShrine](systems/SunShrine.md) |
 | every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
 | every new world's Strider city has the same column | [Striders](systems/Striders.md) |
 | every NPC of one prefab stands in the same idle and steps off on the same foot | [HumanoidAnimation](systems/HumanoidAnimation.md) |
@@ -968,6 +983,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I cannot walk while I hold the hand cog | [Workshop](systems/Workshop.md) |
 | I click the lash rail and a gauntlet gets the click instead | [BodyEquipment](systems/BodyEquipment.md) |
 | I crawl through a hatch and end up back outside, or deeper inside | [DuneBarge](systems/DuneBarge.md) |
+| I died during the witch's monologue, stuck in the dialogue while things attacked me | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | I died in versus and respawned in the enemy team's ship | [GameModes](systems/GameModes.md) |
 | I edited the .inputactions asset and the new key binding does nothing | [CoreServices](systems/CoreServices.md) |
 | I examined a clue and the objective did not move on | [WorkshopMission](systems/WorkshopMission.md) |
@@ -1051,6 +1067,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | loot drops or the enrage fires again every time I load the world | [Combat](systems/Combat.md) |
 | Malloc returns null in Cycles Aligned Alloc while baking textures headless | [ArtPipeline](systems/ArtPipeline.md) |
 | menu buttons do not click when MainMenu is entered directly | [audio](systems/audio.md) |
+| Merob dies instead of being freed | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| Merob wakes up as soon as I walk up to the hamlet gate | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | mirroring a part to the other side of a vehicle flips it end for end instead | [ArtPipeline](systems/ArtPipeline.md) |
 | Missing Prefab Asset: 'EntranceModel (Missing Prefab with guid: …)' although the .blend with that guid is right there in Assets | [ArtPipeline](systems/ArtPipeline.md) |
 | moving a half-used item through the gear screen refilled it | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1113,6 +1131,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | one broken creature behaviour stopped the creature moving at all | [Diagnostics](systems/Diagnostics.md) |
 | one character's lids close at a slant | [StylizedEyes](systems/StylizedEyes.md) |
 | one Clanker body is a fat agent that cannot fit through gaps the others walk through | [AgentSystem](systems/AgentSystem.md) |
+| one freeze burned all three of the witch's herbs | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | one material kept its texture through export and the others silently lost theirs | [ArtPipeline](systems/ArtPipeline.md) |
 | one of the esko's horns renders inside out, the other is fine | [ArtPipeline](systems/ArtPipeline.md) |
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
@@ -1225,6 +1244,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | rocks vanish at the edge of the screen and their shadows go with them | [Rocks](systems/Rocks.md) |
 | ropes from the previous world are still hanging in the newly loaded one | [LeashSystem](systems/LeashSystem.md) |
 | rotating a bone between two renders in one editor command changes nothing in either picture | [TalkingMouth](systems/TalkingMouth.md) |
+| rue burned all three herbs and the finisher never played | [WitchFight](systems/WitchFight.md) |
 | RunEditModeDeferred was queued but the run does not start while another session's run is going | [Testing](systems/Testing.md) |
 | runtime objects from a test turn up saved inside persistentScene | [Testing](systems/Testing.md) |
 | sampling the skin around the eyes finds no vertices near either socket | [StylizedEyes](systems/StylizedEyes.md) |
@@ -1279,6 +1299,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | surfaces in the colony flicker (a board on the airlock wall, the gear wall, overlapping pipes) | [ColonyInterior](systems/ColonyInterior.md) |
 | switching the torch on changes nothing about how the body stands | [Flashlight](systems/Flashlight.md) |
 | taking the gauntlet off leaves a light burning on someone's arm | [Flashlight](systems/Flashlight.md) |
+| talking to the elder before the step that asks for it finished the step early | [Objectives](systems/Objectives.md) |
+| talking to the elder does nothing for the quest on a client | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | team names or player names overlap each other with more than four teams | [Lobby](systems/Lobby.md) |
 | Temp/agent_benchmark.txt says not started | [Diagnostics](systems/Diagnostics.md) |
 | Temp/headless_tests.txt never appears and I cannot tell if the run started | [Testing](systems/Testing.md) |
@@ -1325,6 +1347,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
+| the beam visibly misses a mirror but the light still counts as reaching it | [SunShrine](systems/SunShrine.md) |
 | the beam whips around whenever I fire a gauntlet | [Flashlight](systems/Flashlight.md) |
 | the body pokes through the poncho mid-stride | [CharacterClothes](systems/CharacterClothes.md) |
 | the body screen is open but I have a cursor, no controls and no camera | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1403,10 +1426,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the creature glides along with its legs frozen while it attacks, then walks normally again | [AgentSystem](systems/AgentSystem.md) |
 | the creature hears the gunshot and targets me but never actually runs | [AgentSystem](systems/AgentSystem.md) |
 | the creature I hoisted hangs in the air after the rope is cut | [CarriedAgent](systems/CarriedAgent.md) |
+| the creature ignores a shiny item lying right next to it | [Glintback](systems/Glintback.md) |
 | the creature ignores me completely and never attacks anything | [AgentSystem](systems/AgentSystem.md) |
 | the creature lies down or grazes on the host but stands up on every client | [AgentSystem](systems/AgentSystem.md) |
 | the creature pivots on the spot like a turret when it changes direction | [AgentSystem](systems/AgentSystem.md) |
 | the creature stopped walking after I added a LateUpdate to its subclass | [Locomotion](systems/Locomotion.md) |
+| the creature takes an item and it never appears in the nest | [Glintback](systems/Glintback.md) |
+| the creature warns me forever at its nest and never attacks | [Glintback](systems/Glintback.md) |
 | the creature's legs skate instead of walking | [AgentSystem](systems/AgentSystem.md) |
 | the crew stand up out of the wreck able to walk on air, never falling again | [PlayerShip](systems/PlayerShip.md) |
 | the crosshair cannot find a tied person lying on the ground, only the air where they stood | [Lasso](systems/Lasso.md) |
@@ -1439,6 +1465,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the editor adds objects to my scene while I am doing nothing and no agent is running | [Testing](systems/Testing.md) |
 | the effect applies on the server and is silently overwritten a tick later | [Artifacts](systems/Artifacts.md) |
 | the effect renders from one half of the compass and is completely invisible from the other half | [Artifacts](systems/Artifacts.md) |
+| the elder never offers the quest, he just repeats his ordinary lines | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the emote wheel opens but letting go of V plays nothing | [UI](systems/UI.md) |
 | the entry burn is still blazing when the screen fades to black at the impact | [PlayerShip](systems/PlayerShip.md) |
 | the entry fire is drawn over the inside of the cabin as well as out of the window | [PlayerShip](systems/PlayerShip.md) |
@@ -1458,6 +1485,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the far dust lies along the ground as a flat orange band instead of tall clouds | [VehicleDust](systems/VehicleDust.md) |
 | the far end of the plant sinks into the sand or a ramp | [Lifting](systems/Lifting.md) |
 | the feet trail behind the body, or a planted foot slips along the ground | [Locomotion](systems/Locomotion.md) |
+| the finishing shot films the witch from inside her hut | [WitchFight](systems/WitchFight.md) |
 | the fire in the ship is only on the host's screen, or a client still sees it after it is out | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | the fire lights nothing — six metres of flame in a dark room | [Flamethrower](systems/Flamethrower.md) |
 | the fire looks like a raft of orange bubbles rather than flames | [Flamethrower](systems/Flamethrower.md) |
@@ -1523,6 +1551,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ghost cells stay red and the item refuses to drop anywhere on the pack | [Backpack](systems/Backpack.md) |
 | the ghost on my arm is a flat solid colour with no see-through edge | [BodyEquipment](systems/BodyEquipment.md) |
 | the glide sinks so fast there is no time to aim it anywhere | [Wingsuit](systems/Wingsuit.md) |
+| the Glintback cannot be petted even though it took my gifts | [Glintback](systems/Glintback.md) |
 | the grab lever says: Nothing under the hook to take hold of | [WorkshopCrane](systems/WorkshopCrane.md) |
 | the grapple drops me at the top instead of letting me climb up | [LedgeClimbing](systems/LedgeClimbing.md) |
 | the grappling hook draws its rope but pulls nothing while I am flying | [Ornithopter](systems/Ornithopter.md) |
@@ -1540,6 +1569,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gun fires at the ground, or at the vehicle, while its holder is mounted | [Combat](systems/Combat.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
 | the gun points backwards out of the player's hands | [FoamGun](systems/FoamGun.md) |
+| the gust drops me halfway up, or carries me past the plateau | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| the gust particles spray out sideways instead of rising | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the hand cog says: Step up to the hand cog | [Workshop](systems/Workshop.md) |
 | the hand cog turns but its pinion, the sleeve gear or the ring on the wall stands still | [Workshop](systems/Workshop.md) |
@@ -1586,6 +1617,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the jetpack lifts me but the animal I roped stays glued to the sand | [LeashSystem](systems/LeashSystem.md) |
 | the jetpack pushes me forward the instant I press W | [Jetpack](systems/Jetpack.md) |
 | the jetpack switches itself off in mid-air while I am working the throttle | [Jetpack](systems/Jetpack.md) |
+| the keeper I was carrying dropped out of my arms by itself | [WitchFight](systems/WitchFight.md) |
+| the keepers never throw anything | [WitchFight](systems/WitchFight.md) |
+| the keepers stand around and never chant | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the key strip on the terminal renders pink | [Terminal](systems/Terminal.md) |
 | the lamp on my pack stays green even though the tank on it is empty | [Backpack](systems/Backpack.md) |
 | the lander says the same remark again after a reload | [Objectives](systems/Objectives.md) |
@@ -1623,6 +1657,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the membrane is stiff as plywood and never billows | [Wingsuit](systems/Wingsuit.md) |
 | the menu item a doc names is not in the Tools menu | [EditorTooling](systems/EditorTooling.md) |
 | the menu's decorative astronauts stand in front of the roster once the lobby has several teams | [Lobby](systems/Lobby.md) |
+| the mirrors are right but the seal never fills | [SunShrine](systems/SunShrine.md) |
+| the mirrors look like flat gold or grey discs, not mirrors | [SunShrine](systems/SunShrine.md) |
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
 | the model is correct in Blender and only some of its parts are in the wrong place in the FBX | [ArtPipeline](systems/ArtPipeline.md) |
 | the module the schematic had lit goes dark the moment the mouse button goes down | [ShipSchematic](systems/ShipSchematic.md) |
@@ -1716,6 +1752,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the poster texture is square or squashed in the game | [WantedPosters](systems/WantedPosters.md) |
 | the power cell I fitted is gone after loading the world, and the plant is dark again | [Oxygen](systems/Oxygen.md) |
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
+| the prefab and the scene disagree about the shrine after an edit to one SunShrine prefab | [SunShrine](systems/SunShrine.md) |
 | the prefab still renders the old materials after an FBX reimport | [ArtPipeline](systems/ArtPipeline.md) |
 | the printed bandit is nearly all dots and black | [WantedPosters](systems/WantedPosters.md) |
 | the printed character is mostly white, like an unpainted cut-out | [WantedPosters](systems/WantedPosters.md) |
@@ -1731,9 +1768,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the pupil ends up in the side of the head instead of facing forward | [StylizedEyes](systems/StylizedEyes.md) |
 | the pupil shows a grid of flat facets under the key light | [StylizedEyes](systems/StylizedEyes.md) |
 | the pusher's hands float short of the handles, or the cart is rotated a quarter turn from the way I face | [Pushables](systems/Pushables.md) |
+| the puzzle cannot be solved at some hours | [SunShrine](systems/SunShrine.md) |
 | the Q and E chips sit on the wrong arms | [BodyEquipment](systems/BodyEquipment.md) |
 | the Q and E chips stay on screen while I am looking at my own back | [BodyEquipment](systems/BodyEquipment.md) |
 | the quantizer turns a coloured sky or surface flat grey | [Environment](systems/Environment.md) |
+| the QUEST FAILED letters are solid black, no world shows through | [WitchFight](systems/WitchFight.md) |
+| the QUEST FAILED screen shows black rectangles instead of letters | [WitchFight](systems/WitchFight.md) |
 | the quest is stuck on a step that started another quest | [Objectives](systems/Objectives.md) |
 | the ragdoll audit reports unfiltered: 0 on a body that visibly tears itself apart | [Combat](systems/Combat.md) |
 | the ragdoll is only the creature's neck, or a single body, and the rest of the animal is missing | [Combat](systems/Combat.md) |
@@ -1759,6 +1799,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the rider stands upright in a monowheel's saddle instead of sitting | [Striders](systems/Striders.md) |
 | the rider's hands are held up behind them or by the helmet instead of on the reins | [Vehicles](systems/Vehicles.md) |
 | the rider's sitting position looks extremely unnatural | [Saddles](systems/Saddles.md) |
+| the ring is scrambled again after loading a save | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the room does not turn while I hold the mouse button on the hand cog | [Workshop](systems/Workshop.md) |
 | the room turned and its entrance faces rock: I am shut in | [Workshop](systems/Workshop.md) |
 | the rooms cannot be walked / a room can never be entered | [Workshop](systems/Workshop.md) |
@@ -1807,6 +1848,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the screen look reverts to the committed one after a script change | [Environment](systems/Environment.md) |
 | the screen look reverts to the committed one after a script change | [LookLab](systems/LookLab.md) |
 | the screen only goes black after the ship has finished crashing, so I watch the impact | [Cutscenes](systems/Cutscenes.md) |
+| the screen stays black between QUEST and FAILED after the title | [WitchFight](systems/WitchFight.md) |
 | the second match starts on the previous match's spawn ring | [GameModes](systems/GameModes.md) |
 | the second passenger off a hovering sky vessel is dropped in mid-air, on the first one's head | [SkyTribe](systems/SkyTribe.md) |
 | the second passenger off a hovering sky vessel is dropped in mid-air, on the first one's head | [Vehicles](systems/Vehicles.md) |
@@ -1836,6 +1878,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
 | the shock harpoon bites a body and nothing crackles, or the body never falls | [Artifacts](systems/Artifacts.md) |
 | the shrine plaza shows old board kiosks inside its notice boards after a re-export | [ArtPipeline](systems/ArtPipeline.md) |
+| the shrine's sand skirt and entrance stairs are buried in the ground | [SunShrine](systems/SunShrine.md) |
 | the signal leads to the Clanker town, a Strider city or the Sky City | [ShipSignal](systems/ShipSignal.md) |
 | the signal leads to the settlement the ship landed next to | [ShipSignal](systems/ShipSignal.md) |
 | the signal's destination changed after a reload, or differs between host and client | [ShipSignal](systems/ShipSignal.md) |
@@ -1861,6 +1904,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the spread worn wings have their sail dragged onto the spars | [Ornithopter](systems/Ornithopter.md) |
 | the stall never ends and the nose stays up | [Ornithopter](systems/Ornithopter.md) |
 | the standing foam has no bubbles in it, just light and dark patches | [FoamGun](systems/FoamGun.md) |
+| the stasis bolt froze one of the keepers | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the steering handles swing instead of the helm on the back | [Monowheel](systems/Monowheel.md) |
 | the storm cloud is a flat magenta cylinder | [StormFlask](systems/StormFlask.md) |
 | the storm interior renders almost black | [Environment](systems/Environment.md) |
@@ -1879,8 +1923,11 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Strider city rides in matching pairs, like a parade | [Striders](systems/Striders.md) |
 | the Strider city starts on a hillside, or inside the Clanker town's alarm ring | [Striders](systems/Striders.md) |
 | the Strider crew sit inside the walls of their walking house | [Vehicles](systems/Vehicles.md) |
+| the subdue step never finishes although Merob is already down | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the suit on the colony suit stand is in a T-pose / clips the posts | [ColonyInterior](systems/ColonyInterior.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
+| the sunbeam is brightest up in the sky and fades out at the mirrors | [SunShrine](systems/SunShrine.md) |
+| the sunbeam is there but invisible against the sand | [SunShrine](systems/SunShrine.md) |
 | the supply gauge bar floats in the air behind the grip | [Flamethrower](systems/Flamethrower.md) |
 | the swinger keeps rope steering after somebody cut their grapple cable | [RopeCutting](systems/RopeCutting.md) |
 | the tank in my hand shows its level but the one on the pack mat always looks full | [SupplyGauge](systems/SupplyGauge.md) |
@@ -1899,6 +1946,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Test Runner reports nothing at all instead of a failing test | [Testing](systems/Testing.md) |
 | the thief with the gear runs away and I cannot catch him | [WorkshopMission](systems/WorkshopMission.md) |
 | the third-person camera on the mount jitters or doubles the vehicle's motion | [Vehicles](systems/Vehicles.md) |
+| the thorn wall will not burn | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the thrown loop passes over the animal I aimed at and lands well behind it | [Lasso](systems/Lasso.md) |
 | the tint I set to mark the selected entry disappears after one frame | [UI](systems/UI.md) |
 | the torch arm hangs at my side and lights my boots | [Flashlight](systems/Flashlight.md) |
@@ -1926,6 +1974,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
 | the vault door's drive or lock gear is missing, or floats metres off the door | [GearDoor](systems/GearDoor.md) |
 | the vault is empty: there is no reactor core on the cradle | [WorkshopMission](systems/WorkshopMission.md) |
+| the vault is sealed again after loading a save | [SunShrine](systems/SunShrine.md) |
 | the vehicle drives fine for the host but a client steers a body that snaps back | [Vehicles](systems/Vehicles.md) |
 | the vehicle stops answering its pilot the moment a passenger takes another seat on it | [Vehicles](systems/Vehicles.md) |
 | the versus lobby's player names come out too small on an ultrawide and too large on a narrow window | [Lobby](systems/Lobby.md) |
@@ -1968,6 +2017,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wild Appa group sits at the world origin and never moves | [AgentSystem](systems/AgentSystem.md) |
 | the wild eskos walk out of the corral with the gate shut | [Ranch](systems/Ranch.md) |
 | the wild herd is gone, or there are two herds, after loading the world | [Ranch](systems/Ranch.md) |
+| the wind vent stands on its edge like a wall | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the wing billows at the WRIST end instead of at the hem | [Wingsuit](systems/Wingsuit.md) |
 | the wing pack floats off the back instead of sitting on the pack's cross bar | [BodyEquipment](systems/BodyEquipment.md) |
 | the wing pack is worn as a folded bundle instead of as wings | [BodyEquipment](systems/BodyEquipment.md) |
@@ -1981,6 +2031,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wings stay on the pack instead of going onto my arms | [Wingsuit](systems/Wingsuit.md) |
 | the wingsuit and the wing pack cannot both be carried | [Wingsuit](systems/Wingsuit.md) |
 | the wireframe draws every edge of every triangle | [ShipSchematic](systems/ShipSchematic.md) |
+| the witch never shows up, I cannot find her | [WitchFight](systems/WitchFight.md) |
+| the witch takes no damage at all, every hit just says blocked | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| the witch's strike lands with no warning on the ground | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | the words on a worn gauntlet's screen read backwards | [Artifacts](systems/Artifacts.md) |
 | the workshop costs as much from the far desert as standing at its gate | [LevelOfDetail](systems/LevelOfDetail.md) |
 | the workshop gate is shut and I cannot get into the ship lane | [GearDoor](systems/GearDoor.md) |
@@ -2029,6 +2082,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | throwing the pack down shoves me through the floor I am standing on | [Backpack](systems/Backpack.md) |
 | timing the jump on the pogo stick's landing makes the hop shorter instead of higher | [Artifacts](systems/Artifacts.md) |
 | trees and bushes stand perfectly still while the grass around them waves | [Foliage](systems/Foliage.md) |
+| turning a crank also turns the vane next to it | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | turning my head feels laggy, and the view lurches further whenever the frame rate dips | [PlayerCharacter](systems/PlayerCharacter.md) |
 | two doors log a duplicate TransitionId and one loses its effects | [SceneTransitions](systems/SceneTransitions.md) |
 | two focus overlays outline things at each other's line thickness | [Backpack](systems/Backpack.md) |
@@ -2051,6 +2105,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | under water the view is normal, no haze or caustics, in most of a lake | [StylizedWater](systems/StylizedWater.md) |
 | Unity crashes with 'Could not allocate memory: System out of memory!' in MeshLodUtility.GenerateMeshLods while baking | [SettlementLods](systems/SettlementLods.md) |
 | Unity says the type ShipSignal could not be found but tools/typecheck.py passes | [ShipSignal](systems/ShipSignal.md) |
+| Unity's triangle count is a few short of Blender's although the export was triangulated | [ArtPipeline](systems/ArtPipeline.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | ViewGuard No enabled camera anywhere for 10.8s and no local player to restore one from, right after pressing Play | [Scenes](systems/Scenes.md) |
 | walking into a ladder does nothing | [Ladders](systems/Ladders.md) |
@@ -2096,6 +2151,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementLayoutResult.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetLayout.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementTerraceField.cs` | [SettlementStreets](systems/SettlementStreets.md) |
+| `Assets/Game/Art/Models/_Source~/models/buildings/textures/sun_shrine_ruin_BaseColor.jpg` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetPaver.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetPlots.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStairChain.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
@@ -2129,6 +2185,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Decorations/Civic/Deco_NoticeBoard.prefab` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/AbandonedVehicleSaveable.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Scripts/Presentation/Cutscenes/Actions/QuestFailedCutscene.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/raxy_outposts_export.py` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/StriderHostileLines.asset` | [Striders](systems/Striders.md) |
@@ -2152,8 +2209,10 @@ Longest match wins.
 | `Assets/Game/ScriptableObjects/Objectives/Steps/07_FitTransmitter.asset` | [ShipSignal](systems/ShipSignal.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/LassoVerb.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/CreatureTrustSaveable.cs` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/CreatureTrustSaveable.cs` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/WallInventorySaveable.cs` | [ColonyInterior](systems/ColonyInterior.md) |
+| `Assets/Game/Scripts/Presentation/Cutscenes/Actions/DialogueCutscene.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/World/Environment/Water/UnderwaterRenderFeature.cs` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/expedition_rig.blend` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/BottledSingularity.prefab` | [BottledSingularity](systems/BottledSingularity.md) |
@@ -2180,6 +2239,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionMoment.cs` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/Steps/FitTransmitterStep.cs` | [ShipSignal](systems/ShipSignal.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireTuning.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
+| `Assets/Game/Scripts/Presentation/Cutscenes/Actions/OrbitCutscene.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentationMath.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineSettings.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
@@ -2196,6 +2256,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireRules.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireState.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Art/Models/Vehicles/PlayerShip/oxygen_mount_empty.fbx` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Art/Models/_Source~/models/buildings/sun_shrine.blend` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Models/_Source~/models/vehicles/dune_barge_rig.py` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/SkyTribeFaction.asset` | [SkyTribe](systems/SkyTribe.md) |
@@ -2205,11 +2266,15 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/ClaimableConsole.cs` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/Steps/AnswerSignalStep.cs` | [ShipSignal](systems/ShipSignal.md) |
 | `Assets/Game/Scripts/Items/Artifacts/NetGun/SnareStruggleReader.cs` | [Hogtie](systems/Hogtie.md) |
+| `Assets/Game/Art/Models/_Source~/models/creatures/glintback.blend` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/StriderFaction.asset` | [Striders](systems/Striders.md) |
 | `Assets/Game/ScriptableObjects/Versus/VersusShipSpawnConfig.asset` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitFlight.cs` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DishRigSaveable.cs` | [SatelliteDish](systems/SatelliteDish.md) |
+| `Assets/Game/Scripts/Core/Persistence/Adapters/SunSealSaveable.cs` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Scripts/Presentation/Objectives/QuestStepCutscene.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorProjection.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/World/Environment/ColorGrade/PaletteShape.cs` | [LookLab](systems/LookLab.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/` | [Errands](systems/Errands.md) |
@@ -2240,10 +2305,13 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineTrack.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Scripts/agents/Residents/Editor/StationAuthoring.cs` | [Stations](systems/Stations.md) |
 | `Assets/Game/Art/Models/_Source~/models/nature/vegetation.blend` | [Foliage](systems/Foliage.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/glint_spire.blend` | [Glintback](systems/Glintback.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/weathervane.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormCloud.mat` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/ScriptableObjects/Workshop/GearThiefCampSite.asset` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Scripts/Agents/Modules/Quest/PoisonSpiralModule.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/HatchCrawler.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/LedgeAirGrab.cs` | [LedgeClimbing](systems/LedgeClimbing.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/LedgeClimber.cs` | [LedgeClimbing](systems/LedgeClimbing.md) |
@@ -2269,6 +2337,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackPose.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs` | [Placeables](systems/Placeables.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/KeeperLiftHandle.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/FizzlingHusk.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFire.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackPlacement.cs` | [SupplyCharge](systems/SupplyCharge.md) |
@@ -2278,6 +2347,8 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneMountGhost.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
 | `Assets/Game/Art/Models/Environment/Structures/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/mesa_rock.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/wind_vent.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Prefabs/Items/ShipParts/TransmitterSparks.prefab` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Prefabs/agents/Caravan/Raider_GearCarrier.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
@@ -2301,6 +2372,8 @@ Longest match wins.
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/Modules/Quest/RueStrikeModule.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/FootprintTrail.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
@@ -2324,10 +2397,15 @@ Longest match wins.
 | `Assets/Game/Prefabs/agents/Caravan/Raider_GearThief.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/Modules/Movement/HoardModule.cs` | [Glintback](systems/Glintback.md) |
+| `Assets/Game/Scripts/Agents/Modules/Movement/ProwlModule.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs` | [Glintback](systems/Glintback.md) |
+| `Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Scripts/Agents/World/DistantGroupSilhouette.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/Core/GameWorld.cs` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Items/Inventory/Components/ArmsLoad.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/BlinkRhythm.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Presentation/Feedback/SparkingCable.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelChassis.cs` | [Monowheel](systems/Monowheel.md) |
@@ -2335,9 +2413,10 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/NpcAviation/StationKeeping.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneConsole.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
-| `Assets/Game/Scripts/agents/Modules/Social/CreatureTrust.cs` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Scripts/agents/Residents/Core/PerimeterRing.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Art/Animations/Creatures/Glintback.controller` | [Glintback](systems/Glintback.md) |
+| `Assets/Game/Art/Materials/Environment/SunMirrorSilver.mat` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Materials/Environment/Water/Mat_Water.mat` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/jetpack.blend` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Art/Shaders/Environment/UnderwaterView.shader` | [StylizedWater](systems/StylizedWater.md) |
@@ -2348,6 +2427,8 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/GroupMemberTakenByPlayerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Prefabs/Environment/Structures/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
+| `Assets/Game/Scripts/Agents/Modules/Quest/HerbBoundLife.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/ShimmerCloak.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Status/HeldStandingStatus.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/IPosterOffer.cs` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs` | [Monowheel](systems/Monowheel.md) |
@@ -2371,6 +2452,9 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Lasso.prefab` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Leash.prefab` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab` | [Backpack](systems/Backpack.md) |
+| `Assets/Game/Scripts/Agents/Modules/Combat/BlinkModule.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/KeeperCarry.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonTally.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Lasso/CaptiveHaul.cs` | [Lifting](systems/Lifting.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelDrive.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelMotor.cs` | [Vehicles](systems/Vehicles.md) |
@@ -2401,6 +2485,12 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/StriderMonowheelPrefabTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Environment/Nature/RockField.prefab` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Ranch/RaxyRanchSite.asset` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/Modules/Combat/BlinkArena.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/KeeperPose.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonBall.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonPips.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/WitchArena.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/WitchFight.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieWrap.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Scripts/Presentation/Appearance/EyeBlink.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs` | [Objectives](systems/Objectives.md) |
@@ -2445,9 +2535,11 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/NpcTaskDepartureGateTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderHabitatWalkerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/StriderNetworkPrefabTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/WeathervanePositionsTests.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Workshop/WorkshopMissionBuilder.cs` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/creatures/Glintback.prefab` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Furniture` | [Seats](systems/Seats.md) |
 | `Assets/Game/Prefabs/agents/creatures/Esko_Wild.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Scripts/Agents/World/DistantGroupState.cs` | [SettlementLods](systems/SettlementLods.md) |
@@ -2466,6 +2558,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Art/Shaders/Environment/GrassShared.hlsl` | [Grass](systems/Grass.md) |
 | `Assets/Game/Art/Shaders/Environment/RockCull.compute` | [Rocks](systems/Rocks.md) |
+| `Assets/Game/Art/Textures/Effects/SunShaftProfile.png` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Editor/Tests/DesertCrawlerWorkerTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/MonowheelDriverGateTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/SettlementLodPrefabTests.cs` | [SettlementLods](systems/SettlementLods.md) |
@@ -2475,6 +2568,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Decorations/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Prefabs/Environment/Structures/SkyFleet/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet/RueBomb.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BurningStatus.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/FireExtinguisher` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
@@ -2487,6 +2581,7 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/Residents/Mind/Rumours.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Scripts/agents/World/AbandonedVehicle.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
+| `Assets/Game/Art/Shaders/Effects/WitchShimmer.shader` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Art/Shaders/Environment/RockShared.hlsl` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Art/Textures/Environment/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Editor/Agents/DistanceDormancyWiring.cs` | [SimulationDistance](systems/SimulationDistance.md) |
@@ -2519,6 +2614,8 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/AI/Motors/MotorOrders.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/ThirdParty/Quaternius/StylizedNatureMegaKit/` | [Rocks](systems/Rocks.md) |
+| `Assets/Game/Art/Materials/Environment/SunShaft.mat` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Art/Models/Creatures/Organic/Glintback` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSpray.shader` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.hlsl` | [FoamGun](systems/FoamGun.md) |
@@ -2595,6 +2692,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/MonowheelPrefabTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/NpcAviatorOrderTests.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Editor/Tests/NpcFlightModuleTests.cs` | [NpcFlight](systems/NpcFlight.md) |
+| `Assets/Game/Editor/Tests/ObjectiveChainsTests.cs` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Editor/Tests/SimulationRangeTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/SimulationRulesTests.cs` | [SimulationDistance](systems/SimulationDistance.md) |
 | `Assets/Game/Editor/Tests/TerraceKitAssetTests.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
@@ -2609,6 +2707,7 @@ Longest match wins.
 | `Assets/Game/ScriptableObjects/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Settlements/Spots/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
+| `Assets/Game/Scripts/Gameplay/Puzzles/Weathervane` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Flamethrower` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Items/Body/ForearmBracers.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -2678,6 +2777,8 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/Steps/` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
+| `Assets/Game/Scripts/Gameplay/Puzzles/SunShrine` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Scripts/Items/Artifacts/Oathbranch` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StormFlask` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Scripts/Items/Equipped/WornSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
@@ -2687,6 +2788,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Environment/Scatter/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Art/Materials/Items/FlameCore.mat` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Materials/Items/FoamSpray.mat` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Art/Models/Environment/GlintSpire` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Models/Items/flamethrower.fbx` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Textures/Environment/Foliage/` | [BarkMaps](systems/BarkMaps.md) |
 | `Assets/Game/Editor/Animation/ClipPoseSheet.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
@@ -2710,10 +2812,13 @@ Longest match wins.
 | `Assets/Game/Resources/Effects/BodyFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/` | [Persistence](systems/Persistence.md) |
+| `Assets/Game/Scripts/Gameplay/Objectives/Quest` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Scripts/Gameplay/ThornEruption.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Items/Equipped/WornFit.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Materials/Environment/Grass/` | [GrassBiomes](systems/GrassBiomes.md) |
 | `Assets/Game/Art/Materials/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Art/Materials/Items/FoamMist.mat` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Art/Models/Environment/SunShrine` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Models/Items/storm_flask.fbx` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Models/Props/storm_cloud.fbx` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/Agents/EyeStylePresets.cs` | [StylizedEyes](systems/StylizedEyes.md) |
@@ -2722,6 +2827,8 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/RopeCuttingTests.cs` | [RopeCutting](systems/RopeCutting.md) |
 | `Assets/Game/Editor/Tests/SingularityTests.cs` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Editor/World/WorldChunkScenes.cs` | [Expeditions](systems/Expeditions.md) |
+| `Assets/Game/Prefabs/Puzzles/SunShrine.prefab` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Prefabs/VisualEffects/WitchFight` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scenes/Interiors/NomadHome.unity` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/ScriptableObjects/Animation/Cues` | [Stations](systems/Stations.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/` | [AgentSystem](systems/AgentSystem.md) |
@@ -2773,10 +2880,13 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/GearTrainTests.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Editor/Tests/LiftCarryTests.cs` | [Lifting](systems/Lifting.md) |
 | `Assets/Game/Editor/Tests/ScoutRotaTests.cs` | [Striders](systems/Striders.md) |
+| `Assets/Game/Editor/Tests/SunShrineTests.cs` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Editor/World/QuestSiteBaker.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Ghosts` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Prefabs/agents/Characters/Raxy` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Scenes/Tests/RockGallery.unity` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Expeditions/` | [Expeditions](systems/Expeditions.md) |
+| `Assets/Game/Scripts/Gameplay/Puzzles/Dials` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
@@ -2789,8 +2899,10 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/EyelidWiring.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Tests/ArmReachTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Editor/Tests/PushableTests.cs` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/Prefabs/Environment/SunShrine` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/ScriptableObjects/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Scripts/Gameplay/SpriteHamlet` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Lasso` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Ropes` | [RopeCutting](systems/RopeCutting.md) |
@@ -2803,6 +2915,7 @@ Longest match wins.
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
 | `Assets/Game/Scenes/world/gameScene.unity` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/ScriptableObjects/Residents/` | [Residents](systems/Residents.md) |
+| `Assets/Game/Scripts/Agents/Modules/Quest` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Gameplay/DishControl` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/` | [Objectives](systems/Objectives.md) |
@@ -2853,6 +2966,7 @@ Longest match wins.
 | `Assets/Game/Editor/Terrain/Outposts/` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Gameplay/Hazards` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Gameplay/Health/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/Gameplay/Oxygen/` | [Visor](systems/Visor.md) |
 | `Assets/Game/Scripts/Gameplay/Repair/` | [Oxygen](systems/Oxygen.md) |
@@ -2970,4 +3084,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2063 symptoms, 881 paths, 111 docs -->
+<!-- 2118 symptoms, 940 paths, 116 docs -->

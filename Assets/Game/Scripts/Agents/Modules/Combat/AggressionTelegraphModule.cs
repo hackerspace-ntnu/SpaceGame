@@ -57,6 +57,13 @@ namespace SpaceGame.Agents
                  "threat. Empty for none.")]
         [SerializeField] private CharacterAction waryAction;
 
+        [Tooltip("A creature's posture for the drawn band: an animator bool held for as long as it " +
+                 "lasts — a crest raised, a hiss. For bodies with no CharacterActions. Empty for none.")]
+        [SerializeField] private string drawnAnimatorBool;
+
+        [Tooltip("As drawnAnimatorBool, for the wary band.")]
+        [SerializeField] private string waryAnimatorBool;
+
         [Tooltip("Plant the feet and face the threat while drawn. Off leaves the agent free to " +
                  "keep walking its errand with its gun up, which reads as indifference.")]
         [SerializeField] private bool standGroundWhileDrawn = true;
@@ -65,6 +72,7 @@ namespace SpaceGame.Agents
 
         private ProvocationModule provocation;
         private CharacterActions actions;
+        private AgentAnimatorDriver animatorDriver;
         private ChatterModule chatter;
         private AgentAuthority authority;
 
@@ -79,6 +87,7 @@ namespace SpaceGame.Agents
         {
             provocation = GetComponent<ProvocationModule>();
             actions = GetComponent<CharacterActions>();
+            animatorDriver = GetComponent<AgentAnimatorDriver>();
             chatter = GetComponent<ChatterModule>();
             authority = new AgentAuthority(this);
         }
@@ -179,6 +188,12 @@ namespace SpaceGame.Agents
             {
                 Hold(drawnAction, band == AggressionBand.Drawn);
                 Hold(waryAction, band == AggressionBand.Wary);
+            }
+
+            if (animatorDriver != null)
+            {
+                animatorDriver.SetBoolByName(drawnAnimatorBool, band == AggressionBand.Drawn);
+                animatorDriver.SetBoolByName(waryAnimatorBool, band == AggressionBand.Wary);
             }
 
             if (!bark || chatter == null)

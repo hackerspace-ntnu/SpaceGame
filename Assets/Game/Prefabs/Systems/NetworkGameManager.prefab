@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 5131919924600830709}
   - component: {fileID: 3069366118147606877}
   - component: {fileID: 6421907315842096117}
+  - component: {fileID: 6158325230138616978}
   m_Layer: 0
   m_Name: NetworkGameManager
   m_TagString: Untagged
@@ -225,4 +226,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fe75b648399e472bb81a38f4647a495, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &6158325230138616978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd0c624849c84a9f9e4e6e0d5a4547e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestRequestNetwork
   ShowTopMostFoldoutHeaderGroup: 1

@@ -36,20 +36,8 @@ namespace SpaceGame.Presentation
             Vector3 playerEnd = throughPoint != null ? throughPoint.position : playerStart + playerTr.forward * 3f;
 
             // Spawn the temp third-person camera. Disable the player camera so we can render with ours.
-            Camera playerCam = ctx.PlayerCamera;
-            bool playerCamPrevEnabled = playerCam != null && playerCam.enabled;
-            if (playerCam != null) playerCam.enabled = false;
-
-            AudioListener playerListener = playerCam != null ? playerCam.GetComponent<AudioListener>() : null;
-            bool playerListenerPrev = playerListener != null && playerListener.enabled;
-            if (playerListener != null) playerListener.enabled = false;
-
-            var camGO = new GameObject("CutsceneTempCamera");
-            var tempCam = camGO.AddComponent<Camera>();
-            tempCam.fieldOfView = playerCam != null ? playerCam.fieldOfView : 60f;
-            tempCam.nearClipPlane = playerCam != null ? playerCam.nearClipPlane : 0.1f;
-            tempCam.farClipPlane = playerCam != null ? playerCam.farClipPlane : 1000f;
-            camGO.AddComponent<AudioListener>();
+            var shot = new CutsceneCamera(ctx.PlayerCamera);
+            Camera tempCam = shot.Camera;
 
             try
             {
@@ -82,9 +70,7 @@ namespace SpaceGame.Presentation
             }
             finally
             {
-                if (camGO != null) Object.Destroy(camGO);
-                if (playerCam != null) playerCam.enabled = playerCamPrevEnabled;
-                if (playerListener != null) playerListener.enabled = playerListenerPrev;
+                shot.Dispose();
             }
         }
 

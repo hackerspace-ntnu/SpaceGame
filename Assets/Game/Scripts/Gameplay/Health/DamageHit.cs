@@ -17,7 +17,19 @@ namespace SpaceGame.Gameplay
         Unspecified = 0,
 
         /// <summary>A blow at arm's length that the victim could see coming: the player's gauntlet punch and wrist blade.</summary>
-        Melee = 1
+        Melee = 1,
+
+        /// <summary>
+        /// Rue pressed against something kept alive by stolen sacred herbs: the sprite hamlet's
+        /// keepers striking the witch. The only blow her herb-bound body takes (<c>HerbBoundLife</c>).
+        /// </summary>
+        Rue = 2,
+
+        /// <summary>
+        /// A ball of the witch's poison. Hurts a player like any blow; a sprite-hamlet keeper does
+        /// not lose health to it but counts it (<c>PoisonTally</c>) — three and it falls.
+        /// </summary>
+        Poison = 3
     }
 
     /// <summary>

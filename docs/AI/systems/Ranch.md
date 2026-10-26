@@ -4,7 +4,7 @@ layer: world
 summary: "Raxy ranch quest: tame, saddle and ride an esko, then rope a wild herd into a gated corral"
 paths:
   - Assets/Game/Scripts/World/Ranch/
-  - Assets/Game/Scripts/agents/Modules/Social/CreatureTrust.cs
+  - Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/CreatureTrustSaveable.cs
   - Assets/Game/Scripts/agents/AI/Goals/ScriptedStand.cs
   - Assets/Game/Editor/World/RanchStockBuilder.cs
@@ -31,7 +31,7 @@ symptoms:
   - "the esko's walk and gallop look slow-motion"
   - "the esko does a somersault and lands upside down when it jumps"
 reads_with: [Objectives, Saddles, Lasso, AgentSystem, Residents, NavMeshSystem, Multiplayer, Persistence]
-updated: 2026-10-21
+updated: 2026-10-26
 ---
 
 # Ranch
@@ -51,7 +51,7 @@ eskos **from the saddle**, tow them into the corral, let go and shut the gate �
 | One ranch per world | **Story**: `Ranch` in `Chunk_6_3` at (3005, 115, 418), yaw 0, herd at (3005, 250), quest in `persistentScene`'s catalog. **Spillexo**: `Ranch` in `gameScene` (the Spillexo world's scene) at (1748, 78, 829), yaw 239 (gate towards the herd at (1893, 50, 917)), quest in `gameScene`'s own `ObjectiveDirector`. Same quest, steps, site and prefabs |
 | The ranch is a scene object | [`Ranch`](Assets/Game/Scripts/World/Ranch/Ranch.cs) on the `Ranch` root: `NetworkObject` + `NetRelay` (the gate's latch channel, as `SettlementNetworking.Wrap` does), the `RanchCorral` instance, marks (`WranglerHome` in town, `YardMark`, `GearRest`, `RangeMark`, `HerdRange`, `PenMark`, `DoneMark`) and one **beat** per quest step: where Tovak stands, `lead`, `run`, talk `hints` |
 | Animals are found, never referenced | [`RanchStock`](Assets/Game/Scripts/World/Ranch/RanchStock.cs) (`Tame` / `Wild`, static registry). `Ranch.Tame` = nearest live Tame within `stockReach` of the yard; the herd = live Wild within `stockReach` of the corral. Creatures follow the streaming grid between chunk scenes, so a serialized scene reference would break |
-| Trust gates the saddle | [`CreatureTrust`](Assets/Game/Scripts/agents/Modules/Social/CreatureTrust.cs): pets counted by the owner off `PettableModule.Petted`; `SaddleSocket.AcceptsSaddle` refuses until `IsTrusting` ([Saddles.md](Saddles.md)). Tame 3 pets, wild 6 |
+| Trust gates the saddle | [`CreatureTrust`](Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs): each pet the server accepts (`PettableModule.Petted`) adds `1/petsToTame`; `SaddleSocket.AcceptsSaddle` refuses until `IsTame` ([Saddles.md](Saddles.md)). Tame 3 pets, wild 6. The same component the Glintback is won over with by gifts ([Glintback.md](Glintback.md)) |
 | The corral is a `SettlementPen` with no stock | [`RanchCorral.prefab`](Assets/Game/Prefabs/Environment/Structures/NomadSettlement/RanchCorral.prefab): 31 `Deco_Fence_Straight` (×1.6, their box colliders are baked into the world NavMesh) and a `NomadFenceGate` (×2.2, carving leaf). Shut, the floor is a NavMesh island; `Contains` + `Gate` are what the ranch counts with |
 | Roping from the saddle is what works | The esko variants weigh 700 kg (`Rigidbody.mass`; the base said 1, which the lasso read as 2 kg). On foot a roped one tows the player; seated, the rope's holder weighs the mount (`LassoArtifact.HolderMass`, [Lasso.md](Lasso.md)) and the wild one is held |
 | The Esko's gaits | `Esko.prefab` `NavMeshAgent.speed` 15 (the gallop), walk 3.3 (`walkSpeedMultiplier` 0.22), acceleration 17.4 — 1.5× the Appa numbers it was cloned with, at the user's request (2026-10-21). `Esko.controller`'s Locomotion tree is foot-matched to them: Idle 0 · Walk 1.6 (timeScale 0.778) · Walk 3.3 (1.604) · Run 15 (0.971); timeScale = threshold ÷ the clip's own ground speed (Walk 2.06 m/s, Run 15.44 m/s at root scale 2.2). The second Walk sample keeps a ~1.5 m/s wander out of the Idle blend, which syncs every child to Idle's 6.7 s cycle. Flee is ×1 (above the last anchor the feet skate); Wild flees ×0.7 = 10.5 m/s, so a galloping rider closes |
@@ -67,7 +67,7 @@ eskos **from the saddle**, tow them into the corral, let go and shut the gate �
 |---|---|
 | `Ranch` | SERVER think (`thinkSeconds`): spawn/direct the wrangler (`Direct`: to the beat's mark; leading, he stops and `Wait`s when nobody is within `leadRadius`, resumes inside `leadRadius × resumeShare`), `KeepPennedStock`. `Lay(cue, world)`: saddle on `GearRest`, one lasso per crew at the wrangler's feet (`ObjectiveWorld.Spawn`), `herdCount` wild via `GameServices.World.Spawn` round `HerdRange` (`SetKeepChunksLoaded(false)`). EVERY machine: `Of(site)`, `Tame`, `GateShut`, `CountHerd`, `HintsFor`; SERVER `GuideStandsFor(step)` |
 | `FollowWranglerStep` | Met when he stands at this step's beat mark and a crew member is within `joinRadius`; waypoint pinned on him |
-| `WinTrustStep` / `SaddleTameStep` | Met on `Tame.IsTrusting` / its `SaddleSocket.IsSaddled`; status from replicated trust / `CrewGear.AnyoneCarries(saddle)` |
+| `WinTrustStep` / `SaddleTameStep` | Met on `Tame.IsTame` / its `SaddleSocket.IsSaddled`; status from replicated trust / `CrewGear.AnyoneCarries(saddle)` |
 | `RideTameStep` | A `LearnControlsStep` counted only while `MountModule.LocalRiderMount` is the tame animal (`CanPractise`); met on `ObjectiveWorld.AnyoneFinished` (one animal, one rider) |
 | `PenHerdStep` | Met when the gate is shut and every LIVING herd animal is in the corral, at least one. Waypoint: the stray nearest this player, else the gate |
 | `RanchStockBuilder` (editor) | *Tools ▸ SpaceGame ▸ World ▸ Build Ranch Stock*: the three variants, stamped (`CarriedGearItems.StampOnDisk`) and registered (`NetworkPrefabRegistrar.Sync`) |
@@ -85,8 +85,8 @@ eskos **from the saddle**, tow them into the corral, let go and shut the gate �
 
 ## Multiplayer
 
-Nothing ranch-specific on the wire except `NetMsg.TrustSet` (142, animal's relay, absolute pet count, re-sent to late
-joiners). Steps, waypoints and counts read replicated state: quest progress (`ObjectiveNetwork`), positions
+Nothing ranch-specific on the wire: trust is `CreatureTrust`'s server-written `NetworkVariable`, which a late joiner
+gets with the spawn. Steps, waypoints and counts read replicated state: quest progress (`ObjectiveNetwork`), positions
 (NetworkTransforms), the gate (`NetLatch` on the `Ranch` root), the saddle (`SaddleSocket`), seats (`MountNetworkSync`).
 Talk is answered on the presser's machine. **Not yet run on a client.**
 
@@ -94,7 +94,7 @@ Talk is answered on the presser's machine. **Not yet run on a client.**
 
 No ranch saver. Quest progress and `Begun` (so nothing is laid twice) are the director's; the laid saddle/lassos are
 saved pickups; the wild herd are saved runtime creatures (prefab ids stamped); the tame esko is an authored scene
-entity in `Chunk_6_3`; trust is `CreatureTrustSaveable` (key `trust`); the gate is `DoorSaveable`; the wrangler is
+entity in `Chunk_6_3`; trust is `CreatureTrustSaveable` (key `creatureTrust`); the gate is `DoorSaveable`; the wrangler is
 rebuilt from the quest. Penned homing is re-derived each think. **Not yet verified through a save file and a reload.**
 
 ## Gotchas

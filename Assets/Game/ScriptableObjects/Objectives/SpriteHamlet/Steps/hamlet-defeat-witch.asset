@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e32a58336add4a46b385cd2eb32655c, type: 3}
+  m_Name: hamlet-defeat-witch
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.DefeatActorStep
+  id: hamlet-defeat-witch
+  title: Freeze Morwen and let the keepers burn her herbs
+  briefing:
+  - Nothing of yours will hurt her, the herbs in her hat keep her whole!
+  - Hold her still with the Oathbranch and our rue will find her!
+  - "And mind her poison \u2014 three breaths of it and we are done for. Carry us
+    out of it!"
+  lookAtFocus: 0
+  actorId: witch-morwen
+  defeat: 0
+  fallbackSiteId: witch-hut

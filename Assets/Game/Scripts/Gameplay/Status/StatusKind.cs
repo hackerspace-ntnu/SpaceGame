@@ -46,6 +46,13 @@ namespace SpaceGame.Gameplay.Status
         /// struggle out. Ends when it runs out, or with a respawn.
         /// </summary>
         Bound = 7,
+
+        /// <summary>
+        /// Held out of time: helpless like <see cref="Frozen"/>, inside a shimmering shell rather
+        /// than a coat of ice. Laid by the Oathbranch's bolt and the sprite hamlet's dome — see
+        /// <see cref="StasisStatus"/>.
+        /// </summary>
+        Stasis = 8,
     }
 
     /// <summary>
@@ -61,6 +68,6 @@ namespace SpaceGame.Gameplay.Status
         /// hole in the numbering, this is the count that has to keep covering it, and a reflection
         /// call would quietly return the wrong one.
         /// </summary>
-        public const int Count = 8;
+        public const int Count = 9;
     }
 }

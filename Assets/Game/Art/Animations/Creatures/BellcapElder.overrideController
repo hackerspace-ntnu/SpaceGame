@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BellcapElder
+  m_Controller: {fileID: 9100000, guid: 151e6d0209956044799eaa3633215549, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 5864588514319510385, guid: ee1f7a79818cc444ca3e0e7a91a36794, type: 3}
+    m_OverrideClip: {fileID: 5011827274606427042, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+  - m_OriginalClip: {fileID: 4305362328904866356, guid: ee1f7a79818cc444ca3e0e7a91a36794, type: 3}
+    m_OverrideClip: {fileID: 4031769502937821439, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}

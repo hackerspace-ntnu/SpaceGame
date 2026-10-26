@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99a9b3a317a28544290a5323a2c848bb, type: 3}
+  m_Name: hamlet-reforge-oath
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ChantStep
+  id: hamlet-reforge-oath
+  title: Guard the Oath-Chant
+  briefing:
+  - Now, all three verses. Keep them off us!
+  lookAtFocus: 0
+  circleId: merob-oath
+  statusFormat: Oath verses  <b>{0}/{1}</b>

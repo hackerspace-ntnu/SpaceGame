@@ -47,6 +47,21 @@ downloaded 2026-09-17.
 **Licence:** Creative Commons Zero (CC0 1.0), <http://creativecommons.org/publicdomain/zero/1.0/>.
 Nothing is owed; crediting Kenney (www.kenney.nl) is invited, not required.
 
+## Anton — display typeface
+
+**What:** `Anton-Regular.ttf`, the heavy condensed face of the "QUEST FAILED" screen, under
+[`Assets/Game/Art/Fonts/Anton/`](Assets/Game/Art/Fonts/Anton/) with its `OFL.txt`.
+
+**From:** The Anton Project Authors, <https://github.com/googlefonts/AntonFont>, via
+<https://github.com/google/fonts/tree/main/ofl/anton>, downloaded 2026-10-14.
+
+**Licence:** SIL Open Font License 1.1. Full text in
+[`Assets/Game/Art/Fonts/Anton/OFL.txt`](Assets/Game/Art/Fonts/Anton/OFL.txt).
+
+**What the licence asks of us:** keep the copyright notice and licence with the font (done: the
+file above), never sell the font on its own, and give any modified version a different name. Using
+it inside the game, including the TextMesh Pro atlas generated from it, needs nothing more.
+
 ## Quaternius — Universal Animation Library
 
 **What:** `UAL1_Standard.fbx`, the in-place edition of the Universal Animation Library 1

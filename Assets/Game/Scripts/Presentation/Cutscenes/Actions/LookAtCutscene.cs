@@ -36,7 +36,8 @@ namespace SpaceGame.Presentation
             yield return BlendRotation(cam, lookRot, startRot, blendOutDuration);
         }
 
-        private static IEnumerator BlendRotation(Transform t, Quaternion from, Quaternion to, float duration)
+        /// <summary>Eases <paramref name="t"/> from one rotation to another on unscaled time. Shared with the other look-based cutscenes.</summary>
+        public static IEnumerator BlendRotation(Transform t, Quaternion from, Quaternion to, float duration)
         {
             if (duration <= 0f)
             {

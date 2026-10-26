@@ -117,10 +117,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 5300086364431535502}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 29724d0e70d264fffa8eb6c05ad80ed6, type: 3}
+  m_Script: {fileID: 11500000, guid: f1fdbf5675c6cad48a56a573592e9578, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CreatureTrust
-  petsToTrust: 3
+  petsToTame: 3
   pettable: {fileID: 0}
 --- !u!114 &6728645655984891303
 MonoBehaviour:
@@ -131,6 +131,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 5300086364431535502}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 328c5da85a1de48bdaf67349d77d4156, type: 3}
+  m_Script: {fileID: 11500000, guid: 26da72e7665f3b6438aba0ff36e46f12, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CreatureTrustSaveable

@@ -1,4 +1,4 @@
-using Unity.Netcode;
+using SpaceGame.Core;
 using UnityEngine;
 
 namespace SpaceGame.Presentation
@@ -121,11 +121,7 @@ namespace SpaceGame.Presentation
 
         private static float Fraction(int seed) => (unchecked((uint)seed * 2654435761u) >> 8) / (float)(1 << 24);
 
-        private static double Now()
-        {
-            NetworkManager network = NetworkManager.Singleton;
-            return network != null && network.IsListening ? network.ServerTime.Time : Time.timeAsDouble;
-        }
+        private static double Now() => SharedClock.Now;
 
         private bool Writes() =>
             animator != null && animator.runtimeAnimatorController != null && actions.WritesAnimator;

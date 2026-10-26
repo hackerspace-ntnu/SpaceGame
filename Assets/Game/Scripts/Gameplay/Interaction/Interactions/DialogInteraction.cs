@@ -311,6 +311,14 @@ namespace SpaceGame.Gameplay
                 return;
             }
 
+            // A quest line, when the quest has one for this character right now. After the
+            // typing check above, so a press while a quest line types finishes it like any other.
+            if (TryGetComponent(out SpaceGame.Gameplay.Objectives.QuestDialog quest) && quest.TrySpeak(interactor))
+            {
+                lastInteractionTime = Time.time;
+                return;
+            }
+
             if (IsRandomMode())
             {
                 HandleRandomPoolInteraction(interactor);
@@ -782,6 +790,26 @@ namespace SpaceGame.Gameplay
             }
 
             return NpcSpeechTokens.Resolve(line, taskModule);
+        }
+
+        // ─────────── Lending the voice to other components ───────────
+
+        /// <summary>
+        /// Say <paramref name="line"/> as this character, voiced and turned to face whoever asked —
+        /// for a component that decides WHAT is said (a quest's lines) but should sound and look
+        /// exactly like the character's ordinary conversation.
+        /// </summary>
+        public void Say(string line, Interactor interactor)
+        {
+            if (NpcDialogPopupUI.Instance == null)
+            {
+                Debug.LogWarning("[DialogInteraction] NpcDialogPopupUI instance not found in scene. Add it to your UI Canvas.");
+                return;
+            }
+
+            SpeakLine(line);
+            BeginDialogueSession();
+            FocusOnInteractor(interactor);
         }
 
         // ─────────── Lending the question UI to other components ───────────

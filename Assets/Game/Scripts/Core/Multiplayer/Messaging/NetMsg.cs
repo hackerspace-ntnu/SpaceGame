@@ -799,9 +799,40 @@ namespace SpaceGame.Core
         public const ushort CaptiveHaulRequest = 140; // hauler → server
         public const ushort CaptiveHauled      = 141; // server → everyone
 
-        // ── Winning an animal's trust ──
-        // On the ANIMAL's relay (CreatureTrust). The pets themselves travel as PetRequest/Petted; the owner counts them.
-        //   TrustSet A = pets accepted so far. Absolute state: re-sent to a late joiner, a no-op for everybody who knew.
-        public const ushort TrustSet = 142; // server → everyone
+        // ── Dial puzzles (the weathervane ring, the sun shrine's mirrors) ──
+        // A set of cranked dials whose whole arrangement is one small number of shared world state,
+        // so it travels in A rather than one message per dial, and a machine can never hold half a
+        // turn. The same ask/announce shape as LatchSet/LatchState, on the SET's relay (DialSet).
+        // Named VaneTurn/VaneState until the mirrors became the second user. Renumbered from 117/118 and then
+        // 140/141 as the branch met main, which had taken 117–141 for residents, seats, airlocks, the
+        // workshop and captive hauling.
+        //
+        //   DialTurn   A = the crank's dial index, or -1 for "what state is the set in?".
+        //   DialState  A = the whole arrangement, packed by the set. B = the dial whose crank was
+        //              turned, or -1 to land instantly — a joiner's answer, or a load.
+        public const ushort DialTurn  = 142; // player → server, on the SET's relay
+        public const ushort DialState = 143; // server → everyone, on the SET's relay
+
+        // ── The witch fight (SpriteHamletQuest.md) ──
+        // Discrete moments the server decides and every machine has to draw. Every projectile in
+        // the fight is flown by each machine from the moment's message, and only the server's copy
+        // bills anything — the StasisBolt arrangement, so nothing in the fight is a network prefab.
+        //
+        //   WitchSpiral    on the WITCH's relay. P = where she stands, A = her starting yaw in
+        //                  hundredths of a degree, B = +1 / -1 for the way she turns. Every machine
+        //                  spins her and throws the same balls on the same clock.
+        //   RueBombThrown  on the KEEPER's relay. P = where the bomb is aimed to land, A = its
+        //                  flight time in milliseconds.
+        //   KeeperLift     player → server on the KEEPER's relay. Target = the player's body,
+        //                  A = 1 to lift it into their arms, 0 to set every keeper they hold down.
+        //   WitchFightFailed  on the WITCH's relay. A = the index of the keeper who fell. Every
+        //                  machine shows the failure screen; the server resets the fight under it.
+        //   WitchFinisher  on the WITCH's relay. Every machine near her plays the finishing
+        //                  cutscene while the server sends the keepers up her hat.
+        public const ushort WitchSpiral      = 144; // server → everyone
+        public const ushort RueBombThrown    = 145; // server → everyone
+        public const ushort KeeperLift       = 146; // player → server
+        public const ushort WitchFightFailed = 147; // server → everyone
+        public const ushort WitchFinisher    = 148; // server → everyone
     }
 }

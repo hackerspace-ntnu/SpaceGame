@@ -2,11 +2,11 @@
 system: StatusEffects
 status: implemented
 layer: items
-summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound — server-owned, shown everywhere"
-consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity, Artifacts]
+summary: "Timed flags on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound, stasis — server-owned, shown everywhere"
+consumers: [Flamethrower, CryoSprayer, InflatorNozzle, FoamGun, StormFlask, BottledSingularity, Artifacts, Oathbranch, SpriteHamletQuest]
 symptoms:
   - "a status runs out but the body stays down, held, or still lit — the shock light, a frozen player"
-updated: 2026-10-13
+updated: 2026-10-21
 ---
 
 # Status effects
@@ -29,7 +29,7 @@ question. This is that system, written once.
   cryo sprayer both go through it, because a flame and a plume that disagreed about what a body is
   would be two rules to keep in step.
 - **A status is a kind plus an expiry.** `StatusKind` is an enum — `Burning`, `Frozen`, `Slick`,
-  `Inflated`, `Foamed`. Reapplying a kind refreshes its expiry rather than stacking a second copy;
+  `Inflated`, `Foamed`, `Swallowed`, `Shocked` (6), `Bound` (7), `Stasis` (8). Reapplying a kind refreshes its expiry rather than stacking a second copy;
   a body is burning or it is not. A kind that must not be extended by the source holding it there
   refuses the refresh through `StatusBehaviour.CanApply` — `Burning` does, so a fire is five seconds
   whatever keeps announcing it.
@@ -59,6 +59,7 @@ question. This is that system, written once.
 | `Inflated` | While pumped, deflates when not | Scale and mass driven by one signed scalar |
 | `Foamed` | 10 s | Held in place (ragdolled, unlike `Frozen`). Broken early by damage |
 | `Shocked` | 3 s default (the Shock Harpoon applies 7.5 s), not extendable, 2 s immunity after | Helpless and on the floor: a player limp through `BodyHold.Take`, a creature through `AgentRagdoll.HoldDown` (the net's claim), both on every machine off the replicated flag, released the frame it clears. No damage of its own. Applied by the Shock Harpoon ([Artifacts.md](../Artifacts.md)). Drawn by `ShockedVisual`: the body flashes to an X-ray (a ghost of each renderer in `SpaceGame/XRayShell`) with a cartoon skeleton inside (`BodySkeleton`: a bone between every pair of the rig's joints, a skull with eye sockets, ribs), arcs jump along and across the bones, and a blue point light wavers over it. Tuned in `Resources/Effects/ShockLook.asset` |
+| `Stasis` | 5 s, **never extended** | Helpless like `Frozen`, inside a shimmering shell. Laid by the Oathbranch's bolt and the sprite hamlet's dome. The look belongs to the kind: `StasisStatus.OnApplied` puts a `StasisShell` on the body on every machine, which holds the animator and draws an ellipsoid fitted to the body's renderers, flickering in the last quarter. Who it passes is `StasisPass` (players + listed factions) |
 | `Swallowed` | Named by the caller (the singularity's is ~3 s) | A flag and a clock, and nothing else — it does **not** suppress. The body has been moved into an interior by whatever ate it; this is how everything else knows. Never extended by a second source |
 
 **`Swallowed` is the odd one and worth reading before reusing it.** The other five change what a
@@ -105,6 +106,14 @@ frozen at the moment of a save reloads thawed and free, which is a small gift ra
 - **A condition that must not be lethal must not be a `DamageWatchingStatus`.** `Frozen` used to
   watch damage and kill above a threshold; a victim who can see it coming and can do nothing once it
   lands is exactly the case that must not be an execution (GDC-L1-MP-0002).
+- **`Stasis` refuses a refresh** (`CanApply => !running`). The dome touches a body against its skin
+  every scan, and a refresh on every touch is a stasis nobody leaves. The applier re-applies after it
+  ends, in the open.
+- **The stasis shell's material is loaded from `Resources/Status/StasisShell`** — the shell is added at
+  runtime to whatever was hit and has no prefab to be handed one. Missing, bodies are still helpless but
+  draw nothing, and one error says so.
+- **`line` is a reserved word in HLSL.** `StasisShell.shader` failed to compile with "unexpected token
+  'line'" for a local variable of that name, and the orb rendered magenta in the item icon.
 - **Two authorities.** `Slick` on a *player* changes how their own movement resolves, and player
   movement is owner-authoritative. The server owns the flag, but the owner's movement code reads the
   flag and applies it — the server never writes the player's velocity. Same split as the rest of the

@@ -4263,7 +4263,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55060c52ba30d954bb96bfb5693e8d3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.ObjectiveBriefing
-  speaker: LANDER
   secondsPerLine: 4
   gapSeconds: 0.4
   settleSeconds: 1.5
@@ -4311,6 +4310,14 @@ MonoBehaviour:
   chain: {fileID: 11400000, guid: abe1e3cf38494d249876fbdc51a1f0a2, type: 2}
   quests:
   - {fileID: 11400000, guid: 3dadd290767fc458181fa1627a64442f, type: 2}
+  - {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+  - {fileID: 11400000, guid: f56f5404d52f9d54b8a85aef8788703a, type: 2}
+  - {fileID: 11400000, guid: 121bc16596a24234484fedfee26edb6d, type: 2}
+  - {fileID: 11400000, guid: 2d36ee478c712814192c88b71ceaeeda, type: 2}
+  - {fileID: 11400000, guid: fe7e4476a6d14a97a5d9f42efc246ee6, type: 2}
+  - {fileID: 11400000, guid: d41b82be878b54fde8b6a1223f3edb79, type: 2}
+  - {fileID: 11400000, guid: 4c7004faf4ce4cf994f0f1ca3f2226f5, type: 2}
+  - {fileID: 11400000, guid: 0f58cc5f1a6354946985ad9b41aad62e, type: 2}
   triggerCheckSeconds: 0.5
 --- !u!4 &1160628485
 Transform:

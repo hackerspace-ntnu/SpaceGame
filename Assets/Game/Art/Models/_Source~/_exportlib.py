@@ -323,8 +323,11 @@ def _write_fbx(dst, types, use_selection=False, scale_all=False, animations=Fals
     print("  wrote %s (%.1f MB)" % (dst, os.path.getsize(dst) / 1e6))
 
 
-def export_collections(src, jobs, fix_inverted=False):
+def export_collections(src, jobs, fix_inverted=False, triangulate=False):
     """Open `src` ONCE and write one FBX per collection named in `jobs`.
+
+    `triangulate` ships triangles only, as in `export` -- see `_triangulate`. The sun shrine
+    needs it: an n-gon a boolean left on its gateway is discarded by Unity as self-intersecting.
 
     `jobs` is a sequence of `(collection name, destination path)`. This exists
     for the files that hold a whole CONTACT SHEET of finished models — the forty
@@ -357,6 +360,8 @@ def export_collections(src, jobs, fix_inverted=False):
     if fix_inverted:
         unmirrored = _unmirror()
         print("  un-mirrored %d inside-out object(s)" % len(unmirrored))
+    if triangulate:
+        print("  triangulating %d mesh(es) in memory" % _triangulate())
 
     for name, dst in jobs:
         coll = bpy.data.collections.get(name)

@@ -31,6 +31,7 @@ namespace SpaceGame.Tests
         private const string PersistentPath = "Assets/Game/Scenes/world/persistentScene.unity";
         private const string SpillexoPath = "Assets/Game/Scenes/world/gameScene.unity";
         private const string NetworkListPath = "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
+        private const int PetsToTame = 3;
 
         private readonly List<Object> made = new();
         private readonly List<Behaviour> enabled = new();
@@ -52,47 +53,59 @@ namespace SpaceGame.Tests
         [Test]
         public void TrustCountsUpToItsLimitAndHolds()
         {
-            CreatureTrust trust = Make("Horn").AddComponent<CreatureTrust>();
+            CreatureTrust trust = MakeTrust(Make("Horn"), PetsToTame);
 
-            trust.Restore(2);
-            Assert.That(trust.IsTrusting, Is.False, "two of three pets is not yet trust");
-            Assert.That(trust.Trust01, Is.EqualTo(2f / 3f).Within(1e-4f));
+            trust.Restore(2f / PetsToTame);
+            Assert.That(trust.IsTame, Is.False, "two of three pets is not yet trust");
+            Assert.That(trust.PetsWon, Is.EqualTo(2));
 
-            trust.Restore(7);
-            Assert.That(trust.Pets, Is.EqualTo(trust.PetsToTrust), "a count past the limit is clamped to it");
-            Assert.That(trust.IsTrusting, Is.True);
+            trust.Restore(7f / PetsToTame);
+            Assert.That(trust.Trust, Is.EqualTo(1f), "trust past the limit is clamped to it");
+            Assert.That(trust.PetsWon, Is.EqualTo(trust.PetsToTame));
+            Assert.That(trust.IsTame, Is.True);
+        }
+
+        [Test]
+        public void OnlyAnAnimalWonByPettingIsPettedBeforeItIsTame()
+        {
+            Assert.That(MakeTrust(Make("Horn"), PetsToTame).AcceptsPetting, Is.True);
+
+            CreatureTrust gifted = MakeTrust(Make("Glint"), 0);
+            Assert.That(gifted.AcceptsPetting, Is.False, "won by gifts: no petting until tame");
+            gifted.Restore(1f);
+            Assert.That(gifted.AcceptsPetting, Is.True);
         }
 
         [Test]
         public void TrustSurvivesASaveRoundTrip()
         {
             GameObject horn = Make("Horn");
-            CreatureTrust trust = horn.AddComponent<CreatureTrust>();
+            CreatureTrust trust = MakeTrust(horn, PetsToTame);
             var saver = horn.AddComponent<CreatureTrustSaveable>();
 
             Assert.That(saver.CaptureState(), Is.Null, "an animal nobody petted writes nothing");
 
-            trust.Restore(2);
+            trust.Restore(2f / PetsToTame);
             var state = Newtonsoft.Json.Linq.JObject.FromObject(saver.CaptureState());
 
-            trust.Restore(0);
+            trust.Restore(0f);
             saver.RestoreState(state);
-            Assert.That(trust.Pets, Is.EqualTo(2));
+            Assert.That(trust.PetsWon, Is.EqualTo(2));
 
             saver.RestoreState(null);
-            Assert.That(trust.Pets, Is.Zero, "a missing record is a wary animal");
+            Assert.That(trust.Trust, Is.Zero, "a missing record is a wary animal");
         }
 
         [Test]
         public void AWaryAnimalRefusesTheSaddleUntilItTrusts()
         {
             GameObject horn = Make("Horn");
-            CreatureTrust trust = horn.AddComponent<CreatureTrust>();
+            CreatureTrust trust = MakeTrust(horn, PetsToTame);
             SaddleSocket socket = horn.AddComponent<SaddleSocket>();
             Invoke(socket, "Awake");
 
             Assert.That(socket.AcceptsSaddle, Is.False);
-            trust.Restore(trust.PetsToTrust);
+            trust.Restore(1f);
             Assert.That(socket.AcceptsSaddle, Is.True);
 
             SaddleSocket plain = Make("Ordinary").AddComponent<SaddleSocket>();
@@ -260,6 +273,13 @@ namespace SpaceGame.Tests
             Invoke(stock, "Awake");
             Enable(stock);
             return stock;
+        }
+
+        private static CreatureTrust MakeTrust(GameObject animal, int petsToTame)
+        {
+            CreatureTrust trust = animal.AddComponent<CreatureTrust>();
+            typeof(CreatureTrust).GetField("petsToTame", Hidden).SetValue(trust, petsToTame);
+            return trust;
         }
 
         private void Enable(Behaviour behaviour)

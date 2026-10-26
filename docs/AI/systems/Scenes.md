@@ -58,7 +58,7 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 | Aleksander test scene | Tests/Aleksander test scene.unity | Personal sandbox; visor overlay + volumetric explosion + waypoints | 3 |
 | Tommy test scene | Tests/Tommy test scene.unity | Personal sandbox; floor + camera only | 4 |
 | Emil test scene | Tests/Emil test scene.unity | Personal sandbox; plane + light | 5 |
-| Marius test scene | Tests/Marius test scene.unity | Personal sandbox; artifact + particle/movement cameras | 6 |
+| Marius test scene | Tests/Marius test scene.unity | Personal sandbox; artifact + particle/movement cameras, weathervane peaks, the `SpriteHamlet` model showcase, and the playable hamlet questline (`SpriteHamlet_Quest`, `WitchGlade_Quest`, `QuestSystems`, `QuestNavMesh`, see [SpriteHamletQuest](SpriteHamletQuest.md)). Runs as host of one (`SingeplayerInitializer` on, the placed offline `PlayerCharacter` off) | 6 |
 | CaveTest | [Tests/CaveTest.unity](Assets/Game/Scenes/Tests/CaveTest.unity) | Empty since creation (125 lines, no roots) — a stub, not a regression | no |
 | DuneFoilTest | [Tests/DuneFoilTest.unity](Assets/Game/Scenes/Tests/DuneFoilTest.unity) | Sand plane + `PlayerStandIn` + preview cam for the dune foil sailer | no |
 | FogGallery | [Tests/FogGallery.unity](Assets/Game/Scenes/Tests/FogGallery.unity) | Volumetric fog reference gallery: 8 named volumes + overlap lamps | no |

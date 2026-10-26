@@ -1,0 +1,1058 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5468989060557936279
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.45
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.45
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.45
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      propertyPath: m_Name
+      value: HamletElder
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7494200544473590180}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5882374354596929893}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6633492022236367349}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8614210843310969218}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2077666366402084355}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5374494552868585667}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4158566954663731087}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4744144367950139851}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5691557478883742632}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5082299218160086500}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1852910943037015074}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8752946350488102610}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 655771849105413840}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 817364188103682152}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4899199519378763064}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5320081809793684354}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4084818634669500132}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 555707252356882106}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 457439372701292678}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2379860910725602999}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7602138372461144652}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8164737763802220420}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2813327317116094253}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 801108827548918011}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 329753004718741964}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3379081323589269968}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2242294393063325256}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4992970105043130843}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2565805392166386093}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7151254835401912991}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4439177491178893543}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 102513918566584677}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4633427741323004573}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3885948028258712581}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3960397884720211909}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5154609012664277046}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7790989238819153898}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 340036370143890275}
+  m_SourcePrefab: {fileID: 100100000, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+--- !u!1 &5126408381065636806 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+  m_PrefabInstance: {fileID: 5468989060557936279}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &7494200544473590180
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.32, y: 0.62, z: 0.32}
+  m_Center: {x: 0, y: 0.31, z: 0}
+--- !u!54 &5882374354596929893
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  serializedVersion: 5
+  m_Mass: 40
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!195 &6633492022236367349
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 0
+  m_AgentTypeID: 0
+  m_Radius: 0.16
+  m_Speed: 6.6
+  m_Acceleration: 16
+  avoidancePriority: 50
+  m_AngularSpeed: 340
+  m_StoppingDistance: 1
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 0
+  m_AutoRepath: 1
+  m_Height: 0.62
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &8614210843310969218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  carryEnterSlope: 0.7
+  carryLandTolerance: 0.15
+  maxCarryFallSpeed: 30
+  maxThrustDragSpeed: 20
+  agent: {fileID: 6633492022236367349}
+  navMeshSnapDistance: 6
+  walkSpeedMultiplier: 0.2413493
+  stuckVelocityThreshold: 0.05
+  stuckTime: 1.5
+  faceRotateSpeed: 9
+  minGripAcceleration: 0.02
+  enableMountedJump: 1
+  mountedJumpHeight: 1.25
+  mountedJumpDuration: 0.55
+  mountedJumpCooldown: 0.45
+  enableMountedLeap: 1
+  mountedLeapCooldown: 0.6
+  mountedLeapSampleRadius: 6
+  riderTurnSpeed: 120
+  riderForwardTargetDistance: 2
+  riderLookaheadSeconds: 0.5
+  riderStopDistance: 0.15
+  riderNavMeshSampleDistance: 4
+--- !u!114 &2077666366402084355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
+  animator: {fileID: 0}
+  animationSpeedMultiplier: 1
+  walkAnimBoost: 1
+  animatorSpeedScale: 1
+  measuredRunSpeed: 3.5
+  strideEndPhases: []
+--- !u!114 &5374494552868585667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
+  MotorComponent: {fileID: 8614210843310969218}
+  animatorDriver: {fileID: 2077666366402084355}
+  speedVariationAmount: 0.1
+  speedVariationPeriod: 6
+--- !u!114 &4158566954663731087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d098cb41a70441c8bc8c7fd711068b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
+  profile: {fileID: 0}
+  relationship: 2
+  acquisitionRange: 80
+  loseRange: 110
+  requireLineOfSightToAcquire: 1
+  proximityAcquireRange: 4
+  drawGizmos: 1
+--- !u!114 &4744144367950139851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.HealthComponent
+  maxHealth: 90
+  currentHealth: 90
+--- !u!114 &5691557478883742632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bdb2dfd50e904a02822de43186a02e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HealthReactionModule
+  thresholdReactions: []
+  hurtAnimTrigger: 
+  dieAnimTrigger: 
+  emitNoiseOnDamage: 1
+  damageNoiseRadius: 15
+  hurtId: 409
+  hurtSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
+  emitNoiseOnDeath: 1
+  deathNoiseRadius: 20
+  deathId: 410
+  deathSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  despawnDelay: 8
+  disableAgentOnDeath: 1
+  logDamage: 0
+--- !u!114 &5082299218160086500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64661caed1f864fa9aac312ff41b3e53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.PerceptionModule
+  fieldOfViewAngle: 210
+  movingFovBonus: 0
+  eyeTransform: {fileID: 0}
+  occlusionLayers:
+    serializedVersion: 2
+    m_Bits: 641
+  eyeHeight: 0.97
+  targetAimHeight: 1
+  headAimHeight: 1.6
+  headInset: 0.15
+  memoryDuration: 12
+  emitNoiseOnSpot: 1
+  spotNoiseRadius: 12
+  playSpotSound: 1
+  spotId: 407
+  spotSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &1852910943037015074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 421edd01c56ce43e49db60c5c7a6caed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.WanderModule
+  priority: 0
+  active: 1
+  limitWanderRadius: 0
+  wanderRadius: 8
+  freeRoamRadius: 90
+  sampleDistance: 6
+  minDestinationDistance: 1.5
+  maxSampleAttempts: 10
+  onlyReachableDestinations: 0
+  minWaitTime: 1.5
+  maxWaitTime: 6
+  stopDistance: 0.2
+  speedMultiplier: 0.2413493
+--- !u!114 &8752946350488102610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: 866b48df6336dc847b3ab427e49b175d, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &655771849105413840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
+  keepChunksLoaded: 0
+  policy: 1
+--- !u!114 &817364188103682152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2614942880
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 1
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &4899199519378763064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 1
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &5320081809793684354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &4084818634669500132
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
+--- !u!114 &555707252356882106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a140c4cd8644f69b66c4a36ec82f21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.NetworkedHealthComponent
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &457439372701292678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: b688fafe08b9e1048ae14e7e0b307e77
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &2379860910725602999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &7602138372461144652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &8164737763802220420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
+  logRecoveries: 1
+--- !u!114 &2813327317116094253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable
+--- !u!114 &801108827548918011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
+--- !u!114 &329753004718741964
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c672eb793055441e0a2ba07913619da5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
+  drawGizmos: 1
+--- !u!114 &3379081323589269968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
+--- !u!114 &2242294393063325256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
+--- !u!114 &4992970105043130843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
+--- !u!114 &2565805392166386093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
+--- !u!114 &7151254835401912991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &4439177491178893543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.35
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
+--- !u!114 &102513918566584677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8439722f7cbbd42908869e58bf797f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Status.StatusReceiver
+  burning:
+    seconds: 5
+    damagePerSecond: 4
+    reigniteDelay: 3
+  frozen:
+    seconds: 10
+  slick:
+    seconds: 20
+    grip: 0.03
+  inflated:
+    seconds: 6
+    scaleAtFull: 2.5
+    scaleAtEmpty: 0.5
+    massAtFull: 0.15
+    massAtEmpty: 4
+  foamed:
+    seconds: 10
+    breakDamage: 10
+  swallowed:
+    seconds: 6
+  stasis:
+    seconds: 5
+  inflationTarget: {fileID: 5507754934112678268}
+--- !u!114 &4633427741323004573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69eae6986bef940a180aa26bee3169a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.StatusReactionModule
+  priority: 100
+  active: 1
+  reactions:
+  - Kind: 0
+    Response: 1
+  - Kind: 1
+    Response: 2
+  - Kind: 4
+    Response: 2
+--- !u!95 &3885948028258712581
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 22100000, guid: 9d9fd691b770ab641b50d95f35f75df1, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &3960397884720211909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd810634453d54856ae47d03bd771c25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.InteractionFocusModule
+  priority: 10
+  active: 1
+--- !u!114 &5154609012664277046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc4e353a5d1e441e487401c86bbed068, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.DialogInteraction
+  dialogMode: 0
+  dialogLines:
+  - Go and see the Elder. He knows more than any of us.
+  predefinedRandomPool: []
+  globalDialogPool: {fileID: 0}
+  branchingSteps: []
+  loopDialogLines: 1
+  allowRestartAfterEnd: 1
+  finishCurrentLineOnInteractWhileTyping: 1
+  popupDuration: 2.5
+  interactionFocusDuration: 2.5
+  restartFromBeginningAfterSeconds: 10
+  useDelayBetweenDialogues: 0
+  dialogueDelaySeconds: 3
+  voiceId: 400
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &7790989238819153898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d074487125818e242beed49a74e554a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestActor
+  actorId: hamlet-elder
+  talkRange: 6
+--- !u!114 &340036370143890275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126408381065636806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c37df95b98830d499e81f2f52ff41be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestDialog
+  entries:
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: 
+      until: hamlet-find-hut
+    lines:
+    - "So, the sky has sent us a traveller. Sit, sit \u2014 my knees will not let
+      me stand long."
+    - Our guardian Merob sleeps under a witch's curse, and without him the old oath
+      is only words.
+    - The witch has been spotted from time to time wandering the forest, but the
+      hamlets are simply too scared to pursue her any further and flee back to the
+      village.
+    offerChain: 1
+    question: Will you find where she lives?
+    yesLabel: I'll find her
+    noLabel: Not yet
+    acceptedLine: Bless your boots. Follow the wilted herbs; she drops them as she
+      walks.
+    declinedLine: Then rest a while. The forest will still be here.
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-find-hut
+      until: hamlet-report-hut
+    lines:
+    - The wilted herbs, traveller. She cannot help dropping them.
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-report-hut
+      until: hamlet-escort-keepers
+    lines:
+    - Her hut... on the old trading post? Then it is as I feared.
+    - "Her life is in the sacred herbs we sold her \u2014 she wears them in her hat.
+      No blade of yours will touch her."
+    - "But rue undoes what the sacred herbs do. Bramble, Pip, Wisteria \u2014 take
+      a bottle each."
+    - "They are too small to catch her, and their throws too slow to find her. Lift
+      the Oathbranch from the Tree \u2014 whatever it strikes is held still, and
+      while she is held, their rue will find its mark."
+    - The dome falls when the branch leaves its root. We will be brave until Merob
+      wakes.
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-escort-keepers
+      until: hamlet-return
+    lines:
+    - Bring them home. All three.
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-return
+      until: hamlet-reforge-oath
+    lines:
+    - "The curse did not lift with her \u2014 it soured. Do not destroy him!"
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-reforge-oath
+      until: hamlet-oath-reforged
+    lines:
+    - Keep the chant going! The oath must be spoken whole.
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: hamlet-oath-reforged
+      until: '#complete'
+    lines:
+    - The oath is spoken again. The Tree remembers. And so will we.
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+  - window:
+      chain: {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
+      from: '#complete'
+      until: 
+    lines:
+    - "Rest a while, traveller. The stash beneath the Tree is yours \u2014 those
+      trinkets have caused us grief enough."
+    offerChain: 0
+    question: 
+    yesLabel: 
+    noLabel: 
+    acceptedLine: 
+    declinedLine: 
+--- !u!4 &5507754934112678268 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 54b2710354e7ad14cbc048412dcde18c, type: 3}
+  m_PrefabInstance: {fileID: 5468989060557936279}
+  m_PrefabAsset: {fileID: 0}

@@ -34,12 +34,12 @@ namespace SpaceGame.EditorTools
         private const float StockMass = 700f;
 
         // The tame one: a few pets win it over, and it keeps to a patch of yard this big.
-        private const int TamePetsToTrust = 3;
+        private const int TamePetsToTame = 3;
         private const float TameHomeRadius = 8f;
 
         // The wild ones: twice the patience, a range this big, and they bolt from anybody this close and keep going to
         // the safe radius — at a share of their run a galloping rider closes on.
-        private const int WildPetsToTrust = 6;
+        private const int WildPetsToTame = 6;
         private const float WildHomeRadius = 30f;
         private const float WildFleeTrigger = 16f;
         private const float WildFleeSafe = 34f;
@@ -69,7 +69,7 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            if (!Variant(EskoPath, TamePath, horn => TuneStock(horn, TamePetsToTrust, TameHomeRadius, "Esko")) ||
+            if (!Variant(EskoPath, TamePath, horn => TuneStock(horn, TamePetsToTame, TameHomeRadius, "Esko")) ||
                 !Variant(EskoPath, WildPath, TuneWild) ||
                 !Variant(DroverPath, WranglerPath, drover => TuneWrangler(drover, site, quest)))
                 return;
@@ -118,12 +118,12 @@ namespace SpaceGame.EditorTools
             return true;
         }
 
-        private static void TuneStock(GameObject horn, int petsToTrust, float homeRadius, string label)
+        private static void TuneStock(GameObject horn, int petsToTame, float homeRadius, string label)
         {
             Set(Ensure<RanchStock>(horn), "kind", k => k.enumValueIndex = (int)RanchStock.Kind.Tame);
             CreatureTrust trust = Ensure<CreatureTrust>(horn);
             Ensure<CreatureTrustSaveable>(horn);
-            Set(trust, "petsToTrust", p => p.intValue = petsToTrust);
+            Set(trust, "petsToTame", p => p.intValue = petsToTame);
 
             Set(horn.GetComponent<WanderModule>(), "homeRadius", p => p.floatValue = homeRadius);
             horn.GetComponent<Rigidbody>().mass = StockMass;
@@ -134,7 +134,7 @@ namespace SpaceGame.EditorTools
 
         private static void TuneWild(GameObject horn)
         {
-            TuneStock(horn, WildPetsToTrust, WildHomeRadius, "Wild esko");
+            TuneStock(horn, WildPetsToTame, WildHomeRadius, "Wild esko");
             Set(Ensure<RanchStock>(horn), "kind", k => k.enumValueIndex = (int)RanchStock.Kind.Wild);
 
             var flee = new SerializedObject(horn.GetComponent<FleeModule>());

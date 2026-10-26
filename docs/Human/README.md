@@ -44,6 +44,11 @@ chapter.
 10. [How the game is built](10-how-the-game-is-built.md) — from a Blender file to something in
     the game, the tools, and how it is tested.
 
+**Stories**
+
+- [The sprite hamlet](sprite-hamlet-story.md) — the words of the hamlet questline: every villager's
+  fragment, the elder, the Oath-Chant, the witch.
+
 ## A note on honesty
 
 These chapters say plainly where things are unfinished or broken. That is deliberate. If a

@@ -1,4 +1,4 @@
-// Timed conditions on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound.
+// Timed conditions on a body — burning, frozen, slick, inflated, foamed, swallowed, shocked, bound, stasis.
 //
 // Five of the new artifacts leave a condition behind on whatever they touch. Without one place for
 // that, each of them grows its own timer, its own replication and its own answer to "what does a
@@ -44,6 +44,7 @@ namespace SpaceGame.Gameplay.Status
         [SerializeField] private SwallowedStatus swallowed = new SwallowedStatus();
         [SerializeField] private ShockedStatus shocked = new ShockedStatus();
         [SerializeField] private BoundStatus bound = new BoundStatus();
+        [SerializeField] private StasisStatus stasis = new StasisStatus();
 
         [Header("Body")]
         [Tooltip("What the Inflated condition scales. Leave empty to scale this object itself, " +
@@ -527,6 +528,7 @@ namespace SpaceGame.Gameplay.Status
                 Slot(swallowed);
                 Slot(shocked);
                 Slot(bound);
+                Slot(stasis);
                 return behaviours;
             }
         }

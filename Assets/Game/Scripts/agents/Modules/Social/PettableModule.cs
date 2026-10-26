@@ -44,6 +44,11 @@ namespace SpaceGame.Agents
                  "or fleeing the prompt does not appear at all, rather than appearing and refusing.")]
         [SerializeField] private FightOrFlightModule mood;
 
+        [Tooltip("Optional. A wild creature that has to be won over first. When petting does not win it " +
+                 "(CreatureTrust.AcceptsPetting), no prompt at all until it is tame. Found on the agent root " +
+                 "when empty; an animal without one anyone may pet.")]
+        [SerializeField] private CreatureTrust trust;
+
         [Tooltip("What the PLAYER who petted does: the reach. Played on every machine that hears " +
                  "of the pet; CharacterActions decides which of them actually writes the body.")]
         [SerializeField] private CharacterAction petterAction;
@@ -52,7 +57,6 @@ namespace SpaceGame.Agents
         [SerializeField] private string label = "Appa";
 
         private float readyAt;
-        private CreatureTrust trust;
 
         /// <summary>True for the seconds after a successful pet. Read by tests and by the builder.</summary>
         public bool OnCooldown => Time.time < readyAt;
@@ -77,7 +81,8 @@ namespace SpaceGame.Agents
                 animatorDriver = agentRoot.GetComponentInChildren<AgentAnimatorDriver>();
             if (mood == null && agentRoot != null)
                 mood = agentRoot.GetComponentInChildren<FightOrFlightModule>();
-            if (agentRoot != null) trust = agentRoot.GetComponent<CreatureTrust>();
+            if (trust == null && agentRoot != null)
+                trust = agentRoot.GetComponentInChildren<CreatureTrust>();
         }
 
         private void OnEnable()
@@ -99,7 +104,7 @@ namespace SpaceGame.Agents
 
         // ─────────── IInteractable ───────────
 
-        public bool CanInteract() => !OnCooldown && !IsUpset();
+        public bool CanInteract() => !OnCooldown && !IsUpset() && Welcomes();
 
         /// <summary>
         /// Contextual as well as plain, so a refusal hides the prompt instead of showing one that
@@ -136,7 +141,7 @@ namespace SpaceGame.Agents
         private void OnPetRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Owns(this)) return;
-            if (IsUpset()) return;
+            if (IsUpset() || !Welcomes()) return;
 
             readyAt = Time.time + cooldown;
             NetMessaging.NetSendTo(agentRoot, NetMsg.Petted, arg, NetTo.All);
@@ -174,14 +179,17 @@ namespace SpaceGame.Agents
         /// </summary>
         private bool IsUpset() => mood != null && mood.CurrentMood == FightOrFlightModule.Mood.Enraged;
 
+        /// <summary>A creature that has to be won over, and is not won by petting, lets nobody touch it until it has been.</summary>
+        private bool Welcomes() => trust == null || trust.AcceptsPetting;
+
         // ─────────── IInteractionReadout ───────────
 
         public string Label => label;
         public string Prompt => OnCooldown ? "" : "RMB: pet";
 
         /// <summary>How far the creature has come to trust people, when it is one that has to be won over.</summary>
-        public float? Value01 => trust != null ? trust.Trust01 : null;
-        public string ValueText => trust == null ? "" : trust.IsTrusting ? "Trusts you" : "Wary";
+        public float? Value01 => trust != null ? trust.Trust : null;
+        public string ValueText => trust == null ? "" : trust.IsTame ? "Trusts you" : "Wary";
 
         private void OnValidate() => cooldown = Mathf.Max(0.1f, cooldown);
     }

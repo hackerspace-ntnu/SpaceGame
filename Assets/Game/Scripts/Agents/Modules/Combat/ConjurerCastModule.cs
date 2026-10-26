@@ -156,6 +156,7 @@
 // Damage is deliberately NOT in the present half. It is shared world state and
 // exactly one machine may decide it.
 using UnityEngine;
+using UnityEngine.Serialization;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
@@ -269,7 +270,11 @@ namespace SpaceGame.Agents
         [SerializeField] private AgentAnimatorDriver animatorDriver;
 
         [Header("Strike")]
-        [SerializeField] private GameObject lightningVFXPrefab;
+        [Tooltip("What the strike looks like where it lands. Any prefab carrying an " +
+                 "IStrikeEffect: Merob's lightning bolt, or the witch's thorn eruption. " +
+                 "Cosmetic and spawned on every machine — never a network prefab.")]
+        [FormerlySerializedAs("lightningVFXPrefab")]
+        [SerializeField] private GameObject strikeVFXPrefab;
 
         [Tooltip("Drop the bolt out of the sky onto the target. ON by default: this is the " +
                  "creature's attack. Turn it off and the same wind-up fires a blockable " +
@@ -398,6 +403,14 @@ namespace SpaceGame.Agents
 
         /// Which of the three phases this module is in. Read-only.
         public string Phase => casting ? "casting" : settling ? "settling" : "idle";
+
+        /// SIMULATING MACHINE: a cast has been decided and not yet resolved -- braking into it or
+        /// winding it up. Another attack on the same body waits for this to clear.
+        public bool IsBusy => casting || settling;
+
+        /// EVERY MACHINE: the wind-up is being drawn here right now, from the staff going up to
+        /// the strike landing.
+        public bool IsPresenting => presenting;
 
         public override string ModuleDescription =>
             "Comes to a full stop, then holds the staff up for castSeconds and calls a " +
@@ -822,7 +835,7 @@ namespace SpaceGame.Agents
             ClearTelegraph();
             presenting = false;
 
-            LightningStrike.Present(lightningVFXPrefab, from, strike, vfxLifetime);
+            LightningStrike.Present(strikeVFXPrefab, from, strike, vfxLifetime, damageRadius);
         }
 
         private void ClearCharge()
@@ -901,8 +914,10 @@ namespace SpaceGame.Agents
                                      damageMask, gameObject, out strike);
             }
 
-            PresentStrike(strike);
-
+            // Drawn by the broadcast alone, on every machine including this one: NetToAll always
+            // dispatches locally too (the host's own RPC comes back to it, and offline the channel
+            // runs the handler directly). Drawing here as well put two bolts — two thorn clusters
+            // for the witch — over every strike on the host.
             this.NetToAll(NetMsg.ConjurerStruck,
                           new NetArg { P = strike }.With(gameObject));
         }

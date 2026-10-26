@@ -10,7 +10,11 @@
 // (GDC-L1-MP-0004): a voice beyond range is never sent, and a modified client cannot turn up what
 // it was never given. Each listener still fades what it does receive, but that is presentation.
 //
-// Still to land beside it: the nearest-N cap on simultaneous speakers, and the squad channel.
+// In story mode the crew has a suit radio (VoiceRadio), so there the host relays every voice to
+// everyone (Everyone) and each listener decides how much is heard in person and how much over the
+// radio. Versus stays on Proximity: the other team must not be able to listen in.
+//
+// Still to land beside these: the nearest-N cap on simultaneous speakers, and the squad channel.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +23,22 @@ namespace SpaceGame.Voice
     /// <summary>Routing decisions for one speaker's frame.</summary>
     public static class VoiceRouter
     {
+        /// <summary>
+        /// Everyone connected except the speaker, wherever they are, written into
+        /// <paramref name="listeners"/> (cleared first). The story-mode rule: with the suit radio
+        /// nobody is ever out of reach, so distance is the listener's business, not the router's.
+        /// </summary>
+        public static void Everyone(IReadOnlyList<ulong> connected, ulong speaker, List<ulong> listeners)
+        {
+            listeners.Clear();
+            if (connected == null) return;
+
+            for (int i = 0; i < connected.Count; i++)
+            {
+                if (connected[i] != speaker) listeners.Add(connected[i]);
+            }
+        }
+
         /// <summary>
         /// Everyone connected who is within <paramref name="range"/> metres of the speaker, written
         /// into <paramref name="listeners"/> (cleared first, so it can be reused every frame).

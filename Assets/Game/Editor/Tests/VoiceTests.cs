@@ -331,6 +331,78 @@ namespace SpaceGame.Tests
             CollectionAssert.AreEquivalent(new ulong[] { 1, 2 }, listeners);
         }
 
+        [Test]
+        public void WithTheRadioEveryoneButTheSpeakerIsSentAVoice()
+        {
+            // Story mode: distance is the listener's to fade by, so the host sends to all of them.
+            var listeners = new List<ulong> { 99 };
+            VoiceRouter.Everyone(new ulong[] { 0, 1, 2, 3 }, 2, listeners);
+            CollectionAssert.AreEquivalent(new ulong[] { 0, 1, 3 }, listeners);
+
+            VoiceRouter.Everyone(null, 0, listeners);
+            CollectionAssert.IsEmpty(listeners);
+        }
+
+        // ----------------------------------------------------------------------- radio
+
+        [Test]
+        public void TheRadioIsOffUpCloseAndFullyOnFarAway()
+        {
+            Assert.AreEqual(0f, VoiceRadio.Blend(0f, 12f, 22f));
+            Assert.AreEqual(0f, VoiceRadio.Blend(12f, 12f, 22f));
+            Assert.AreEqual(1f, VoiceRadio.Blend(22f, 12f, 22f));
+            Assert.AreEqual(1f, VoiceRadio.Blend(500f, 12f, 22f), "a crewmate is never too far for the radio");
+            Assert.AreEqual(0.5f, VoiceRadio.Blend(17f, 12f, 22f), 1e-4f);
+        }
+
+        [Test]
+        public void TheRadioFadesInWithoutEverStepping()
+        {
+            // Monotonic, and no jump anywhere along the way: walking away from someone should never
+            // make their radio suddenly louder, or suddenly quieter.
+            float previous = 0f;
+            for (float d = 0f; d <= 30f; d += 0.05f)
+            {
+                float blend = VoiceRadio.Blend(d, 12f, 22f);
+                Assert.GreaterOrEqual(blend, previous - 1e-6f, $"the radio got quieter walking away, at {d} m");
+                Assert.Less(blend - previous, 0.02f, $"the radio jumped at {d} m");
+                previous = blend;
+            }
+        }
+
+        [Test]
+        public void ARadioWithNoFadeBandSwitchesAtItsEdge()
+        {
+            Assert.AreEqual(0f, VoiceRadio.Blend(9.9f, 10f, 10f));
+            Assert.AreEqual(1f, VoiceRadio.Blend(10f, 10f, 10f));
+        }
+
+        [Test]
+        public void TheSquelchIsShortBoundedAndClickFree()
+        {
+            short[] open = VoiceRadio.Squelch(VoiceRadio.OpenSamples, 17);
+            short[] close = VoiceRadio.Squelch(VoiceRadio.CloseSamples, 23);
+
+            Assert.AreEqual(VoiceRadio.OpenSamples, open.Length);
+            Assert.AreEqual(VoiceRadio.CloseSamples, close.Length);
+            Assert.Less(open.Length, close.Length, "the closing burst is the longer one");
+
+            foreach (short[] burst in new[] { open, close })
+            {
+                // Starts and ends on silence, so the burst itself never pops.
+                Assert.Less(Math.Abs((int)burst[0]), 2000);
+                Assert.AreEqual(0, burst[burst.Length - 1]);
+
+                // Audible, and nowhere near full scale.
+                double level = Rms(burst);
+                Assert.Greater(level, 300.0, "the squelch is too quiet to hear");
+                Assert.Less(level, short.MaxValue * 0.5, "the squelch is close to clipping");
+            }
+
+            CollectionAssert.AreEqual(open, VoiceRadio.Squelch(VoiceRadio.OpenSamples, 17), "not deterministic");
+            CollectionAssert.IsEmpty(VoiceRadio.Squelch(0, 1));
+        }
+
         // ---------------------------------------------------------------------- tuning
 
         [Test]
@@ -352,6 +424,12 @@ namespace SpaceGame.Tests
                 Assert.Less(tuning.FullVolumeDistance, tuning.SilentDistance);
                 Assert.GreaterOrEqual(tuning.RouteDistance, tuning.SilentDistance);
                 Assert.GreaterOrEqual(tuning.MouthHeight, 0f);
+
+                // The radio must be fully in before a voice falls silent in person, or there is a
+                // stretch where a crewmate cannot be heard at all.
+                Assert.GreaterOrEqual(tuning.RadioFadeStart, tuning.FullVolumeDistance);
+                Assert.Less(tuning.RadioFadeStart, tuning.RadioFadeEnd);
+                Assert.LessOrEqual(tuning.RadioFadeEnd, tuning.SilentDistance);
             }
             finally
             {

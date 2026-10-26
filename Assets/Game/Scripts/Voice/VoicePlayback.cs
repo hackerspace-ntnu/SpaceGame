@@ -14,6 +14,12 @@
 // voices are FMOD Core 3D channels, which are placed relative to FMOD's listener -- and the
 // StudioListener on the camera already drives that one, since the Studio system owns the Core
 // system underneath it. SfxFile's 3D one-shots rely on exactly the same thing.
+//
+// A voice made with the suit radio (VoiceRadio) plays the same ring on a second channel: flat, run
+// through a band-pass and a little distortion, at whatever level the owner sets. Both channels live
+// in one channel group per voice, and pausing is done on the group, so the two always start, stop
+// and run in step: they read one buffer at one position, which is what lets them be heard together
+// without the second sounding like an echo of the first.
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -21,8 +27,8 @@ using UnityEngine;
 namespace SpaceGame.Voice
 {
     /// <summary>
-    /// One voice being heard: PCM frames in, audible sound out through FMOD's master group.
-    /// Nothing here throws.
+    /// One voice being heard: PCM frames in, audible sound out through FMOD's master group —
+    /// in person, and optionally over the radio too. Nothing here throws.
     /// </summary>
     public sealed class VoicePlayback : IDisposable
     {
@@ -49,8 +55,26 @@ namespace SpaceGame.Voice
         /// </summary>
         private const float IdleParkSeconds = VoiceFormat.FrameMilliseconds * 2 / 1000f;
 
+        private readonly bool withRadio;
+
         private FMOD.Sound sound;
+        private FMOD.ChannelGroup group;
         private FMOD.Channel channel;
+
+        // The radio path: a second channel on the same sound, and the two effects that make it a radio.
+        private FMOD.Channel radio;
+        private FMOD.DSP radioBand;
+        private FMOD.DSP radioCrunch;
+        private float radioBlend;
+        private float appliedRadioLevel = -1f;
+        private float appliedCrunch = -1f;
+        private float squelchVolume;
+        private float appliedVolume = 1f;
+
+        // Generated once per FMOD system and shared by every voice. See EnsureSquelch.
+        private static FMOD.Sound openSquelch;
+        private static FMOD.Sound closeSquelch;
+        private static IntPtr squelchSystem;
         private uint writeCursor;
         private int ringSamples;
         private bool primed;
@@ -73,6 +97,14 @@ namespace SpaceGame.Voice
 
         /// <summary>Whether this voice is currently placed in the world rather than played flat.</summary>
         public bool IsSpatial => spatial;
+
+        /// <param name="withRadio">
+        /// Also open the radio path. Off for the microphone test, which has no distance to fade over.
+        /// </param>
+        public VoicePlayback(bool withRadio = false)
+        {
+            this.withRadio = withRadio;
+        }
 
         /// <summary>Opens the buffer and starts the channel. False with a reason on failure.</summary>
         public bool TryStart(out string error)
@@ -112,12 +144,25 @@ namespace SpaceGame.Voice
                 Silence();
 
                 core.getMasterChannelGroup(out FMOD.ChannelGroup master);
-                result = core.playSound(sound, master, false, out channel);
+
+                // The group starts paused, so every channel added to it waits at position 0 and the
+                // first Submit releases them together.
+                result = core.createChannelGroup("Voice", out group);
+                if (result == FMOD.RESULT.OK) result = master.addGroup(group);
+                if (result == FMOD.RESULT.OK) result = group.setPaused(true);
 
                 if (result != FMOD.RESULT.OK)
                 {
-                    sound.release();
-                    sound.clearHandle();
+                    Stop();
+                    error = $"Could not create the voice's channel group ({result}).";
+                    return false;
+                }
+
+                result = core.playSound(sound, group, false, out channel);
+
+                if (result != FMOD.RESULT.OK)
+                {
+                    Stop();
                     error = $"Could not start playback ({result}).";
                     return false;
                 }
@@ -126,6 +171,12 @@ namespace SpaceGame.Voice
                 if (result != FMOD.RESULT.OK)
                     Debug.LogWarning($"[Voice] Could not start a voice flat ({result}); it may play positioned at the origin.");
 
+                // Started in the same breath as the voice channel and into the same paused group,
+                // so the two are at the same position from the first sample on. A radio that fails
+                // to open costs the radio, not the voice.
+                if (withRadio && !TryStartRadio(core, out string radioError))
+                    Debug.LogWarning($"[Voice] No radio for this voice: {radioError}");
+
                 quiet = new short[VoiceFormat.FrameSamples * TrailingSilenceFrames];
                 writeCursor = 0;
                 idleSeconds = 0f;
@@ -133,6 +184,7 @@ namespace SpaceGame.Voice
                 spatial = false;
                 appliedNear = -1f;
                 appliedFar = -1f;
+                appliedVolume = 1f;
                 error = null;
                 return true;
             }
@@ -162,8 +214,12 @@ namespace SpaceGame.Voice
                 Silence();
                 writeCursor = Advance(position, VoiceFormat.FrameSamples * TargetLeadFrames);
 
-                if (channel.hasHandle()) channel.setPaused(false);
+                if (group.hasHandle()) group.setPaused(false);
                 primed = true;
+
+                // The click lands a couple of frames before the voice does — the write lead — which
+                // is the order a real radio puts them in.
+                PlaySquelch(openSquelch);
             }
             else
             {
@@ -191,9 +247,11 @@ namespace SpaceGame.Voice
             idleSeconds += Mathf.Max(0f, deltaTime);
             if (idleSeconds < IdleParkSeconds) return;
 
-            if (channel.hasHandle()) channel.setPaused(true);
+            if (group.hasHandle()) group.setPaused(true);
             primed = false;
             idleSeconds = 0f;
+
+            PlaySquelch(closeSquelch);
         }
 
         /// <summary>
@@ -205,11 +263,43 @@ namespace SpaceGame.Voice
         /// </summary>
         public const float MaxVolume = 2f;
 
-        /// <summary>Linear gain, 0 to <see cref="MaxVolume"/>. This voice only — the buses still apply.</summary>
+        /// <summary>
+        /// Linear gain, 0 to <see cref="MaxVolume"/>. This voice only — the buses still apply — and
+        /// both of its paths: someone turned down is turned down on the radio as well.
+        /// </summary>
         public void SetVolume(float volume)
         {
-            if (channel.hasHandle())
-                channel.setVolume(Mathf.Clamp(volume, 0f, MaxVolume));
+            appliedVolume = Mathf.Clamp(volume, 0f, MaxVolume);
+            if (group.hasHandle()) group.setVolume(appliedVolume);
+        }
+
+        /// <summary>
+        /// How much of this voice comes over the radio: <paramref name="blend"/> from 0 (in person
+        /// only) to 1 (radio only), played at <paramref name="volume"/> times the voice's own level,
+        /// with <paramref name="crunch"/> of distortion. <paramref name="squelch"/> is the level of
+        /// the static at either end of a transmission, 0 for none. Cheap to call every frame: FMOD
+        /// is only told about what changed. Does nothing for a voice opened without the radio.
+        /// </summary>
+        public void SetRadio(float blend, float volume, float crunch, float squelch)
+        {
+            radioBlend = Mathf.Clamp01(blend);
+            squelchVolume = Mathf.Clamp01(squelch);
+
+            if (!radio.hasHandle()) return;
+
+            float level = radioBlend * Mathf.Clamp(volume, 0f, MaxVolume);
+            if (!Mathf.Approximately(level, appliedRadioLevel))
+            {
+                radio.setVolume(level);
+                appliedRadioLevel = level;
+            }
+
+            crunch = Mathf.Clamp01(crunch);
+            if (radioCrunch.hasHandle() && !Mathf.Approximately(crunch, appliedCrunch))
+            {
+                radioCrunch.setParameterFloat((int)FMOD.DSP_DISTORTION.LEVEL, crunch);
+                appliedCrunch = crunch;
+            }
         }
 
         /// <summary>
@@ -278,6 +368,14 @@ namespace SpaceGame.Voice
                 channel.clearHandle();
             }
 
+            StopRadio();
+
+            if (group.hasHandle())
+            {
+                group.release();
+                group.clearHandle();
+            }
+
             if (sound.hasHandle())
             {
                 sound.release();
@@ -290,9 +388,180 @@ namespace SpaceGame.Voice
             spatial = false;
             appliedNear = -1f;
             appliedFar = -1f;
+            radioBlend = 0f;
+            squelchVolume = 0f;
         }
 
         public void Dispose() => Stop();
+
+        // ---------------------------------------------------------------------- radio
+
+        private bool TryStartRadio(FMOD.System core, out string error)
+        {
+            FMOD.RESULT result = core.playSound(sound, group, false, out radio);
+            if (result == FMOD.RESULT.OK) result = radio.setMode(FlatMode);
+            if (result == FMOD.RESULT.OK) result = radio.setVolume(0f);
+
+            // A radio is narrow: it passes the band a voice is understood in and little else.
+            if (result == FMOD.RESULT.OK) result = core.createDSPByType(FMOD.DSP_TYPE.MULTIBAND_EQ, out radioBand);
+            if (result == FMOD.RESULT.OK)
+            {
+                radioBand.setParameterInt((int)FMOD.DSP_MULTIBAND_EQ.A_FILTER,
+                                          (int)FMOD.DSP_MULTIBAND_EQ_FILTER_TYPE.HIGHPASS_12DB);
+                radioBand.setParameterFloat((int)FMOD.DSP_MULTIBAND_EQ.A_FREQUENCY, VoiceRadio.LowCutHz);
+                radioBand.setParameterInt((int)FMOD.DSP_MULTIBAND_EQ.B_FILTER,
+                                          (int)FMOD.DSP_MULTIBAND_EQ_FILTER_TYPE.LOWPASS_24DB);
+                radioBand.setParameterFloat((int)FMOD.DSP_MULTIBAND_EQ.B_FREQUENCY, VoiceRadio.HighCutHz);
+                radioBand.setParameterInt((int)FMOD.DSP_MULTIBAND_EQ.C_FILTER,
+                                          (int)FMOD.DSP_MULTIBAND_EQ_FILTER_TYPE.PEAKING);
+                radioBand.setParameterFloat((int)FMOD.DSP_MULTIBAND_EQ.C_FREQUENCY, VoiceRadio.PresenceHz);
+                radioBand.setParameterFloat((int)FMOD.DSP_MULTIBAND_EQ.C_GAIN, VoiceRadio.PresenceGainDb);
+                result = radio.addDSP(FMOD.CHANNELCONTROL_DSP_INDEX.TAIL, radioBand);
+            }
+
+            // Added at the tail after the band-pass, so it runs first: crunch, then filter, which
+            // keeps the distortion's harshest overtones out of the result.
+            if (result == FMOD.RESULT.OK) result = core.createDSPByType(FMOD.DSP_TYPE.DISTORTION, out radioCrunch);
+            if (result == FMOD.RESULT.OK)
+            {
+                radioCrunch.setParameterFloat((int)FMOD.DSP_DISTORTION.LEVEL, 0f);
+                appliedCrunch = 0f;
+                result = radio.addDSP(FMOD.CHANNELCONTROL_DSP_INDEX.TAIL, radioCrunch);
+            }
+
+            if (result != FMOD.RESULT.OK)
+            {
+                StopRadio();
+                error = result.ToString();
+                return false;
+            }
+
+            appliedRadioLevel = 0f;
+
+            if (!EnsureSquelch(core))
+                Debug.LogWarning("[Voice] Could not create the radio squelch sounds; the radio will be silent at either end.");
+
+            error = null;
+            return true;
+        }
+
+        private void StopRadio()
+        {
+            if (radio.hasHandle())
+            {
+                // An effect still attached to a channel refuses to be released, so off they come first.
+                if (radioCrunch.hasHandle()) radio.removeDSP(radioCrunch);
+                if (radioBand.hasHandle()) radio.removeDSP(radioBand);
+
+                radio.stop();
+                radio.clearHandle();
+            }
+
+            if (radioCrunch.hasHandle())
+            {
+                radioCrunch.release();
+                radioCrunch.clearHandle();
+            }
+
+            if (radioBand.hasHandle())
+            {
+                radioBand.release();
+                radioBand.clearHandle();
+            }
+
+            appliedRadioLevel = -1f;
+            appliedCrunch = -1f;
+        }
+
+        /// <summary>
+        /// Plays one of the squelch bursts if this voice is mostly on the radio. Straight onto the
+        /// master group rather than the voice's own, so the closing burst is not cut off by the very
+        /// pause it marks; the voice's volume is applied by hand instead.
+        /// </summary>
+        private void PlaySquelch(FMOD.Sound burst)
+        {
+            if (!radio.hasHandle() || squelchVolume <= 0f || radioBlend < VoiceRadio.MostlyRadio) return;
+            if (!burst.hasHandle()) return;
+
+            FMOD.System core = FMODUnity.RuntimeManager.CoreSystem;
+            if (core.handle != squelchSystem) return;
+
+            if (core.getMasterChannelGroup(out FMOD.ChannelGroup master) != FMOD.RESULT.OK) return;
+            if (core.playSound(burst, master, true, out FMOD.Channel click) != FMOD.RESULT.OK) return;
+
+            click.setVolume(squelchVolume * radioBlend * appliedVolume);
+            click.setPaused(false);
+        }
+
+        /// <summary>
+        /// The two squelch bursts, created once for the FMOD system that is running. They belong to
+        /// that system: if it has been replaced the old handles are dead, so they are made again
+        /// rather than released.
+        /// </summary>
+        private static bool EnsureSquelch(FMOD.System core)
+        {
+            if (squelchSystem == core.handle && openSquelch.hasHandle() && closeSquelch.hasHandle()) return true;
+
+            openSquelch.clearHandle();
+            closeSquelch.clearHandle();
+            squelchSystem = IntPtr.Zero;
+
+            if (!TryCreateClip(core, VoiceRadio.Squelch(VoiceRadio.OpenSamples, 17), out openSquelch)) return false;
+            if (!TryCreateClip(core, VoiceRadio.Squelch(VoiceRadio.CloseSamples, 23), out closeSquelch))
+            {
+                openSquelch.release();
+                openSquelch.clearHandle();
+                return false;
+            }
+
+            squelchSystem = core.handle;
+            return true;
+        }
+
+        /// <summary>A short, flat, one-shot FMOD sound holding <paramref name="pcm"/>.</summary>
+        private static bool TryCreateClip(FMOD.System core, short[] pcm, out FMOD.Sound clip)
+        {
+            clip = default;
+            if (pcm == null || pcm.Length == 0) return false;
+
+            var exinfo = new FMOD.CREATESOUNDEXINFO
+            {
+                cbsize = Marshal.SizeOf(typeof(FMOD.CREATESOUNDEXINFO)),
+                numchannels = 1,
+                defaultfrequency = VoiceFormat.SampleRate,
+                format = FMOD.SOUND_FORMAT.PCM16,
+                length = (uint)(pcm.Length * sizeof(short)),
+            };
+
+            if (core.createSound(IntPtr.Zero, FMOD.MODE.OPENUSER | FMOD.MODE.LOOP_OFF | FMOD.MODE._2D,
+                                 ref exinfo, out clip) != FMOD.RESULT.OK)
+            {
+                return false;
+            }
+
+            if (clip.@lock(0, exinfo.length, out IntPtr ptr1, out IntPtr ptr2, out uint len1, out uint len2)
+                != FMOD.RESULT.OK)
+            {
+                clip.release();
+                clip.clearHandle();
+                return false;
+            }
+
+            try
+            {
+                int first = (int)(len1 / sizeof(short));
+                if (first > 0) Marshal.Copy(pcm, 0, ptr1, first);
+
+                int second = (int)(len2 / sizeof(short));
+                if (second > 0 && ptr2 != IntPtr.Zero) Marshal.Copy(pcm, first, ptr2, second);
+            }
+            finally
+            {
+                clip.unlock(ptr1, ptr2, len1, len2);
+            }
+
+            return true;
+        }
 
         // ------------------------------------------------------------------ internals
 

@@ -13,10 +13,17 @@
 // receives as a 3D voice at the speaker's mouth, fading out by that same distance. In the lobby
 // nobody has a body, so both halves stand down and everyone hears everyone, flat.
 //
+// ## Suit radio (story mode)
+//
+// In story mode the whole crew can always reach each other: the host relays every voice to
+// everyone (VoiceRouter.Everyone), and each listener fades a crewmate's radio in under their voice
+// as they move out of earshot (VoiceRadio, VoiceTuning's radio distances). Versus has no radio yet
+// and stays on proximity, because a radio everyone hears would let the other team listen in.
+//
 // ## What this is not, yet
 //
 // No cap on simultaneous speakers and no bandwidth budget: a crowd all talking in one spot is
-// every one of them to every one of them. No squad channel or radio, so voice is proximity only.
+// every one of them to every one of them. No squad channel or radio in versus.
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -97,6 +104,9 @@ namespace SpaceGame.Voice
 
             // What was last pushed into FMOD, so a volume is only sent when it actually changes.
             public float AppliedVolume = -1f;
+
+            // How much of them comes over the radio right now: 0 in person only, 1 radio only.
+            public float RadioBlend;
         }
 
         // ------------------------------------------------------------------- readouts
@@ -176,6 +186,21 @@ namespace SpaceGame.Voice
             instance != null && instance.names.TryGetValue(clientId, out VoiceRoster.Entry entry)
                 ? entry.AccountId
                 : string.Empty;
+
+        /// <summary>
+        /// Whether <paramref name="clientId"/> is being heard mostly over the suit radio — far enough
+        /// away that the radio has taken over from their voice in the room. What the speaking list
+        /// marks with "radio".
+        /// </summary>
+        public static bool IsOnRadio(ulong clientId) =>
+            instance != null && instance.heard.TryGetValue(clientId, out Heard voice) &&
+            voice.RadioBlend >= VoiceRadio.MostlyRadio;
+
+        /// <summary>
+        /// Whether the crew has the suit radio this session: story mode, and so not a versus match.
+        /// Every peer derives VersusSession before anything spawns, so host and clients agree on it.
+        /// </summary>
+        public static bool RadioOn => !SpaceGame.Gameplay.VersusSession.IsActive;
 
         /// <summary>How many other people are audible right now — a cheap "is this working" readout.</summary>
         public static int VoicesHeard => instance != null ? instance.heard.Count : 0;
@@ -411,10 +436,21 @@ namespace SpaceGame.Voice
 
         private void OnFrameFromClient(ulong sender, byte[] frame, int length)
         {
-            // Positions are this frame's, refreshed in Update. A frame handled before the first
-            // Update of a new session sees none and routes to everyone, which costs one frame.
-            VoiceRouter.Proximity(NetworkManager.Singleton.ConnectedClientsIds, sender, bodies,
-                                  VoiceTuning.Active.RouteDistance, listeners);
+            IReadOnlyList<ulong> connected = NetworkManager.Singleton.ConnectedClientsIds;
+
+            // With the suit radio nobody is out of reach, so everyone gets every voice and decides
+            // for themselves how much of it is in person and how much is radio.
+            if (RadioOn)
+            {
+                VoiceRouter.Everyone(connected, sender, listeners);
+            }
+            else
+            {
+                // Positions are this frame's, refreshed in Update. A frame handled before the first
+                // Update of a new session sees none and routes to everyone, which costs one frame.
+                VoiceRouter.Proximity(connected, sender, bodies, VoiceTuning.Active.RouteDistance, listeners);
+            }
+
             transport.SendToListeners(listeners, sender, frame, length);
         }
 
@@ -470,7 +506,9 @@ namespace SpaceGame.Voice
 
             decoded ??= new short[VoiceFormat.FrameSamples];
 
-            var playback = new VoicePlayback();
+            // Always with the radio path, even in versus where it stays silent: a voice heard in the
+            // lobby is the same voice in the world, and the session may be a story run by then.
+            var playback = new VoicePlayback(withRadio: true);
             if (!playback.TryStart(out string error))
             {
                 Complain($"could not open playback for client {speaker}: {error}");
@@ -521,9 +559,10 @@ namespace SpaceGame.Voice
         }
 
         /// <summary>
-        /// A speaker with a body is heard from their mouth, fading with distance; one without — the
-        /// lobby, or someone between bodies — is heard flat, as before proximity. Every frame,
-        /// because they move; VoicePlayback only passes on what changed.
+        /// A speaker with a body is heard from their mouth, fading with distance, and in story mode
+        /// over the radio as that fade takes them away; one without — the lobby, or someone between
+        /// bodies — is heard flat, as before proximity, and not on the radio. Every frame, because
+        /// they move; VoicePlayback only passes on what changed.
         /// </summary>
         private void PlaceVoice(ulong speaker, Heard voice)
         {
@@ -532,20 +571,42 @@ namespace SpaceGame.Voice
             if (!bodies.TryGetValue(speaker, out Vector3 body))
             {
                 voice.Playback.SetSpatial(false, 0f, 0f);
+                SetRadio(voice, 0f, tuning);
                 return;
             }
 
             voice.Playback.SetSpatial(true, tuning.FullVolumeDistance, tuning.SilentDistance);
             voice.Playback.SetPosition(body + Vector3.up * tuning.MouthHeight);
+
+            float blend = 0f;
+            if (RadioOn)
+            {
+                // Without a body of your own — still loading in, or between bodies — there is no
+                // distance to fade by, and the radio is how you hear the crew.
+                blend = bodies.TryGetValue(Network.LocalClientId, out Vector3 ear)
+                    ? VoiceRadio.Blend(Vector3.Distance(body, ear), tuning.RadioFadeStart, tuning.RadioFadeEnd)
+                    : 1f;
+            }
+
+            SetRadio(voice, blend, tuning);
+        }
+
+        private static void SetRadio(Heard voice, float blend, VoiceTuning tuning)
+        {
+            voice.RadioBlend = blend;
+            voice.Playback.SetRadio(blend, tuning.RadioVolume, tuning.RadioDistortion, tuning.RadioSquelchVolume);
         }
 
         /// <summary>
-        /// Both of you have bodies and they are farther apart than a voice carries. Measured body to
+        /// Versus only: both of you have bodies and they are farther apart than a voice carries. Measured body to
         /// body, like the host's routing, rather than from the camera FMOD fades by — the camera
         /// sits inside the helmet, so the two agree to within a head.
         /// </summary>
         private bool IsOutOfEarshot(ulong speaker)
         {
+            // The radio carries a crewmate wherever they are.
+            if (RadioOn) return false;
+
             if (!bodies.TryGetValue(speaker, out Vector3 mouth)) return false;
             if (!bodies.TryGetValue(Network.LocalClientId, out Vector3 ear)) return false;
 

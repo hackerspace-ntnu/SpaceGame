@@ -9,7 +9,8 @@
 // - GDC-L1-UX-0006: never encode information in colour alone. Speaking is a pip that appears and
 //   breathes (VoicePip), not a name that changes tint; your own state is spelled out in words; and a
 //   speaker's team is shown by its colour AND its tag ("T2"), so it still reads for a colour-blind
-//   player.
+//   player. A crewmate heard over the suit radio says so in words too ("Name · radio"): the voice
+//   in your helmet is far away, and nothing else on screen tells you that.
 //
 // Rows are ordered you, your squad, then the other teams in team order — the question that matters
 // mid-fight is whether the voice behind you is a teammate or an enemy.
@@ -67,6 +68,9 @@ namespace SpaceGame.Presentation
         private readonly List<ulong> speaking = new List<ulong>();
         private readonly Dictionary<ulong, int> teamOf = new Dictionary<ulong, int>();
         private readonly List<Row> rows = new List<Row>();
+
+        // "Name · radio", built once per name rather than once per frame.
+        private readonly Dictionary<string, string> radioLabels = new Dictionary<string, string>();
 
         private Comparison<ulong> bySquad;
         private int localTeam;
@@ -156,7 +160,10 @@ namespace SpaceGame.Presentation
             for (int i = 0; shown < named && i < speaking.Count; i++)
             {
                 ulong id = speaking[i];
-                Fill(shown++, VoiceSession.NameOf(id), teamOf[id], withPip: true, UITheme.Bright, time);
+                string name = VoiceSession.NameOf(id);
+                if (VoiceSession.IsOnRadio(id)) name = RadioLabel(name);
+
+                Fill(shown++, name, teamOf[id], withPip: true, UITheme.Bright, time);
             }
 
             if (total > MaxRows)
@@ -166,6 +173,17 @@ namespace SpaceGame.Presentation
             {
                 if (rows[i].Rect.gameObject.activeSelf) rows[i].Rect.gameObject.SetActive(false);
             }
+        }
+
+        private string RadioLabel(string name)
+        {
+            if (!radioLabels.TryGetValue(name, out string label))
+            {
+                label = $"{name} · radio";
+                radioLabels[name] = label;
+            }
+
+            return label;
         }
 
         private static SelfState SelfStateNow()

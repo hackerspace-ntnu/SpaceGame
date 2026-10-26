@@ -6,7 +6,8 @@
 // is ever missing the defaults below apply, so voice still works — it just stops being tunable.
 //
 // The host routes with ITS copy and every listener fades with its own, so these values must match
-// across a session. They do, because the asset ships inside the build.
+// across a session. They do, because the asset ships inside the build. (The radio settings are
+// listener-side only: in story mode the host relays every voice to everyone regardless.)
 using UnityEngine;
 
 namespace SpaceGame.Voice
@@ -30,6 +31,28 @@ namespace SpaceGame.Voice
         [Tooltip("Metres above a player's origin that their voice comes from.")]
         [SerializeField, Min(0f)] private float mouthHeight = 1.6f;
 
+        [Header("Suit radio (story mode)")]
+        [Tooltip("Metres at which a crewmate's radio starts fading in under their voice. Closer than " +
+                 "this they are only heard in person.")]
+        [SerializeField, Min(0f)] private float radioFadeStart = 12f;
+
+        [Tooltip("Metres at which the radio has fully faded in. Beyond this a crewmate is heard at the " +
+                 "same radio level however far away they are. Keep it short of the silent distance, " +
+                 "or there is a stretch where they are neither audible in person nor on the radio.")]
+        [SerializeField, Min(0f)] private float radioFadeEnd = 22f;
+
+        [Tooltip("How loud the radio is, as a multiple of a voice heard up close.")]
+        [SerializeField, Range(0f, 2f)] private float radioVolume = 0.8f;
+
+        [Tooltip("How much the radio crunches: 0 is clean, 1 is a broken handset.")]
+        [SerializeField, Range(0f, 1f)] private float radioDistortion = 0.25f;
+
+        [Tooltip("Play a short burst of static when a crewmate starts and stops talking over the radio.")]
+        [SerializeField] private bool radioSquelch = true;
+
+        [Tooltip("How loud that static is, as a multiple of a voice heard up close.")]
+        [SerializeField, Range(0f, 1f)] private float radioSquelchVolume = 0.5f;
+
         private static VoiceTuning active;
 
         /// <summary>Metres to the far edge of the fade: FMOD's max distance, and the audibility limit.</summary>
@@ -42,6 +65,19 @@ namespace SpaceGame.Voice
         public float RouteDistance => SilentDistance * Mathf.Clamp(routeMargin, 1f, 2f);
 
         public float MouthHeight => Mathf.Max(0f, mouthHeight);
+
+        /// <summary>Metres where the radio starts fading in: never inside full volume, never at the silent edge.</summary>
+        public float RadioFadeStart => Mathf.Clamp(radioFadeStart, FullVolumeDistance, SilentDistance * 0.95f);
+
+        /// <summary>Metres where the radio is fully in: past the start, and no later than the silent edge.</summary>
+        public float RadioFadeEnd => Mathf.Clamp(radioFadeEnd, RadioFadeStart + 0.5f, SilentDistance);
+
+        public float RadioVolume => Mathf.Clamp(radioVolume, 0f, 2f);
+
+        public float RadioDistortion => Mathf.Clamp01(radioDistortion);
+
+        /// <summary>The squelch level, or 0 with the squelch turned off.</summary>
+        public float RadioSquelchVolume => radioSquelch ? Mathf.Clamp01(radioSquelchVolume) : 0f;
 
         /// <summary>The shipped asset, or the defaults above when it is missing.</summary>
         public static VoiceTuning Active

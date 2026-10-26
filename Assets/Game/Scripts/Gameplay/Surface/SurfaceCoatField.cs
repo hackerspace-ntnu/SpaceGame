@@ -71,7 +71,6 @@ namespace SpaceGame.Gameplay.Surface
 
         private SurfaceCoatBehaviour[] behaviours;
         private Transform patchRoot;
-        private WorldStreamer streamer;
         private int nextId = 1;
         private bool subscribed;
         private bool answeringGrip;
@@ -508,13 +507,10 @@ namespace SpaceGame.Gameplay.Surface
         {
             coord = default;
 
-            WorldStreamer world = Streamer;
+            WorldStreamer world = WorldStreamer.Current;
             return world != null && world.Config != null &&
                    world.Config.TryGetStreamingCoord(point, out coord);
         }
-
-        private WorldStreamer Streamer =>
-            streamer != null ? streamer : streamer = FindFirstObjectByType<WorldStreamer>();
 
         // ─────────── plumbing ───────────
 

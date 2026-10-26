@@ -23,10 +23,22 @@ namespace SpaceGame.World
         /// <summary>The world this streamer is running, for code that needs the world's identity.</summary>
         public WorldStreamingConfig Config => config;
 
+        /// <summary>
+        /// The streamer running the loaded world, or null in a scene that does not stream —
+        /// gameScene, the arena, the test scenes. Registered from Awake rather than found, because
+        /// "no streamer" is a permanent answer in those scenes: a lookup that caches only hits
+        /// re-scans every object in the scene on each call there, and the per-body terrain probes
+        /// made that tens of full scans a frame.
+        /// </summary>
+        public static WorldStreamer Current { get; private set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetCurrent() => Current = null;
+
         /// <summary>The running world's baked site catalog (its towns, settlements and sites), or null before one is baked.</summary>
         public static WorldSiteCatalog FindSiteCatalog()
         {
-            WorldStreamer streamer = FindFirstObjectByType<WorldStreamer>();
+            WorldStreamer streamer = Current;
             return streamer != null && streamer.config != null ? streamer.config.siteCatalog : null;
         }
 
@@ -303,6 +315,8 @@ namespace SpaceGame.World
         /// </summary>
         private void Awake()
         {
+            Current = this;
+
             if (config == null) return;
 
             if (config.siteCatalog == null)
@@ -314,6 +328,7 @@ namespace SpaceGame.World
         /// <summary>The world is being unloaded: its sites go with it, so none leaks into the next world played.</summary>
         public override void OnDestroy()
         {
+            if (Current == this) Current = null;
             WorldSiteRegistry.Clear();
             base.OnDestroy();
         }

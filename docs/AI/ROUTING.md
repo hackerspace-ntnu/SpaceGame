@@ -1496,6 +1496,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gadget works for the host but does nothing for a client | [Artifacts](systems/Artifacts.md) |
 | the game is frozen behind a free cursor with no menu on screen | [Diagnostics](systems/Diagnostics.md) |
 | the game is laggy with five or six players but fine with two | [Multiplayer](systems/Multiplayer.md) |
+| the game runs at about 10 fps at the ship start area in gameScene even when alone | [WorldStreaming](systems/WorldStreaming.md) |
 | the game stays frozen after I close the menu and nothing can unfreeze it | [UI](systems/UI.md) |
 | the game stutters when flying fast or teleporting over grass | [Grass](systems/Grass.md) |
 | the gate is sunk into the ground: its bottom pegs are under the sand and I cannot walk into the lane | [GearDoor](systems/GearDoor.md) |
@@ -1719,6 +1720,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the printed bandit is nearly all dots and black | [WantedPosters](systems/WantedPosters.md) |
 | the printed character is mostly white, like an unpainted cut-out | [WantedPosters](systems/WantedPosters.md) |
 | the profiler shows LogStringToConsole under an audio Update every frame while the console looks quiet | [audio](systems/audio.md) |
+| the profiler shows UnderTerrainGuard.Update taking 100 ms a frame | [WorldStreaming](systems/WorldStreaming.md) |
 | the project has no 'Ladder' NavMesh area | [Ladders](systems/Ladders.md) |
 | the projectile or rope is invisible to everyone except the shooter | [Artifacts](systems/Artifacts.md) |
 | the projectile works on the host but never appears for clients | [Combat](systems/Combat.md) |
@@ -2968,4 +2970,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2061 symptoms, 881 paths, 111 docs -->
+<!-- 2063 symptoms, 881 paths, 111 docs -->

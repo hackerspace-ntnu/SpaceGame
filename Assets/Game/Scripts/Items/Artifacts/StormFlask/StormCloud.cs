@@ -500,7 +500,7 @@ namespace SpaceGame.Items
         {
             coord = default;
 
-            WorldStreamer world = FindFirstObjectByType<WorldStreamer>();
+            WorldStreamer world = WorldStreamer.Current;
             return world != null && world.Config != null &&
                    world.Config.TryGetStreamingCoord(point, out coord);
         }

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cda6805e9a914113b470bffb77ca9e9, type: 3}
+  m_Name: RanchReport
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.FollowWranglerStep
+  id: ranch-report
+  title: Meet Tovak at the gate
+  briefing:
+  - That's the lot! Come over to the gate.
+  lookAtFocus: 0
+  site: {fileID: 11400000, guid: 5da55564e22fa42bcb1b248621c35abd, type: 2}
+  onBegin: 0
+  joinRadius: 12
+  following: Keep up with <b>{0}</b>

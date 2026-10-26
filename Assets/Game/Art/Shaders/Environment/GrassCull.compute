@@ -1,0 +1,195 @@
+// GPU-driven culling and animation for GrassField, run once per biome per camera:
+//
+//   Reset     - zero the four detail-level counters.
+//   Cull      - one thread per stored tuft, one dispatch per storage-level pool. A tuft past
+//               the draw distance, thinned out by distance, or outside the frustum is dropped;
+//               a kept tuft is widened for the ones thinned around it, animated ONCE here (wind
+//               waves, gusts, flutter, benders, sinking) and appended to the near, mid, far or
+//               distant list. A distant tuft is one triangle, turned here to face the camera.
+//   WriteArgs - copies the counts, clamped to the list sizes, into the indirect draw arguments.
+//
+// Animating per tuft here instead of per vertex in every pass is most of the saving: the
+// vertex shader only bends a tuft that is already posed.
+
+#pragma kernel Reset
+#pragma kernel Cull
+#pragma kernel WriteArgs
+
+#include "GrassShared.hlsl"
+
+// Layout matches GrassInstance.cs.
+struct GrassInstance
+{
+    float4 positionScale;   // xyz root, w height in metres
+    float4 yawTintAccent;   // x yaw, y tint, z flower hue, w thinning rank 0..1
+};
+
+StructuredBuffer<GrassInstance> _Instances;
+StructuredBuffer<uint> _SlotCounts;
+RWStructuredBuffer<uint> _Counts;
+RWStructuredBuffer<GrassVisible> _Near;
+RWStructuredBuffer<GrassVisible> _Mid;
+RWStructuredBuffer<GrassVisible> _Far;
+RWStructuredBuffer<GrassVisible> _Distant;
+RWByteAddressBuffer _Args;
+
+uint _SlotCapacity;
+uint _NearCapacity;
+uint _MidCapacity;
+uint _FarCapacity;
+uint _DistantCapacity;
+
+float4 _FrustumPlanes[6];
+float3 _CameraPosition;
+float _GrassTime;
+float _MidDistance;
+float _FarDistance;
+float _DistantDistance;
+float _FadeStart;
+float _DrawDistance;
+float _FullDensityDistance;
+float _DensityFalloff;
+float _MaxWidthBoost;
+
+float4 _GrassWind;          // xy direction (world XZ), z strength scale
+float4 _GrassBenders[8];    // xyz position, w radius
+float _GrassBenderCount;
+
+// From the biome's material.
+float _WindStrength;
+float _WaveLength;
+float _WaveSpeed;
+float _WindFrequency;
+float _WindSpeed;
+float _FlutterStrength;
+float _FlutterFrequency;
+float _BendStrength;
+float _PatchScale;
+float _VariationScale;
+
+[numthreads(1, 1, 1)]
+void Reset()
+{
+    _Counts[0] = 0;
+    _Counts[1] = 0;
+    _Counts[2] = 0;
+    _Counts[3] = 0;
+}
+
+// Five uints per draw; the instance count is the second of them.
+[numthreads(1, 1, 1)]
+void WriteArgs()
+{
+    _Args.Store(4, min(_Counts[0], _NearCapacity));
+    _Args.Store(24, min(_Counts[1], _MidCapacity));
+    _Args.Store(44, min(_Counts[2], _FarCapacity));
+    _Args.Store(64, min(_Counts[3], _DistantCapacity));
+}
+
+bool InFrustum(float3 centre, float radius)
+{
+    [unroll]
+    for (int i = 0; i < 6; i++)
+        if (dot(_FrustumPlanes[i].xyz, centre) + _FrustumPlanes[i].w < -radius)
+            return false;
+    return true;
+}
+
+// How far the benders push this root sideways (xy), and how much they flatten it (z).
+float3 Bend(float3 root)
+{
+    float2 push = 0;
+    float flatten = 0;
+    int count = (int)_GrassBenderCount;
+    for (int i = 0; i < count; i++)
+    {
+        float4 bender = _GrassBenders[i];
+        float3 delta = root - bender.xyz;
+        float reach = saturate(1.0 - length(delta.xz) / bender.w)
+                    * saturate(1.0 - abs(delta.y) / (bender.w * 2.0));
+        push += normalize(delta.xz + 1e-4) * reach;
+        flatten = max(flatten, reach);
+    }
+    return float3(push * _BendStrength, flatten);
+}
+
+void Append(uint list, GrassVisible tuft)
+{
+    uint index;
+    InterlockedAdd(_Counts[list], 1, index);
+    if (list == 0 && index < _NearCapacity)
+        _Near[index] = tuft;
+    else if (list == 1 && index < _MidCapacity)
+        _Mid[index] = tuft;
+    else if (list == 2 && index < _FarCapacity)
+        _Far[index] = tuft;
+    else if (list == 3 && index < _DistantCapacity)
+        _Distant[index] = tuft;
+}
+
+[numthreads(64, 1, 1)]
+void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
+{
+    uint slot = group.y;
+    if (id.x >= _SlotCounts[slot])
+        return;
+
+    GrassInstance tuft = _Instances[slot * _SlotCapacity + id.x];
+    float3 root = tuft.positionScale.xyz;
+    float height = tuft.positionScale.w;
+    float rank = tuft.yawTintAccent.w;
+
+    float range = length(root - _CameraPosition);
+    if (range >= _DrawDistance)
+        return;
+    // Thin with distance — GrassFieldProfile.DensityAt: whole out to the full-density distance,
+    // then falling as (full / range)^falloff, which at 2 keeps the tufts on screen about level.
+    // A tuft survives while its rank is below the density left at its range.
+    float density = range <= _FullDensityDistance
+        ? 1.0
+        : exp2(_DensityFalloff * log2(_FullDensityDistance / range));   // the ratio is always positive
+    if (rank >= density)
+        return;
+    // The survivors widen to cover for the ones dropped: the field still reads as full.
+    float widen = min(_MaxWidthBoost, rsqrt(density));
+    // The farthest a tip can be pushed: leaning, a full gale on the waves, flutter and a bender.
+    float reach = height * (1.0 + _WindStrength * 3.2 + _FlutterStrength + _BendStrength) * widen;
+    if (!InFrustum(root + float3(0, height * 0.5, 0), reach))
+        return;
+
+    float tint = tuft.yawTintAccent.y;
+    float patchUV = 1.0 / max(_PatchScale, 0.01);
+    float patch = GrassNoise(root.xz * patchUV) * 0.65 + GrassNoise(root.xz * patchUV * 2.7) * 0.35;
+    float variation = GrassNoise(root.xz / max(_VariationScale, 0.01) + 31.7) * 0.7 + tint * 0.3;
+
+    float2 windDir = normalize(_GrassWind.xy + float2(1e-5, 0));
+    float along = dot(root.xz, windDir);
+    float gust;
+    float push = WindPush(root.xz, windDir, _GrassTime, _WaveLength, _WaveSpeed, _WindFrequency, _WindSpeed, gust);
+    // Each tuft flutters at its own rate (±25 %), so neighbours drift out of step instead of ticking together.
+    float flutter = sin(_GrassTime * _FlutterFrequency * (0.75 + 0.5 * tint) + tint * 6.2831 + along * 1.7);
+    float2 sway = windDir * (_WindStrength * _GrassWind.z * (0.15 + push))
+                + float2(windDir.y, -windDir.x) * (flutter * _FlutterStrength);
+    float3 bend = Bend(root);
+    sway += bend.xy;
+
+    float s, c;
+    sincos(tuft.yawTintAccent.x, s, c);
+    GrassVisible kept;
+    kept.rootHeight = float4(root, height);
+    kept.turnSway = float4(c, s, sway);
+    kept.look = float4(tint, patch, variation, tuft.yawTintAccent.z);
+    kept.motion = float4(saturate(push), bend.z, 1.0 - smoothstep(_FadeStart, _DrawDistance, range), widen);
+
+    // Detail level by distance, jittered per tuft so the switch is a scatter, not a ring.
+    float lodRange = range * (0.9 + 0.2 * frac(rank * 7.13));
+    uint list = lodRange < _MidDistance ? 0 : lodRange < _FarDistance ? 1 : lodRange < _DistantDistance ? 2 : 3;
+    if (list == 3)
+    {
+        // The distant triangle lies in its local XY plane, facing +Z: turn +Z toward the camera
+        // (the yaw rotation maps local Z to (-sin, cos) in world XZ).
+        float2 toCamera = normalize(_CameraPosition.xz - root.xz + float2(1e-4, 0));
+        kept.turnSway.xy = float2(toCamera.y, -toCamera.x);
+    }
+    Append(list, kept);
+}

@@ -1,0 +1,187 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7738258956007693546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5472384495260817300}
+  m_Layer: 0
+  m_Name: Planter_Bulbs_Glowcaps
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5472384495260817300
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7738258956007693546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3618004971131394875}
+  - {fileID: 5974507759272714096}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &4364147076212128132
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 5472384495260817300}
+    m_Modifications:
+    - target: {fileID: 435484458804544611, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 525920409305736823, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2151290835833684131, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3794261865161179929, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_Name
+      value: Deco_PlanterBed_Bulbs
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582479856586008289, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+--- !u!4 &3618004971131394875 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1055299161060844223, guid: ec3deb87fe58f46918acac3c2538d3ca, type: 3}
+  m_PrefabInstance: {fileID: 4364147076212128132}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6855263365814126774
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 5472384495260817300}
+    m_Modifications:
+    - target: {fileID: 468565944183688572, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_Name
+      value: Plant_Glowcaps_A
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.45
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.00013101101
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.43000007
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.00032186508
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+--- !u!4 &5974507759272714096 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 994027312495876038, guid: 3ad40007870654b2eacadab2134fd68c, type: 3}
+  m_PrefabInstance: {fileID: 6855263365814126774}
+  m_PrefabAsset: {fileID: 0}

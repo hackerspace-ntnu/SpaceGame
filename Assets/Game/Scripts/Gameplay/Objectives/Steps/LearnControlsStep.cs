@@ -72,7 +72,7 @@ namespace SpaceGame.Gameplay.Objectives
         public override bool TrackLocalPlayer(ObjectiveWorld world)
         {
             PlayerController player = GameplayMenuScope.FindLocalPlayer();
-            if (player != null && player.Input != null && IsStanding())
+            if (player != null && player.Input != null && CanPractise(player))
                 world.LocalControlsUsed |= Used(player.Input);
 
             return HasLearntAll(world.LocalControlsUsed);
@@ -120,11 +120,13 @@ namespace SpaceGame.Gameplay.Objectives
         }
 
         /// <summary>
-        /// Out of the seat and out of every cutscene. A player strapped in cannot walk, so a key
-        /// pressed there proves nothing; the way out of the seat is taught by its own prompt.
+        /// EVERY machine: whether a key THIS machine's <paramref name="player"/> presses now counts. Here: out of the
+        /// seat and out of every cutscene — a player strapped in cannot walk, so a key pressed there proves nothing; the
+        /// way out of the seat is taught by its own prompt. A lesson taught somewhere else (in a saddle) says where.
         /// </summary>
-        private static bool IsStanding() =>
-            !SeatedRider.LocalPlayerMayLeave
-            && (CutsceneDirector.Instance == null || !CutsceneDirector.Instance.IsPlaying);
+        protected virtual bool CanPractise(PlayerController player) => !SeatedRider.LocalPlayerMayLeave && OutOfCutscene;
+
+        /// <summary>No cutscene is holding this machine's camera.</summary>
+        protected static bool OutOfCutscene => CutsceneDirector.Instance == null || !CutsceneDirector.Instance.IsPlaying;
     }
 }

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ce17244aef5470eb63bc34e8f89fc2, type: 3}
+  m_Name: RanchSaddleTame
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SaddleTameStep
+  id: ranch-saddle
+  title: Saddle the esko
+  briefing:
+  - She likes you. Good.
+  - There's a saddle down by the fence. Pick it up and set it on her back.
+  lookAtFocus: 0
+  site: {fileID: 11400000, guid: 5da55564e22fa42bcb1b248621c35abd, type: 2}
+  onBegin: 1
+  searchRadius: 60
+  pickUp: Pick up the saddle
+  fit: Hold it, look at the esko's back and <b>LMB</b>

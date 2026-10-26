@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4514131879162632378
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7893578301285001055}
+  - component: {fileID: 809050172742094733}
+  m_Layer: 0
+  m_Name: RockField
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7893578301285001055
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4514131879162632378}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &809050172742094733
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4514131879162632378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e6c7e74b29a3469bb1fb05dc8bd0650, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.RockField
+  cullShader: {fileID: 7200000, guid: ff490583050794a5ba0c0295c2ca225f, type: 3}
+  biomes:
+  - paintPrototype: {fileID: 6759606784042572381, guid: cfe2b8b48d2754ce8a20f11bcb5337e4, type: 3}
+    profile: {fileID: 11400000, guid: c4cd5c2e47ee44313b7c79aa9bead70e, type: 2}
+  - paintPrototype: {fileID: 7383000033131801046, guid: 79fbff1c1489a4f1ebd567f553de09ed, type: 3}
+    profile: {fileID: 11400000, guid: 308ac1e7f846f40dd8fb3bc3b8f479e9, type: 2}
+  - paintPrototype: {fileID: 231883299115654556, guid: 3e1700f4294f84813982eb6664bbd3ec, type: 3}
+    profile: {fileID: 11400000, guid: 994ea2bea7f004557a3485486f9e45d7, type: 2}
+  - paintPrototype: {fileID: 4580984391739939542, guid: 5616bb9f334d84a2b9e7cc4aeaad8388, type: 3}
+    profile: {fileID: 11400000, guid: ed1bf6b66b0ae446fbeb17ece0215a8e, type: 2}
+  minimumHeight: -10000
+  seed: 1
+  chunkBuildsPerFrame: 8
+  chunkLifetimeTicks: 600
+  sun: {fileID: 0}
+  colliderRadius: 40
+  colliderLayer: 0
+  colliderInterval: 0.25

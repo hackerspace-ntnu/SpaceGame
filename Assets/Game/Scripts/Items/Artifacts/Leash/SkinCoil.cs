@@ -403,7 +403,7 @@ namespace SpaceGame.Items
         /// <summary>
         /// Pick the vertices to measure: those owned by some <paramref name="parts"/> entry, at most
         /// <see cref="MaxPointsPerBone"/> per owning bone, spread evenly through each. Per bone, not
-        /// per coil: the middle of a Dunehorn is "everything but its legs", and a budget for that
+        /// per coil: the middle of an Esko is "everything but its legs", and a budget for that
         /// spent most of itself on the head and the tail, leaving a dozen points round a barrel
         /// 2 m across — a hull whose chords ran the rope deep inside it.
         /// </summary>

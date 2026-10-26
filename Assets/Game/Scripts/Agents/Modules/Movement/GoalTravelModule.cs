@@ -14,6 +14,7 @@
 // arrive radius plus a release margin — hysteresis, so a nudge from a passer-by does not toggle
 // walking and standing every frame.
 using UnityEngine;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Agents
 {
@@ -152,12 +153,14 @@ namespace SpaceGame.Agents
 
             // The goal's multiplier compounds with this module's, rather than replacing it: this one
             // says how fast this AGENT travels, the goal's says how urgent this ERRAND is, and both
-            // are true at once.
+            // are true at once. Both scale a player's walk, not the prefab's own: anyone on their way
+            // somewhere keeps pace with the crew following them.
             return MoveIntent.MoveTo(
                 goal.Position,
                 goal.ArriveRadius + stopDistanceMargin,
                 speedMultiplier * goal.SpeedMultiplier,
-                isRunning: run || goal.Run);
+                isRunning: run || goal.Run,
+                walkSpeed: PlayerPace.WalkSpeed);
         }
     }
 }

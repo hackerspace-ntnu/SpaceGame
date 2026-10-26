@@ -31,7 +31,7 @@ symptoms:
   - "editing a script while the game is running kills my camera and controls for the rest of the session"
   - "turning my head feels laggy, and the view lurches further whenever the frame rate dips"
 reads_with: [Persistence, Inventory, Artifacts, Vehicles, Wingsuit, Pushables]
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 # Player Character
@@ -111,6 +111,8 @@ Root pivot is **1 m above the soles** — measure with [`BodyFeet`](Assets/Game/
 Player state is keyed by profile, not by scene: [`PlayerSaveSync`](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveSync.cs) (networked) or [`PlayerSaveBinder`](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveBinder.cs) (editor/offline) binds the body to a `PlayerRecord` (position, rotation, display name, state bag). Savers on the root: `HealthSaveable`, `PlayerInventorySaveable`, `BackpackSaveable`, [`PlayerLookSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/PlayerLookSaveable.cs) (`"look"` — pitch only; yaw rides the rotation), [`SuitColorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/SuitColorSaveable.cs) (`"suit"`), `EffectsSaveable`, `InteriorVisitSaveable`, `PortalPairSaveable`. See [Persistence.md](Persistence.md).
 
 ## Gotchas
+
+- **`moveSpeed` is also every NPC's travelling pace.** `PlayerMovement.Awake` reports it to [`PlayerPace`](Assets/Game/Scripts/Characters/Player/Movement/PlayerPace.cs), and goal travel walks at it ([AgentSystem.md](AgentSystem.md)) so the crew can follow a guide without stopping. Changing the player's walk changes how fast every quest-giver leads.
 
 - **`LookInput` already carries the frame time — never multiply a look by `Time.deltaTime`.** The `Look` action is bound to both `<Pointer>/delta` (a distance moved *this frame*) and `<Gamepad>/rightStick` (a rate). `PlayerInputManager.LookThisFrame` scales only the stick by `deltaTime` and a mouse count by `SecondsPerMouseCount` (1/60), so the result is "seconds of full stick" and every look sensitivity (20 on the player, mounts and the arrival seat) is degrees per second of full stick. Multiplying the mouse delta by `deltaTime` as well — what all four readers did until 2026-10-12 — made a slow frame turn further than the hand moved, so every hitch became a lurch of the view. Anything that reads the `Look` action itself (`MountModule`, `ArrivalCameraRig`) must go through `LookThisFrame` too, or the mouse turns that camera at a different speed from the on-foot look.
 

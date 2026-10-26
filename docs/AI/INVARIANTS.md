@@ -146,7 +146,7 @@ its own copy; loot re-dropped and the death animation replayed on each load.
 **The rule.** Every probe and every aim skips its own hierarchy and the machine it is standing in or strapped into, filters against
 `hit.collider.transform` rather than `hit.transform`, and treats a miss as *not yet* rather than a value to guess. Ground probes additionally
 skip non-kinematic Rigidbodies. **Anything born inside a body — a bullet at a muzzle, a net, a thrown bottle — also skips the thing that fired
-it, and throws away any hit at `distance <= 0`.**
+it, and throws away any hit at `distance <= 0`.** For anything a player or NPC uses, that rule is one call: `AimProvider.IsOwnOrRidden(collider.transform, user)` — `IsChildOf(user)` alone misses the mount, because a rider is the mount's child.
 
 **Why.** `Physics.IgnoreCollision` and `RiderCollisionIgnore` suspend *contacts*; raycasts, spherecasts and overlaps ignore that entirely, so
 the hull is still solid to them. A raycast also sees a passenger as geometry — the deck rises, the carrier lifts the rider, the probe finds

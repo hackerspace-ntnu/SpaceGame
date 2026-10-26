@@ -80,6 +80,7 @@ GameObject:
   - component: {fileID: 428737040874688456}
   - component: {fileID: 4761291211493792448}
   - component: {fileID: 8944591835019232408}
+  - component: {fileID: 1027472223765231376}
   m_Layer: 0
   m_Name: LightningConjurer
   m_TagString: Untagged
@@ -237,6 +238,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  runClipSpeed: 7.2
   strideEndPhases:
   - 0.25
   - 0.75
@@ -310,6 +312,7 @@ MonoBehaviour:
   minDestinationDistance: 25
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 3
   maxWaitTime: 9
   stopDistance: 6
@@ -389,6 +392,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 1462009887744320513}
   animatorDriver: {fileID: 1462009887744320514}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &721406942356391028
@@ -521,7 +525,6 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 25
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -534,7 +537,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 40
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -684,13 +686,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountedRiderPose
   mountModule: {fileID: 6771758260886275729}
-  upperLegRotation: {x: -72, y: 0, z: -7}
-  lowerLegRotation: {x: -72, y: 0, z: 0}
-  footRotation: {x: 25, y: 0, z: 0}
-  spineRotation: {x: 8, y: 0, z: 0}
-  chestRotation: {x: 6, y: 0, z: 0}
-  upperArmRotation: {x: 15, y: 0, z: 8}
-  lowerArmRotation: {x: 35, y: 0, z: 0}
+  rideActionName: Ride
   gains:
     bounceGain: 2.5
     bounceMax: 9
@@ -700,6 +696,9 @@ MonoBehaviour:
     turnMax: 10
   motionSmooth: 9
   motionRejectThreshold: 60
+  hipsAboveSeat: 0.22
+  swayFollow: 0.6
+  swayBaselineSeconds: 1.2
   blendDuration: 0.25
 --- !u!114 &1375402022796731716
 MonoBehaviour:
@@ -894,15 +893,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &4761291211493792448
@@ -929,6 +925,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
+--- !u!114 &1027472223765231376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.35
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
 --- !u!1001 &949234609638625119
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5503217856824510054
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8904670058520252865}
+  - component: {fileID: 8546176487396739391}
+  m_Layer: 0
+  m_Name: GrassField
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8904670058520252865
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5503217856824510054}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8546176487396739391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5503217856824510054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 003bd6441a34749e4873bc157a3b3b4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.GrassField
+  cullShader: {fileID: 7200000, guid: 82ae1bf76e6514687bcbbd8aadd6c97f, type: 3}
+  biomes:
+  - terrainLayer: {fileID: 8574412962073106934, guid: 8df5b02cb69b74980a9a1dc97b9d2d51, type: 2}
+    profile: {fileID: 11400000, guid: 9cb4727cd539f4a3580cdf3d7d89d00f, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 18cda1da15f5540f6b2b25ca58e08616, type: 2}
+    profile: {fileID: 11400000, guid: b2d92630e65ff47459acd0b6ab33044f, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 7f52d1709c0164b25a5ad8ba718ea301, type: 2}
+    profile: {fileID: 11400000, guid: a34fbb825542a444490a812617d46a1a, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 5758584e23ae945dc83809a700b4f970, type: 2}
+    profile: {fileID: 11400000, guid: f68fdc44cdff7470abf2112557c0e386, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 8bb7c5ad1db4c417b989f2cd6ba632bf, type: 2}
+    profile: {fileID: 11400000, guid: 13104243f522642a0bf278373cd699e1, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 69d24b24657bb4ad68224285104895f2, type: 2}
+    profile: {fileID: 11400000, guid: 4c3958835d26a44f5b84c3f5ffd2a4c7, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 9c74d21e004f946fea8d48e54337e2b1, type: 2}
+    profile: {fileID: 11400000, guid: 639b77041e8984bcea456f5eeaf696ab, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 6eab3fae8055f4d278aabd26eadfa0af, type: 2}
+    profile: {fileID: 11400000, guid: 85a1c7845c69d40f18cbc6f5574d8291, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 607db8fce6faf43bd972cfd03675e5ac, type: 2}
+    profile: {fileID: 11400000, guid: d6a926ced995c47c1a203cba34f67c32, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: c4acdbd80eee144c58bc0830c975732a, type: 2}
+    profile: {fileID: 11400000, guid: 483495459b0bf493bab2c35c4c29a0b5, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 0cf416ef65c764804b7730915adebda5, type: 2}
+    profile: {fileID: 11400000, guid: 6dae987bd0cfc449d8a6f628d1246e42, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: d37e36fd848a348bd9d1ced1cd977ac7, type: 2}
+    profile: {fileID: 11400000, guid: a167641e988c441519b4199cb62fd3a0, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 0819accda8d9f4f199722a7273154177, type: 2}
+    profile: {fileID: 11400000, guid: ebd9630a6c1ac42e8bdbd2fc0edb7445, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: bb57fc039d6b94c8c9d13e712fce650e, type: 2}
+    profile: {fileID: 11400000, guid: 1aea94045b2ea4522b67409b8649f490, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: b5974d263fa2a4f4fa74e54f531a8123, type: 2}
+    profile: {fileID: 11400000, guid: 0e55cd310be7b4bfebcac234cc0fb193, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 4c3a6f0b1d1db439e81fc19ac447e5ad, type: 2}
+    profile: {fileID: 11400000, guid: 733f326fefd4f4c48ba05b1905c64d67, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 7568e3b40372e4b44adcea54ceda6e6e, type: 2}
+    profile: {fileID: 11400000, guid: 170e1c01e3f0147d09f3a4ce4cfe7a95, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 143a06c04adbd4cab93ee6fa0d906896, type: 2}
+    profile: {fileID: 11400000, guid: a51b947744dcd4e7b8238e84b9f80cee, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: bd7486db86e1640f3a1d04e13a639c60, type: 2}
+    profile: {fileID: 11400000, guid: 80cf801bb81dc4abc822f6a3915c49b9, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 858ceafd487bb4d1aaebdec98f7ab3c2, type: 2}
+    profile: {fileID: 11400000, guid: 03bdc62bf81ae4908ba3e15ad97ea26c, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 5369e0004f2ad421385d3484cfc884ec, type: 2}
+    profile: {fileID: 11400000, guid: a8ba2222ef4c64e6d9f972c6b5d7f7c4, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: a2208510d5ad64df0884aba3a9c793ef, type: 2}
+    profile: {fileID: 11400000, guid: 2e428a1871f61470cb16d915a27e90e9, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: e01ecc2d8782b42ae811d8bb73261413, type: 2}
+    profile: {fileID: 11400000, guid: b1bdce4a6c1bf4d29a17cdc13bd98cf7, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 56464067b342f4f2e816d0306390240c, type: 2}
+    profile: {fileID: 11400000, guid: 2c34836608f254f46a7bf8a18bbb687d, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 1d50e7a0b367c48be956519836ce1f30, type: 2}
+    profile: {fileID: 11400000, guid: 3937a9fe29cd244d8b121922787eb60c, type: 2}
+  minimumHeight: -10000
+  seed: 1
+  chunkBuildsPerFrame: 8
+  chunkLifetimeTicks: 600
+  referenceWindSpeed: 10
+  fallbackBearingFrom: 225
+  fallbackWindSpeed: 7
+  maxWindScale: 2

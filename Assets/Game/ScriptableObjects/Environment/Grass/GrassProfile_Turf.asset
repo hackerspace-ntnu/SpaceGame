@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c4d4ac8990e4257a6573efcdd6263f, type: 3}
+  m_Name: GrassProfile_Turf
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.GrassFieldProfile
+  material: {fileID: 2100000, guid: 999179f8ffdad47ed883a6c793f647db, type: 2}
+  tuftsPerSquareMetre: 16
+  minimumLayerWeight: 0.5
+  maxSlopeDegrees: 50
+  heightRange: {x: 0.24, y: 0.48}
+  heightClumping: 0.25
+  heightClumpSize: 3
+  flowerChance: 0.03
+  edgeWarp: 1
+  densityVariation: 0.35
+  densityVariationSize: 14
+  groundTint: 0.85
+  tuftMesh: {fileID: 0}
+  bladesPerTuft: 6
+  bladeSegments: 3
+  bladeWidth: 0.5
+  bladeFold: 0.3
+  tuftSpread: 0.35
+  bladeLean: 0.35
+  midTuftDistance: 5
+  farTuftDistance: 12
+  farBladesPerTuft: 3
+  farBladeWidthScale: 1.3
+  distantTuftDistance: 24
+  distantTuftWidth: 1.2
+  chunkSize: 16
+  drawDistance: 150
+  fadeStartFraction: 0.8
+  fullDensityDistance: 18
+  densityFalloff: 2.6
+  maxWidthBoost: 3

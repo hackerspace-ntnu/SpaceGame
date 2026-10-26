@@ -1,4 +1,4 @@
-// Look at a creature's head, press E, it enjoys it.
+// Look at a creature's head, right-click (interact), it enjoys it.
 //
 // Lives on a small trigger volume parented to the head bone, NOT on the agent root, and that
 // placement is the whole mechanism for "you must be pointing at his head". Interactor.ResolveAlongRay
@@ -36,7 +36,7 @@ namespace SpaceGame.Agents
         [SerializeField] private SfxId happySound = SfxId.NpcMumbleFriendly;
 
         [Tooltip("Seconds before it can be petted again. Long enough that the reaction plays out " +
-                 "rather than restarting under itself — hold E and he would twitch, not enjoy it.")]
+                 "rather than restarting under itself — mash the button and he would twitch, not enjoy it.")]
         [SerializeField] private float cooldown = 3f;
 
         [Header("Mood")]
@@ -52,9 +52,17 @@ namespace SpaceGame.Agents
         [SerializeField] private string label = "Appa";
 
         private float readyAt;
+        private CreatureTrust trust;
 
         /// <summary>True for the seconds after a successful pet. Read by tests and by the builder.</summary>
         public bool OnCooldown => Time.time < readyAt;
+
+        /// <summary>
+        /// Raised on EVERY machine when the server has accepted a pet, with whoever reached out (null on a machine
+        /// that has not spawned them). Whatever counts pets — <see cref="CreatureTrust"/> — counts on the machine
+        /// that owns the creature.
+        /// </summary>
+        public event System.Action<GameObject> Petted;
 
         private void Reset()
         {
@@ -69,6 +77,7 @@ namespace SpaceGame.Agents
                 animatorDriver = agentRoot.GetComponentInChildren<AgentAnimatorDriver>();
             if (mood == null && agentRoot != null)
                 mood = agentRoot.GetComponentInChildren<FightOrFlightModule>();
+            if (agentRoot != null) trust = agentRoot.GetComponent<CreatureTrust>();
         }
 
         private void OnEnable()
@@ -104,7 +113,7 @@ namespace SpaceGame.Agents
             if (!CanInteract()) return;
 
             // Start the cooldown on the presser's machine straight away. The round trip to the
-            // server and back is long enough to press E three more times into it.
+            // server and back is long enough to press three more times into it.
             readyAt = Time.time + cooldown;
 
             // The server decides, then tells everyone — including the presser, who has played
@@ -136,7 +145,9 @@ namespace SpaceGame.Agents
         private void OnPetted(in NetArg arg, ulong sender)
         {
             readyAt = Time.time + cooldown;
-            Play(arg.Resolve());
+            GameObject petter = arg.Resolve();
+            Play(petter);
+            Petted?.Invoke(petter);
         }
 
         private void Play(GameObject petter)
@@ -166,9 +177,11 @@ namespace SpaceGame.Agents
         // ─────────── IInteractionReadout ───────────
 
         public string Label => label;
-        public string Prompt => OnCooldown ? "" : "E: pet";
-        public float? Value01 => null;
-        public string ValueText => "";
+        public string Prompt => OnCooldown ? "" : "RMB: pet";
+
+        /// <summary>How far the creature has come to trust people, when it is one that has to be won over.</summary>
+        public float? Value01 => trust != null ? trust.Trust01 : null;
+        public string ValueText => trust == null ? "" : trust.IsTrusting ? "Trusts you" : "Wary";
 
         private void OnValidate() => cooldown = Mathf.Max(0.1f, cooldown);
     }

@@ -476,11 +476,7 @@ namespace SpaceGame.Items
         {
             point = Vector3.zero;
 
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return false;
-
-            if (!Physics.Raycast(aim.position, aim.forward, out RaycastHit hit, aimDistance,
-                                 aimMask, QueryTriggerInteraction.Ignore))
+            if (aimProvider == null || !aimProvider.TryGetAimHit(aimDistance, aimMask, out RaycastHit hit))
                 return false;
 
             point = hit.point;

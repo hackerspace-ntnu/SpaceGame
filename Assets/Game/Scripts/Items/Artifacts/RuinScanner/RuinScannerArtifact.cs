@@ -277,7 +277,7 @@ namespace SpaceGame.Items
             {
                 Collider hitCollider = hits[i].collider;
                 if (hitCollider == null) continue;
-                if (owner != null && hitCollider.transform.IsChildOf(owner.transform)) continue;
+                if (owner != null && AimProvider.IsOwnOrRidden(hitCollider.transform, owner.transform)) continue;
                 if (hits[i].distance >= closestDistance) continue;
 
                 closestIndex = i;

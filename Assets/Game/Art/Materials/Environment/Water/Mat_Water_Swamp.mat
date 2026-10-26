@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Mat_Water_Swamp
+  m_Shader: {fileID: 4800000, guid: e37be4a3c70ca4735b83719a7815fb96, type: 3}
+  m_Parent: {fileID: 2100000, guid: bbdeabdc65e754feea634c9495919b61, type: 2}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Clarity: 0.35
+    - _DeepDepth: 1.4
+    - _DriftScale: 8
+    - _DriftSpeed: 0.03
+    - _DriftStrength: 0.25
+    - _FoamChange: 0.12
+    - _FresnelPower: 4
+    - _MaxOpacity: 0.96
+    - _PlannerReflectionBlend: 1
+    - _ReflectionStrength: 0.38
+    - _RimWidth: 0.3
+    - _RippleChange: 0.15
+    - _RippleDrift: 0.05
+    - _RippleStrength: 0.12
+    - _ShallowDepth: 0.35
+    - _ShoreLineWidth: 0
+    - _StreakCoverage: 0.32
+    - _StreakDrift: 0.03
+    - _StreakScale: 0.9
+    - _StreakWidth: 0.12
+    - _SwellSpeed: 0.2
+    m_Colors:
+    - _BedTint: {r: 0.56, g: 0.6, b: 0.38, a: 1}
+    - _CausticColor: {r: 0, g: 0, b: 0, a: 1}
+    - _DeepColor: {r: 0.09, g: 0.12, b: 0.06, a: 1}
+    - _FoamColor: {r: 0.36, g: 0.42, b: 0.18, a: 1}
+    - _GlintColor: {r: 0.5, g: 0.5, b: 0.45, a: 1}
+    - _ShadowTint: {r: 0.8, g: 0.85, b: 0.7, a: 1}
+    - _ShallowColor: {r: 0.26, g: 0.31, b: 0.15, a: 1}
+    - _ShoreColor: {r: 0.44, g: 0.46, b: 0.27, a: 1}
+    - _SwellA: {r: 1, g: 0.35, b: 0.0075000003, a: 6}
+    - _SwellB: {r: -0.4, g: 1, b: 0.006, a: 9}
+    - _SwellC: {r: 0.6, g: -0.8, b: 0.0045000003, a: 3.5}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

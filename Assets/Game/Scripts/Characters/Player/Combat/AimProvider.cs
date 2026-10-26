@@ -1,3 +1,5 @@
+using SpaceGame.Agents;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace SpaceGame.Characters
@@ -136,10 +138,55 @@ namespace SpaceGame.Characters
         /// <summary>
         /// The machine this player is riding, or null on their own feet. Confirmed against the
         /// hierarchy rather than trusted: mounting parents the rider under the mount, so a rider
-        /// who is no longer under it is a rider who has left.
+        /// who is no longer under it is a rider who has left. Only the local rider is ever handed
+        /// one, so every other machine reads the replicated parenting instead.
         /// </summary>
         private Transform Carrier =>
-            externalCarrier != null && transform.IsChildOf(externalCarrier) ? externalCarrier : null;
+            externalCarrier != null && transform.IsChildOf(externalCarrier) ? externalCarrier : RiddenBy(transform);
+
+        /// <summary>
+        /// The mount <paramref name="body"/> is sitting on, or null when it is not riding anything.
+        ///
+        /// <para>
+        /// Read off the parenting, because that is the one part of a ride netcode replicates: every
+        /// machine sees the rider under the mount's <c>NetworkObject</c> (or, offline, under its
+        /// seat marker), while who is riding is known only where the ride began. Anything under the
+        /// rider — a held item, a muzzle, a hand — answers for the rider, so callers may pass
+        /// whichever transform they have. The answer is the mount's whole entity, since that is
+        /// what the rider was parented to and where its colliders live.
+        /// </para>
+        /// </summary>
+        public static Transform RiddenBy(Transform body)
+        {
+            MountModule mount = body != null && body.parent != null
+                ? body.parent.GetComponentInParent<MountModule>()
+                : null;
+            if (mount == null) return null;
+
+            NetworkObject entity = mount.GetComponentInParent<NetworkObject>();
+            return entity != null ? entity.transform : mount.transform;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="part"/> belongs to <paramref name="user"/> or to the mount they
+        /// are riding — the two things nothing a player uses may land on.
+        ///
+        /// <para>
+        /// The ridden mount is the half every hand-rolled self-filter used to miss. A rider is a
+        /// child of the mount, not the other way round, so <c>IsChildOf(user)</c> passes the
+        /// mount's colliders straight through and a lasso thrown from the saddle catches the
+        /// animal under it. Ask it of the COLLIDER's transform, as <see cref="NearestOutside"/>
+        /// explains.
+        /// </para>
+        /// </summary>
+        public static bool IsOwnOrRidden(Transform part, Transform user)
+        {
+            if (part == null || user == null) return false;
+            if (part.IsChildOf(user)) return true;
+
+            Transform ridden = RiddenBy(user);
+            return ridden != null && part.IsChildOf(ridden);
+        }
 
         /// <summary>
         /// Where this player is pointing right now: out of their eye, at what their crosshair covers.

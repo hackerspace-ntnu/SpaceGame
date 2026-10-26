@@ -19,6 +19,9 @@ namespace SpaceGame.Items
                  "want the day a bison saddle should refuse to go on a lizard.")]
         [SerializeField] private InventoryItem fitsSocketsFor;
 
+        [Tooltip("Shown while aiming at an animal that has not come to trust people yet (CreatureTrust).")]
+        [SerializeField] private string wary = "It shies away · win its trust first (RMB: pet)";
+
         public override bool CanPlace(in PlacementAim aim)
         {
             return SocketFor(aim) != null;
@@ -40,7 +43,8 @@ namespace SpaceGame.Items
 
             SaddleSocket socket = target.GetComponentInParent<SaddleSocket>();
             if (socket == null) return null;                 // not an animal: say nothing
-            return socket.IsSaddled ? "Already saddled" : null;
+            if (socket.IsSaddled) return "Already saddled";
+            return socket.AcceptsSaddle ? null : wary;
         }
 
         /// <summary>
@@ -56,7 +60,7 @@ namespace SpaceGame.Items
             if (aim.Target == null) return null;
 
             SaddleSocket socket = aim.Target.GetComponentInParent<SaddleSocket>();
-            if (socket == null || socket.IsSaddled) return null;
+            if (socket == null || socket.IsSaddled || !socket.AcceptsSaddle) return null;
 
             if (fitsSocketsFor != null && socket.SaddleItem != fitsSocketsFor) return null;
 

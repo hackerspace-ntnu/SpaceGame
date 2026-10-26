@@ -798,5 +798,10 @@ namespace SpaceGame.Core
         //                      joiner, and a no-op for every machine that already shows it.
         public const ushort CaptiveHaulRequest = 140; // hauler → server
         public const ushort CaptiveHauled      = 141; // server → everyone
+
+        // ── Winning an animal's trust ──
+        // On the ANIMAL's relay (CreatureTrust). The pets themselves travel as PetRequest/Petted; the owner counts them.
+        //   TrustSet A = pets accepted so far. Absolute state: re-sent to a late joiner, a no-op for everybody who knew.
+        public const ushort TrustSet = 142; // server → everyone
     }
 }

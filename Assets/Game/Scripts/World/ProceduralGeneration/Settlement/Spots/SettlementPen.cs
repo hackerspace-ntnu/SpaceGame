@@ -7,6 +7,9 @@
 // gate (a carving NavMeshObstacle on the leaf): while the gate is shut the pen floor is a NavMesh
 // island, and the stock's wander only picks points a complete path leads to. Opening the gate
 // (DoorInteraction) joins the island to the rest of the settlement, and they may walk out.
+//
+// A pen with no stock prefab is filled by players instead: a Ranch's corral is one, and asks Contains and Gate at
+// runtime to count the herd driven into it.
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Gameplay;

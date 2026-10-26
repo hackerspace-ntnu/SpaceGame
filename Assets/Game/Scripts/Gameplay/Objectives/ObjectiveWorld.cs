@@ -96,6 +96,22 @@ namespace SpaceGame.Gameplay.Objectives
             }
         }
 
+        /// <summary>
+        /// SERVER: somebody in the session has done their part of the current step — for a step only one player can do
+        /// at a time, such as riding the one animal there is.
+        /// </summary>
+        public bool AnyoneFinished
+        {
+            get
+            {
+                foreach (PlayerIdentity member in Crew)
+                    if (member != null && finished.Contains(member.OwnerClientId))
+                        return true;
+
+                return false;
+            }
+        }
+
         // ── Lookups, any machine ───────────────────────────────────────────────
 
         /// <summary>

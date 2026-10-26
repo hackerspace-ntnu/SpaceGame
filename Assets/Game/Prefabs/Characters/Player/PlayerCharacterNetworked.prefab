@@ -430,8 +430,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventoryNetwork
   ShowTopMostFoldoutHeaderGroup: 1
   inventorySize: 3
-  startingItems:
-  - {fileID: 11400000, guid: 80fc5802176e94e75bcc95e24616cdf1, type: 2}
+  startingItems: []
 --- !u!114 &519412105137966564
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -445,10 +444,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BodyEquipmentNetwork
   ShowTopMostFoldoutHeaderGroup: 1
-  startingBody:
-  - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
-  - {fileID: 11400000, guid: c48f2b7d16ae4c93a5e07f81d3b62c40, type: 2}
-  - {fileID: 11400000, guid: 6633f38a345214c3d9edb14bb20a36a9, type: 2}
+  startingBody: []
 --- !u!114 &2648420191720355216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -625,9 +621,11 @@ MonoBehaviour:
   suitSeconds: 60
   drainPerSecond: 1
   refillPerSecond: 6
+  crashReserveSeconds: 240
   suffocationDamage: 5
   suffocationInterval: 1
   warnFraction: 0.1
+  alarmTone: 903
 --- !u!114 &3713526863936286617
 MonoBehaviour:
   m_ObjectHideFlags: 0

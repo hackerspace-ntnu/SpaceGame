@@ -432,7 +432,8 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// Pull the creature back onto the rope, by however much of the correction its own weight
-        /// does not win. The player absorbs the rest on their own machine — see
+        /// does not win against the rope's holder — a player, or the mount they rope from
+        /// (<see cref="LassoArtifact.HolderMass"/>). The player absorbs the rest on their own machine — see
         /// <see cref="LassoArtifact.PlayerPullShare"/>, which both ends compute rather than send.
         /// </summary>
         private void Constrain()
@@ -442,7 +443,7 @@ namespace SpaceGame.Items
             if (distance <= ropeLength || distance < 0.001f) return;
 
             Vector3 radial = rope / distance;
-            float creatureShare = 1f - LassoArtifact.PlayerPullShare(mass);
+            float creatureShare = 1f - LassoArtifact.PlayerPullShare(mass, LassoArtifact.HolderMass(anchor));
 
             Vector3 correction = radial * ((ropeLength - distance) * creatureShare);
             if (correction.y > 0f) hoisted = true;
@@ -556,8 +557,7 @@ namespace SpaceGame.Items
             Rigidbody body = creature.GetComponentInParent<Rigidbody>();
             if (body != null) return Mathf.Clamp(body.mass, MinMass, MaxMass);
 
-            Vector3 size = LargestSolidBounds(creature).size;
-            float volume = size.x * size.y * size.z;
+            float volume = SolidVolumeOf(creature);
 
             if (volume <= 0f) return MinMass;
 
@@ -565,6 +565,16 @@ namespace SpaceGame.Items
             // put an ant at a couple of kilos and a habitat-sized walker in the high hundreds
             // without anyone authoring a number per creature.
             return Mathf.Clamp(volume * BoundsDensity, MinMass, MaxMass);
+        }
+
+        /// <summary>
+        /// The volume of a body's biggest solid collider's box: how bulky it is, whatever its
+        /// <see cref="Rigidbody.mass"/> was authored as. Zero when it has no solid collider.
+        /// </summary>
+        public static float SolidVolumeOf(GameObject body)
+        {
+            Vector3 size = LargestSolidBounds(body).size;
+            return size.x * size.y * size.z;
         }
 
         /// <summary>

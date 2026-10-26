@@ -318,6 +318,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   MotorComponent: {fileID: 6583689627051378568}
   animatorDriver: {fileID: 0}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &1076280911718887894
@@ -392,6 +393,7 @@ MonoBehaviour:
   minDestinationDistance: 6
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 2
   maxWaitTime: 6
   stopDistance: 2
@@ -472,13 +474,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountedRiderPose
   mountModule: {fileID: 1302922438473089728}
-  upperLegRotation: {x: -50, y: 0, z: -26}
-  lowerLegRotation: {x: -90, y: 0, z: 0}
-  footRotation: {x: 25, y: 0, z: 0}
-  spineRotation: {x: 8, y: 0, z: 0}
-  chestRotation: {x: 6, y: 0, z: 0}
-  upperArmRotation: {x: 15, y: 0, z: 8}
-  lowerArmRotation: {x: 35, y: 0, z: 0}
+  rideActionName: Ride
   gains:
     bounceGain: 2.5
     bounceMax: 9
@@ -488,6 +484,9 @@ MonoBehaviour:
     turnMax: 10
   motionSmooth: 9
   motionRejectThreshold: 60
+  hipsAboveSeat: 0.22
+  swayFollow: 0.6
+  swayBaselineSeconds: 1.2
   blendDuration: 0.25
 --- !u!114 &5796015618132791183
 MonoBehaviour:
@@ -796,15 +795,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &613497110962547155
@@ -839,6 +835,13 @@ MonoBehaviour:
     breakDamage: 10
   swallowed:
     seconds: 6
+  shocked:
+    seconds: 3
+    immunity: 2
+  bound:
+    seconds: 86400
+    stillSecondsToEscape: 30
+    stillTolerance: 0.3
   inflationTarget: {fileID: 7910077900827871769}
 --- !u!114 &4862729303251889873
 MonoBehaviour:

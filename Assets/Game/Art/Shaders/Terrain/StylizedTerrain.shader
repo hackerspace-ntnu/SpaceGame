@@ -134,6 +134,9 @@ Shader "SpaceGame/StylizedTerrain"
 
             TEXTURE2D(_GrassColorMap);
             SAMPLER(sampler_GrassColorMap);
+            // Set globally by GrassField: x the distance the grass starts hiding the ground, y one
+            // over the length of that ramp, z the extra tuft layers a far view looks through.
+            float4 _GrassGroundCover;
 
             struct Attributes
             {
@@ -257,7 +260,19 @@ Shader "SpaceGame/StylizedTerrain"
                     float2 warp = float2(valueNoise(warpUV + 17.3), valueNoise(warpUV + 41.9)) * 2.0 - 1.0;
                     float2 grassUV = (IN.positionWS.xz + warp * _GrassMapWarp.x - _GrassMapRect.xy) * _GrassMapRect.zw;
                     half4 grass = SAMPLE_TEXTURE2D(_GrassColorMap, sampler_GrassColorMap, grassUV);
-                    albedo = lerp(albedo, grass.rgb, grass.a * step(_GrassMinHeight, IN.positionWS.y));
+                    // Premultiplied by coverage and stored linear (GrassGroundTint): un-premultiply,
+                    // then convert the materials' sRGB colours.
+                    half3 grassColour = grass.rgb / max(grass.a, 1e-3);
+                #if !defined(UNITY_COLORSPACE_GAMMA)
+                    grassColour = SRGBToLinear(grassColour);
+                #endif
+                    half cover = grass.a * step(_GrassMinHeight, IN.positionWS.y);
+                    // From afar the blades in front hide the ground between the tufts: every layer
+                    // of tufts the view looks through closes the gaps the one before left.
+                    float layers = 1.0 + _GrassGroundCover.z
+                        * saturate((distance(IN.positionWS, _WorldSpaceCameraPos) - _GrassGroundCover.x) * _GrassGroundCover.y);
+                    cover = 1.0 - pow(saturate(1.0 - cover), layers);
+                    albedo = lerp(albedo, grassColour, cover);
                 }
 
                 // ---- Slope-based cliff overlay, layered into strata ----

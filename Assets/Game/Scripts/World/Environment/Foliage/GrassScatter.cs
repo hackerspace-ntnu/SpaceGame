@@ -23,6 +23,9 @@ namespace SpaceGame.World.Environment
         // How far apart, in noise space, two seeds put their clump patterns.
         private const float ClumpSeedSpread = 1000f;
 
+        // A plant with no base and no reach would be a division by zero.
+        private const float MinContactSpan = 0.01f;
+
         /// <summary>A profile's placement settings, copied on the main thread for a worker.</summary>
         public readonly struct Settings
         {
@@ -37,11 +40,17 @@ namespace SpaceGame.World.Environment
             public readonly float FlowerChance;
             public readonly float DensityVariation;
             public readonly float DensityVariationSize;
+            public readonly float ContactGrowth;
+            public readonly float ContactClearing;
+            public readonly float ContactReach;
 
-            public Settings(GrassFieldProfile profile)
+            /// <param name="densityScale">The field's scale on the profile's tufts per square metre.</param>
+            /// <param name="contactClearing">The fraction of a plant's base kept clear of grass.</param>
+            /// <param name="contactReach">How far beyond a plant's base, in metres, it shades and shelters the grass.</param>
+            public Settings(GrassFieldProfile profile, float densityScale, float contactClearing, float contactReach)
             {
                 ChunkSize = profile.ChunkSize;
-                Spacing = 1f / Mathf.Sqrt(profile.TuftsPerSquareMetre);
+                Spacing = 1f / Mathf.Sqrt(profile.TuftsPerSquareMetre * densityScale);
                 Cells = Mathf.CeilToInt(ChunkSize / Spacing);
                 MinimumLayerWeight = profile.MinimumLayerWeight;
                 MinSlopeCos = Mathf.Cos(profile.MaxSlopeDegrees * Mathf.Deg2Rad);
@@ -51,6 +60,9 @@ namespace SpaceGame.World.Environment
                 FlowerChance = profile.FlowerChance;
                 DensityVariation = profile.DensityVariation;
                 DensityVariationSize = profile.DensityVariationSize;
+                ContactGrowth = profile.ContactGrowth;
+                ContactClearing = contactClearing;
+                ContactReach = contactReach;
             }
 
             /// <summary>The most tufts one chunk can hold: one per grid cell.</summary>
@@ -96,7 +108,8 @@ namespace SpaceGame.World.Environment
                     float keep = random.Next();
                     if (x >= endX || z >= endZ)
                         continue;
-                    if (!TrySample(ground, x, z, out float y, out float slopeCos, out float weight))
+                    if (!TrySample(ground, x, z, out float y, out float slopeCos, out float weight,
+                                   out GroundContact[] plants))
                         continue;
                     if (y < minimumHeight || slopeCos < settings.MinSlopeCos)
                         continue;
@@ -107,17 +120,21 @@ namespace SpaceGame.World.Environment
                                    * (1f - settings.DensityVariation * clearing);
                     if (keep > coverage)
                         continue;
+                    // Nothing grows through a plant's base; around it the grass is shaded and taller.
+                    if (!TryContact(plants, x, z, settings, out float contact))
+                        continue;
 
                     float clump = Mathf.InverseLerp(ClumpNoiseLow, ClumpNoiseHigh,
                         Mathf.PerlinNoise(x * clumpScale + clumpOffset, z * clumpScale + clumpOffset));
                     float height = Mathf.Lerp(heights.x, heights.y,
-                                              Mathf.Lerp(random.Next(), clump, settings.HeightClumping));
+                                              Mathf.Lerp(random.Next(), clump, settings.HeightClumping))
+                                 * (1f + contact * settings.ContactGrowth);
                     float yaw = random.Next() * Mathf.PI * 2f;
                     float tint = random.Next();
                     float flowerRoll = random.Next();
                     float flowerHue = random.Next();
                     float accent = flowerRoll < settings.FlowerChance ? 0.05f + flowerHue : 0f;
-                    tufts.Add(new GrassInstance(new Vector3(x, y, z), height, yaw, tint, accent, rank));
+                    tufts.Add(new GrassInstance(new Vector3(x, y, z), height, yaw, tint, contact, accent, rank));
                 }
             }
             if (tufts.Count > capacity)
@@ -136,18 +153,45 @@ namespace SpaceGame.World.Environment
             ScatterGrid.CapacityFor(settings.MaxTuftsPerChunk, keptDensity);
 
         private static bool TrySample(PaintedGroundPatch[] ground, float x, float z, out float height,
-                                      out float slopeCos, out float weight)
+                                      out float slopeCos, out float weight, out GroundContact[] plants)
         {
             foreach (PaintedGroundPatch patch in ground)
             {
                 if (patch.TrySample(x, z, out height, out Vector3 normal, out weight))
                 {
                     slopeCos = normal.y;
+                    plants = patch.Contacts;
                     return true;
                 }
             }
             height = slopeCos = weight = 0f;
+            plants = null;
             return false;
+        }
+
+        /// <summary>
+        /// False inside the cleared part of a plant's base. Otherwise <paramref name="contact"/> is
+        /// how close the nearest plant is: 1 at the cleared edge, easing to 0 at its reach.
+        /// </summary>
+        private static bool TryContact(GroundContact[] plants, float x, float z, in Settings settings,
+                                       out float contact)
+        {
+            contact = 0f;
+            foreach (GroundContact plant in plants)
+            {
+                float dx = x - plant.X;
+                float dz = z - plant.Z;
+                float cleared = plant.Radius * settings.ContactClearing;
+                float span = plant.Radius - cleared + settings.ContactReach;
+                float distanceSquared = dx * dx + dz * dz;
+                if (distanceSquared > (cleared + span) * (cleared + span))
+                    continue;
+                float beyond = Mathf.Sqrt(distanceSquared) - cleared;
+                if (beyond < 0f)
+                    return false;
+                contact = Mathf.Max(contact, Mathf.SmoothStep(0f, 1f, 1f - beyond / Mathf.Max(span, MinContactSpan)));
+            }
+            return true;
         }
 
     }

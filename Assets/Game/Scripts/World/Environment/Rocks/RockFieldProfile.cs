@@ -96,6 +96,10 @@ namespace SpaceGame.World.Environment
         [Tooltip("Rocks are not drawn past this, and no chunk is kept past it.")]
         [SerializeField, Min(5f)] private float drawDistance = 80f;
 
+        [Tooltip("Rocks rise out of the ground over this last share of the draw distance, eased, " +
+                 "instead of appearing at full size.")]
+        [SerializeField, Range(0.02f, 0.6f)] private float fadeBand = 0.25f;
+
         [Tooltip("A rock smaller than this share of the screen height is not drawn; it shrinks " +
                  "away just before, so the cut-off is not a pop.")]
         [SerializeField, Range(0.0005f, 0.05f)] private float cullScreenSize = 0.006f;
@@ -126,6 +130,7 @@ namespace SpaceGame.World.Environment
         public float SlopeAlign => slopeAlign;
         public float MaxTiltDegrees => maxTiltDegrees;
         public float DrawDistance => drawDistance;
+        public float FadeBand => fadeBand;
         public float CullScreenSize => cullScreenSize;
         public float Lod1ScreenSize => lod1ScreenSize;
         public float Lod2ScreenSize => lod2ScreenSize;

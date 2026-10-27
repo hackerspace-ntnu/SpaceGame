@@ -1,0 +1,143 @@
+{
+ "name": "Barbelwalk",
+ "height": 0.909,
+ "length": 2.796,
+ "width": 0.845,
+ "clips": {
+  "Alert": {
+   "take": "Barbelwalk_Alert",
+   "frames": 42,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Barbelwalk_Attack",
+   "frames": 32,
+   "loop": false
+  },
+  "Death": {
+   "take": "Barbelwalk_Death",
+   "frames": 82,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Barbelwalk_Hurt",
+   "frames": 32,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Barbelwalk_Idle",
+   "frames": 92,
+   "loop": true
+  },
+  "IdleCall": {
+   "take": "Barbelwalk_IdleCall",
+   "frames": 182,
+   "loop": false
+  },
+  "Jump": {
+   "take": "Barbelwalk_Jump",
+   "frames": 32,
+   "loop": false
+  },
+  "Lie": {
+   "take": "Barbelwalk_Lie",
+   "frames": 2,
+   "loop": false
+  },
+  "Rest": {
+   "take": "Barbelwalk_Rest",
+   "frames": 221,
+   "loop": true
+  },
+  "Run": {
+   "take": "Barbelwalk_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Swim": {
+   "take": "Barbelwalk_Swim",
+   "frames": 92,
+   "loop": true
+  },
+  "SwimAttack": {
+   "take": "Barbelwalk_SwimAttack",
+   "frames": 42,
+   "loop": false
+  },
+  "SwimIdle": {
+   "take": "Barbelwalk_SwimIdle",
+   "frames": 62,
+   "loop": false
+  },
+  "SwimUnder": {
+   "take": "Barbelwalk_SwimUnder",
+   "frames": 72,
+   "loop": false
+  },
+  "TurnL": {
+   "take": "Barbelwalk_TurnL",
+   "frames": 82,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "Barbelwalk_TurnL180",
+   "frames": 102,
+   "loop": false
+  },
+  "Walk": {
+   "take": "Barbelwalk_Walk",
+   "frames": 27,
+   "loop": true
+  },
+  "WalkToIdle": {
+   "take": "Barbelwalk_WalkToIdle",
+   "frames": 52,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 0.0,
+  "Walk": 0.607
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Barbelwalk_EyeL",
+   "centre": [
+    0.0052,
+    -1.243,
+    0.4729
+   ],
+   "gaze": [
+    0.7955,
+    -0.5872,
+    0.1498
+   ],
+   "radius": 0.026
+  },
+  {
+   "object": "Mesh_Barbelwalk_EyeR",
+   "centre": [
+    -0.1144,
+    -1.2466,
+    0.4716
+   ],
+   "gaze": [
+    -0.8575,
+    -0.3417,
+    0.3846
+   ],
+   "radius": 0.026
+  }
+ ],
+ "eye_style": {
+  "sclera": "#3b3852",
+  "iris": "#e2d49a",
+  "pupil_color": "#1c1718",
+  "pupil": "round",
+  "pupil_size": 0.68,
+  "iris_size": 0.8
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Barbelwalk/barbelwalk.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/barbelwalk/barbelwalk.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/barbelwalk"
+}

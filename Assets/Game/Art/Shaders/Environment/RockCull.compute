@@ -4,7 +4,8 @@
 //   Cull      - one thread per stored rock, one dispatch per pool. A rock past the draw distance,
 //               smaller on screen than the cull size, or outside the frustum together with its
 //               shadow is dropped; a kept rock picks its LOD by its size on screen and is appended
-//               to its model's segment for that LOD.
+//               to its model's segment for that LOD. Near every cut-off, and just after its chunk
+//               lands, it is scaled into the ground, eased, so no rock pops in or out.
 //   WriteArgs - copies each segment's count, clamped to its capacity, into its indirect draw.
 
 #pragma kernel Reset
@@ -24,6 +25,7 @@ struct RockInstance
 
 StructuredBuffer<RockInstance> _Instances;
 StructuredBuffer<uint> _SlotCounts;
+StructuredBuffer<float> _SlotFilled;    // ChunkInstancePool's clock when each slot was filled
 StructuredBuffer<uint2> _Segments;      // x first index in _Visible, y capacity
 StructuredBuffer<uint> _VariantLods;    // LODs each model's mesh has
 RWStructuredBuffer<uint> _Counts;
@@ -44,6 +46,9 @@ float _CullSize;
 float _Lod1Size;
 float _Lod2Size;
 float _ShrinkBand;
+float _FadeBand;            // share of the draw distance the rocks rise over
+float _ScatterClock;        // the pool's clock now
+float _ArrivalSeconds;      // how long a newly landed chunk's rocks take to rise
 
 #define LOD_COUNT 3
 
@@ -103,12 +108,16 @@ void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
     uint lod = lodScreen < _Lod2Size ? 2 : lodScreen < _Lod1Size ? 1 : 0;
     lod = min(lod, _VariantLods[variant] - 1);
 
-    // Shrink into the ground just before the cut-offs, so a rock never pops out of view.
-    float bySize = saturate((screen / _CullSize - 1.0) / _ShrinkBand);
-    float byRange = saturate((_DrawDistance - range) / (_DrawDistance * 0.1));
+    // Shrink into the ground just before the cut-offs, so a rock never pops out of view, and
+    // rise out of it when its chunk lands in view. Eased: a linear scale shows most of the
+    // rock's area in the last moment, which reads as a pop.
+    float bySize = smoothstep(0.0, 1.0, (screen / _CullSize - 1.0) / _ShrinkBand);
+    float byRange = smoothstep(0.0, 1.0, (_DrawDistance - range) / (_DrawDistance * _FadeBand));
+    float byArrival = smoothstep(0.0, 1.0, (_ScatterClock - _SlotFilled[slot]) / _ArrivalSeconds);
 
     RockVisible kept;
-    kept.positionScale = float4(rock.positionScale.xyz, rock.positionScale.w * min(bySize, byRange));
+    kept.positionScale = float4(rock.positionScale.xyz,
+                                rock.positionScale.w * min(min(bySize, byRange), byArrival));
     kept.rotation = rock.rotation;
     kept.stretchTint = float4(rock.stretchVariant.xyz, tint);
 

@@ -28,6 +28,7 @@ namespace SpaceGame.World.Environment
         private static readonly int WindId = Shader.PropertyToID("_GrassWind");
         private static readonly int BendersId = Shader.PropertyToID("_GrassBenders");
         private static readonly int BenderCountId = Shader.PropertyToID("_GrassBenderCount");
+        private static readonly int BenderMotionId = Shader.PropertyToID("_GrassBenderMotion");
         private static readonly int TimeId = Shader.PropertyToID("_GrassTime");
         private static readonly int CameraPositionId = Shader.PropertyToID("_CameraPosition");
         private static readonly int FrustumPlanesId = Shader.PropertyToID("_FrustumPlanes");
@@ -36,7 +37,12 @@ namespace SpaceGame.World.Environment
         private static readonly int FoliageTimeId = Shader.PropertyToID("_FoliageTime");
         private static readonly int FoliageBendersId = Shader.PropertyToID("_FoliageBenders");
         private static readonly int FoliageBenderCountId = Shader.PropertyToID("_FoliageBenderCount");
+        private static readonly int FoliageBenderMotionId = Shader.PropertyToID("_FoliageBenderMotion");
+        private static readonly int GroundCoverId = Shader.PropertyToID("_GrassGroundCover");
         private static readonly List<GrassField> Enabled = new List<GrassField>();
+
+        // A zero-length ground cover ramp would be a division by zero.
+        private const float MinCoverLength = 0.01f;
 
         [Serializable]
         private struct Biome
@@ -58,6 +64,45 @@ namespace SpaceGame.World.Environment
         [Tooltip("Changes the scatter without changing its density.")]
         [SerializeField] private int seed = 1;
 
+        [Tooltip("Scales every biome's tufts per square metre: how much grass the whole world " +
+                 "grows. The ground colour fills in between the tufts.")]
+        [SerializeField, Range(0.1f, 1f)] private float densityScale = 0.6f;
+
+        [Header("Ground From Afar")]
+        [Tooltip("Looking across a field, the blades in front hide the ground between the tufts. " +
+                 "From this distance the painted ground's grass colour starts covering more of it.")]
+        [SerializeField, Min(0f)] private float groundCoverStart = 40f;
+        [Tooltip("The covering is complete here.")]
+        [SerializeField, Min(0f)] private float groundCoverEnd = 200f;
+        [Tooltip("How many layers of tufts a far view looks through. Each closes the gaps the one " +
+                 "before left: a profile's Ground Tint t becomes 1 - (1 - t)^layers, so dense " +
+                 "grass hides the ground completely and sparse plants still let some show.")]
+        [SerializeField, Range(1f, 10f)] private float groundCoverLayers = 4f;
+
+        [Header("Plants In The Grass")]
+        [Tooltip("A tree or bush painted on the terrain (Paint Trees) stands on the part of its " +
+                 "mesh below this height, in metres: trunk, stems, root flare — not its crown.")]
+        [SerializeField, Min(0.05f)] private float plantBaseHeight = 0.6f;
+        [Tooltip("The fraction of a plant's base kept clear of grass, so tufts do not grow " +
+                 "through trunks and stems.")]
+        [SerializeField, Range(0f, 1f)] private float plantBaseClearing = 0.6f;
+        [Tooltip("How far beyond a plant's base, in metres, the grass is shaded and sheltered " +
+                 "(taller by each profile's Contact Growth, darker by its material's Contact Shade).")]
+        [SerializeField, Min(0f)] private float plantContactReach = 1.5f;
+
+        [Header("Trampled Trails")]
+        [Tooltip("Side of the square of ground around the viewer, in metres, that remembers where " +
+                 "bodies walked. Past it, trampled grass stands straight back up.")]
+        [SerializeField, Min(8f)] private float trampleWindow = 64f;
+        [Tooltip("Texels along one side of the trail map, rounded up to a power of two. 256 over " +
+                 "64 m is a 25 cm texel.")]
+        [SerializeField, Range(64, 1024)] private int trampleResolution = 256;
+        [Tooltip("Seconds trampled grass takes to stand fully back up.")]
+        [SerializeField, Min(1f)] private float trampleRecoverSeconds = 40f;
+        [Tooltip("Grass more than this far above or below a body's feet, in metres, is not " +
+                 "trampled by it, so a body flying over a field leaves no trail.")]
+        [SerializeField, Min(0.1f)] private float trampleHeightTolerance = 1.5f;
+
         [Tooltip("Chunk scatters started per camera per frame across all biomes. They run on " +
                  "worker threads; this only paces how fast new ground fills in.")]
         [SerializeField, Range(1, 64)] private int chunkBuildsPerFrame = 8;
@@ -77,11 +122,13 @@ namespace SpaceGame.World.Environment
         private readonly List<GrassBiomeStream> streams = new List<GrassBiomeStream>();
         private readonly List<Rect> changed = new List<Rect>();
         private readonly Vector4[] benders = new Vector4[GrassBender.MaxActive];
+        private readonly Vector4[] benderMotion = new Vector4[GrassBender.MaxActive];
         private readonly Plane[] frustum = new Plane[6];
         private readonly Vector4[] frustumPlanes = new Vector4[6];
 
         private PaintedGround ground;
         private GrassGroundTint tint;
+        private GrassTrample trample;
         private CommandBuffer commands;
         private GrassBiomeStream.CullKernels kernels;
         private int maxScattersInFlight;
@@ -112,6 +159,8 @@ namespace SpaceGame.World.Environment
         private void OnDisable()
         {
             Enabled.Remove(this);
+            // Zero layers past the first: the terrain shows its painted tint as authored again.
+            Shader.SetGlobalVector(GroundCoverId, Vector4.zero);
             RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
             GrassFieldProfile.Edited -= OnProfileEdited;
             Release();
@@ -154,6 +203,9 @@ namespace SpaceGame.World.Environment
                 harvested |= streams[(tick + i) % streams.Count].Stream(eye, ground, tick, ref budget);
 
             SetCullGlobals(cam, eye);
+            if (DrivesTrails(cam))
+                trample.Update(commands, cullShader, kernels.Trample, eye, GrassTime);
+            trample.Bind(commands, cullShader, kernels.Cull);
             foreach (GrassBiomeStream stream in streams)
                 stream.Cull(commands, cullShader, kernels);
             context.ExecuteCommandBuffer(commands);
@@ -191,14 +243,16 @@ namespace SpaceGame.World.Environment
                                    "no material. That biome grows nothing.", this);
                     continue;
                 }
-                streams.Add(new GrassBiomeStream(profile, paints.Count, seed, minimumHeight));
+                streams.Add(new GrassBiomeStream(profile, paints.Count, seed, minimumHeight, densityScale,
+                                                 plantBaseClearing, plantContactReach));
                 paints.Add(GroundPaint.Splat(biomes[i].terrainLayer));
                 // The scatter fades to nothing at half the profile's full-coverage weight.
                 growsAbove.Add(profile.MinimumLayerWeight * 0.5f);
                 profiles.Add(profile);
             }
-            ground = new PaintedGround(paints, growsAbove);
+            ground = new PaintedGround(paints, growsAbove, new GroundContacts(plantBaseHeight, plantContactReach));
             tint = new GrassGroundTint(profiles, minimumHeight);
+            trample = new GrassTrample(trampleResolution, trampleWindow, trampleRecoverSeconds, trampleHeightTolerance);
         }
 
         private void Release()
@@ -208,6 +262,8 @@ namespace SpaceGame.World.Environment
             streams.Clear();
             tint?.Dispose();
             tint = null;
+            trample?.Dispose();
+            trample = null;
             ground?.Dispose();
             ground = null;
         }
@@ -242,20 +298,43 @@ namespace SpaceGame.World.Environment
             commands.SetComputeVectorParam(cullShader, WindId, windVector);
             commands.SetGlobalVector(FoliageWindId, windVector);
 
-            int count = GrassBender.Gather(eye, benders);
+            int count = GrassBender.Gather(eye, GrassTime, benders, benderMotion);
             commands.SetComputeVectorArrayParam(cullShader, BendersId, benders);
+            commands.SetComputeVectorArrayParam(cullShader, BenderMotionId, benderMotion);
             commands.SetComputeFloatParam(cullShader, BenderCountId, count);
             commands.SetComputeFloatParam(cullShader, TimeId, GrassTime);
             commands.SetGlobalVectorArray(FoliageBendersId, benders);
+            commands.SetGlobalVectorArray(FoliageBenderMotionId, benderMotion);
             commands.SetGlobalFloat(FoliageBenderCountId, count);
             commands.SetGlobalFloat(FoliageTimeId, GrassTime);
             commands.SetComputeVectorParam(cullShader, CameraPositionId, eye);
+            float coverLength = Mathf.Max(groundCoverEnd - groundCoverStart, MinCoverLength);
+            commands.SetGlobalVector(GroundCoverId,
+                new Vector4(groundCoverStart, 1f / coverLength, groundCoverLayers - 1f, 0f));
 
             GeometryUtility.CalculateFrustumPlanes(cam, frustum);
             for (int i = 0; i < frustum.Length; i++)
                 frustumPlanes[i] = new Vector4(frustum[i].normal.x, frustum[i].normal.y, frustum[i].normal.z,
                                                frustum[i].distance);
             commands.SetComputeVectorArrayParam(cullShader, FrustumPlanesId, frustumPlanes);
+        }
+
+        // One camera moves and stamps the trails: the player's view in play, the Scene view being
+        // worked in while authoring. Any other camera only reads them, so a Scene view open beside
+        // the Game view cannot drag the window back and forth and clear it.
+        private static bool DrivesTrails(Camera cam)
+        {
+            if (Application.isPlaying)
+            {
+                Camera main = Camera.main;
+                return main != null ? cam == main : cam.cameraType == CameraType.Game;
+            }
+#if UNITY_EDITOR
+            UnityEditor.SceneView view = UnityEditor.SceneView.lastActiveSceneView;
+            return view != null ? cam == view.camera : cam.cameraType == CameraType.SceneView;
+#else
+            return true;
+#endif
         }
 
         // While authoring, the Scene view only redraws when something asks it to; without this,

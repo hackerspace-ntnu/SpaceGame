@@ -11,7 +11,7 @@ symptoms:
   - "a new grass biome grows nothing where I painted it"
   - "the grass is too short for the player"
 reads_with: [Grass, NoiseHeightmap]
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Grass Biomes
@@ -23,7 +23,7 @@ they are grown and drawn is [Grass.md](Grass.md).
 
 ## Model
 
-| Biome | Height (m) | Tufts/m² | Draw (m) | Look |
+| Biome | Height (m) | Tufts/m² (× field `densityScale` 0.6) | Draw (m) | Look |
 | --- | --- | --- | --- | --- |
 | Meadow | 0.90–1.35 | 9 | 300 | lush green, rare pink/lilac flowers |
 | MeadowGolden / MeadowAutumn | 0.90–1.50 | 9 | 300 | meadow shape; yellow / orange-rust |
@@ -45,7 +45,7 @@ lilac fungal carpet with rare cyan spore tips, for the fungal kits in [Foliage.m
 
 - Heights are for the **3 m player** (tripled 2026-10-25): meadows reach the hip, TallGrass and Reeds
   overtop the player.
-- **Distance tiers** (all: falloff 2.6, widen up to 3×, sink from 80 %): draw 300 m, full density to
+- **Distance tiers** (all: falloff 2.6, widen up to 1.5×, tip-coloured 35–120 m, sink from 80 %): draw 300 m, full density to
   30 m, detail switches at 8 / 20 / 40 m. Tall: 350 m, 35 m, 10 / 24 / 48 m. Tiny: 150 m, 18 m,
   5 / 12 / 24 m. Tall = TallGrass, Reeds, RedDesertBunch, ShaggyMops, Ferns, CrystalShards; tiny =
   Turf, VelvetLawn, Clover, RockyMoss.

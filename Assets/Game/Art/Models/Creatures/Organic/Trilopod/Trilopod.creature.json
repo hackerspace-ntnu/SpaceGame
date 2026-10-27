@@ -1,0 +1,112 @@
+{
+ "name": "Trilopod",
+ "height": 1.099,
+ "length": 2.332,
+ "width": 1.725,
+ "clips": {
+  "Alert": {
+   "take": "Trilopod_Alert",
+   "frames": 43,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Trilopod_Attack",
+   "frames": 22,
+   "loop": false
+  },
+  "AttackDouble": {
+   "take": "Trilopod_AttackDouble",
+   "frames": 39,
+   "loop": false
+  },
+  "AttackLeft": {
+   "take": "Trilopod_AttackLeft",
+   "frames": 39,
+   "loop": false
+  },
+  "AttackRight": {
+   "take": "Trilopod_AttackRight",
+   "frames": 39,
+   "loop": false
+  },
+  "Death": {
+   "take": "Trilopod_Death",
+   "frames": 43,
+   "loop": false
+  },
+  "Fall": {
+   "take": "Trilopod_Fall",
+   "frames": 3,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Trilopod_Idle",
+   "frames": 51,
+   "loop": true
+  },
+  "Jump": {
+   "take": "Trilopod_Jump",
+   "frames": 12,
+   "loop": false
+  },
+  "Stand": {
+   "take": "Trilopod_Stand",
+   "frames": 51,
+   "loop": true
+  },
+  "Taunt": {
+   "take": "Trilopod_Taunt",
+   "frames": 42,
+   "loop": false
+  },
+  "Walk": {
+   "take": "Trilopod_Walk",
+   "frames": 26,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Walk": 0.488
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Trilopod_EyeL.001",
+   "centre": [
+    0.0308,
+    -0.8301,
+    0.3858
+   ],
+   "gaze": [
+    0.1015,
+    -0.9851,
+    -0.1391
+   ],
+   "radius": 0.019
+  },
+  {
+   "object": "Mesh_Trilopod_EyeR.001",
+   "centre": [
+    -0.1234,
+    -0.9528,
+    0.3867
+   ],
+   "gaze": [
+    0.4594,
+    -0.8798,
+    -0.1217
+   ],
+   "radius": 0.019
+  }
+ ],
+ "eye_style": {
+  "sclera": "#4a120a",
+  "iris": "#d0461e",
+  "pupil_color": "#160604",
+  "pupil": "round",
+  "pupil_size": 0.35,
+  "iris_size": 0.85
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Trilopod/trilopod.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/trilopod/trilopod.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/trilopod"
+}

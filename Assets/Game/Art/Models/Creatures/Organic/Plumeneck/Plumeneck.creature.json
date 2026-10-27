@@ -1,0 +1,155 @@
+{
+ "name": "Plumeneck",
+ "height": 3.023,
+ "length": 2.701,
+ "width": 1.655,
+ "clips": {
+  "Alert": {
+   "take": "Plumeneck_Alert",
+   "frames": 25,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Plumeneck_Attack",
+   "frames": 48,
+   "loop": false
+  },
+  "Call": {
+   "take": "Plumeneck_Call",
+   "frames": 31,
+   "loop": false
+  },
+  "Death": {
+   "take": "Plumeneck_Death",
+   "frames": 206,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "Plumeneck_Dodge",
+   "frames": 37,
+   "loop": false
+  },
+  "Drink": {
+   "take": "Plumeneck_Drink",
+   "frames": 25,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Plumeneck_Eat",
+   "frames": 139,
+   "loop": true
+  },
+  "Groom": {
+   "take": "Plumeneck_Groom",
+   "frames": 205,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Plumeneck_Hurt",
+   "frames": 54,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Plumeneck_Idle",
+   "frames": 301,
+   "loop": true
+  },
+  "Jump": {
+   "take": "Plumeneck_Jump",
+   "frames": 23,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "Plumeneck_LieDown",
+   "frames": 139,
+   "loop": false
+  },
+  "Run": {
+   "take": "Plumeneck_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Shake": {
+   "take": "Plumeneck_Shake",
+   "frames": 97,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "Plumeneck_Sprint",
+   "frames": 15,
+   "loop": true
+  },
+  "StandUp": {
+   "take": "Plumeneck_StandUp",
+   "frames": 139,
+   "loop": false
+  },
+  "Trot": {
+   "take": "Plumeneck_Trot",
+   "frames": 27,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Plumeneck_TurnL",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "Plumeneck_TurnR",
+   "frames": 97,
+   "loop": true
+  },
+  "Walk": {
+   "take": "Plumeneck_Walk",
+   "frames": 49,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Run": 6.821,
+  "Sprint": 10.762,
+  "Trot": 2.506,
+  "Walk": 1.007
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Plumeneck_EyeL.001",
+   "centre": [
+    0.0895,
+    -1.0755,
+    2.6969
+   ],
+   "gaze": [
+    0.6052,
+    -0.7868,
+    -0.121
+   ],
+   "radius": 0.028
+  },
+  {
+   "object": "Mesh_Plumeneck_EyeR.001",
+   "centre": [
+    -0.0895,
+    -1.0755,
+    2.6969
+   ],
+   "gaze": [
+    -0.6052,
+    -0.7868,
+    -0.121
+   ],
+   "radius": 0.028
+  }
+ ],
+ "eye_style": {
+  "sclera": "#3a3226",
+  "iris": "#6b4a1c",
+  "pupil_color": "#070605",
+  "pupil": "round",
+  "pupil_size": 0.4,
+  "iris_size": 0.85
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Plumeneck/plumeneck.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/plumeneck/plumeneck.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/plumeneck"
+}

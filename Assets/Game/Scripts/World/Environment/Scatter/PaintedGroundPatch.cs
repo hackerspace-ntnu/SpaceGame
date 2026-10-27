@@ -36,10 +36,16 @@ namespace SpaceGame.World.Environment
         private readonly float[,] weights;
         private readonly float edgeWarp;
 
+        /// <summary>The plants standing on this terrain whose reach overlaps the area (<see cref="GroundContacts"/>).</summary>
+        public GroundContact[] Contacts { get; }
+
         /// <param name="paintIndex">The channel's index on the terrain (<see cref="GroundPaint.IndexOn"/>); -1 grows everywhere.</param>
         /// <param name="edgeWarp">How far, in paint cells, the paint edge wanders.</param>
-        public PaintedGroundPatch(Terrain terrain, GroundPaint paint, int paintIndex, Rect area, float edgeWarp)
+        /// <param name="contacts">The plants around the area; empty when the scatter does not root against them.</param>
+        public PaintedGroundPatch(Terrain terrain, GroundPaint paint, int paintIndex, Rect area, float edgeWarp,
+                                  GroundContact[] contacts)
         {
+            Contacts = contacts;
             TerrainData data = terrain.terrainData;
             origin = terrain.transform.position;
             size = data.size;

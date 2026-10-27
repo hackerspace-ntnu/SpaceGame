@@ -1,0 +1,132 @@
+{
+ "name": "PalmNeck",
+ "height": 3.2,
+ "length": 2.996,
+ "width": 2.84,
+ "clips": {
+  "Alert": {
+   "take": "PalmNeck_Alert",
+   "frames": 65,
+   "loop": false
+  },
+  "Attack": {
+   "take": "PalmNeck_Attack",
+   "frames": 15,
+   "loop": false
+  },
+  "Death": {
+   "take": "PalmNeck_Death",
+   "frames": 45,
+   "loop": false
+  },
+  "Drink": {
+   "take": "PalmNeck_Drink",
+   "frames": 61,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "PalmNeck_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "PalmNeck_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtL": {
+   "take": "PalmNeck_HurtL",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "PalmNeck_Idle",
+   "frames": 31,
+   "loop": true
+  },
+  "IdleRuffle": {
+   "take": "PalmNeck_IdleRuffle",
+   "frames": 61,
+   "loop": false
+  },
+  "IdleShake": {
+   "take": "PalmNeck_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "Run": {
+   "take": "PalmNeck_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "Stand": {
+   "take": "PalmNeck_Stand",
+   "frames": 91,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "PalmNeck_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "PalmNeck_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "PalmNeck_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "PalmNeck_WalkAlert",
+   "frames": 25,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Walk": 0.0
+ },
+ "eyes": [
+  {
+   "object": "Mesh_PalmNeck_EyeL.001",
+   "centre": [
+    -0.4684,
+    -1.2459,
+    2.8582
+   ],
+   "gaze": [
+    0.313,
+    -0.9484,
+    0.0508
+   ],
+   "radius": 0.03
+  },
+  {
+   "object": "Mesh_PalmNeck_EyeR.001",
+   "centre": [
+    -0.6369,
+    -1.2656,
+    2.8541
+   ],
+   "gaze": [
+    -0.7823,
+    -0.5903,
+    0.1989
+   ],
+   "radius": 0.03
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e6d8b8",
+  "iris": "#3a2414",
+  "pupil_color": "#060403",
+  "pupil": "round",
+  "pupil_size": 0.5,
+  "iris_size": 0.85
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/PalmNeck/palm_neck.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/palm_neck/palm_neck.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/palmneck"
+}

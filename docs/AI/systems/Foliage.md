@@ -24,8 +24,9 @@ symptoms:
   - "a newly painted biome has no grass in an editor screenshot"
   - "a mushroom cap, petal or pod renders almost black although its material is pale"
   - "the plant in a planter composite floats on top of a little tree"
-reads_with: [Grass, ArtPipeline, LevelOfDetail, BarkMaps, VegetationKit, VegetationFamilies]
-updated: 2026-10-25
+  - "bushes never move when the player walks through them"
+reads_with: [Grass, GrassInteraction, ArtPipeline, LevelOfDetail, BarkMaps, VegetationKit, VegetationFamilies]
+updated: 2026-10-27
 ---
 
 # Foliage
@@ -107,14 +108,14 @@ the canopy blob they sit on, so a crown shades as a few soft round masses.
 | [StylizedFoliage.hlsl](Assets/Game/Art/Shaders/Environment/StylizedFoliage.hlsl) | `PlaceFoliageVertex` (lean, limb sway, flutter, benders), `FoliageAlbedo`, per-pixel tip accents, `BarkAlbedo` (triplanar bark map, groove tint, moss). |
 | `WindPush` / `WindGust` in [GrassShared.hlsl](Assets/Game/Art/Shaders/Environment/GrassShared.hlsl) | The wave + gust formulas, shared with GrassCull.compute so trees lean and leaves flutter with the meadow. |
 | [GrassField](Assets/Game/Scripts/World/Environment/Foliage/GrassField.cs) | Publishes `_FoliageWind`, `_FoliageTime`, `_FoliageBenders`, `_FoliageBenderCount` per camera. |
-| [GrassBender](Assets/Game/Scripts/World/Environment/Foliage/GrassBender.cs) | Also parts bushes (material `_BendStrength`, metres at full sway). |
+| [GrassBender](Assets/Game/Scripts/World/Environment/Foliage/GrassBender.cs) | Also parts bushes (`_BendStrength`, m) and shakes their leaves while moving (`_BendRustle`, m): [GrassInteraction](GrassInteraction.md). |
 
 ## Flows
 
-1. **Per camera**: GrassField's command buffer sets the foliage globals (wind, clock, 8 nearest benders).
+1. **Per camera**: GrassField's command buffer sets the foliage globals (wind, clock, 8 nearest benders + motion).
 2. **Per vertex**: the root is the object origin. Lean = the grass's tip-weighted lean at the root × sway weight ×
    height, so the plant moves as one body; each limb adds a figure-eight on its own phase × limb weight; leaves
-   flutter about their base, harder in gusts; benders push sideways. Height lost to the lean comes off the top.
+   flutter about their base, harder in gusts; benders push sideways and shake leaves as they move. Height lost to the lean comes off the top.
 3. **Colour**: inner → outer and bottom → top gradient (`_ShellWeight`, `_HeightWeight`), per-plant variation hashed
    from the root position, per-limb shade, per-leaf jitter and tint, accents on outer leaf tips, gust brightening.
 
@@ -144,6 +145,7 @@ N/A — plants hold no runtime state; their placement lives in the scene / Terra
   measured from the world origin and plants swing metres. GPU instancing is the batching that works.
 - **A plant's bark, leaves and fruit need identical wind values** — tune one material and not the
   others and branches drift off their leaves. Always pick all three from one wind profile (above).
+- **Bushes part only for bodies with a `GrassBender`; plant bases need Read/Write**: [GrassInteraction](GrassInteraction.md).
 - **No GrassField → no wind.** The globals are only set by a GrassField for a camera whose culling
   mask has its layer (and only while it has a biome). Without one the foliage stands still.
 - **Terrain-painted trees only collide through a collider on the prefab ROOT.** The palms' collider

@@ -49,6 +49,10 @@ namespace SpaceGame.World.Environment
         [SerializeField, Range(0f, 1f)] private float densityVariation = 0.35f;
         [Tooltip("Size of the thick clumps and clearings in metres.")]
         [SerializeField, Min(1f)] private float densityVariationSize = 14f;
+        [Tooltip("Beside a painted tree or bush the grass grows up to this much taller, sheltered " +
+                 "by it, so the plant stands in the meadow instead of on it. The material's " +
+                 "Contact Shade darkens the same ring.")]
+        [SerializeField, Range(0f, 1f)] private float contactGrowth = 0.3f;
 
         [Header("Ground Colour")]
         [Tooltip("How strongly painted ground takes this grass's colour, so the field still reads " +
@@ -81,11 +85,15 @@ namespace SpaceGame.World.Environment
         [SerializeField, Range(1, 12)] private int farBladesPerTuft = 3;
         [Tooltip("Far blades are wider, so the thinner tuft still covers the ground.")]
         [SerializeField, Range(1f, 4f)] private float farBladeWidthScale = 1.3f;
-        [Tooltip("Tufts farther than this are one triangle turned to the camera: a tuft's " +
-                 "silhouette for a sixth of the far tuft's cost, which is what lets grass reach far.")]
+        [Tooltip("Tufts farther than this are a row of flat spikes turned to the camera, one per " +
+                 "far blade: a tuft's silhouette for half the far tuft's cost, which lets grass reach far.")]
         [SerializeField, Min(0f)] private float distantTuftDistance = 40f;
-        [Tooltip("Width of the distant triangle's base, as a fraction of the tuft height.")]
+        [Tooltip("Width of the distant tuft's row of spikes, one per far blade, as a fraction " +
+                 "of the tuft height.")]
         [SerializeField, Range(0.3f, 3f)] private float distantTuftWidth = 1.2f;
+        [Tooltip("Over this last fraction of the distance to each switch, a tuft morphs into the " +
+                 "next level's shape, so the switch itself changes nothing on screen.")]
+        [SerializeField, Range(0.05f, 0.6f)] private float lodMorphBand = 0.3f;
 
         [Header("Streaming")]
         [Tooltip("Side of one streamed chunk in metres: the unit the grass is scattered, kept " +
@@ -110,9 +118,20 @@ namespace SpaceGame.World.Environment
                  "near 1 ms (M1 Pro, 1080p), the ground colour filling in behind.")]
         [SerializeField, Range(1f, 4f)] private float densityFalloff = 2.6f;
 
+        [Tooltip("A tuft about to be thinned out shrinks away over this last fraction of the " +
+                 "range it is drawn to, instead of vanishing at full size.")]
+        [SerializeField, Range(0.05f, 0.6f)] private float thinningFade = 0.25f;
+
         [Tooltip("Thinned tufts are widened to keep the field looking full, up to this many " +
-                 "times their width.")]
-        [SerializeField, Range(1f, 4f)] private float maxWidthBoost = 3f;
+                 "times their width. Past about 1.5 the far tufts turn into broad, squat " +
+                 "triangles; the ground colour covers the gaps instead.")]
+        [SerializeField, Range(1f, 4f)] private float maxWidthBoost = 1.5f;
+
+        [Tooltip("From afar only the tops of the grass show. From this distance a tuft starts " +
+                 "taking its tip colour all the way down, so no dark root outlines it.")]
+        [SerializeField, Min(0f)] private float canopyColorStart = 35f;
+        [Tooltip("Beyond this a tuft is coloured as its tips only.")]
+        [SerializeField, Min(0f)] private float canopyColorEnd = 120f;
 
         /// <summary>Raised when a profile is edited in the Inspector, so the grass using it rebuilds live.</summary>
         public static event System.Action<GrassFieldProfile> Edited;
@@ -130,6 +149,7 @@ namespace SpaceGame.World.Environment
         public float EdgeWarp => edgeWarp;
         public float DensityVariation => densityVariation;
         public float DensityVariationSize => densityVariationSize;
+        public float ContactGrowth => contactGrowth;
         public float GroundTint => groundTint;
         public Mesh TuftMesh => tuftMesh;
         public int BladesPerTuft => bladesPerTuft;
@@ -142,6 +162,7 @@ namespace SpaceGame.World.Environment
         public float FarBladeWidthScale => farBladeWidthScale;
         public float DistantTuftDistance => distantTuftDistance;
         public float DistantTuftWidth => distantTuftWidth;
+        public float LodMorphBand => lodMorphBand;
         public float TuftSpread => tuftSpread;
         public float BladeLean => bladeLean;
         public float ChunkSize => chunkSize;
@@ -149,7 +170,10 @@ namespace SpaceGame.World.Environment
         public float FadeStart => drawDistance * fadeStartFraction;
         public float FullDensityDistance => fullDensityDistance;
         public float DensityFalloff => densityFalloff;
+        public float ThinningFade => thinningFade;
         public float MaxWidthBoost => maxWidthBoost;
+        public float CanopyColorStart => canopyColorStart;
+        public float CanopyColorEnd => canopyColorEnd;
 
         /// <summary>
         /// The fraction of tufts drawn at <paramref name="range"/> metres from the camera — the

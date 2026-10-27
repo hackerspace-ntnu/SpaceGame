@@ -1,0 +1,145 @@
+{
+ "name": "DomeBack",
+ "height": 2.6,
+ "length": 2.128,
+ "width": 0.855,
+ "clips": {
+  "Alert": {
+   "take": "DomeBack_Alert",
+   "frames": 25,
+   "loop": false
+  },
+  "Attack": {
+   "take": "DomeBack_Attack",
+   "frames": 48,
+   "loop": false
+  },
+  "Call": {
+   "take": "DomeBack_Call",
+   "frames": 31,
+   "loop": false
+  },
+  "Death": {
+   "take": "DomeBack_Death",
+   "frames": 206,
+   "loop": false
+  },
+  "Drink": {
+   "take": "DomeBack_Drink",
+   "frames": 25,
+   "loop": false
+  },
+  "Eat": {
+   "take": "DomeBack_Eat",
+   "frames": 139,
+   "loop": true
+  },
+  "Hurt": {
+   "take": "DomeBack_Hurt",
+   "frames": 37,
+   "loop": false
+  },
+  "Idle": {
+   "take": "DomeBack_Idle",
+   "frames": 301,
+   "loop": true
+  },
+  "Jump": {
+   "take": "DomeBack_Jump",
+   "frames": 23,
+   "loop": false
+  },
+  "Knockdown": {
+   "take": "DomeBack_Knockdown",
+   "frames": 54,
+   "loop": false
+  },
+  "Run": {
+   "take": "DomeBack_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Shake": {
+   "take": "DomeBack_Shake",
+   "frames": 97,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "DomeBack_Sprint",
+   "frames": 15,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "DomeBack_StartWalk",
+   "frames": 49,
+   "loop": false
+  },
+  "Trot": {
+   "take": "DomeBack_Trot",
+   "frames": 27,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "DomeBack_TurnL",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "DomeBack_TurnR",
+   "frames": 97,
+   "loop": true
+  },
+  "Walk": {
+   "take": "DomeBack_Walk",
+   "frames": 49,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Run": 10.0,
+  "Sprint": 15.089,
+  "Trot": 3.667,
+  "Walk": 0.895
+ },
+ "eyes": [
+  {
+   "object": "Mesh_DomeBack_EyeL.001",
+   "centre": [
+    0.102,
+    -0.9692,
+    1.8943
+   ],
+   "gaze": [
+    0.7557,
+    -0.6046,
+    0.2519
+   ],
+   "radius": 0.06
+  },
+  {
+   "object": "Mesh_DomeBack_EyeR.001",
+   "centre": [
+    -0.0451,
+    -0.9745,
+    1.8975
+   ],
+   "gaze": [
+    -0.7557,
+    -0.6046,
+    0.2519
+   ],
+   "radius": 0.06
+  }
+ ],
+ "eye_style": {
+  "sclera": "#b9661f",
+  "iris": "#d98a35",
+  "pupil_color": "#a85a1c",
+  "pupil": "round",
+  "pupil_size": 0.05,
+  "iris_size": 0.95
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/DomeBack/dome_back.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/dome_back/dome_back.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/domeback"
+}

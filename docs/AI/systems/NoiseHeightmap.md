@@ -17,7 +17,7 @@ symptoms:
   - "water on the noise terrain has no shore foam and its shallows look deep"
   - "the ground is gone; the scene is streaks, wedges and flickering colours instead of terrain"
 reads_with: [TerrainGeneration, Scenes, NavMeshSystem, StylizedWater]
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Noise Heightmap
@@ -122,7 +122,7 @@ other world's save shows "This save belongs to a different world".
 - **An octave sum bunches around 0.5, which is why `contrast` exists.** Four octaves at persistence 0.5 rarely leave ~0.25..0.75, so curves keyed over 0..1 would only see their middle. Changing `octaves`/`persistence` changes that spread — re-check `continentalToHeight` and `erosionToRelief` afterwards.
 - **Wavelengths are in metres, so they must suit the terrain size.** At 2 km with the first defaults (continental 2600 m, peaks 900 m) the whole tile was one mountain range on one plain; the defaults were cut until 4 km shows several distinct ranges. The 8 km map kept them, so it has more ranges of the same size, not bigger regions.
 - **Batch-mode camera renders are magenta beyond `basemapDistance` (default 1000 m).** The URP TerrainLit basemap pass is not ready in `-batchmode`; the terrain is fine. Raise `basemapDistance` only for the preview, after saving the scene.
-- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores the alphamap; the layers stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers. The one exception is painted grass: `GrassField` turns `Ground_*` paint into a `_GrassColorMap` in the terrain's splat property block, which `StylizedTerrain` blends in before its cliff overlay (see [Grass.md](Grass.md)).
+- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores the alphamap; the layers stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers. The one exception is painted grass: `GrassField` turns `Ground_*` paint into a `_GrassColorMap` in the terrain's splat property block, which `StylizedTerrain` blends in before its cliff overlay — more strongly with distance, since far grass hides the ground (`_GrassGroundCover`, see [Grass.md](Grass.md)).
 - **`StylizedTerrain` has no terrain-instancing path.** It reads mesh positions/normals, so the terrain's *Draw Instanced* (Terrain → Settings → Basic Terrain) must stay off. Ticked, the ground turns into stretched streaks and black/white wedges that flicker as the camera moves; URP's own terrain shader looks fine on the same terrain, so swapping shaders points the wrong way. Seen 2026-10-25 in `gameScene`: on in the live scene, off on disk.
 - **Height bands are in world metres.** `_MinHeight`/`_MaxHeight` must track the generated range; regenerating with taller mountains or moving the terrain shifts every band.
 - **Shared shader:** a new `StylizedTerrain` property must default to a no-op, or `StylizedTerrain_Mars.mat` on the main-world chunk changes look silently.

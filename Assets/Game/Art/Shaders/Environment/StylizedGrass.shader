@@ -60,8 +60,17 @@ Shader "SpaceGame/StylizedGrass"
         _FlutterFrequency ("Flutter Speed (rad/s)", Range(0, 12)) = 3.5
         _GustBrighten    ("Gust Brighten", Range(0, 1)) = 0.3
 
+        [Header(Sheen)]
+        _SheenStrength   ("Sheen (bent blades show their backs)", Range(0, 1)) = 0.45
+        _SheenLift       ("Back Brightness", Range(0.5, 2)) = 1.3
+        _SheenDesaturate ("Back Paleness", Range(0, 1)) = 0.45
+
+        [Header(Plants)]
+        _ContactShade    ("Contact Shade (beside trees and bushes)", Range(0, 1)) = 0.4
+
         [Header(Interaction)]
         _BendStrength  ("Bender Push", Range(0, 3)) = 1.4
+        _TrampleStrength ("Trampled Trail (how flat it lies)", Range(0, 1.5)) = 1.2
     }
 
     SubShader
@@ -85,6 +94,8 @@ Shader "SpaceGame/StylizedGrass"
             float4 positionOS : POSITION;
             float3 normalOS   : NORMAL;
             float2 uv         : TEXCOORD0;   // x: per-blade seed
+            float3 morphOS    : TEXCOORD1;   // where this vertex sits on the next detail level's tuft
+            float3 morphNormalOS : TEXCOORD2;   // and that tuft's normal there
             uint   instanceID : SV_InstanceID;
         };
         ENDHLSL
@@ -117,11 +128,13 @@ Shader "SpaceGame/StylizedGrass"
 
             Varyings vert(Attributes IN)
             {
-                GrassVertex v = PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.uv.x, IN.instanceID);
+                GrassVertex v = PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.morphOS, IN.morphNormalOS, IN.uv.x, IN.instanceID);
                 Varyings OUT;
                 OUT.positionWS = v.positionWS;
                 OUT.positionCS = TransformWorldToHClip(v.positionWS);
-                OUT.albedo = GrassAlbedo(v.height01, v.patch, v.tint, v.variation, v.bladeSeed, v.gust);
+                float3 toCamera = normalize(_WorldSpaceCameraPos - v.positionWS);
+                OUT.albedo = GrassAlbedo(v.height01, v.patch, v.tint, v.variation, v.bladeSeed, v.gust, v.canopy,
+                                         v.contact, GrassSheen(v, toCamera));
                 OUT.flowerFog = float3(v.accent, v.height01, ComputeFogFactor(OUT.positionCS.z));
 
                 // Mostly the ground normal, wrapped, so the field shades as one soft surface; a
@@ -129,7 +142,6 @@ Shader "SpaceGame/StylizedGrass"
                 // facing the camera is the side that is lit, as a two-sided sheet should be.
                 Light sun = GetMainLight();
                 half3 up = half3(0, 1, 0);
-                float3 toCamera = normalize(_WorldSpaceCameraPos - v.positionWS);
                 half3 blade = normalize(v.bladeNormalWS);
                 blade *= dot(blade, toCamera) >= 0 ? 1.0 : -1.0;
                 half3 normal = normalize(lerp(up, blade, _BladeNormalBlend));
@@ -169,7 +181,7 @@ Shader "SpaceGame/StylizedGrass"
 
             float4 vert(Attributes IN) : SV_POSITION
             {
-                return TransformWorldToHClip(PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.uv.x, IN.instanceID).positionWS);
+                return TransformWorldToHClip(PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.morphOS, IN.morphNormalOS, IN.uv.x, IN.instanceID).positionWS);
             }
 
             half frag() : SV_Target { return 0; }
@@ -191,7 +203,7 @@ Shader "SpaceGame/StylizedGrass"
 
             float4 vert(Attributes IN) : SV_POSITION
             {
-                return TransformWorldToHClip(PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.uv.x, IN.instanceID).positionWS);
+                return TransformWorldToHClip(PlaceGrassVertex(IN.positionOS.xyz, IN.normalOS, IN.morphOS, IN.morphNormalOS, IN.uv.x, IN.instanceID).positionWS);
             }
 
             half4 frag() : SV_Target

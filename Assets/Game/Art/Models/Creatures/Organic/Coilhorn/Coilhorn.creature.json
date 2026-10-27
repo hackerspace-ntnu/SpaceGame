@@ -1,0 +1,127 @@
+{
+ "name": "Coilhorn",
+ "height": 1.429,
+ "length": 4.09,
+ "width": 0.698,
+ "clips": {
+  "AlertTurnL": {
+   "take": "Coilhorn_AlertTurnL",
+   "frames": 65,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Coilhorn_Attack",
+   "frames": 34,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Coilhorn_Eat",
+   "frames": 96,
+   "loop": true
+  },
+  "Hurt": {
+   "take": "Coilhorn_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "Coilhorn_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtLeft": {
+   "take": "Coilhorn_HurtLeft",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Coilhorn_Idle",
+   "frames": 91,
+   "loop": true
+  },
+  "IdleShake": {
+   "take": "Coilhorn_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "IdleTailWag": {
+   "take": "Coilhorn_IdleTailWag",
+   "frames": 31,
+   "loop": false
+  },
+  "Roar": {
+   "take": "Coilhorn_Roar",
+   "frames": 66,
+   "loop": false
+  },
+  "Run": {
+   "take": "Coilhorn_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Coilhorn_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "Coilhorn_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "Coilhorn_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "Coilhorn_WalkAlert",
+   "frames": 25,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Walk": 0.0
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Coilhorn_EyeL",
+   "centre": [
+    0.1615,
+    -1.7022,
+    1.0066
+   ],
+   "gaze": [
+    0.8916,
+    -0.4405,
+    -0.1049
+   ],
+   "radius": 0.042
+  },
+  {
+   "object": "Mesh_Coilhorn_EyeR",
+   "centre": [
+    -0.0529,
+    -1.7001,
+    1.0088
+   ],
+   "gaze": [
+    -0.8916,
+    -0.4405,
+    -0.1049
+   ],
+   "radius": 0.042
+  }
+ ],
+ "eye_style": {
+  "sclera": "#b98a45",
+  "iris": "#d9c868",
+  "pupil_color": "#1e1612",
+  "pupil": "round",
+  "pupil_size": 0.35,
+  "iris_size": 0.75
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Coilhorn/coilhorn.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/coilhorn/coilhorn.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/coilhorn"
+}

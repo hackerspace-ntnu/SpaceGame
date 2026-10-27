@@ -44,6 +44,7 @@ namespace SpaceGame.World.Environment
         private static readonly int Lod1SizeId = Shader.PropertyToID("_Lod1Size");
         private static readonly int Lod2SizeId = Shader.PropertyToID("_Lod2Size");
         private static readonly int ShrinkBandId = Shader.PropertyToID("_ShrinkBand");
+        private static readonly int FadeBandId = Shader.PropertyToID("_FadeBand");
         private static readonly int ShadowLengthId = Shader.PropertyToID("_ShadowLength");
         private static readonly int RockVisibleId = Shader.PropertyToID("_RockVisible");
         private static readonly int SegmentOffsetId = Shader.PropertyToID("_SegmentOffset");
@@ -145,6 +146,7 @@ namespace SpaceGame.World.Environment
             commands.SetComputeFloatParam(shader, Lod1SizeId, sizeClass.Lod1ScreenSize);
             commands.SetComputeFloatParam(shader, Lod2SizeId, sizeClass.Lod2ScreenSize);
             commands.SetComputeFloatParam(shader, ShrinkBandId, ShrinkBand);
+            commands.SetComputeFloatParam(shader, FadeBandId, sizeClass.FadeBand);
             commands.SetComputeFloatParam(shader, ShadowLengthId, sizeClass.CastShadows ? shadowLength : 0f);
             chunks.CullPools(commands, shader, kernels.Cull);
 

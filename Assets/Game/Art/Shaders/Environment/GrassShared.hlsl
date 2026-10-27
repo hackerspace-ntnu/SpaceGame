@@ -10,9 +10,38 @@ struct GrassVisible
 {
     float4 rootHeight;   // xyz root in world space, w tuft height in metres
     float4 turnSway;     // x cos(yaw), y sin(yaw), zw tip sway per metre of blade (world XZ)
-    float4 look;         // x tint, y patch mask, z variation, w flower hue (0 = no flower)
+    float4 look;         // x tint, y patch mask | ground contact (GrassPackHalves), z variation, w flower hue (0 = no flower)
     float4 motion;       // x gust 0..1, y flatten 0..1, z standing 1 .. sunk 0, w width scale (>= 1 when thinned)
 };
+
+// Two 0..1 values in one float, as two halves (low, high), so a value can ride along without
+// growing GrassInstance or GrassVisible. GrassInstance.cs packs the same way on the CPU.
+float GrassPackHalves(float low, float high)
+{
+    return asfloat(f32tof16(low) | (f32tof16(high) << 16));
+}
+
+float2 GrassUnpackHalves(float packed)
+{
+    uint bits = asuint(packed);
+    return float2(f16tof32(bits), f16tof32(bits >> 16));
+}
+
+// The range a tuft's detail level is chosen by: its distance, jittered ±10 % by its tint so the
+// switch is a scatter, not a ring. GrassCull.compute picks the level by it and the grass shader
+// morphs toward the next level by it; the two must agree, or a tuft is swapped mid-morph.
+float GrassLodRange(float3 root, float3 eye, float tint)
+{
+    return length(root - eye) * (0.9 + 0.2 * frac(tint * 7.13));
+}
+
+// The (cos, sin) turn that faces a distant tuft's spikes, which lie in their local XY plane
+// facing +Z, toward the eye (the yaw rotation maps local Z to (-sin, cos) in world XZ).
+float2 GrassFaceEye(float3 root, float3 eye)
+{
+    float2 toEye = normalize(eye.xz - root.xz + float2(1e-4, 0));
+    return float2(toEye.y, -toEye.x);
+}
 
 float GrassHash(float2 p)
 {

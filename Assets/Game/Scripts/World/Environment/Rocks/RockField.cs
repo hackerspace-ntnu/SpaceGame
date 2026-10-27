@@ -31,6 +31,7 @@ namespace SpaceGame.World.Environment
         private static readonly int FrustumPlanesId = Shader.PropertyToID("_FrustumPlanes");
         private static readonly int ScreenScaleId = Shader.PropertyToID("_ScreenScale");
         private static readonly int ShadowDirectionId = Shader.PropertyToID("_ShadowDirection");
+        private static readonly int ArrivalSecondsId = Shader.PropertyToID("_ArrivalSeconds");
         private static readonly List<RockField> Enabled = new List<RockField>();
 
         // Shadows of rocks just off screen can fall on screen; the cull keeps a rock whose shadow,
@@ -67,6 +68,11 @@ namespace SpaceGame.World.Environment
 
         [Tooltip("The light whose shadows the rocks cast. Empty uses the scene's sun.")]
         [SerializeField] private Light sun;
+
+        [Tooltip("Rocks of a chunk that finishes scattering while in view grow out of the ground " +
+                 "over this long, instead of popping in together (after loading, a teleport or a " +
+                 "brush stroke).")]
+        [SerializeField, Min(0.01f)] private float arrivalSeconds = 0.6f;
 
         [Header("Colliders (play only)")]
         [Tooltip("Rocks of colliding size classes this close to a player get a collider.")]
@@ -296,6 +302,7 @@ namespace SpaceGame.World.Environment
         private float SetCullGlobals(Camera cam, Vector3 eye)
         {
             commands.SetComputeVectorParam(cullShader, CameraPositionId, eye);
+            commands.SetComputeFloatParam(cullShader, ArrivalSecondsId, arrivalSeconds);
             // A rock's height on screen as a share of the screen, per metre of size per metre of
             // distance — the measure LODGroup thresholds use, with the project's LOD bias.
             float screenScale = 0.5f / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * QualitySettings.lodBias;

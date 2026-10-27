@@ -1,0 +1,274 @@
+{
+ "name": "SailCrest",
+ "height": 6.0,
+ "length": 5.56,
+ "width": 1.94,
+ "clips": {
+  "Alert": {
+   "take": "SailCrest_Alert",
+   "frames": 72,
+   "loop": false
+  },
+  "AngryIdle": {
+   "take": "SailCrest_AngryIdle",
+   "frames": 121,
+   "loop": false
+  },
+  "Attack": {
+   "take": "SailCrest_Attack",
+   "frames": 121,
+   "loop": false
+  },
+  "AttackHigh": {
+   "take": "SailCrest_AttackHigh",
+   "frames": 92,
+   "loop": false
+  },
+  "AttackRun": {
+   "take": "SailCrest_AttackRun",
+   "frames": 57,
+   "loop": false
+  },
+  "Death": {
+   "take": "SailCrest_Death",
+   "frames": 42,
+   "loop": false
+  },
+  "DeathLying": {
+   "take": "SailCrest_DeathLying",
+   "frames": 24,
+   "loop": false
+  },
+  "Eat": {
+   "take": "SailCrest_Eat",
+   "frames": 222,
+   "loop": true
+  },
+  "GetUp": {
+   "take": "SailCrest_GetUp",
+   "frames": 121,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "SailCrest_Hurt",
+   "frames": 87,
+   "loop": false
+  },
+  "HurtWalk": {
+   "take": "SailCrest_HurtWalk",
+   "frames": 102,
+   "loop": false
+  },
+  "Idle": {
+   "take": "SailCrest_Idle",
+   "frames": 201,
+   "loop": true
+  },
+  "Idle2": {
+   "take": "SailCrest_Idle2",
+   "frames": 201,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "SailCrest_LieDown",
+   "frames": 92,
+   "loop": false
+  },
+  "Rest": {
+   "take": "SailCrest_Rest",
+   "frames": 126,
+   "loop": true
+  },
+  "RestBreathe": {
+   "take": "SailCrest_RestBreathe",
+   "frames": 126,
+   "loop": false
+  },
+  "Run": {
+   "take": "SailCrest_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Sneak": {
+   "take": "SailCrest_Sneak",
+   "frames": 162,
+   "loop": true
+  },
+  "Stand": {
+   "take": "SailCrest_Stand",
+   "frames": 101,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "SailCrest_StartWalk",
+   "frames": 42,
+   "loop": false
+  },
+  "Trot": {
+   "take": "SailCrest_Trot",
+   "frames": 22,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "SailCrest_TurnL",
+   "frames": 82,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "SailCrest_TurnR",
+   "frames": 82,
+   "loop": true
+  },
+  "Walk": {
+   "take": "SailCrest_Walk",
+   "frames": 52,
+   "loop": true
+  },
+  "WalkL": {
+   "take": "SailCrest_WalkL",
+   "frames": 52,
+   "loop": true
+  },
+  "WalkR": {
+   "take": "SailCrest_WalkR",
+   "frames": 52,
+   "loop": true
+  },
+  "WalkSlow": {
+   "take": "SailCrest_WalkSlow",
+   "frames": 82,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 3.367,
+  "Sneak": 0.204,
+  "Trot": 0.051,
+  "Walk": 0.703
+ },
+ "eyes": [
+  {
+   "object": "Mesh_SailCrest_EyeL",
+   "centre": [
+    0.3238,
+    -2.015,
+    2.4318
+   ],
+   "gaze": [
+    0.7341,
+    -0.6386,
+    0.2307
+   ],
+   "radius": 0.064
+  },
+  {
+   "object": "Mesh_SailCrest_EyeR",
+   "centre": [
+    -0.3224,
+    -2.0156,
+    2.4288
+   ],
+   "gaze": [
+    -0.7372,
+    -0.6063,
+    0.2982
+   ],
+   "radius": 0.064
+  },
+  {
+   "object": "Mesh_SailCrest_EyeL2",
+   "centre": [
+    0.2734,
+    -2.1915,
+    2.5508
+   ],
+   "gaze": [
+    0.6355,
+    -0.7703,
+    -0.052
+   ],
+   "radius": 0.028
+  },
+  {
+   "object": "Mesh_SailCrest_EyeR2",
+   "centre": [
+    -0.2719,
+    -2.1897,
+    2.551
+   ],
+   "gaze": [
+    -0.6179,
+    -0.7843,
+    -0.0551
+   ],
+   "radius": 0.028
+  },
+  {
+   "object": "Mesh_SailCrest_EyeL3",
+   "centre": [
+    0.2354,
+    -2.243,
+    2.4767
+   ],
+   "gaze": [
+    0.6373,
+    -0.7313,
+    0.2429
+   ],
+   "radius": 0.026
+  },
+  {
+   "object": "Mesh_SailCrest_EyeR3",
+   "centre": [
+    -0.2335,
+    -2.2408,
+    2.4753
+   ],
+   "gaze": [
+    -0.6076,
+    -0.7456,
+    0.2735
+   ],
+   "radius": 0.026
+  },
+  {
+   "object": "Mesh_SailCrest_EyeL4",
+   "centre": [
+    0.2712,
+    -2.1518,
+    2.6236
+   ],
+   "gaze": [
+    0.9444,
+    -0.0946,
+    -0.3148
+   ],
+   "radius": 0.026
+  },
+  {
+   "object": "Mesh_SailCrest_EyeR4",
+   "centre": [
+    -0.2708,
+    -2.1512,
+    2.6234
+   ],
+   "gaze": [
+    -0.9461,
+    -0.1474,
+    -0.2884
+   ],
+   "radius": 0.026
+  }
+ ],
+ "eye_style": {
+  "sclera": "#3a2414",
+  "iris": "#140c08",
+  "pupil_color": "#050303",
+  "pupil": "round",
+  "pupil_size": 0.6,
+  "iris_size": 0.9
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/SailCrest/sail_crest.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/sail_crest/sail_crest.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/sailcrest"
+}

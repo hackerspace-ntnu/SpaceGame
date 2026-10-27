@@ -24,8 +24,10 @@ symptoms:
   - "a rock pops out of view instead of fading"
   - "even a faint brush stroke fills the area with rocks"
   - "rocks vanish at the edge of the screen and their shadows go with them"
+  - "rocks pop in all at once after loading, a teleport or a brush stroke"
+  - "rocks load in too abruptly at the edge of the draw distance"
 reads_with: [Grass, Foliage, LevelOfDetail]
-updated: 2026-10-25
+updated: 2026-10-26
 ---
 
 # Rocks
@@ -44,7 +46,7 @@ layer never touches the splat map, so painting rocks never changes the ground te
   strength** (`paint / fullDensityPaint`), so a 5 % brush sprinkles 5 % of the rocks; an earlier
   0.2–0.4 ramp made every stroke all-or-nothing.
 - **Size class** = variants `{mesh, material, weight}`, width range in metres, stretch, sink, spacing,
-  chance, slope align, tilt, draw distance, LOD/cull **screen sizes**, chunk size, shadows, collides.
+  chance, slope align, tilt, draw distance + `fadeBand`, LOD/cull **screen sizes**, chunk size, shadows, collides.
   Each class is its own stream (pebbles reach 70 m, massive rocks 900 m).
 - **Shipped** (4 profiles × Small / Big / Massive): Red Desert, Yellow Desert, Grey Stone, Mossy.
 
@@ -66,12 +68,12 @@ layer never touches the splat map, so painting rocks never changes the ground te
 
 | Type | Role |
 | --- | --- |
-| [RockField](Assets/Game/Scripts/World/Environment/Rocks/RockField.cs) | `[ExecuteAlways]`. Biomes, `cullShader`, seed, water cut-off, sun, collider radius/layer/interval. Hooks `beginCameraRendering`; in play, `Update` streams around players and syncs colliders. |
+| [RockField](Assets/Game/Scripts/World/Environment/Rocks/RockField.cs) | `[ExecuteAlways]`. Biomes, `cullShader`, seed, water cut-off, sun, `arrivalSeconds` (0.6), collider radius/layer/interval. Hooks `beginCameraRendering`; in play, `Update` streams around players and syncs colliders. |
 | [RockClassStream](Assets/Game/Scripts/World/Environment/Rocks/RockClassStream.cs) | One size class: a one-level `ChunkScatterStream<RockInstance>`, the visible buffer split into **segments** (variant × LOD), cull dispatches, one `RenderMeshIndirect` per variant per LOD the mesh has. |
 | [RockScatter](Assets/Game/Scripts/World/Environment/Rocks/RockScatter.cs) | Worker-thread jittered grid. Keep = chance × paint × patch noise; picks variant, width, stretch, tilt, sink. Rotation maths in plain C#. |
 | [RockInstance](Assets/Game/Scripts/World/Environment/Rocks/RockInstance.cs) | 64-byte stored rock (pivot+scale, quaternion, stretch+variant/tint, bounding sphere); contract with **RockCull.compute**. |
 | [RockColliders](Assets/Game/Scripts/World/Environment/Rocks/RockColliders.cs) | Pool of convex `MeshCollider`s moved onto colliding rocks within `colliderRadius` of any player. |
-| [RockCull.compute](Assets/Game/Art/Shaders/Environment/RockCull.compute) | Per rock per camera: draw distance, screen size vs cull size, frustum **capsule** (rock + its shadow), LOD by screen size (±10 % jitter), shrink near cut-offs, append to segment. |
+| [RockCull.compute](Assets/Game/Art/Shaders/Environment/RockCull.compute) | Per rock per camera: draw distance, screen size vs cull size, frustum **capsule** (rock + its shadow), LOD by screen size (±10 % jitter), **eased** shrink into the ground near cut-offs (last `fadeBand` 25 % of draw distance; screen size) and for `arrivalSeconds` after its chunk lands, append to segment. |
 | [StylizedRock.shader](Assets/Game/Art/Shaders/Environment/StylizedRock.shader) | ForwardLit (wrap sun, SH, one hard shadow tap, fog), ShadowCaster, DepthOnly, DepthNormals. Reads `_RockVisible[_SegmentOffset + SV_InstanceID]`. |
 | [RockPaintSetup](Assets/Game/Editor/Environment/RockPaintSetup.cs) | *Tools/World/Rocks/Add Rock Paint To Selected Terrains*: detail map if none (8 m cells, 128–2048), adds every biome's prototype, Detail Distance → 0. |
 | Shared with [Grass.md](Grass.md) | `GroundPaint`, `PaintedGround`, `PaintedGroundPatch`, `ChunkScatterStream<T>`, `ChunkInstancePool<T>`, `ScatterCellRandom`, `ScatterGrid` in `Scatter/`. |
@@ -115,6 +117,10 @@ N/A — rocks hold no state. The paint lives in the `TerrainData` asset.
 - Three contracts move together: `RockInstance.cs` ↔ RockCull's `RockInstance`; `RockVisible` in
   `RockShared.hlsl` ↔ `VisibleStride` in RockClassStream; `LOD_COUNT` ↔ `RockClassStream.LodCount`.
 - **One RockField per world**, like GrassField; two double every rock.
+- **Rocks fade by scale, eased (smoothstep).** Linear scale showed most of a rock's area at the very
+  end — a pop. A chunk landing in view grows in over `arrivalSeconds` from `ChunkInstancePool`'s
+  `_SlotFilled` / `_ScatterClock`: after a forced rebuild the largest one-frame jump fell from 1345 to
+  649 px (960×540). Grass must never use `_SlotFilled`: a level swap would regrow existing tufts.
 - Seen in editor renders on Metal ([RockGallery](Assets/Game/Scenes/Tests/RockGallery.unity), four
   zones, one per look). D3D11/Vulkan only via `CompileVariant`. Colliders proven in a preview scene's
   physics (20 placed within 40 m, raycasts hit, all released on leaving). **No Play-mode or client run.**

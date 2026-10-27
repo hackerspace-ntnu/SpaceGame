@@ -146,6 +146,18 @@ one, and beyond that the painted ground itself carries the grass colour.
 **Worth knowing:** the grass recognises its ground texture by the exact asset, so painting with a
 copy of the meadow texture grows nothing; and two grass objects in one world double the grass.
 
+### Grass that reacts *(GrassInteraction)*
+
+The grass and bushes respond to what is in them. Walking through a meadow parts it and leaves a
+trail of flattened grass, laid over the way you walked, that slowly stands back up; bushes lean
+aside and rustle as you push through. Trees and bushes painted onto the terrain stand in the
+grass instead of on it: nothing grows through their trunks, and the grass around their base is
+a little taller and shaded. A gust shows the paler backs of the blades, so wind rolls across a
+field as a silvery wave.
+
+**Worth knowing:** only bodies carrying a grass bender leave trails — so far just the player — and
+trails are a picture each machine draws for itself, never saved or sent over the network.
+
 ### Rocks *(Rocks)*
 
 Rocks are painted on like grass, but with the terrain's detail brush, so the ground texture stays
@@ -775,6 +787,18 @@ After the crash the crew share one short chain of objectives: try the basic cont
 Every 3D asset starts as a Blender file in a source library Unity deliberately cannot see, sitting beside the script that generated it and a note recording how it was built. Colours never come from the model: they are linked from one shared palette of 54 materials that grows only when nothing existing serves, and the export makes them local on the way out. From there an export writes the FBX, Unity imports it, and a generator script assembles the prefab, its clips and its animation controller — the finished prefab is never wired by hand.
 
 **Worth knowing:** Never re-run a generator over a Blender file that already exists — the file, not the script, is the truth, and several of them (the lander interior, the nomad, the six-legged vrescal) carry hand edits that exist nowhere else and would be gone forever.
+
+### Creatures from concept art *(WildCreatures)*
+
+A creature drawn as concept art reaches the game in two halves. Outside the project, a quick AI-generated 3D model of the drawing is cleaned up, a real animal's skeleton and animations (a wolf's, a boar's, a duck's, a scorpion's — whichever moves most like the drawing) are laid into it, its coat is painted to match the picture and it is given real eyeballs. Inside the project, one menu command turns each one into a wild animal: it copies the Esko's tried behaviour — wander, notice you, run or fight back when hurt, go limp when it dies — without the saddle, plays the creature's own walk, run, graze, attack and death on the Esko's animation setup, moves it exactly as fast as its feet step so they do not slide, and wires its eyes to blink.
+
+**Worth knowing:** the command never rebuilds a creature that already has a prefab — delete it to rebuild — and every creature it makes behaves like a peaceful Esko until someone edits its prefab by hand.
+
+### Reviewing creature animations *(CreatureAnimationReview)*
+
+A window and its own scene for judging every creature clip by eye. It plays one creature's clips one after another, or one clip name (every Walk, every Death) on the whole cast side by side. Each creature stands on a strip of grid floor that scrolls at the speed the game moves it, so feet that slide are easy to see. One key marks each clip good, needing work or broken, with a note. The verdicts are kept in a file in the project and can be copied out as a list for whoever fixes the clips. It also flags clips that do not move at all and frames where the pose jumps.
+
+**Worth knowing:** it runs without pressing Play, because Play in a scene outside the build is sent to the main menu. Those flags are hints to look closer, not verdicts: attacks and falls move fast on purpose.
 
 ### The eyes on a character's face *(StylizedEyes)*
 

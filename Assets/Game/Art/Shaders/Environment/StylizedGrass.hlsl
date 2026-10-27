@@ -18,14 +18,33 @@
 //              its own seed (UV0.x of the tuft mesh) for a brightness jitter and a warm cast.
 //   Wind     - posed per tuft by the compute pass; where the waves peak the tips lean further
 //              AND lighten, so the flow reads from afar.
+//   Sheen    - a blade bent away from the eye shows its paler, duller back, so a gust rolls
+//              across a field as a silvery wave; trampled grass lying flat shows it too.
+//   Contact  - beside a painted tree or bush (GroundContacts) the grass is shaded toward its
+//              roots, so the plant stands in the meadow instead of on it.
 //   Leaves   - each blade is mostly lit as the ground, with _BladeNormalBlend of its own facing
 //              mixed in, so overlapping blades read as soft scales rather than one flat sheet.
+//   Morph    - toward each detail switch, a tuft eases into the next level's shape (the
+//              tuft mesh's UV1/UV2 carry that shape's positions and normals), so the switch
+//              itself changes nothing on screen.
+//   Canopy   - from afar only the tops of the grass show, so a far tuft is coloured as its tips
+//              all the way down: no dark root to outline it against the field around it.
 //   Sinking  - toward the draw distance the tufts sink into the ground, so the far field is
 //              just the terrain colour they were already matching.
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 #include "GrassShared.hlsl"
 
 StructuredBuffer<GrassVisible> _GrassVisible;
+
+// Set per detail-level draw by GrassBiomeStream: x the jittered range (GrassLodRange) at which
+// the tuft starts morphing into the next level's shape, y one over the length of that morph
+// (0 = this level never morphs), z 1 when the next level is the eye-facing distant spikes.
+float4 _LodMorph;
+
+// Set per draw by GrassBiomeStream: x the distance a tuft starts taking its tip colour all the
+// way down, y one over the length of that change.
+float4 _GrassCanopy;
 
 CBUFFER_START(UnityPerMaterial)
     half4  _RootColor;
@@ -63,7 +82,21 @@ CBUFFER_START(UnityPerMaterial)
     float  _FlutterFrequency;
     half   _GustBrighten;
     float  _BendStrength;
+    float  _TrampleStrength;
+
+    half   _SheenStrength;
+    half   _SheenLift;
+    half   _SheenDesaturate;
+    half   _ContactShade;
 CBUFFER_END
+
+// A gust shows the sheen from this push (GrassVisible.motion.x) and in full from SHEEN_FULL_PUSH.
+#define SHEEN_START_PUSH 0.35
+#define SHEEN_FULL_PUSH  1.0
+// Leaning across the view still shows this much of the back; leaning straight away shows all of it.
+#define SHEEN_ACROSS     0.35
+// Contact shade is strongest at the roots and keeps this fraction of its strength at the tips.
+#define CONTACT_TIP_SHADE 0.4
 
 struct GrassVertex
 {
@@ -76,31 +109,49 @@ struct GrassVertex
     float  accent;      // > 0 on the rare tuft that carries a flower
     float  bladeSeed;   // 0..1 per blade within the tuft, mixed with the tuft's own tint
     float  gust;        // 0..1 how hard the wind is pushing this tuft right now
+    float  canopy;      // 0..1 how far this tuft is coloured as its tips only
+    float  contact;     // 0..1 how close the tuft stands to a plant's base
+    float  flatten;     // 0..1 how far a body or a trail has pressed it down
+    float2 lean;        // the tip's sway per metre of blade, world XZ
 };
 
-GrassVertex PlaceGrassVertex(float3 positionOS, float3 normalOS, float bladeSeed, uint instanceID)
+// Turns a tuft-space vector about Y by (cos, sin).
+float3 TurnTuft(float3 v, float2 turn)
+{
+    return float3(v.x * turn.x - v.z * turn.y, v.y, v.x * turn.y + v.z * turn.x);
+}
+
+GrassVertex PlaceGrassVertex(float3 positionOS, float3 normalOS, float3 morphOS, float3 morphNormalOS,
+                             float bladeSeed, uint instanceID)
 {
     GrassVisible tuft = _GrassVisible[instanceID];
     float3 root = tuft.rootHeight.xyz;
     float height = tuft.rootHeight.w;
-    float c = tuft.turnSway.x;
-    float s = tuft.turnSway.y;
+    float2 turn = tuft.turnSway.xy;
     float2 sway = tuft.turnSway.zw;
 
+    float morph = saturate((GrassLodRange(root, _WorldSpaceCameraPos, tuft.look.x) - _LodMorph.x) * _LodMorph.y);
+    float2 morphTurn = _LodMorph.z > 0.5 ? GrassFaceEye(root, _WorldSpaceCameraPos) : turn;
+    float3 shape = lerp(TurnTuft(positionOS, turn), TurnTuft(morphOS, morphTurn), morph);
+
     GrassVertex v;
-    v.height01  = saturate(positionOS.y);
+    v.height01  = saturate(shape.y);
     v.tint      = tuft.look.x;
-    v.patch     = tuft.look.y;
+    float2 patchContact = GrassUnpackHalves(tuft.look.y);
+    v.patch     = patchContact.x;
+    v.contact   = patchContact.y;
+    v.flatten   = tuft.motion.y;
+    v.lean      = sway;
     v.variation = tuft.look.z;
     v.accent    = tuft.look.w;
     v.gust      = tuft.motion.x;
+    v.canopy    = saturate((length(root - _WorldSpaceCameraPos) - _GrassCanopy.x) * _GrassCanopy.y);
     v.bladeSeed = frac(bladeSeed * 7.13 + v.tint * 3.71);
 
-    float3 local = positionOS * height;
-    local.y *= tuft.motion.z;
-    local.xz *= tuft.motion.w;
-    float3 offset = float3(local.x * c - local.z * s, local.y, local.x * s + local.z * c);
-    v.bladeNormalWS = float3(normalOS.x * c - normalOS.z * s, normalOS.y, normalOS.x * s + normalOS.z * c);
+    float3 offset = shape * height;
+    offset.y *= tuft.motion.z;
+    offset.xz *= tuft.motion.w;
+    v.bladeNormalWS = lerp(TurnTuft(normalOS, turn), TurnTuft(morphNormalOS, morphTurn), morph);
 
     float tipWeight = v.height01 * v.height01 * height;
     offset.xz += sway * tipWeight;
@@ -111,8 +162,22 @@ GrassVertex PlaceGrassVertex(float3 positionOS, float3 normalOS, float bladeSeed
     return v;
 }
 
-half3 GrassAlbedo(float height01, float patch, float tint, float variation, float bladeSeed, float gust)
+// How much of a blade's paler back shows (0..1): where the wind bends it away from the eye, and
+// wherever it has been pressed flat.
+half GrassSheen(GrassVertex v, float3 toCamera)
 {
+    float leanLength = length(v.lean);
+    float2 awayFromEye = -normalize(toCamera.xz + float2(1e-4, 0));
+    float away = leanLength > 1e-4 ? saturate(dot(v.lean / leanLength, awayFromEye)) : 0.0;
+    float windBend = smoothstep(SHEEN_START_PUSH, SHEEN_FULL_PUSH, v.gust) * lerp(SHEEN_ACROSS, 1.0, away);
+    return _SheenStrength * v.height01 * max(windBend, v.flatten);
+}
+
+half3 GrassAlbedo(float height01, float patch, float tint, float variation, float bladeSeed, float gust,
+                  float canopy, float contact, half sheen)
+{
+    // Where along the root-to-tip ramp this vertex takes its colour from.
+    height01 = lerp(height01, 1.0, canopy);
     half3 varied = lerp(_VariationColorA.rgb, _VariationColorB.rgb, smoothstep(0.25, 0.75, variation));
     half3 tip = lerp(_TipColor.rgb, varied, _VariationStrength);
     half3 colour = lerp(_RootColor.rgb, tip, pow(saturate(height01), _GradientPower));
@@ -124,6 +189,10 @@ half3 GrassAlbedo(float height01, float patch, float tint, float variation, floa
     colour *= 1.0 + (frac(bladeSeed * 13.7) - 0.5) * _BladeBrightness;
     colour = lerp(colour, _BladeTintColor.rgb * (0.7 + 0.3 * height01), bladeSeed * bladeSeed * _BladeTintAmount);
     colour *= 1.0 + (gust - 0.4) * _GustBrighten * height01;
+
+    half3 back = lerp(colour, Luminance(colour).xxx, _SheenDesaturate) * _SheenLift;
+    colour = lerp(colour, back, sheen);
+    colour *= 1.0 - _ContactShade * contact * lerp(1.0, CONTACT_TIP_SHADE, height01);
     return colour;
 }
 

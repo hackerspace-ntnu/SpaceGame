@@ -71,6 +71,7 @@ MonoBehaviour:
     slopeAlign: 0.8
     maxTiltDegrees: 15
     drawDistance: 70
+    fadeBand: 0.25
     cullScreenSize: 0.005
     lod1ScreenSize: 0.12
     lod2ScreenSize: 0.04
@@ -96,6 +97,7 @@ MonoBehaviour:
     slopeAlign: 0.5
     maxTiltDegrees: 10
     drawDistance: 300
+    fadeBand: 0.25
     cullScreenSize: 0.004
     lod1ScreenSize: 0.15
     lod2ScreenSize: 0.05
@@ -121,6 +123,7 @@ MonoBehaviour:
     slopeAlign: 0.35
     maxTiltDegrees: 8
     drawDistance: 900
+    fadeBand: 0.25
     cullScreenSize: 0.003
     lod1ScreenSize: 0.25
     lod2ScreenSize: 0.08

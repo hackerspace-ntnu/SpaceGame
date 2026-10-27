@@ -73,6 +73,7 @@ Shader "SpaceGame/StylizedFoliage"
 
         [Header(Interaction)]
         _BendStrength ("Bender Push (m)", Range(0, 2)) = 0
+        _BendRustle   ("Leaf Shake (m) as a body pushes through", Range(0, 0.3)) = 0
 
         [Header(Rendering)]
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull (Off for leaves)", Float) = 0

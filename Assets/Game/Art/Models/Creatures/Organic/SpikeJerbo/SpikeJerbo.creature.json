@@ -1,0 +1,108 @@
+{
+ "name": "SpikeJerbo",
+ "height": 0.616,
+ "length": 0.977,
+ "width": 0.33,
+ "clips": {
+  "Alert": {
+   "take": "SpikeJerbo_Alert",
+   "frames": 91,
+   "loop": false
+  },
+  "Attack": {
+   "take": "SpikeJerbo_Attack",
+   "frames": 37,
+   "loop": false
+  },
+  "Death": {
+   "take": "SpikeJerbo_Death",
+   "frames": 46,
+   "loop": false
+  },
+  "Eat": {
+   "take": "SpikeJerbo_Eat",
+   "frames": 121,
+   "loop": true
+  },
+  "Hop": {
+   "take": "SpikeJerbo_Hop",
+   "frames": 26,
+   "loop": true
+  },
+  "Hurt": {
+   "take": "SpikeJerbo_Hurt",
+   "frames": 25,
+   "loop": false
+  },
+  "Idle": {
+   "take": "SpikeJerbo_Idle",
+   "frames": 221,
+   "loop": true
+  },
+  "Jump": {
+   "take": "SpikeJerbo_Jump",
+   "frames": 37,
+   "loop": false
+  },
+  "Run": {
+   "take": "SpikeJerbo_Run",
+   "frames": 17,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "SpikeJerbo_TurnL",
+   "frames": 26,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "SpikeJerbo_TurnR",
+   "frames": 26,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Hop": 1.15,
+  "Run": 1.55
+ },
+ "eyes": [
+  {
+   "object": "Mesh_SpikeJerbo_EyeL.001",
+   "centre": [
+    0.0385,
+    -0.4316,
+    0.3146
+   ],
+   "gaze": [
+    0.4422,
+    -0.8872,
+    0.1315
+   ],
+   "radius": 0.02
+  },
+  {
+   "object": "Mesh_SpikeJerbo_EyeR.001",
+   "centre": [
+    -0.046,
+    -0.427,
+    0.317
+   ],
+   "gaze": [
+    -0.4937,
+    -0.8691,
+    0.0283
+   ],
+   "radius": 0.02
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e0d99c",
+  "iris": "#c2aa34",
+  "pupil_color": "#060606",
+  "pupil": "round",
+  "pupil_size": 0.42,
+  "iris_size": 0.9
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/SpikeJerbo/spike_jerbo.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/spike_jerbo/spike_jerbo.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/spikejerbo"
+}

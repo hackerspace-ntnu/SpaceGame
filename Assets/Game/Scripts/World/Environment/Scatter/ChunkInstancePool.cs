@@ -10,7 +10,8 @@ namespace SpaceGame.World.Environment
     /// The instances of many chunks in one GPU buffer: a slot per chunk, every slot the same size.
     /// A grass biome keeps one pool per density level, so a distant chunk stored at a sixteenth of
     /// its tufts takes a sixteenth of the memory. The pool keeps a CPU copy of every slot so it
-    /// can double without re-scattering anything, and so rock colliders can be read back.
+    /// can double without re-scattering anything, and so rock colliders can be read back. It also
+    /// records when each slot was filled, so a cull can grow a chunk in that lands in view.
     /// </summary>
     /// <typeparam name="T">The stored instance; its layout is a contract with the cull kernel.</typeparam>
     public sealed class ChunkInstancePool<T> : IDisposable where T : unmanaged
@@ -21,13 +22,17 @@ namespace SpaceGame.World.Environment
         private static readonly int InstancesId = Shader.PropertyToID("_Instances");
         private static readonly int SlotCountsId = Shader.PropertyToID("_SlotCounts");
         private static readonly int SlotCapacityId = Shader.PropertyToID("_SlotCapacity");
+        private static readonly int SlotFilledId = Shader.PropertyToID("_SlotFilled");
+        private static readonly int ScatterClockId = Shader.PropertyToID("_ScatterClock");
 
         private readonly int initialSlots;
         private readonly Stack<int> free = new Stack<int>();
         private T[][] contents = Array.Empty<T[]>();
         private uint[] counts = Array.Empty<uint>();
+        private float[] filled = Array.Empty<float>();
         private GraphicsBuffer instances;
         private GraphicsBuffer countBuffer;
+        private GraphicsBuffer filledBuffer;
         private bool countsChanged;
 
         /// <param name="initialSlots">How many slots the first allocation makes: what one camera needs.</param>
@@ -53,6 +58,7 @@ namespace SpaceGame.World.Environment
             int slot = free.Pop();
             contents[slot] = chunk;
             counts[slot] = (uint)chunk.Length;
+            filled[slot] = Clock;
             instances.SetData(chunk, 0, slot * SlotCapacity, chunk.Length);
             countsChanged = true;
             Resident++;
@@ -78,6 +84,7 @@ namespace SpaceGame.World.Environment
             int newSlots = oldSlots == 0 ? initialSlots : oldSlots * 2;
             Array.Resize(ref contents, newSlots);
             Array.Resize(ref counts, newSlots);
+            Array.Resize(ref filled, newSlots);
 
             instances?.Release();
             instances = new GraphicsBuffer(GraphicsBuffer.Target.Structured, newSlots * SlotCapacity, UnsafeUtility.SizeOf<T>());
@@ -87,12 +94,18 @@ namespace SpaceGame.World.Environment
 
             countBuffer?.Release();
             countBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, newSlots, sizeof(uint));
+            filledBuffer?.Release();
+            filledBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, newSlots, sizeof(float));
             for (int slot = newSlots - 1; slot >= oldSlots; slot--)
                 free.Push(slot);
             countsChanged = true;
         }
 
-        /// <summary>Records one Cull dispatch over every slot; the shared cull settings are set by the caller.</summary>
+        /// <summary>
+        /// Records one Cull dispatch over every slot; the shared cull settings are set by the
+        /// caller. The kernel may read <c>_SlotFilled</c>, when each slot was filled, against
+        /// <c>_ScatterClock</c>, the time now.
+        /// </summary>
         public void Cull(CommandBuffer commands, ComputeShader shader, int kernel)
         {
             if (Resident == 0)
@@ -100,20 +113,27 @@ namespace SpaceGame.World.Environment
             if (countsChanged)
             {
                 countBuffer.SetData(counts);
+                filledBuffer.SetData(filled);
                 countsChanged = false;
             }
             commands.SetComputeBufferParam(shader, kernel, InstancesId, instances);
             commands.SetComputeBufferParam(shader, kernel, SlotCountsId, countBuffer);
+            commands.SetComputeBufferParam(shader, kernel, SlotFilledId, filledBuffer);
+            commands.SetComputeFloatParam(shader, ScatterClockId, Clock);
             commands.SetComputeIntParam(shader, SlotCapacityId, SlotCapacity);
             int groups = (SlotCapacity + CullGroupSize - 1) / CullGroupSize;
             commands.DispatchCompute(shader, kernel, groups, counts.Length, 1);
         }
 
+        // Wall time, which runs in edit mode too; only differences of it reach the GPU.
+        private static float Clock => Time.realtimeSinceStartup;
+
         public void Dispose()
         {
             instances?.Release();
             countBuffer?.Release();
-            instances = countBuffer = null;
+            filledBuffer?.Release();
+            instances = countBuffer = filledBuffer = null;
         }
     }
 }

@@ -18,7 +18,8 @@
 //
 //   Wind    - the whole plant leans on the wave GrassField's meadow rides (WindPush, same
 //             globals), each limb sways on its own phase, and leaves flutter, harder in gusts.
-//   Benders - bodies part a bush the way they part the grass.
+//   Benders - bodies part a bush the way they part the grass, and its leaves shake as one
+//             pushes through it (harder the faster it moves).
 //   Colour  - inner to outer (and low to high) gradient, a per-plant variation colour so
 //             neighbours differ, a shade per limb so a crown reads as several clumps, per-leaf
 //             jitter and warm tint, accents at some leaf tips (blossom, fruit, an optional
@@ -31,7 +32,13 @@
 float4 _FoliageWind;          // xy direction (world XZ), z strength scale
 float  _FoliageTime;
 float4 _FoliageBenders[8];    // xyz position, w radius
+float4 _FoliageBenderMotion[8]; // xy heading on the ground, z speed m/s
 float  _FoliageBenderCount;
+
+// A body moving through a bush at this speed (m/s) or faster shakes its leaves fully.
+#define RUSTLE_FULL_SPEED 2.0
+// Leaves shake this many times faster than they flutter in the wind: a rustle, not a sway.
+#define RUSTLE_PACE 2.3
 
 CBUFFER_START(UnityPerMaterial)
     half4  _InnerColor;
@@ -69,6 +76,7 @@ CBUFFER_START(UnityPerMaterial)
     float  _FlutterFrequency;
     half   _GustBrighten;
     float  _BendStrength;
+    float  _BendRustle;
 
     float  _BarkTiling;
     half   _BarkStrength;
@@ -106,10 +114,12 @@ struct FoliageVertex
     float  gust;        // 0..1 how hard the wind is pushing here right now
 };
 
-// How far the benders push this point sideways, in units of _BendStrength.
-float2 FoliageBend(float3 positionWS)
+// How far the benders push this point sideways (xy, in units of _BendStrength), and how hard a
+// moving one shakes the leaves here (z, 0..1).
+float3 FoliageBend(float3 positionWS)
 {
     float2 push = 0;
+    float rustle = 0;
     int count = (int)_FoliageBenderCount;
     for (int i = 0; i < count; i++)
     {
@@ -118,8 +128,9 @@ float2 FoliageBend(float3 positionWS)
         float reach = saturate(1.0 - length(delta.xz) / bender.w)
                     * saturate(1.0 - abs(delta.y) / (bender.w * 2.0));
         push += normalize(delta.xz + 1e-4) * reach;
+        rustle = max(rustle, reach * saturate(_FoliageBenderMotion[i].z / RUSTLE_FULL_SPEED));
     }
-    return push;
+    return float3(push, rustle);
 }
 
 FoliageVertex PlaceFoliageVertex(FoliageAttributes IN)
@@ -147,7 +158,8 @@ FoliageVertex PlaceFoliageVertex(FoliageAttributes IN)
                           _WindFrequency, _WindSpeed, rootGust);
     float rise = max(0.0, p.y - root.y);
     float2 lean = windDir * (_WindStrength * strength * (0.15 + push)) * (IN.wind.x * rise);
-    lean += FoliageBend(p) * (_BendStrength * IN.wind.x);
+    float3 bend = FoliageBend(p);
+    lean += bend.xy * (_BendStrength * IN.wind.x);
     // Keep the plant roughly its own height: what leans sideways comes off the top.
     float3 offset = float3(lean.x, -dot(lean, lean) / max(2.0 * rise, 0.5), lean.y);
 
@@ -162,6 +174,8 @@ FoliageVertex PlaceFoliageVertex(FoliageAttributes IN)
     float flutterPhase = _FoliageTime * _FlutterFrequency + v.leafSeed * 6.2831 + dot(p.xz, windDir) * 0.7;
     offset += (v.normalWS * sin(flutterPhase) + windDir3 * (0.5 * cos(flutterPhase * 1.3)))
             * (_FlutterStrength * IN.wind.y * strength * (0.3 + v.gust));
+    // A body pushing through shakes the leaves whatever the wind is doing.
+    offset += v.normalWS * (sin(flutterPhase * RUSTLE_PACE) * _BendRustle * IN.wind.y * bend.z);
 
     v.positionWS = p + offset;
     return v;

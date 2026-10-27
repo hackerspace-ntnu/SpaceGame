@@ -38,6 +38,7 @@ namespace SpaceGame.World.Environment
         private readonly List<Rect> pending = new List<Rect>();
         private readonly List<Terrain> repainted = new List<Terrain>();
         private readonly List<PaintedGroundPatch> captured = new List<PaintedGroundPatch>();
+        private readonly GroundContacts contacts;
 
         private sealed class TerrainEntry
         {
@@ -56,9 +57,13 @@ namespace SpaceGame.World.Environment
         /// grows nothing. A faint brush wash under it then costs no scattering at all — without
         /// it, a 1–30 % wash over hundreds of chunks starves the chunks in front of the camera.
         /// Null treats any paint above 1 % as painted.</param>
-        public PaintedGround(IReadOnlyList<GroundPaint> paints, IReadOnlyList<float> growsAbove = null)
+        /// <param name="contacts">Optional: the plants painted on the terrains, handed to every
+        /// captured patch, and whose edits are reported as changes. Null captures none.</param>
+        public PaintedGround(IReadOnlyList<GroundPaint> paints, IReadOnlyList<float> growsAbove = null,
+                             GroundContacts contacts = null)
         {
             this.paints = paints;
+            this.contacts = contacts;
             this.growsAbove = new float[paints.Count];
             for (int slot = 0; slot < paints.Count; slot++)
                 this.growsAbove[slot] = growsAbove == null ? PaintedWeight : Mathf.Max(PaintedWeight, growsAbove[slot]);
@@ -102,6 +107,7 @@ namespace SpaceGame.World.Environment
             }
             if (anyDetail)
                 WatchDetailPaint();
+            contacts?.Refresh(active, pending);
 
             into.AddRange(pending);
             pending.Clear();
@@ -153,7 +159,8 @@ namespace SpaceGame.World.Environment
             captured.Clear();
             foreach (KeyValuePair<Terrain, TerrainEntry> pair in terrains)
                 if (pair.Value.Area.Overlaps(area) && Grows(pair.Value, slot))
-                    captured.Add(new PaintedGroundPatch(pair.Key, paints[slot], pair.Value.Indices[slot], area, edgeWarp));
+                    captured.Add(new PaintedGroundPatch(pair.Key, paints[slot], pair.Value.Indices[slot], area, edgeWarp,
+                        contacts != null ? contacts.Under(pair.Key, area) : Array.Empty<GroundContact>()));
             return captured.ToArray();
         }
 

@@ -189,9 +189,13 @@ namespace SpaceGame.World.Environment
                         }
                         if (coverage <= 0f)
                             continue;
-                        float inverse = 255f / coverage;
-                        pixels[y * resolution + x] = new Color32(ToByte(r * inverse), ToByte(g * inverse), ToByte(b * inverse),
-                                                                 ToByte(Mathf.Min(1f, coverage) * 255f));
+                        // Premultiplied by coverage: filtering and mips then fade an edge toward
+                        // "no grass" instead of toward the black of the empty texels beyond it,
+                        // which drew a dark ring round every field that widened with distance.
+                        float alpha = Mathf.Min(1f, coverage);
+                        float premultiplied = 255f * alpha / coverage;
+                        pixels[y * resolution + x] = new Color32(ToByte(r * premultiplied), ToByte(g * premultiplied),
+                                                                 ToByte(b * premultiplied), ToByte(alpha * 255f));
                     }
                 }
                 return pixels;
@@ -217,8 +221,10 @@ namespace SpaceGame.World.Environment
             if (entry.Map == null || entry.Map.width != resolution)
             {
                 DestroyMap(entry);
-                // sRGB: the colours are the material's authored ones; mips keep the far field calm.
-                entry.Map = new Texture2D(resolution, resolution, TextureFormat.RGBA32, true, false)
+                // Linear storage of the materials' sRGB colours, premultiplied: StylizedTerrain
+                // divides by coverage and only then converts, which an sRGB texture would do
+                // before it could. Mips keep the far field calm.
+                entry.Map = new Texture2D(resolution, resolution, TextureFormat.RGBA32, true, true)
                 {
                     name = "GrassColorMap_" + terrain.name,
                     wrapMode = TextureWrapMode.Clamp,

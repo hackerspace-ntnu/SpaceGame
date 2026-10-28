@@ -1,5 +1,5 @@
-// The gust out of the weathervane vent: step into it and it lifts you up the column, carries you
-// across to the plateau, and sets you down.
+// The gust out of the weathervane vent: step into it and the wind throws you up the column. Nothing
+// carries you anywhere — you steer yourself off the top and drift down onto the plateau.
 //
 // Runs on EVERY machine, and on each one moves only that machine's own player. The player body is
 // owner-authoritative — a push written anywhere else is overwritten by the owner's next state
@@ -13,63 +13,53 @@ using UnityEngine;
 namespace SpaceGame.Gameplay.Puzzles
 {
     /// <summary>
-    /// An owner-side lift column with a carry at the top.
+    /// An owner-side updraft: a column that drags the rider's climb toward the wind's speed, and a
+    /// wider crown round it that slows any fall to a safe sink.
     ///
-    /// Order 200, the value FlungBody and LeashedBody use: PlayerMovement's FixedUpdate ASSIGNS
-    /// horizontal velocity, so a carry written before it runs is lerped back to walking pace the
-    /// same tick.
+    /// Only <c>linearVelocity.y</c> is ever written. Horizontal speed is PlayerMovement's air control,
+    /// so the rider steers through the whole flight exactly as they would after a jump.
+    ///
+    /// Order 200, the value FlungBody and LeashedBody use, so the lift and the sink cap read the
+    /// velocity PlayerMovement has already written this tick and have the last word on it.
     /// </summary>
     [DefaultExecutionOrder(200)]
     public class WindUpdraft : MonoBehaviour
     {
-        private enum Phase { Idle, Rising, Carrying, Descending }
-
         [Header("Column")]
-        [Tooltip("Horizontal radius of the column that picks a player up, around this transform.")]
+        [Tooltip("Horizontal radius of the column that lifts a player, around this transform.")]
         [SerializeField] private float columnRadius = 3.2f;
 
-        [Tooltip("Height above this transform where the rise ends and the carry begins. " +
-                 "Set it a few metres above the landing so the carry clears the rim.")]
-        [SerializeField] private float liftHeight = 45f;
+        [Tooltip("Height above this transform where the wind has died away. Riders bob a little " +
+                 "below it, where the lift left over balances gravity.")]
+        [SerializeField] private float liftHeight = 62f;
 
-        [Tooltip("Climb speed the column settles a rider at, m/s.")]
-        [SerializeField] private float riseSpeed = 14f;
+        [Tooltip("Speed of the wind up the column, m/s. A rider climbs somewhat slower than this: " +
+                 "gravity takes windSpeed − g/windGrip off it.")]
+        [SerializeField] private float windSpeed = 20f;
 
-        [Tooltip("How quickly the climb speed is reached, m/s². Low enough that stepping in reads " +
-                 "as being caught by the wind rather than launched.")]
-        [SerializeField] private float riseAcceleration = 22f;
+        [Tooltip("How hard the wind drags the rider's climb toward its own speed, per second. The " +
+                 "kick on stepping in is windGrip × windSpeed − g.")]
+        [SerializeField] private float windGrip = 3f;
 
-        [Tooltip("How hard a rider drifting to the edge is drawn back to the axis, per second.")]
-        [SerializeField] private float centering = 1.2f;
+        [Tooltip("Metres below liftHeight over which the wind fades out, so the top of the ride is " +
+                 "a soft bob rather than a ceiling.")]
+        [SerializeField] private float liftFade = 10f;
 
-        [Tooltip("Leaving the column by this multiple of its radius during the rise drops the rider.")]
-        [SerializeField] private float escapeRadiusFactor = 1.6f;
+        [Header("Crown")]
+        [Tooltip("Within this horizontal distance of the vent, the gust spilling off the top slows " +
+                 "any fall. Reaches past the plateau's rim so a rider who steers off the top lands.")]
+        [SerializeField] private float reachRadius = 34f;
 
-        [Header("Carry")]
-        [Tooltip("Where the gust sets riders down.")]
-        [SerializeField] private Transform landing;
-
-        [Tooltip("Horizontal speed of the carry to the landing, m/s.")]
-        [SerializeField] private float carrySpeed = 11f;
-
-        [Tooltip("Within this horizontal distance of the landing the carry turns into a descent.")]
-        [SerializeField] private float landingRadius = 4f;
-
-        [Tooltip("Sink rate while being set down, m/s. Under PlayerMovement's fall-damage threshold.")]
-        [SerializeField] private float descentSpeed = 3.5f;
-
-        [Tooltip("How firmly the carry holds its altitude, per second.")]
-        [SerializeField] private float altitudeHold = 2f;
+        [Tooltip("Fastest fall the crown allows, m/s. Under PlayerMovement's fall-damage threshold.")]
+        [SerializeField] private float sinkSpeed = 3.5f;
 
         [Header("Presentation")]
         [Tooltip("Played while the gust is open, on every machine.")]
         [SerializeField] private ParticleSystem[] gustEffects;
 
         private bool open;
-        private Phase phase;
         private PlayerController rider;
         private Rigidbody body;
-        private PlayerMovement movement;
 
         public bool IsOpen => open;
 
@@ -80,7 +70,6 @@ namespace SpaceGame.Gameplay.Puzzles
         public void SetOpen(bool value, bool instant)
         {
             open = value;
-            if (!open) phase = Phase.Idle;
 
             foreach (ParticleSystem effect in gustEffects)
             {
@@ -97,70 +86,29 @@ namespace SpaceGame.Gameplay.Puzzles
             }
         }
 
-        private void OnDisable() => phase = Phase.Idle;
-
         private void FixedUpdate()
         {
-            if (!open || !ResolveRider()) { phase = Phase.Idle; return; }
+            if (!open || !ResolveRider()) return;
 
             Vector3 p = body.position;
             Vector3 vent = transform.position;
             float height = p.y - vent.y;
-            Vector3 toAxis = Flat(vent - p);
-            Vector3 toLanding = Flat(landing.position - p);
+            float fromAxis = new Vector2(p.x - vent.x, p.z - vent.z).magnitude;
+            if (height < -1f || fromAxis > reachRadius) return;
 
-            phase = Next(phase, toAxis.magnitude, height, toLanding.magnitude);
-            if (phase == Phase.Idle) return;
-
-            // Every speed below is the one the body should MOVE at this step. Gravity is integrated
-            // after FixedUpdate, so it is added back here or every phase sags by a step's worth.
-            float gravityStep = body.useGravity ? -Physics.gravity.y * Time.fixedDeltaTime : 0f;
             Vector3 v = body.linearVelocity;
-
-            switch (phase)
+            if (fromAxis <= columnRadius && height < liftHeight)
             {
-                case Phase.Rising:
-                    v.y = Mathf.MoveTowards(v.y, riseSpeed, riseAcceleration * Time.fixedDeltaTime);
-                    v += toAxis * (centering * Time.fixedDeltaTime);
-                    break;
-
-                case Phase.Carrying:
-                    v.y = Mathf.Clamp((liftHeight - height) * altitudeHold, -riseSpeed, riseSpeed);
-                    Vector3 carry = toLanding.normalized * carrySpeed;
-                    v.x = carry.x;
-                    v.z = carry.z;
-                    break;
-
-                case Phase.Descending:
-                    v.y = -descentSpeed;
-                    v.x = 0f;
-                    v.z = 0f;
-                    break;
+                // A drag toward the wind's speed, not a set speed: gravity still acts, so the climb
+                // settles below the wind, and the rider keeps whatever they carried in.
+                float wind = windSpeed * Mathf.Clamp01((liftHeight - height) / liftFade);
+                v.y += (wind - v.y) * windGrip * Time.fixedDeltaTime;
             }
-
-            v.y += gravityStep;
+            else if (v.y < -sinkSpeed)
+            {
+                v.y = -sinkSpeed;
+            }
             body.linearVelocity = v;
-        }
-
-        private Phase Next(Phase current, float fromAxis, float height, float fromLanding)
-        {
-            switch (current)
-            {
-                case Phase.Idle:
-                    return fromAxis <= columnRadius && height > -1f && height < liftHeight
-                        ? Phase.Rising : Phase.Idle;
-
-                case Phase.Rising:
-                    if (fromAxis > columnRadius * escapeRadiusFactor) return Phase.Idle;
-                    return height >= liftHeight ? Phase.Carrying : Phase.Rising;
-
-                case Phase.Carrying:
-                    return fromLanding <= landingRadius ? Phase.Descending : Phase.Carrying;
-
-                case Phase.Descending:
-                    return movement.IsOnGround ? Phase.Idle : Phase.Descending;
-            }
-            return Phase.Idle;
         }
 
         /// <summary>
@@ -174,30 +122,29 @@ namespace SpaceGame.Gameplay.Puzzles
             {
                 rider = local;
                 body = local != null ? local.GetComponent<Rigidbody>() : null;
-                movement = local != null ? local.GetComponent<PlayerMovement>() : null;
-                phase = Phase.Idle;
             }
-            return body != null && movement != null && !body.isKinematic;
+            return body != null && !body.isKinematic;
         }
-
-        private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
         private void OnDrawGizmosSelected()
         {
             Vector3 vent = transform.position;
             Gizmos.color = new Color(0.6f, 0.9f, 1f, 0.8f);
-            for (int i = 0; i < 24; i++)
+            DrawCircle(vent, columnRadius);
+            DrawCircle(vent + Vector3.up * liftHeight, columnRadius);
+            DrawCircle(vent + Vector3.up * (liftHeight - liftFade), columnRadius);
+            Gizmos.color = new Color(0.6f, 0.9f, 1f, 0.35f);
+            DrawCircle(vent + Vector3.up * liftHeight, reachRadius);
+        }
+
+        private static void DrawCircle(Vector3 centre, float radius)
+        {
+            for (int i = 0; i < 32; i++)
             {
-                float a0 = i * Mathf.PI * 2f / 24f, a1 = (i + 1) * Mathf.PI * 2f / 24f;
-                Vector3 r0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)) * columnRadius;
-                Vector3 r1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1)) * columnRadius;
-                Gizmos.DrawLine(vent + r0, vent + r1);
-                Gizmos.DrawLine(vent + r0 + Vector3.up * liftHeight, vent + r1 + Vector3.up * liftHeight);
+                float a0 = i * Mathf.PI * 2f / 32f, a1 = (i + 1) * Mathf.PI * 2f / 32f;
+                Gizmos.DrawLine(centre + new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)) * radius,
+                                centre + new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1)) * radius);
             }
-            if (landing == null) return;
-            Vector3 top = vent + Vector3.up * liftHeight;
-            Gizmos.DrawLine(top, new Vector3(landing.position.x, top.y, landing.position.z));
-            Gizmos.DrawWireSphere(landing.position, landingRadius);
         }
     }
 }

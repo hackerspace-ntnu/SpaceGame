@@ -323,7 +323,7 @@ A wanted poster can be taken as a bounty hunt: read it and press Y. Every hunt b
 
 ### The weathervane puzzle *(WeathervanePuzzle)*
 
-A ring of four tall weathervanes stands round a grated wind vent at the foot of a sheer mesa. Each has a crank at its base, and a turn swings its own arrow a quarter and drags the next vane round with it, so the players have to work out an order. When every arrow points up the plateau, the vent opens a column of wind that lifts whoever steps in, carries them across to the top and sets them down gently. Once solved it stays open for good.
+A ring of four tall weathervanes stands round a grated wind vent at the foot of a sheer mesa. Each has a crank at its base, and a turn swings its own arrow a quarter and drags the next vane round with it, so the players have to work out an order. When every arrow points up the plateau, the vent opens a billowing column of wind that throws whoever steps in high above the mesa. From there they steer themselves off the top, and the wind spilling out of the crown slows their fall so they can drift down onto the plateau. Once solved it stays open for good.
 
 **Worth knowing:** the ring is always scrambled by turning cranks from the solved position, never by picking random directions, because some arrangements of four coupled vanes cannot be solved at all.
 

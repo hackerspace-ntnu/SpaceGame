@@ -1608,7 +1608,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gun fires at the ground, or at the vehicle, while its holder is mounted | [Combat](systems/Combat.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
 | the gun points backwards out of the player's hands | [FoamGun](systems/FoamGun.md) |
-| the gust drops me halfway up, or carries me past the plateau | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| the gust lifts me but I fall short of the plateau, or take fall damage landing on it | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the gust particles spray out sideways instead of rising | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the hand cog says: Step up to the hand cog | [Workshop](systems/Workshop.md) |

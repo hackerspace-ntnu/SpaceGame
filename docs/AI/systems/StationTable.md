@@ -3,7 +3,7 @@ system: StationTable
 layer: characters
 summary: "Every kind of spot with cue, clips, tool and status, generated from data; clip honesty; measured reach"
 paths:
-  - Assets/Game/Scripts/agents/Residents/Editor/StationTable.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/StationTable.cs
   - Assets/Game/Editor/Animation/ActionReachMeasurer.cs
 symptoms:
   - "StationTableTests: the documented station table is stale"
@@ -26,7 +26,7 @@ Source of truth: the `SpotUse` and `SettlementSpot` assets, `StationAuthoring`, 
 
 | Type | Role |
 | --- | --- |
-| `StationTable` ([StationTable.cs](Assets/Game/Scripts/agents/Residents/Editor/StationTable.cs)) | builds the rows and rewrites the table between the markers |
+| `StationTable` ([StationTable.cs](Assets/Game/Scripts/Agents/Residents/Editor/StationTable.cs)) | builds the rows and rewrites the table between the markers |
 | `ActionReachMeasurer` ([ActionReachMeasurer.cs](Assets/Game/Editor/Animation/ActionReachMeasurer.cs)) | measures each work action, **Tools > SpaceGame > Animation > Measure Action Reach** |
 
 ## Flows

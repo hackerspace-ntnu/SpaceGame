@@ -19,7 +19,7 @@ namespace SpaceGame.EditorTools
     {
         public const string PrefabPath = "Assets/Game/Prefabs/Environment/Structures/Workshop/WorkshopOutpost.prefab";
         public const int ResidentCount = 4;
-        private const string ResidentPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Villager.prefab";
+        private const string ResidentPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Villager.prefab";
         private const string CulturePath = "Assets/Game/ScriptableObjects/Residents/ShellbackCulture.asset";
 
         [MenuItem("Tools/SpaceGame/Workshop/Rebuild Workshop Outpost Prefab")]

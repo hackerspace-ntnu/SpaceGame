@@ -25,7 +25,7 @@ namespace SpaceGame.EditorTools
 {
     public static class RaxyToolLoadouts
     {
-        private const string PrefabFolder = "Assets/Game/Prefabs/agents/Characters/Raxy";
+        private const string PrefabFolder = "Assets/Game/Prefabs/Agents/Characters/Raxy";
         private const string ArchetypeFolder = "Assets/Game/ScriptableObjects/Residents/Archetypes/";
         private const int BagSize = 4;
 

@@ -217,9 +217,9 @@ namespace SpaceGame.EditorTools
 
         // ─────────────────────────── A captive ───────────────────────────
 
-        private const string RaxyPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Job_Farmer.prefab";
-        private const string NomadPath = "Assets/Game/Prefabs/agents/Characters/Nomad.prefab";
-        private const string DuneRatPath = "Assets/Game/Prefabs/agents/creatures/DuneRat.prefab";
+        private const string RaxyPath = "Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Job_Farmer.prefab";
+        private const string NomadPath = "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab";
+        private const string DuneRatPath = "Assets/Game/Prefabs/Agents/creatures/DuneRat.prefab";
 
         /// <summary>Degrees below level the carrier may look and still see the bound feet: straight ahead, and walking with the eyes down.</summary>
         private static readonly float[] LooksAtTheFeet = { 0f, 20f };

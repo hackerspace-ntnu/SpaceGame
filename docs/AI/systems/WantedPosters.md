@@ -112,7 +112,7 @@ content and loads with it. Whether its bounty is claimed is the bounty book's (`
   a missing glyph throws `[Posters] Font 'X' has no glyph`, deliberately.
 - **Outlines come from the renders, not the mesh.** Creases only show where normals break between neighbouring pixels
   (hard edges); smooth-shaded folds draw no line. Material borders and silhouettes carry most of the drawing.
-- **Nomad settlement prefabs allow `WantedPoster`** in [SettlementInteractableTests](Assets/Game/Scripts/agents/Residents/Editor/Tests/SettlementInteractableTests.cs):
+- **Nomad settlement prefabs allow `WantedPoster`** in [SettlementInteractableTests](Assets/Game/Scripts/Agents/Residents/Editor/Tests/SettlementInteractableTests.cs):
   a sheet flat on a wall cannot stand in front of a door. Do not hang one on a door.
 - **Not yet seen in play mode, on a host or a client.** Bake, prefabs, board placement and 7 EditMode tests are verified;
   the right-click → viewer round trip has not been played.

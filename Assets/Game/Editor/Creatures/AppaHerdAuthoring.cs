@@ -31,7 +31,7 @@ namespace SpaceGame.EditorTools
 {
     public static class AppaHerdAuthoring
     {
-        public const string AppaPath = "Assets/Game/Prefabs/agents/creatures/Appa.prefab";
+        public const string AppaPath = "Assets/Game/Prefabs/Agents/creatures/Appa.prefab";
         public const string HerderPath = "Assets/Game/Prefabs/Agents/Caravan/NomadAppa.prefab";
         public const string LivestockPath = "Assets/Game/Prefabs/Agents/Caravan/NomadHerdAppa.prefab";
         public const string RiderPath = "Assets/Game/Prefabs/Agents/Characters/Nomad_StrawHat.prefab";

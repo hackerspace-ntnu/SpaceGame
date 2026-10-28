@@ -9,7 +9,7 @@ paths:
   - Assets/Game/ScriptableObjects/Characters/CharacterLodProfile.asset
   - Assets/Game/Prefabs/Environment/Structures/NomadSettlement
   - Assets/Game/Prefabs/Environment/Decorations
-  - Assets/Game/Prefabs/agents/Characters/Raxy
+  - Assets/Game/Prefabs/Agents/Characters/Raxy
   - Assets/Game/Editor/Workshop/WorkshopLodBuilder.cs
   - Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs
 symptoms:

@@ -5,7 +5,7 @@ summary: "A Pushable cart is scenery a body takes hold of: its pose follows the 
 paths:
   - Assets/Game/Scripts/World/Pushables/
   - Assets/Game/Scripts/Characters/Player/Movement/PlayerPushing.cs
-  - Assets/Game/Scripts/agents/Residents/Body/ResidentPushing.cs
+  - Assets/Game/Scripts/Agents/Residents/Body/ResidentPushing.cs
   - Assets/Game/Scripts/Presentation/Animation/ArmReach.cs
   - Assets/Game/Editor/World/PushableAuthoring.cs
   - Assets/Game/Editor/World/PushablePreview.cs

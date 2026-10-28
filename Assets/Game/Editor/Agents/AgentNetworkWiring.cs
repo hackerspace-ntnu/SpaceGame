@@ -184,7 +184,7 @@ namespace SpaceGame.EditorTools
         /// </summary>
         public static string[] Offenders()
         {
-            return AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Game/Prefabs/agents" })
+            return AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Game/Prefabs/Agents" })
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .Where(p =>
                 {

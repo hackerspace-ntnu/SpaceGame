@@ -15,12 +15,12 @@ namespace SpaceGame.Agents
         [Tooltip("Agent prefabs, as asset paths. Only the editor resolves them; the harness gets the loaded prefabs.")]
         public string[] prefabPaths =
         {
-            "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_poor.prefab",
-            "Assets/Game/Prefabs/agents/Characters/Nomad_Tan.prefab",
-            "Assets/Game/Prefabs/agents/Robots/Clanker.prefab",
-            "Assets/Game/Prefabs/agents/creatures/Vrescal.prefab",
-            "Assets/Game/Prefabs/agents/creatures/RobotHorse.prefab",
-            "Assets/Game/Prefabs/agents/creatures/Appa.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_poor.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Nomad_Tan.prefab",
+            "Assets/Game/Prefabs/Agents/Robots/Clanker.prefab",
+            "Assets/Game/Prefabs/Agents/creatures/Vrescal.prefab",
+            "Assets/Game/Prefabs/Agents/creatures/RobotHorse.prefab",
+            "Assets/Game/Prefabs/Agents/creatures/Appa.prefab",
         };
 
         [Tooltip("Scripted stand-ins for players: targetable Humans bodies circling the arena.")]

@@ -21,11 +21,11 @@ namespace SpaceGame.EditorTools
 {
     public static class RanchStockBuilder
     {
-        private const string EskoPath = "Assets/Game/Prefabs/agents/creatures/Esko.prefab";
-        private const string DroverPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Job_Drover.prefab";
-        public const string TamePath = "Assets/Game/Prefabs/agents/creatures/Esko_Ranch.prefab";
-        public const string WildPath = "Assets/Game/Prefabs/agents/creatures/Esko_Wild.prefab";
-        public const string WranglerPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Wrangler.prefab";
+        private const string EskoPath = "Assets/Game/Prefabs/Agents/creatures/Esko.prefab";
+        private const string DroverPath = "Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Job_Drover.prefab";
+        public const string TamePath = "Assets/Game/Prefabs/Agents/creatures/Esko_Ranch.prefab";
+        public const string WildPath = "Assets/Game/Prefabs/Agents/creatures/Esko_Wild.prefab";
+        public const string WranglerPath = "Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Wrangler.prefab";
         public const string SitePath = "Assets/Game/ScriptableObjects/Ranch/RaxyRanchSite.asset";
         public const string QuestPath = "Assets/Game/ScriptableObjects/Objectives/Ranch/RaxyRanchQuest.asset";
 

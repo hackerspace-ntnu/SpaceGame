@@ -18,7 +18,7 @@ namespace SpaceGame.EditorTools
 {
     public class CharacterActionsPlaybackTests
     {
-        private const string BodyPath = "Assets/Game/Prefabs/agents/Characters/Drifters/Drifter_Human.prefab";
+        private const string BodyPath = "Assets/Game/Prefabs/Agents/Characters/Drifters/Drifter_Human.prefab";
         private const float Step = 0.05f;
 
         private Scene scene;

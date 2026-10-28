@@ -19,8 +19,9 @@ symptoms:
   - "a nomad build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "a build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects"
   - "the menu item a doc names is not in the Tools menu"
+  - "after a pull on Windows, hundreds of files under Scripts/Agents or Prefabs/Agents show as deleted"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-10-19
+updated: 2026-10-28
 ---
 # Editor Tooling
 
@@ -103,7 +104,7 @@ Every custom Unity Editor window, menu command, wiring pass and importer hook in
 | Script | Writes |
 | --- | --- |
 | [ExpeditionRigWiring](Assets/Game/Editor/Backpack/ExpeditionRigWiring.cs) | Backpack rig + 5 holder prefabs; also edits `PlayerCharacter.prefab` |
-| [SculptCharacterBuilder](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) · [StylizedEyeBuilder](Assets/Game/Editor/Agents/StylizedEyeBuilder.cs) | The drifter prefabs (`Prefabs/agents/Characters/Drifters/`, Raxy's in `Raxy/`) and the shared eye materials |
+| [SculptCharacterBuilder](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) · [StylizedEyeBuilder](Assets/Game/Editor/Agents/StylizedEyeBuilder.cs) | The drifter prefabs (`Prefabs/Agents/Characters/Drifters/`, Raxy's in `Raxy/`) and the shared eye materials |
 | [DrifterClothes](Assets/Game/Editor/Agents/DrifterClothes.cs) · [DrifterRigSync](Assets/Game/Editor/Agents/DrifterRigSync.cs) | Garment prefabs in `Drifters/Raxy/Clothes/`; bones, skins and material slots of existing drifter prefabs |
 | [PackShapeLibraryTool](Assets/Game/Editor/Backpack/PackShapeLibraryTool.cs) | `ScriptableObjects/Items/PackShapes.asset` — `Reseed` **preserves** hand-drawn masks |
 | [SandstormNoiseGenerator](Assets/Game/Editor/Weather/SandstormNoiseGenerator.cs) | `SandstormNoise.asset` |
@@ -157,7 +158,6 @@ Regenerate the streamed world: `Tools ▸ World Streaming ▸ Chunk World` → `
 - Materials that are sub-assets of an FBX are regenerated on reimport, so flags written onto them revert; that is why [DoubleSidedMaterials](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) writes standalone copies beside the prefabs.
 - Hardcoded paths everywhere: `WorldChunkerEditor`'s chunk size (500×500), output folders and config path are deliberately not exposed — changing them orphans every existing chunk. `WorldNavMeshBaker` iterates `WorldStreamingConfig.chunks`, never the chunk folder, which holds far more scenes.
 - **Never parent a primitive collider to an imported mesh's own transform.** An FBX child arrives non-uniformly scaled *and* rotated — `Mesh_CanopyDome` on the lander is (233, 409, 59) with 66° about X — and a `BoxCollider` under both is **sheared**, which Unity's physics cannot represent. It fails in the worst possible way: the component is there, `Collider.bounds` reports exactly the box you asked for, and every raycast passes straight through it. Measure the bounds off the renderer and put the collider on the **root** (unrotated, unscaled).
-- `Prefabs/agents/…` (lowercase `a`) is the real PlayerShip path; casing drift in asset paths matters here.
 - Deleted prefabs leave `PrefabInstance` blocks in scene YAML that a component-GUID grep can never find — use `Tools ▸ SpaceGame ▸ Cleanup ▸ Report Missing Prefab Instances`.
 - A stuck "address already in use" UDP port survives [PlayModeTransportTeardown](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs); restarting the Editor is the only known cure.
 

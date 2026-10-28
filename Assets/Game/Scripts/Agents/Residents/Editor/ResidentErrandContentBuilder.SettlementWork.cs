@@ -18,7 +18,7 @@ namespace SpaceGame.Agents.Residents.EditorTools
 {
     public static partial class ResidentErrandContentBuilder
     {
-        private const string CharacterDir = "Assets/Game/Prefabs/agents/Characters/Raxy";
+        private const string CharacterDir = "Assets/Game/Prefabs/Agents/Characters/Raxy";
 
         private readonly struct Fixture
         {

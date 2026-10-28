@@ -83,7 +83,7 @@ Two components a new entity almost always still needs:
 - **`NetworkedHealthComponent`** beside `HealthComponent`, or its health never replicates and it
   shows no damage numbers. Several shipped creature prefabs still carry only `HealthComponent`;
   list the current offenders with
-  `grep -L a2a140c4cd8644f69b66c4a36ec82f21 Assets/Game/Prefabs/agents/creatures/*.prefab`
+  `grep -L a2a140c4cd8644f69b66c4a36ec82f21 Assets/Game/Prefabs/Agents/creatures/*.prefab`
   (that GUID is `NetworkedHealthComponent.cs`).
 - **`NetAuthority`** on anything that simulates itself — an AI, a turret, a vehicle — so remote
   copies stop running their own brain and follow the replicated transform instead. Guard its own

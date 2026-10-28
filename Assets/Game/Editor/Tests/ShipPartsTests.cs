@@ -18,7 +18,7 @@ namespace SpaceGame.Tests
     public class ShipPartsTests
     {
         private const string ShipPrefabPath =
-            "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
+            "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
         private const string ItemDir = "Assets/Game/Resources/Items/ShipParts";
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";

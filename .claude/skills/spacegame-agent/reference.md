@@ -1,14 +1,14 @@
 # SpaceGame agent reference
 
 Companion to `SKILL.md`. Every path is relative to the repo root. All agent code lives in
-`Assets/Game/Scripts/agents/`, namespace `SpaceGame.Agents`, in **Assembly-CSharp** (no asmdef —
+`Assets/Game/Scripts/Agents/`, namespace `SpaceGame.Agents`, in **Assembly-CSharp** (no asmdef —
 a new module needs no assembly wiring).
 
 ---
 
 ## 1. Tick order (AgentController.Update)
 
-`Assets/Game/Scripts/agents/Controller/AgentController.cs`
+`Assets/Game/Scripts/Agents/Controller/AgentController.cs`
 
 ```
 Update()
@@ -148,7 +148,7 @@ decides whether AI keeps running while ridden) + `SteerModule` (Scripted 100). O
 
 ## 4. Motors
 
-`Assets/Game/Scripts/agents/AI/Motors/`
+`Assets/Game/Scripts/Agents/AI/Motors/`
 
 | Motor | For | Extra interfaces |
 |---|---|---|
@@ -264,8 +264,8 @@ agent-specific facts:
 
 | Thing | Path |
 |---|---|
-| Agent code | `Assets/Game/Scripts/agents/` |
+| Agent code | `Assets/Game/Scripts/Agents/` |
 | Legged locomotion policies | `Assets/Game/Scripts/Creatures/<Name>/` (own asmdef) |
 | Legged drivers | `Assets/Game/Scripts/Creatures/Drivers/` (Assembly-CSharp) |
 | Animator controllers | `Assets/Game/Art/Animations/Creatures/` |
-| World NPC groups | `Assets/Game/Scripts/agents/World/NpcWorldSim.cs`, `NpcGroup.cs` |
+| World NPC groups | `Assets/Game/Scripts/Agents/World/NpcWorldSim.cs`, `NpcGroup.cs` |

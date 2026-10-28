@@ -13,7 +13,7 @@ namespace SpaceGame.EditorTools
 {
     public static class AgentGroundConformWiring
     {
-        private const string AgentPrefabRoot = "Assets/Game/Prefabs/agents";
+        private const string AgentPrefabRoot = "Assets/Game/Prefabs/Agents";
 
         /// <summary>
         /// How much of the slope a two-legged body takes on.

@@ -1,78 +1,143 @@
 {
  "name": "Skarn",
- "height": 1.467,
- "length": 2.187,
- "width": 0.495,
+ "height": 1.358,
+ "length": 2.401,
+ "width": 0.498,
  "clips": {
   "Alert": {
    "take": "Skarn_Alert",
-   "frames": 161,
+   "frames": 36,
    "loop": false
+  },
+  "AlertIdle": {
+   "take": "Skarn_AlertIdle",
+   "frames": 76,
+   "loop": true
   },
   "Attack": {
    "take": "Skarn_Attack",
-   "frames": 46,
+   "frames": 30,
    "loop": false
   },
   "Death": {
    "take": "Skarn_Death",
-   "frames": 13,
+   "frames": 50,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "Skarn_DeathR",
+   "frames": 50,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "Skarn_Dodge",
+   "frames": 24,
+   "loop": false
+  },
+  "DodgeR": {
+   "take": "Skarn_DodgeR",
+   "frames": 24,
    "loop": false
   },
   "Drink": {
    "take": "Skarn_Drink",
-   "frames": 26,
-   "loop": false
+   "frames": 76,
+   "loop": true
   },
   "Eat": {
    "take": "Skarn_Eat",
-   "frames": 107,
+   "frames": 181,
    "loop": true
+  },
+  "EatEnd": {
+   "take": "Skarn_EatEnd",
+   "frames": 40,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "Skarn_EatStart",
+   "frames": 40,
+   "loop": false
   },
   "Groom": {
    "take": "Skarn_Groom",
-   "frames": 101,
+   "frames": 105,
    "loop": false
   },
   "Hurt": {
    "take": "Skarn_Hurt",
-   "frames": 28,
+   "frames": 22,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Skarn_HurtR",
+   "frames": 22,
    "loop": false
   },
   "Idle": {
    "take": "Skarn_Idle",
-   "frames": 201,
+   "frames": 226,
    "loop": true
   },
   "Jump": {
    "take": "Skarn_Jump",
-   "frames": 15,
+   "frames": 30,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "Skarn_LieDown",
+   "frames": 60,
+   "loop": false
+  },
+  "Pounce": {
+   "take": "Skarn_Pounce",
+   "frames": 45,
    "loop": false
   },
   "Rest": {
    "take": "Skarn_Rest",
-   "frames": 2,
+   "frames": 151,
    "loop": true
   },
   "Roar": {
    "take": "Skarn_Roar",
-   "frames": 61,
+   "frames": 54,
    "loop": false
   },
   "Run": {
    "take": "Skarn_Run",
-   "frames": 17,
+   "frames": 19,
    "loop": true
   },
   "Sneak": {
    "take": "Skarn_Sneak",
-   "frames": 63,
+   "frames": 61,
    "loop": true
   },
   "Sprint": {
    "take": "Skarn_Sprint",
-   "frames": 14,
+   "frames": 16,
    "loop": true
+  },
+  "Stand": {
+   "take": "Skarn_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "StandUp": {
+   "take": "Skarn_StandUp",
+   "frames": 48,
+   "loop": false
+  },
+  "Stretch": {
+   "take": "Skarn_Stretch",
+   "frames": 105,
+   "loop": false
+  },
+  "Swipe": {
+   "take": "Skarn_Swipe",
+   "frames": 22,
+   "loop": false
   },
   "Trot": {
    "take": "Skarn_Trot",
@@ -81,32 +146,34 @@
   },
   "TurnL": {
    "take": "Skarn_TurnL",
-   "frames": 63,
+   "frames": 31,
    "loop": true
   },
   "TurnR": {
    "take": "Skarn_TurnR",
-   "frames": 63,
+   "frames": 31,
    "loop": true
   },
   "Walk": {
    "take": "Skarn_Walk",
-   "frames": 49,
+   "frames": 37,
    "loop": true
   }
  },
  "stride": {
-  "Sneak": 0.825,
-  "Trot": 0.0,
-  "Walk": 0.164
+  "Run": 4.834,
+  "Sneak": 0.45,
+  "Sprint": 7.002,
+  "Trot": 2.625,
+  "Walk": 1.169
  },
  "eyes": [
   {
    "object": "Mesh_Skarn_EyeL",
    "centre": [
     0.0475,
-    -0.9898,
-    1.2047
+    -0.9918,
+    1.0953
    ],
    "gaze": [
     0.2775,
@@ -119,8 +186,8 @@
    "object": "Mesh_Skarn_EyeR",
    "centre": [
     -0.0377,
-    -0.9927,
-    1.2062
+    -0.9947,
+    1.0968
    ],
    "gaze": [
     -0.2872,
@@ -140,5 +207,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Skarn/skarn.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/skarn/skarn.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/skarn"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/skarn/cleanroom"
 }

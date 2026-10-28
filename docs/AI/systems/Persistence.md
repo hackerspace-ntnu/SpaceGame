@@ -29,8 +29,9 @@ symptoms:
   - "a prefab builder's wiring passes add SaveableEntity, savers and AgentRagdoll to a prefab the design says is never saved"
   - "pressing F5 warns that this is a disposable session and is never saved"
   - "an old save's provocation/resident record is ignored after the creature moved to a new saver"
+  - "the world list freezes for seconds when it opens, longer the more saves there are"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer, SkyTribe, Pushables, Expeditions]
-updated: 2026-10-19
+updated: 2026-10-28
 ---
 
 # Persistence / Save-Load
@@ -161,6 +162,7 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | A prefab written by a BUILD SCRIPT while the editor is in Play mode | `SaveableWiring` refuses in Play mode; a builder that ignores the refusal saves an asset with no `prefabId` and none of the savers its components imply, and reports success. `PlayerShip.prefab` shipped exactly that | Guard the builder on `EditorApplication.isPlaying`, and check `SaveableWiring.TryWirePrefabs()`'s return. Repair: **Tools ▸ Save System ▸ Wire Saveable Prefabs**, stopped |
 | Checking `prefabId` by asking Unity | `entity.PrefabId` is filled by `OnValidate` the instant an asset loads, so it is correct in the editor on a prefab whose FILE is blank — and the file is what a build ships | Read the file: `SaveablePrefabFile.IsStampedCorrectly`. Automated by `PrefabPersistenceTests.EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk` |
 | Playing a scene that is not a `GameWorld` (a test scene, the Ferdinand world) opened directly in the editor | `Save ignored: no world is active` — no `WorldSession`, so nothing saves | Enter via the main menu. A world scene (persistentScene, NoiseTerrain) no longer hits this: Play in it stages a new world `Editor <World>` and hosts it ([Scenes](Scenes.md)) |
+| Declaring a field before `Header` in `SaveDocument` (or giving it a `JsonProperty` `Order`) | Nothing fails — `SaveSerializer.TryReadHeader` still finds a header anywhere at the root, skipping what comes first — but the world list (`SaveSlots.List`, one header per save) and every autosave's `WouldDowngradeFormat` go back to tokenising each ~1 MB file instead of its first few hundred bytes | Keep `header` (`SaveDocument.HeaderKey`) first. The read streams with `JsonTextReader` and stops once the header is through, so a file with an intact header and a **truncated body now lists as readable** (the old whole-file `JObject.Parse` rejected it and fell to the `.bak`'s header); loading it still goes through `Read`, which falls back to the `.bak` or reports `Corrupt` |
 | Saver on a child under a nested `SaveableEntity` | State lands in the child's record | Collection stops at any nested `SaveableEntity` |
 | A saver caching its component in `Awake` | EditMode round-trip tests cannot exercise it | Lazy `GetComponent` property |
 | Restoring 0 HP unguarded | Loot re-dropped, death reaction replayed each load | Check `HealthComponent.IsRestoring`. It is also true on a client applying the server's value, so a reaction that must tell an OLD death (a save) from a fresh one asks `IsLoading` — set only by `HealthSaveable`'s `LoadHealth`; the ragdoll does, so a replicated death still falls |

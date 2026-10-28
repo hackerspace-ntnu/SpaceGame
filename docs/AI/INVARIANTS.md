@@ -205,6 +205,20 @@ sample one: exactly `(1, 0, 1)` is the error material, not your output. Note tha
 `Camera.Render()` after an import is Unity's magenta placeholder for a normal reason, so warm up
 with one throwaway render before believing any capture.
 
+## Every opaque shader draws itself four times, the same way each time
+
+**The rule.** A custom opaque shader needs Forward, ShadowCaster, DepthOnly **and** DepthNormals passes, and all four must run the same
+vertex displacement and the same `clip`. Share one depth vertex function between DepthOnly and DepthNormals, and encode normals with
+`EncodeDepthNormal` (`Assets/Game/Art/Shaders/DepthNormals.hlsl`).
+
+**Why.** SSAO on `PC_Renderer` reads depth-normals, so URP fills the camera depth texture from the DepthNormals prepass, and with depth
+priming on (`Auto`) the forward pass draws only where its depth equals that prepass's depth (`ZTest Equal`).
+
+**How it fails.** No pass: the object is invisible on PC quality, and water foam and fog ignore it. A pass inherited from Lit through
+`FallBack` or a pass that skips the displacement: the object flickers or has holes wherever its vertices move. Nothing logs.
+
+**Where.** [ProjectConfig](systems/ProjectConfig.md) · [NoiseHeightmap](systems/NoiseHeightmap.md) · [StylizedWater](systems/StylizedWater.md) · [FoamGun](systems/FoamGun.md) · [Grass](systems/Grass.md)
+
 ## Path casing is load-bearing
 
 **The rule.** Treat every asset path as case-sensitive and never change a folder's case casually; where casing has already drifted, fix the

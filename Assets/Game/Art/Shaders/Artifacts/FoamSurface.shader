@@ -308,40 +308,47 @@ Shader "SpaceGame/Artifacts/FoamSurface"
             Cull Back
 
             HLSLPROGRAM
-            #pragma vertex DepthVert
+            #pragma vertex FoamDepthVert
             #pragma fragment DepthFrag
             #pragma target 3.5
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "FoamSurface.hlsl"
 
-            // No NORMAL: this pass writes depth and clips, and the cell field it clips against is
-            // a function of world position alone. The shadow pass still reads one, for the bias.
-            struct DepthAttributes
-            {
-                float4 positionOS : POSITION;
-            };
-
-            struct DepthVaryings
-            {
-                float4 positionCS : SV_POSITION;
-                float3 positionWS : TEXCOORD0;
-            };
-
-            DepthVaryings DepthVert(DepthAttributes IN)
-            {
-                DepthVaryings OUT;
-                VertexPositionInputs positions = GetVertexPositionInputs(IN.positionOS.xyz);
-
-                OUT.positionCS = positions.positionCS;
-                OUT.positionWS = positions.positionWS;
-                return OUT;
-            }
-
-            half4 DepthFrag(DepthVaryings IN) : SV_Target
+            half4 DepthFrag(FoamDepthVaryings IN) : SV_Target
             {
                 FoamDissolveClip(FoamCells(IN.positionWS));
                 return 0;
+            }
+            ENDHLSL
+        }
+
+        // The same depth and the same holes again, plus normals: SSAO's prepass, and with depth
+        // priming on the depth the forward pass tests against. Without it foam is invisible.
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex FoamDepthVert
+            #pragma fragment DepthNormalsFrag
+            #pragma target 3.5
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "FoamSurface.hlsl"
+            #include "../DepthNormals.hlsl"
+
+            half4 DepthNormalsFrag(FoamDepthVaryings IN) : SV_Target
+            {
+                FoamDissolveClip(FoamCells(IN.positionWS));
+                // The sphere's own normal, not the welded one: SSAO cannot tell the difference
+                // and the weld is a loop over every live blob.
+                return EncodeDepthNormal(IN.normalWS);
             }
             ENDHLSL
         }

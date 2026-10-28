@@ -251,7 +251,7 @@ Shader "SpaceGame/ClothWind"
             Cull Off
 
             HLSLPROGRAM
-            #pragma vertex depthVert
+            #pragma vertex ClothDepthVert
             #pragma fragment depthFrag
             #pragma target 3.0
             #pragma multi_compile_instancing
@@ -259,33 +259,35 @@ Shader "SpaceGame/ClothWind"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "ClothWind.hlsl"
 
-            struct DepthAttributes
+            half4 depthFrag(ClothDepthVaryings IN) : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        // ------------------------------------------------------------------
+        // Depth + normals prepass (SSAO, and depth priming), same displacement again.
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex ClothDepthVert
+            #pragma fragment depthNormalsFrag
+            #pragma target 3.0
+            #pragma multi_compile_instancing
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "ClothWind.hlsl"
+            #include "../DepthNormals.hlsl"
+
+            half4 depthNormalsFrag(ClothDepthVaryings IN) : SV_Target
             {
-                float4 positionOS : POSITION;
-                float3 normalOS   : NORMAL;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct DepthVaryings
-            {
-                float4 positionCS : SV_POSITION;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            DepthVaryings depthVert(DepthAttributes IN)
-            {
-                DepthVaryings OUT = (DepthVaryings)0;
-                UNITY_SETUP_INSTANCE_ID(IN);
-
-                float3 positionOS = IN.positionOS.xyz;
-                float3 normalOS   = IN.normalOS;
-                ShapeCloth(IN.positionOS.xyz, positionOS, normalOS);
-
-                OUT.positionCS = TransformObjectToHClip(positionOS);
-                return OUT;
+                return EncodeDepthNormal(IN.normalWS);
             }
-
-            half4 depthFrag(DepthVaryings IN) : SV_Target { return 0; }
             ENDHLSL
         }
     }

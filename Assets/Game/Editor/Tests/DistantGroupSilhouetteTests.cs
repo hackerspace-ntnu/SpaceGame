@@ -1,7 +1,7 @@
 // The folded Strider city drawn from afar: in the live spawn's slots and dealt order for every seed and
 // heading, every vehicle with a merged level and far dust, shown while folded with a camera (even inside
-// spawnRadius, until the live city replaces it), nothing over unloaded ground, and gliding -- never
-// stepping -- between the server's writes.
+// spawnRadius, until the live city replaces it) out to its max draw distance, nothing over unloaded ground,
+// and gliding -- never stepping -- between the server's writes.
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -49,13 +49,39 @@ namespace SpaceGame.EditorTools
             }
         }
 
+        private const float MaxDraw = 1500f;
+
         [Test]
         public void ItIsDrawn_WhileFolded_WithACamera_EvenInsideSpawnRadius()
         {
-            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 600f));
-            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: true, cameraDistance: 600f), "the live city is drawn");
-            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 200f), "inside spawnRadius but not yet spawned: still drawn, or only dust stands there until the server ticks");
-            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: float.NaN), "no camera");
+            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 600f, MaxDraw));
+            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: true, cameraDistance: 600f, MaxDraw), "the live city is drawn");
+            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: 200f, MaxDraw), "inside spawnRadius but not yet spawned: still drawn, or only dust stands there until the server ticks");
+            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: float.NaN, MaxDraw), "no camera");
+        }
+
+        [Test]
+        public void ItIsNotDrawn_BeyondTheMaxDrawDistance()
+        {
+            Assert.IsTrue(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: MaxDraw, MaxDraw), "at the edge: still drawn");
+            Assert.IsFalse(DistantGroupSilhouette.ShouldShow(spawned: false, cameraDistance: MaxDraw + 1f, MaxDraw), "past it: not drawn out to the far clip");
+        }
+
+        [Test]
+        public void TheDistance_IsAcrossTheGround_AndNaNWithNoCamera()
+        {
+            var go = new GameObject("TestCamera", typeof(Camera));
+            try
+            {
+                go.transform.position = new Vector3(0f, 900f, 0f);
+                Assert.AreEqual(5f, DistantGroupSilhouette.GroundDistance(go.GetComponent<Camera>(), new Vector3(3f, 0f, 4f)), 1e-4f,
+                                "height above the city does not count");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+            Assert.IsNaN(DistantGroupSilhouette.GroundDistance(null, Vector3.zero));
         }
 
         [Test]

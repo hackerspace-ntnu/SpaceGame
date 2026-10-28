@@ -99,6 +99,17 @@ namespace SpaceGame.Gameplay
                  "has no breathing or dedicated alarm event, so the UI error tone stands in.")]
         [SerializeField] private SfxId alarmTone = SfxId.UiError;
 
+        [Header("Replication")]
+        [Tooltip("Smallest change in the suit's reserve, in seconds of air, worth sending to clients. Reaching or " +
+                 "leaving empty or full is always sent exactly, whatever the size of the step, so the warnings and " +
+                 "the gauge's ends never lag. At 0.1 a draining reserve is sent ten times a second, not every frame.")]
+        [SerializeField, Min(0f)] private float suitPublishResolution = 0.1f;
+
+        [Tooltip("Smallest change in the connected tank's fill, as a fraction, worth sending to clients. Plugging in, " +
+                 "unplugging, running dry, filling and crossing the low-oxygen warning are always sent exactly. " +
+                 "0.001 is a tenth of the percent the gauge shows.")]
+        [SerializeField, Range(0f, 0.05f)] private float tankPublishResolution = 0.001f;
+
         /// <summary>
         /// Seconds left in the suit's own reserve. Everyone / Server, matching
         /// <c>NetworkedHealthComponent</c>: owner WRITE permission would let a client edit its own
@@ -402,9 +413,60 @@ namespace SpaceGame.Gameplay
             // editor rather than an exotic one.
             if (!IsSpawned || !IsServer) return;
 
-            networkSuit.Value = suit;
-            networkTank.Value = tank;
+            // The reserve and the tank change a little every frame they drain, and every write that
+            // differs dirties the variable for the next network tick. Only a step a client could
+            // see, or a threshold one acts on, is sent. The server's own fields stay exact: the
+            // host's HUD, the save, and the server-side readers (the plant's refilled check, the
+            // refill step's remark) never read the published copy.
+            if (SuitNeedsPublishing(networkSuit.Value, suit, Ceiling, suitPublishResolution))
+                networkSuit.Value = suit;
+            if (TankNeedsPublishing(networkTank.Value, tank, warnFraction, tankPublishResolution))
+                networkTank.Value = tank;
+
+            // Moves only in steps (the crash reserve opening and closing), and NetworkVariable
+            // ignores an unchanged write, so it needs no resolution.
             networkCeiling.Value = Ceiling;
+        }
+
+        /// <summary>
+        /// Whether the reserve's published value must be replaced by <paramref name="value"/>: a step
+        /// of at least <paramref name="resolution"/>, reaching or leaving empty, or reaching full.
+        /// A client warns on exactly zero (SUFFOCATING), so a stale value there would be a late
+        /// alarm, or one that stays up after the air is back.
+        ///
+        /// <para>
+        /// Only REACHING full is an edge, not leaving it. A suit held full by a tank sits on
+        /// <paramref name="capacity"/> give or take a float rounding of the tick's draw and refund,
+        /// and treating every dip of a few millionths as "left full" would send it every frame again.
+        /// Static and pure for the reason <see cref="SuitAfter"/> is.
+        /// </para>
+        /// </summary>
+        public static bool SuitNeedsPublishing(float published, float value, float capacity, float resolution)
+        {
+            if (value == published) return false;
+
+            bool emptyChanged = (value <= 0f) != (published <= 0f);
+            bool reachedFull = value >= capacity && published < capacity;
+            return emptyChanged || reachedFull || Mathf.Abs(value - published) >= resolution;
+        }
+
+        /// <summary>
+        /// Whether the tank's published fill must be replaced by <paramref name="value"/>: a step of
+        /// at least <paramref name="resolution"/>, plugging in or unplugging (the negative sentinel),
+        /// running dry or coming back from it, reaching full, or crossing
+        /// <paramref name="warnFraction"/> either way — the states the gauge relabels on and the
+        /// visor warns on. Static and pure, like <see cref="SuitNeedsPublishing"/>.
+        /// </summary>
+        public static bool TankNeedsPublishing(float published, float value, float warnFraction, float resolution)
+        {
+            if (value == published) return false;
+
+            bool connectedChanged = (value < 0f) != (published < 0f);
+            bool emptyChanged = (value <= 0f) != (published <= 0f);
+            bool reachedFull = value >= 1f && published < 1f;
+            bool warningChanged = (value <= warnFraction) != (published <= warnFraction);
+            return connectedChanged || emptyChanged || reachedFull || warningChanged
+                   || Mathf.Abs(value - published) >= resolution;
         }
 
         /// <summary>

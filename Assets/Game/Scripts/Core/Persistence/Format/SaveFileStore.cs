@@ -126,7 +126,11 @@ namespace SpaceGame.Persistence
             return new ReadResult(ReadOutcome.Corrupt, null, liveError);
         }
 
-        /// <summary>The header alone, for listing slots without paying to parse whole worlds.</summary>
+        /// <summary>
+        /// The header alone, for listing slots without paying to parse whole worlds. Streams the
+        /// file and stops after the header, so it reads the first few hundred bytes of a save
+        /// rather than all of it — see <see cref="SaveSerializer.TryReadHeader(TextReader, out SaveHeader)"/>.
+        /// </summary>
         public static bool TryReadHeader(string path, out SaveHeader header)
         {
             header = null;
@@ -137,12 +141,17 @@ namespace SpaceGame.Persistence
 
                 try
                 {
-                    if (SaveSerializer.TryReadHeader(File.ReadAllText(candidate, Encoding.UTF8), out header))
+                    using var text = new StreamReader(candidate, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    if (SaveSerializer.TryReadHeader(text, out header))
                         return true;
                 }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                    // Handled, not swallowed: a file that cannot be opened or decoded has no
+                    // readable header, which is this method's false answer. The backup is tried
+                    // next, and the slot list shows the save as unreadable if neither yields one.
+                    header = null;
+                }
             }
 
             return false;

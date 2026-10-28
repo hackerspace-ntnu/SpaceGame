@@ -6,80 +6,135 @@
  "clips": {
   "Alert": {
    "take": "Jerbo_Alert",
-   "frames": 221,
+   "frames": 24,
+   "loop": false
+  },
+  "AlertIdle": {
+   "take": "Jerbo_AlertIdle",
+   "frames": 76,
+   "loop": true
+  },
+  "Attack": {
+   "take": "Jerbo_Attack",
+   "frames": 26,
    "loop": false
   },
   "Death": {
    "take": "Jerbo_Death",
-   "frames": 45,
+   "frames": 42,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "Jerbo_DeathR",
+   "frames": 42,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "Jerbo_Dodge",
+   "frames": 22,
+   "loop": false
+  },
+  "DodgeR": {
+   "take": "Jerbo_DodgeR",
+   "frames": 22,
    "loop": false
   },
   "Eat": {
    "take": "Jerbo_Eat",
-   "frames": 221,
+   "frames": 181,
    "loop": true
   },
-  "EatEnd": {
-   "take": "Jerbo_EatEnd",
-   "frames": 29,
-   "loop": false
-  },
-  "EatStart": {
-   "take": "Jerbo_EatStart",
-   "frames": 29,
+  "Groom": {
+   "take": "Jerbo_Groom",
+   "frames": 90,
    "loop": false
   },
   "Hop": {
    "take": "Jerbo_Hop",
-   "frames": 26,
+   "frames": 29,
    "loop": true
   },
   "HopFast": {
    "take": "Jerbo_HopFast",
-   "frames": 18,
+   "frames": 19,
    "loop": true
   },
   "Hurt": {
    "take": "Jerbo_Hurt",
-   "frames": 29,
+   "frames": 18,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Jerbo_HurtR",
+   "frames": 18,
    "loop": false
   },
   "Idle": {
    "take": "Jerbo_Idle",
-   "frames": 221,
+   "frames": 211,
+   "loop": true
+  },
+  "Jump": {
+   "take": "Jerbo_Jump",
+   "frames": 36,
+   "loop": false
+  },
+  "KickSand": {
+   "take": "Jerbo_KickSand",
+   "frames": 40,
+   "loop": false
+  },
+  "Stand": {
+   "take": "Jerbo_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "ThreatDisplay": {
+   "take": "Jerbo_ThreatDisplay",
+   "frames": 48,
+   "loop": false
+  },
+  "TurnL": {
+   "take": "Jerbo_TurnL",
+   "frames": 25,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "Jerbo_TurnR",
+   "frames": 25,
    "loop": true
   }
  },
  "stride": {
-  "Hop": 0.0,
-  "HopFast": 0.0
+  "Hop": 0.554,
+  "HopFast": 1.553
  },
  "eyes": [
   {
    "object": "Mesh_Jerbo_EyeL",
    "centre": [
-    -0.0054,
-    -0.2712,
+    0.0245,
+    -0.0792,
     0.4305
    ],
    "gaze": [
-    0.3037,
-    -0.9514,
-    0.0506
+    0.3783,
+    -0.9243,
+    0.0503
    ],
    "radius": 0.014
   },
   {
    "object": "Mesh_Jerbo_EyeR",
    "centre": [
-    -0.0586,
-    -0.2737,
+    -0.0287,
+    -0.0816,
     0.446
    ],
    "gaze": [
-    -0.4507,
-    -0.8913,
-    0.0501
+    -0.3783,
+    -0.9243,
+    0.0503
    ],
    "radius": 0.014
   }
@@ -94,5 +149,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Jerbo/jerbo.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/jerbo/jerbo.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/jerbo"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/jerbo/cleanroom"
 }

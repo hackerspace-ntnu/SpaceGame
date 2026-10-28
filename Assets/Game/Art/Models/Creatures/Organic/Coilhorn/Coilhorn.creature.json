@@ -4,91 +4,127 @@
  "length": 4.09,
  "width": 0.698,
  "clips": {
-  "AlertTurnL": {
-   "take": "Coilhorn_AlertTurnL",
-   "frames": 65,
+  "Alert": {
+   "take": "Coilhorn_Alert",
+   "frames": 68,
    "loop": false
   },
   "Attack": {
    "take": "Coilhorn_Attack",
+   "frames": 30,
+   "loop": false
+  },
+  "AttackBite": {
+   "take": "Coilhorn_AttackBite",
+   "frames": 22,
+   "loop": false
+  },
+  "AttackTail": {
+   "take": "Coilhorn_AttackTail",
    "frames": 34,
+   "loop": false
+  },
+  "Death": {
+   "take": "Coilhorn_Death",
+   "frames": 56,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "Coilhorn_Dodge",
+   "frames": 24,
    "loop": false
   },
   "Eat": {
    "take": "Coilhorn_Eat",
-   "frames": 96,
+   "frames": 151,
    "loop": true
   },
   "Hurt": {
    "take": "Coilhorn_Hurt",
-   "frames": 38,
+   "frames": 22,
    "loop": false
   },
-  "HurtBack": {
-   "take": "Coilhorn_HurtBack",
-   "frames": 38,
+  "HurtFront": {
+   "take": "Coilhorn_HurtFront",
+   "frames": 32,
    "loop": false
   },
-  "HurtLeft": {
-   "take": "Coilhorn_HurtLeft",
-   "frames": 38,
+  "HurtL": {
+   "take": "Coilhorn_HurtL",
+   "frames": 22,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Coilhorn_HurtR",
+   "frames": 22,
    "loop": false
   },
   "Idle": {
    "take": "Coilhorn_Idle",
-   "frames": 91,
+   "frames": 181,
    "loop": true
-  },
-  "IdleShake": {
-   "take": "Coilhorn_IdleShake",
-   "frames": 25,
-   "loop": false
-  },
-  "IdleTailWag": {
-   "take": "Coilhorn_IdleTailWag",
-   "frames": 31,
-   "loop": false
   },
   "Roar": {
    "take": "Coilhorn_Roar",
-   "frames": 66,
+   "frames": 60,
+   "loop": false
+  },
+  "Ruffle": {
+   "take": "Coilhorn_Ruffle",
+   "frames": 84,
    "loop": false
   },
   "Run": {
    "take": "Coilhorn_Run",
-   "frames": 13,
+   "frames": 17,
+   "loop": true
+  },
+  "Shake": {
+   "take": "Coilhorn_Shake",
+   "frames": 46,
+   "loop": false
+  },
+  "Stand": {
+   "take": "Coilhorn_Stand",
+   "frames": 2,
    "loop": true
   },
   "TurnL": {
    "take": "Coilhorn_TurnL",
-   "frames": 65,
+   "frames": 31,
    "loop": true
   },
   "TurnL180": {
    "take": "Coilhorn_TurnL180",
-   "frames": 91,
+   "frames": 46,
    "loop": false
+  },
+  "TurnR": {
+   "take": "Coilhorn_TurnR",
+   "frames": 31,
+   "loop": true
   },
   "Walk": {
    "take": "Coilhorn_Walk",
-   "frames": 25,
+   "frames": 33,
    "loop": true
   },
   "WalkAlert": {
    "take": "Coilhorn_WalkAlert",
-   "frames": 25,
-   "loop": false
+   "frames": 33,
+   "loop": true
   }
  },
  "stride": {
-  "Walk": 0.0
+  "Run": 1.8,
+  "Walk": 0.413
  },
  "eyes": [
   {
    "object": "Mesh_Coilhorn_EyeL",
    "centre": [
     0.1615,
-    -1.7022,
+    -1.0007,
     1.0066
    ],
    "gaze": [
@@ -102,7 +138,7 @@
    "object": "Mesh_Coilhorn_EyeR",
    "centre": [
     -0.0529,
-    -1.7001,
+    -0.9986,
     1.0088
    ],
    "gaze": [
@@ -123,5 +159,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Coilhorn/coilhorn.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/coilhorn/coilhorn.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/coilhorn"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/coilhorn/cleanroom"
 }

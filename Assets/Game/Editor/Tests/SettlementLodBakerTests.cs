@@ -190,6 +190,14 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void TheMergedLevel_IsSavedWithoutReadWrite_AndARebakeKeepsItSo()
+        {
+            Assert.IsFalse(SettlementLodBaker.Bake(root, PrefabPath, Profile).Mesh.isReadable,
+                           "nothing reads a merged level on the CPU at runtime; Read/Write only doubles its memory");
+            Assert.IsFalse(SettlementLodBaker.Bake(root, PrefabPath, Profile).Mesh.isReadable, "over the existing asset");
+        }
+
+        [Test]
         public void ANestedLodGroup_IsRefused()
         {
             root.transform.GetChild(0).gameObject.AddComponent<LODGroup>();

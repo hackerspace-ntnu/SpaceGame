@@ -136,4 +136,34 @@ void ShapeSail(float2 uv, inout float3 positionOS, inout float3 normalOS)
     normalOS = normalize(normalOS - chordOS * curvature * side);
 }
 
+// One vertex for both depth prepasses (DepthOnly and DepthNormals), so they cannot drift apart.
+struct SailDepthAttributes
+{
+    float4 positionOS : POSITION;
+    float3 normalOS   : NORMAL;
+    float2 uv         : TEXCOORD0;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
+};
+
+struct SailDepthVaryings
+{
+    float4 positionCS : SV_POSITION;
+    float3 normalWS   : TEXCOORD0;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
+};
+
+SailDepthVaryings SailDepthVert(SailDepthAttributes IN)
+{
+    SailDepthVaryings OUT = (SailDepthVaryings)0;
+    UNITY_SETUP_INSTANCE_ID(IN);
+
+    float3 positionOS = IN.positionOS.xyz;
+    float3 normalOS   = IN.normalOS;
+    ShapeSail(IN.uv, positionOS, normalOS);
+
+    OUT.positionCS = TransformObjectToHClip(positionOS);
+    OUT.normalWS   = TransformObjectToWorldNormal(normalOS);
+    return OUT;
+}
+
 #endif // SPACEGAME_SAILCLOTH_INCLUDED

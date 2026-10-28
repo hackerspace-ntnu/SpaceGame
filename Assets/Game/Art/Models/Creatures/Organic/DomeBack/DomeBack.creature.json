@@ -1,117 +1,177 @@
 {
  "name": "DomeBack",
  "height": 2.6,
- "length": 2.128,
- "width": 0.855,
+ "length": 2.124,
+ "width": 0.88,
  "clips": {
   "Alert": {
    "take": "DomeBack_Alert",
-   "frames": 25,
+   "frames": 42,
    "loop": false
   },
   "Attack": {
    "take": "DomeBack_Attack",
-   "frames": 48,
+   "frames": 34,
    "loop": false
   },
   "Call": {
    "take": "DomeBack_Call",
-   "frames": 31,
+   "frames": 54,
    "loop": false
   },
   "Death": {
    "take": "DomeBack_Death",
-   "frames": 206,
+   "frames": 75,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "DomeBack_DeathR",
+   "frames": 75,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "DomeBack_Dodge",
+   "frames": 30,
+   "loop": false
+  },
+  "DodgeR": {
+   "take": "DomeBack_DodgeR",
+   "frames": 30,
    "loop": false
   },
   "Drink": {
    "take": "DomeBack_Drink",
-   "frames": 25,
+   "frames": 120,
    "loop": false
   },
   "Eat": {
    "take": "DomeBack_Eat",
-   "frames": 139,
+   "frames": 211,
    "loop": true
+  },
+  "Groom": {
+   "take": "DomeBack_Groom",
+   "frames": 165,
+   "loop": false
+  },
+  "Hunker": {
+   "take": "DomeBack_Hunker",
+   "frames": 90,
+   "loop": false
   },
   "Hurt": {
    "take": "DomeBack_Hurt",
-   "frames": 37,
+   "frames": 24,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "DomeBack_HurtR",
+   "frames": 24,
    "loop": false
   },
   "Idle": {
    "take": "DomeBack_Idle",
-   "frames": 301,
+   "frames": 241,
    "loop": true
   },
   "Jump": {
    "take": "DomeBack_Jump",
-   "frames": 23,
+   "frames": 34,
    "loop": false
   },
-  "Knockdown": {
-   "take": "DomeBack_Knockdown",
-   "frames": 54,
+  "KickBack": {
+   "take": "DomeBack_KickBack",
+   "frames": 30,
    "loop": false
+  },
+  "LieDown": {
+   "take": "DomeBack_LieDown",
+   "frames": 100,
+   "loop": false
+  },
+  "Rest": {
+   "take": "DomeBack_Rest",
+   "frames": 106,
+   "loop": true
   },
   "Run": {
    "take": "DomeBack_Run",
-   "frames": 18,
+   "frames": 23,
    "loop": true
   },
   "Shake": {
    "take": "DomeBack_Shake",
-   "frames": 97,
+   "frames": 68,
+   "loop": false
+  },
+  "ShellBash": {
+   "take": "DomeBack_ShellBash",
+   "frames": 36,
    "loop": false
   },
   "Sprint": {
    "take": "DomeBack_Sprint",
-   "frames": 15,
+   "frames": 19,
    "loop": true
   },
-  "StartWalk": {
-   "take": "DomeBack_StartWalk",
-   "frames": 49,
+  "Stand": {
+   "take": "DomeBack_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "StandUp": {
+   "take": "DomeBack_StandUp",
+   "frames": 100,
+   "loop": false
+  },
+  "Stomp": {
+   "take": "DomeBack_Stomp",
+   "frames": 33,
+   "loop": false
+  },
+  "ThreatDisplay": {
+   "take": "DomeBack_ThreatDisplay",
+   "frames": 56,
    "loop": false
   },
   "Trot": {
    "take": "DomeBack_Trot",
-   "frames": 27,
+   "frames": 29,
    "loop": true
   },
   "TurnL": {
    "take": "DomeBack_TurnL",
-   "frames": 97,
+   "frames": 41,
    "loop": true
   },
   "TurnR": {
    "take": "DomeBack_TurnR",
-   "frames": 97,
+   "frames": 41,
    "loop": true
   },
   "Walk": {
    "take": "DomeBack_Walk",
-   "frames": 49,
+   "frames": 55,
    "loop": true
   }
  },
  "stride": {
-  "Run": 10.0,
-  "Sprint": 15.089,
-  "Trot": 3.667,
-  "Walk": 0.895
+  "Run": 6.055,
+  "Sprint": 8.88,
+  "Trot": 2.855,
+  "Walk": 1.069
  },
  "eyes": [
   {
    "object": "Mesh_DomeBack_EyeL.001",
    "centre": [
-    0.102,
-    -0.9692,
-    1.8943
+    0.0736,
+    -1.1498,
+    1.8975
    ],
    "gaze": [
     0.7557,
-    -0.6046,
+    -0.6045,
     0.2519
    ],
    "radius": 0.06
@@ -119,13 +179,13 @@
   {
    "object": "Mesh_DomeBack_EyeR.001",
    "centre": [
-    -0.0451,
-    -0.9745,
+    -0.0736,
+    -1.1498,
     1.8975
    ],
    "gaze": [
     -0.7557,
-    -0.6046,
+    -0.6045,
     0.2519
    ],
    "radius": 0.06
@@ -141,5 +201,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/DomeBack/dome_back.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/dome_back/dome_back.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/domeback"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/dome_back/cleanroom"
 }

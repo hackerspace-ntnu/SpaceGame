@@ -99,6 +99,45 @@ namespace SpaceGame.EditorTests
                             "A refill overfilled the reserve past its capacity.");
         }
 
+        // ── What a client is sent ────────────────────────────────────────────
+
+        /// <summary>
+        /// The reserve is replicated in resolution-sized steps, but every edge a client acts on is
+        /// sent exactly: SUFFOCATING is raised at exactly zero on the owner's own machine.
+        /// </summary>
+        [Test]
+        public void ReserveIsSentInStepsButEmptyAndFullExactly()
+        {
+            Assert.IsFalse(SuitOxygen.SuitNeedsPublishing(30f, 29.95f, 60f, 0.1f), "A sub-step drain was sent.");
+            Assert.IsTrue(SuitOxygen.SuitNeedsPublishing(30f, 29.9f, 60f, 0.1f), "A whole step was not sent.");
+            Assert.IsFalse(SuitOxygen.SuitNeedsPublishing(30f, 30f, 60f, 0.1f), "An unchanged value was sent.");
+
+            Assert.IsTrue(SuitOxygen.SuitNeedsPublishing(0.05f, 0f, 60f, 0.1f), "Running out was not sent exactly.");
+            Assert.IsTrue(SuitOxygen.SuitNeedsPublishing(0f, 0.01f, 60f, 0.1f), "Air coming back was not sent at once.");
+            Assert.IsTrue(SuitOxygen.SuitNeedsPublishing(59.95f, 60f, 60f, 0.1f), "Reaching full was not sent exactly.");
+
+            // A suit held full by a tank wobbles by float rounding of the draw and its refund.
+            Assert.IsFalse(SuitOxygen.SuitNeedsPublishing(60f, 59.999996f, 60f, 0.1f),
+                           "Rounding noise under a full suit was sent every frame.");
+        }
+
+        /// <summary>The tank likewise: plugging in, unplugging, running dry and the warning line are exact.</summary>
+        [Test]
+        public void TankIsSentInStepsButItsThresholdsExactly()
+        {
+            const float warn = 0.10f;
+
+            Assert.IsFalse(SuitOxygen.TankNeedsPublishing(0.5f, 0.4995f, warn, 0.001f), "A sub-step drain was sent.");
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(0.5f, 0.498f, warn, 0.001f), "A whole step was not sent.");
+
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(-1f, 0.5f, warn, 0.001f), "Plugging a tank in was not sent.");
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(0.5f, -1f, warn, 0.001f), "Unplugging was not sent.");
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(0.0004f, 0f, warn, 0.001f), "Running dry was not sent exactly.");
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(0.1004f, 0.0999f, warn, 0.001f),
+                          "Crossing the low-oxygen warning was not sent exactly.");
+            Assert.IsTrue(SuitOxygen.TankNeedsPublishing(0.9995f, 1f, warn, 0.001f), "Reaching full was not sent exactly.");
+        }
+
         // ── The charge value ─────────────────────────────────────────────────
 
         /// <summary>

@@ -956,7 +956,8 @@ namespace SpaceGame.Presentation
                     RefreshAll();
                 }));
 
-            SettingsWidgets.Caption(page, "Unlocks the artifact browser. Off by default, and remembered.");
+            SettingsWidgets.Caption(page, "Unlocks the artifact browser and shows frame rate, frame time and CPU/GPU time " +
+                                        "in the top-right corner. Off by default, and remembered.");
 
             SettingsWidgets.Heading(page, "Artifact browser");
 

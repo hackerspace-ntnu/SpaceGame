@@ -6,131 +6,141 @@
  "clips": {
   "Alert": {
    "take": "SailRay_Alert",
-   "frames": 42,
+   "frames": 24,
    "loop": false
   },
-  "AlertEnd": {
-   "take": "SailRay_AlertEnd",
-   "frames": 42,
-   "loop": false
+  "AlertIdle": {
+   "take": "SailRay_AlertIdle",
+   "frames": 91,
+   "loop": true
   },
   "Attack": {
    "take": "SailRay_Attack",
-   "frames": 32,
+   "frames": 28,
+   "loop": false
+  },
+  "Bask": {
+   "take": "SailRay_Bask",
+   "frames": 181,
+   "loop": true
+  },
+  "Call": {
+   "take": "SailRay_Call",
+   "frames": 78,
    "loop": false
   },
   "Death": {
    "take": "SailRay_Death",
-   "frames": 82,
+   "frames": 50,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "SailRay_DeathR",
+   "frames": 50,
    "loop": false
   },
   "Eat": {
    "take": "SailRay_Eat",
-   "frames": 92,
+   "frames": 241,
    "loop": true
+  },
+  "HornToss": {
+   "take": "SailRay_HornToss",
+   "frames": 27,
+   "loop": false
   },
   "Hurt": {
    "take": "SailRay_Hurt",
-   "frames": 32,
+   "frames": 21,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "SailRay_HurtR",
+   "frames": 21,
    "loop": false
   },
   "Idle": {
    "take": "SailRay_Idle",
-   "frames": 92,
+   "frames": 181,
    "loop": true
   },
   "Jump": {
    "take": "SailRay_Jump",
-   "frames": 32,
+   "frames": 24,
    "loop": false
   },
-  "JumpL135": {
-   "take": "SailRay_JumpL135",
-   "frames": 47,
-   "loop": false
-  },
-  "Lie": {
-   "take": "SailRay_Lie",
-   "frames": 2,
-   "loop": false
-  },
-  "LowPose": {
-   "take": "SailRay_LowPose",
-   "frames": 2,
+  "LieDown": {
+   "take": "SailRay_LieDown",
+   "frames": 48,
    "loop": false
   },
   "Rest": {
    "take": "SailRay_Rest",
-   "frames": 221,
+   "frames": 151,
    "loop": true
   },
   "Roar": {
    "take": "SailRay_Roar",
-   "frames": 92,
+   "frames": 60,
    "loop": false
   },
   "Run": {
    "take": "SailRay_Run",
-   "frames": 18,
+   "frames": 15,
    "loop": true
   },
-  "RunStop": {
-   "take": "SailRay_RunStop",
-   "frames": 26,
+  "Shake": {
+   "take": "SailRay_Shake",
+   "frames": 46,
    "loop": false
   },
-  "Sneak": {
-   "take": "SailRay_Sneak",
-   "frames": 42,
+  "Stand": {
+   "take": "SailRay_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "StandUp": {
+   "take": "SailRay_StandUp",
+   "frames": 36,
+   "loop": false
+  },
+  "TailLash": {
+   "take": "SailRay_TailLash",
+   "frames": 32,
+   "loop": false
+  },
+  "Trot": {
+   "take": "SailRay_Trot",
+   "frames": 17,
    "loop": true
   },
   "TurnL": {
    "take": "SailRay_TurnL",
-   "frames": 82,
+   "frames": 37,
    "loop": true
   },
-  "TurnL135Aggr": {
-   "take": "SailRay_TurnL135Aggr",
-   "frames": 107,
-   "loop": false
-  },
-  "TurnL180": {
-   "take": "SailRay_TurnL180",
-   "frames": 102,
-   "loop": false
-  },
-  "TurnL45Aggr": {
-   "take": "SailRay_TurnL45Aggr",
-   "frames": 102,
-   "loop": false
+  "TurnR": {
+   "take": "SailRay_TurnR",
+   "frames": 37,
+   "loop": true
   },
   "Walk": {
    "take": "SailRay_Walk",
-   "frames": 27,
+   "frames": 25,
    "loop": true
-  },
-  "WalkInto": {
-   "take": "SailRay_WalkInto",
-   "frames": 31,
-   "loop": false
-  },
-  "WalkStop": {
-   "take": "SailRay_WalkStop",
-   "frames": 52,
-   "loop": false
   }
  },
  "stride": {
-  "Run": 1.232,
-  "Sneak": 0.112,
-  "Walk": 0.261
+  "Run": 2.1,
+  "Trot": 1.425,
+  "Walk": 0.7
  },
  "eyes": [
   {
    "object": "Mesh_SailRay_EyeL",
    "centre": [
     0.0691,
-    -0.6229,
+    -0.4379,
     0.4615
    ],
    "gaze": [
@@ -144,7 +154,7 @@
    "object": "Mesh_SailRay_EyeR",
    "centre": [
     -0.0691,
-    -0.6229,
+    -0.4379,
     0.4615
    ],
    "gaze": [
@@ -165,5 +175,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/SailRay/sail_ray.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/sail_ray/sail_ray.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/sailray"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/sail_ray/cleanroom"
 }

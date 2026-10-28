@@ -149,6 +149,9 @@ namespace SpaceGame.EditorTools
                 // White: the JetSmoke shader multiplies its _Color (the tint) by the particle colour,
                 // so tinting both squares it — a 0.30 grey came out as 0.09, near-black again.
                 main.startColor = new Color(1f, 1f, 1f, SmokeAlpha);
+                // Paused while off every screen, not the recipe's AlwaysSimulate: EngineSmoke drives the rate and
+                // never calls Emit, so nothing is handed to a culled system (SkyTribe.md, Gotchas).
+                main.cullingMode = ParticleSystemCullingMode.Automatic;
                 ParticleSystem.ShapeModule shape = cloud.shape;
                 shape.radius *= scale;
                 shape.angle = JetConeAngle;

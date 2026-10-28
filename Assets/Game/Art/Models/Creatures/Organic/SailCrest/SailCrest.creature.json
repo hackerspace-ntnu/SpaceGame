@@ -1,150 +1,165 @@
 {
  "name": "SailCrest",
- "height": 6.0,
+ "height": 5.994,
  "length": 5.56,
  "width": 1.94,
  "clips": {
   "Alert": {
    "take": "SailCrest_Alert",
-   "frames": 72,
+   "frames": 42,
    "loop": false
   },
   "AngryIdle": {
    "take": "SailCrest_AngryIdle",
-   "frames": 121,
-   "loop": false
+   "frames": 151,
+   "loop": true
   },
   "Attack": {
    "take": "SailCrest_Attack",
-   "frames": 121,
+   "frames": 52,
    "loop": false
   },
-  "AttackHigh": {
-   "take": "SailCrest_AttackHigh",
-   "frames": 92,
-   "loop": false
-  },
-  "AttackRun": {
-   "take": "SailCrest_AttackRun",
-   "frames": 57,
+  "BeakStrike": {
+   "take": "SailCrest_BeakStrike",
+   "frames": 32,
    "loop": false
   },
   "Death": {
    "take": "SailCrest_Death",
-   "frames": 42,
+   "frames": 70,
    "loop": false
   },
-  "DeathLying": {
-   "take": "SailCrest_DeathLying",
-   "frames": 24,
+  "DeathR": {
+   "take": "SailCrest_DeathR",
+   "frames": 70,
    "loop": false
   },
   "Eat": {
    "take": "SailCrest_Eat",
-   "frames": 222,
+   "frames": 271,
    "loop": true
-  },
-  "GetUp": {
-   "take": "SailCrest_GetUp",
-   "frames": 121,
-   "loop": false
   },
   "Hurt": {
    "take": "SailCrest_Hurt",
-   "frames": 87,
+   "frames": 28,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "SailCrest_HurtR",
+   "frames": 28,
    "loop": false
   },
   "HurtWalk": {
    "take": "SailCrest_HurtWalk",
-   "frames": 102,
-   "loop": false
+   "frames": 61,
+   "loop": true
   },
   "Idle": {
    "take": "SailCrest_Idle",
-   "frames": 201,
+   "frames": 271,
    "loop": true
   },
   "Idle2": {
    "take": "SailCrest_Idle2",
-   "frames": 201,
+   "frames": 180,
    "loop": false
   },
-  "LieDown": {
-   "take": "SailCrest_LieDown",
-   "frames": 92,
+  "Jump": {
+   "take": "SailCrest_Jump",
+   "frames": 38,
    "loop": false
   },
-  "Rest": {
-   "take": "SailCrest_Rest",
-   "frames": 126,
+  "MountKneel": {
+   "take": "SailCrest_MountKneel",
+   "frames": 48,
+   "loop": false
+  },
+  "MountKneelIdle": {
+   "take": "SailCrest_MountKneelIdle",
+   "frames": 136,
    "loop": true
   },
-  "RestBreathe": {
-   "take": "SailCrest_RestBreathe",
-   "frames": 126,
+  "MountRise": {
+   "take": "SailCrest_MountRise",
+   "frames": 46,
    "loop": false
+  },
+  "RiddenIdle": {
+   "take": "SailCrest_RiddenIdle",
+   "frames": 181,
+   "loop": true
   },
   "Run": {
    "take": "SailCrest_Run",
-   "frames": 18,
+   "frames": 25,
    "loop": true
+  },
+  "Shake": {
+   "take": "SailCrest_Shake",
+   "frames": 56,
+   "loop": false
   },
   "Sneak": {
    "take": "SailCrest_Sneak",
-   "frames": 162,
+   "frames": 121,
    "loop": true
   },
   "Stand": {
    "take": "SailCrest_Stand",
-   "frames": 101,
+   "frames": 91,
    "loop": true
   },
   "StartWalk": {
    "take": "SailCrest_StartWalk",
-   "frames": 42,
+   "frames": 45,
+   "loop": false
+  },
+  "Stomp": {
+   "take": "SailCrest_Stomp",
+   "frames": 34,
+   "loop": false
+  },
+  "Taunt": {
+   "take": "SailCrest_Taunt",
+   "frames": 72,
    "loop": false
   },
   "Trot": {
    "take": "SailCrest_Trot",
-   "frames": 22,
+   "frames": 31,
    "loop": true
   },
   "TurnL": {
    "take": "SailCrest_TurnL",
-   "frames": 82,
+   "frames": 49,
    "loop": true
   },
   "TurnR": {
    "take": "SailCrest_TurnR",
-   "frames": 82,
+   "frames": 49,
    "loop": true
+  },
+  "Unseat": {
+   "take": "SailCrest_Unseat",
+   "frames": 42,
+   "loop": false
   },
   "Walk": {
    "take": "SailCrest_Walk",
-   "frames": 52,
-   "loop": true
-  },
-  "WalkL": {
-   "take": "SailCrest_WalkL",
-   "frames": 52,
-   "loop": true
-  },
-  "WalkR": {
-   "take": "SailCrest_WalkR",
-   "frames": 52,
+   "frames": 49,
    "loop": true
   },
   "WalkSlow": {
    "take": "SailCrest_WalkSlow",
-   "frames": 82,
-   "loop": false
+   "frames": 73,
+   "loop": true
   }
  },
  "stride": {
-  "Run": 3.367,
-  "Sneak": 0.204,
-  "Trot": 0.051,
-  "Walk": 0.703
+  "Run": 4.812,
+  "Sneak": 0.153,
+  "Trot": 2.8,
+  "Walk": 0.82
  },
  "eyes": [
   {
@@ -270,5 +285,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/SailCrest/sail_crest.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/sail_crest/sail_crest.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/sailcrest"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/sail_crest/cleanroom"
 }

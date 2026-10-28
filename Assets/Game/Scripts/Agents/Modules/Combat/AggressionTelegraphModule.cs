@@ -76,6 +76,10 @@ namespace SpaceGame.Agents
         private ChatterModule chatter;
         private AgentAuthority authority;
 
+        // The posture bools, hashed once in Awake. Null where the field is empty: no posture.
+        private int? drawnBoolHash;
+        private int? waryBoolHash;
+
         // What this MACHINE is presenting. On the authority it follows the meter; on a watcher it
         // follows the band messages. Kept separate from ProvocationModule.Band because a watching
         // client has no meter to read — its copy of the agent is not simulated at all.
@@ -90,7 +94,12 @@ namespace SpaceGame.Agents
             animatorDriver = GetComponent<AgentAnimatorDriver>();
             chatter = GetComponent<ChatterModule>();
             authority = new AgentAuthority(this);
+            drawnBoolHash = HashOrNone(drawnAnimatorBool);
+            waryBoolHash = HashOrNone(waryAnimatorBool);
         }
+
+        private static int? HashOrNone(string parameterName) =>
+            string.IsNullOrEmpty(parameterName) ? null : Animator.StringToHash(parameterName);
 
         private void OnTransformParentChanged() => authority?.Invalidate();
 
@@ -192,8 +201,10 @@ namespace SpaceGame.Agents
 
             if (animatorDriver != null)
             {
-                animatorDriver.SetBoolByName(drawnAnimatorBool, band == AggressionBand.Drawn);
-                animatorDriver.SetBoolByName(waryAnimatorBool, band == AggressionBand.Wary);
+                if (drawnBoolHash.HasValue)
+                    animatorDriver.SetBoolIfPresent(drawnBoolHash.Value, band == AggressionBand.Drawn);
+                if (waryBoolHash.HasValue)
+                    animatorDriver.SetBoolIfPresent(waryBoolHash.Value, band == AggressionBand.Wary);
             }
 
             if (!bark || chatter == null)

@@ -172,4 +172,30 @@ float3 FoamWeldedNormal(float3 positionWS, float3 fallbackNormal)
     return found ? bestGradient : fallbackNormal;
 }
 
+// One vertex for both depth prepasses (DepthOnly and DepthNormals), so they cannot drift apart.
+// Each pass's fragment must still call FoamDissolveClip.
+struct FoamDepthAttributes
+{
+    float4 positionOS : POSITION;
+    float3 normalOS   : NORMAL;
+};
+
+struct FoamDepthVaryings
+{
+    float4 positionCS : SV_POSITION;
+    float3 positionWS : TEXCOORD0;
+    float3 normalWS   : TEXCOORD1;
+};
+
+FoamDepthVaryings FoamDepthVert(FoamDepthAttributes IN)
+{
+    FoamDepthVaryings OUT;
+    VertexPositionInputs positions = GetVertexPositionInputs(IN.positionOS.xyz);
+
+    OUT.positionCS = positions.positionCS;
+    OUT.positionWS = positions.positionWS;
+    OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
+    return OUT;
+}
+
 #endif // SPACEGAME_FOAMSURFACE_INCLUDED

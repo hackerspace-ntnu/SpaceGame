@@ -1,115 +1,195 @@
 {
  "name": "Plumeneck",
- "height": 3.023,
+ "height": 2.999,
  "length": 2.701,
  "width": 1.655,
  "clips": {
   "Alert": {
    "take": "Plumeneck_Alert",
-   "frames": 25,
+   "frames": 28,
    "loop": false
+  },
+  "AlertIdle": {
+   "take": "Plumeneck_AlertIdle",
+   "frames": 76,
+   "loop": true
   },
   "Attack": {
    "take": "Plumeneck_Attack",
-   "frames": 48,
+   "frames": 31,
    "loop": false
   },
   "Call": {
    "take": "Plumeneck_Call",
-   "frames": 31,
+   "frames": 58,
    "loop": false
   },
   "Death": {
    "take": "Plumeneck_Death",
-   "frames": 206,
+   "frames": 60,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "Plumeneck_DeathR",
+   "frames": 60,
    "loop": false
   },
   "Dodge": {
    "take": "Plumeneck_Dodge",
-   "frames": 37,
+   "frames": 30,
+   "loop": false
+  },
+  "DodgeR": {
+   "take": "Plumeneck_DodgeR",
+   "frames": 30,
    "loop": false
   },
   "Drink": {
    "take": "Plumeneck_Drink",
-   "frames": 25,
+   "frames": 150,
    "loop": false
   },
   "Eat": {
    "take": "Plumeneck_Eat",
-   "frames": 139,
+   "frames": 211,
    "loop": true
+  },
+  "EatEnd": {
+   "take": "Plumeneck_EatEnd",
+   "frames": 36,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "Plumeneck_EatStart",
+   "frames": 36,
+   "loop": false
   },
   "Groom": {
    "take": "Plumeneck_Groom",
-   "frames": 205,
+   "frames": 186,
    "loop": false
   },
   "Hurt": {
    "take": "Plumeneck_Hurt",
-   "frames": 54,
+   "frames": 24,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Plumeneck_HurtR",
+   "frames": 24,
    "loop": false
   },
   "Idle": {
    "take": "Plumeneck_Idle",
-   "frames": 301,
+   "frames": 226,
    "loop": true
   },
   "Jump": {
    "take": "Plumeneck_Jump",
-   "frames": 23,
+   "frames": 42,
    "loop": false
   },
   "LieDown": {
    "take": "Plumeneck_LieDown",
-   "frames": 139,
+   "frames": 84,
    "loop": false
+  },
+  "MountKneel": {
+   "take": "Plumeneck_MountKneel",
+   "frames": 44,
+   "loop": false
+  },
+  "MountKneelIdle": {
+   "take": "Plumeneck_MountKneelIdle",
+   "frames": 106,
+   "loop": true
+  },
+  "MountRise": {
+   "take": "Plumeneck_MountRise",
+   "frames": 38,
+   "loop": false
+  },
+  "RearStrike": {
+   "take": "Plumeneck_RearStrike",
+   "frames": 35,
+   "loop": false
+  },
+  "Rest": {
+   "take": "Plumeneck_Rest",
+   "frames": 106,
+   "loop": true
+  },
+  "RiddenIdle": {
+   "take": "Plumeneck_RiddenIdle",
+   "frames": 166,
+   "loop": true
   },
   "Run": {
    "take": "Plumeneck_Run",
-   "frames": 18,
+   "frames": 21,
    "loop": true
   },
   "Shake": {
    "take": "Plumeneck_Shake",
-   "frames": 97,
+   "frames": 90,
    "loop": false
   },
   "Sprint": {
    "take": "Plumeneck_Sprint",
-   "frames": 15,
+   "frames": 17,
+   "loop": true
+  },
+  "Stand": {
+   "take": "Plumeneck_Stand",
+   "frames": 2,
    "loop": true
   },
   "StandUp": {
    "take": "Plumeneck_StandUp",
-   "frames": 139,
+   "frames": 66,
+   "loop": false
+  },
+  "ThreatDisplay": {
+   "take": "Plumeneck_ThreatDisplay",
+   "frames": 56,
    "loop": false
   },
   "Trot": {
    "take": "Plumeneck_Trot",
-   "frames": 27,
+   "frames": 25,
    "loop": true
   },
   "TurnL": {
    "take": "Plumeneck_TurnL",
-   "frames": 97,
+   "frames": 41,
    "loop": true
   },
   "TurnR": {
    "take": "Plumeneck_TurnR",
-   "frames": 97,
+   "frames": 41,
    "loop": true
+  },
+  "Unseat": {
+   "take": "Plumeneck_Unseat",
+   "frames": 42,
+   "loop": false
   },
   "Walk": {
    "take": "Plumeneck_Walk",
    "frames": 49,
    "loop": true
+  },
+  "WingBuffet": {
+   "take": "Plumeneck_WingBuffet",
+   "frames": 34,
+   "loop": false
   }
  },
  "stride": {
-  "Run": 6.821,
-  "Sprint": 10.762,
-  "Trot": 2.506,
-  "Walk": 1.007
+  "Run": 6.66,
+  "Sprint": 9.99,
+  "Trot": 3.33,
+  "Walk": 1.387
  },
  "eyes": [
   {
@@ -151,5 +231,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Plumeneck/plumeneck.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/plumeneck/plumeneck.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/plumeneck"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/plumeneck/cleanroom"
 }

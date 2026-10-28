@@ -18,7 +18,7 @@ symptoms:
   - "a gameplay hotkey still fires while a menu or the chat box is open"
   - "Camera.main is null while I ride a vehicle, so a distance LOD hides or never fades"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-10-15
+updated: 2026-10-27
 ---
 
 # Core Services
@@ -118,7 +118,7 @@ Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
 
 ## Persistence
 
-- Settings only: `PlayerPrefs`, all keys prefixed `SpaceGame.Settings.` plus a `Version` key checked against `SchemaVersion` (currently 1).
+- Settings only: `PlayerPrefs`, all keys prefixed `SpaceGame.Settings.` plus a `Version` key checked against `SchemaVersion` (currently 3). Below 3 the stored `QualityLevel` is dropped: the graphics tiers put Low and Medium below the old single level, so an old index 0 now means Low.
 - Keys: PlayerName, SuitColorIndex, Master/Music/Sfx/Ui/AmbienceVolume, MouseSensitivity, InvertLookY, CameraShakeIntensity, InvertHotbarScroll, DevMode, FieldOfView, QualityLevel, Fullscreen, ResolutionIndex, VSync, FrameRateCap.
 - Lazy load on first property read (`EnsureLoaded`); every setter clamps, writes, and raises `GameSettings.Changed`. `Save()` flushes; `ResetToDefaults()` deletes and re-seeds.
 - `SeedFieldOfView` / `SeedInvertHotbarScroll` adopt an authored inspector value **only** while the key is absent.

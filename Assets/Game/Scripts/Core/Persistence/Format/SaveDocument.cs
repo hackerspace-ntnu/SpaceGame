@@ -18,7 +18,14 @@ namespace SpaceGame.Persistence
         /// </summary>
         public const int CurrentVersion = 2;
 
-        [JsonProperty("header")] public SaveHeader Header = new();
+        /// <summary>
+        /// The root key of <see cref="Header"/>. Declared first so it is written first, which is
+        /// what lets <see cref="SaveSerializer.TryReadHeader(System.IO.TextReader, out SaveHeader)"/>
+        /// stop after the opening bytes of a file.
+        /// </summary>
+        public const string HeaderKey = "header";
+
+        [JsonProperty(HeaderKey)] public SaveHeader Header = new();
         [JsonProperty("players")] public List<PlayerRecord> Players = new();
         [JsonProperty("world")] public WorldRecord World = new();
 

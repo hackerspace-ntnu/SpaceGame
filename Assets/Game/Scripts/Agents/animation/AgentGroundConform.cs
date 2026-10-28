@@ -94,13 +94,41 @@ namespace SpaceGame.Agents
 
         [SerializeField, Min(0f)] private float tiltFollowSpeed = 8f;
 
+        [Header("Re-probe")]
+        [Tooltip("How far the body must move, metres, since the last probe before the ground is " +
+                 "probed again. Between probes the last result is reused and the smoothing keeps " +
+                 "running on it. World-space, so a deck carrying the body re-probes as it moves. " +
+                 "Small enough that a walking body is probed about every frame.")]
+        [SerializeField, Min(0f)] private float reprobeDistance = 0.02f;
+
+        [Tooltip("How far the body must turn or tilt, degrees, since the last probe before the " +
+                 "ground is probed again. The probe ring is world-aligned, so turning on still " +
+                 "ground changes nothing; this is for a carrier that turns or tilts the body " +
+                 "together with the deck under it.")]
+        [SerializeField, Min(0f)] private float reprobeAngle = 2f;
+
+        [Tooltip("Longest a body that is acting goes without a probe, seconds, however still it " +
+                 "stands, so ground that changes under it (a collider streaming in, a door) is " +
+                 "found. A parked body (offstage or dormant) skips this and probes only when moved.")]
+        [SerializeField, Min(0f)] private float maxProbeInterval = 0.25f;
+
         // Profiler markers (Diagnostics.md → Profiling). Compiled out of non-development builds.
         private const string ProbeMarkerName = "SpaceGame.GroundConform.Probe";
         private static readonly ProfilerMarker ProbeMarker = new(ProbeMarkerName);
 
         private WalkerGround ground;
         private AgentGrounding grounding;
+        private AgentController controller;
         private bool initialised;
+
+        // The last probe, reused until the body moves, turns or waits past the interval. The
+        // surface is world-space, which is why movement is what invalidates it.
+        private bool hasProbe;
+        private bool probeGrounded;
+        private WalkerSurface probeSurface;
+        private Vector3 probePosition;
+        private Quaternion probeRotation;
+        private float sinceProbe;
 
         private float FootprintRadius => footprintRadius > 0f
             ? footprintRadius
@@ -128,6 +156,7 @@ namespace SpaceGame.Agents
 
             if (!agent) agent = GetComponent<NavMeshAgent>();
             if (!motor) motor = GetComponent<NavMeshAgentMotor>();
+            controller = GetComponent<AgentController>();
             if (!bodyRoot) bodyRoot = ResolveBodyRoot();
 
             if (!bodyRoot && alignToSlope)
@@ -150,6 +179,7 @@ namespace SpaceGame.Agents
             // Respawn, chunk stream-in, save restore: each puts the body somewhere new, and easing
             // across from the last correction would show it sliding into place.
             grounding.Reset();
+            hasProbe = false;
         }
 
         private void OnDisable()
@@ -170,12 +200,13 @@ namespace SpaceGame.Agents
         /// </summary>
         public void Conform(float deltaTime)
         {
-            using ProfilerMarker.AutoScope sample = ProbeMarker.Auto();
-
             Initialise();
 
-            bool grounded = ground.TrySurface(transform.position, FootprintRadius,
-                                              float.NegativeInfinity, out WalkerSurface surface);
+            sinceProbe += deltaTime;
+            if (ProbeDue()) Probe();
+
+            bool grounded = probeGrounded;
+            WalkerSurface surface = probeSurface;
 
             // A leap runs with updatePosition off and the body driven along an arc by hand. The
             // ground under a body mid-arc is not the ground it is standing on, and conforming to it
@@ -205,6 +236,40 @@ namespace SpaceGame.Agents
 
             if (drivesHeight) motor.GroundOffset = grounding.HeightOffset;
             if (bodyRoot && alignToSlope) bodyRoot.localRotation = grounding.BodyRotation;
+        }
+
+        // Five multi-hit rays per probe, on every machine, for every agent: the expensive part of
+        // this component. A body that has not moved stands on the ground it stood on last frame.
+        //
+        // Movement is measured in world space on purpose. A barge, walker or deck carrying the body
+        // moves its world position, so the probe follows the deck instead of reusing a surface the
+        // deck has carried away. Parked bodies (offstage or dormant, server-side flags) skip the
+        // interval and probe only when something moves them; a watching client never sees those
+        // flags, but a dormant body's replicated transform stops changing, so it probes at the
+        // interval only.
+        private bool ProbeDue()
+        {
+            if (!hasProbe) return true;
+
+            if ((transform.position - probePosition).sqrMagnitude > reprobeDistance * reprobeDistance)
+                return true;
+
+            if (Quaternion.Angle(transform.rotation, probeRotation) > reprobeAngle) return true;
+
+            bool parked = controller != null && controller.IsParked;
+            return !parked && sinceProbe >= maxProbeInterval;
+        }
+
+        private void Probe()
+        {
+            using ProfilerMarker.AutoScope sample = ProbeMarker.Auto();
+
+            probeGrounded = ground.TrySurface(transform.position, FootprintRadius,
+                                              float.NegativeInfinity, out probeSurface);
+            probePosition = transform.position;
+            probeRotation = transform.rotation;
+            sinceProbe = 0f;
+            hasProbe = true;
         }
 
         /// <summary>

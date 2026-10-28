@@ -6,9 +6,15 @@ paths:
   - ProjectSettings/
   - Packages/manifest.json
   - Assets/Game/Settings/PC_RPAsset.asset
+  - Assets/Game/Settings/PC_Medium_RPAsset.asset
+  - Assets/Game/Settings/PC_Low_RPAsset.asset
+  - Assets/Game/Settings/PC_Renderer.asset
+  - Assets/Game/Art/Shaders/DepthNormals.hlsl
   - .gitattributes
   - .gitignore
 symptoms:
+  - "a setting I changed on PC_RPAsset does nothing on Low or Medium quality"
+  - "trees disappear a few hundred metres away"
   - "jump heights and ballistic arcs are wrong — gravity here is -18, not -9.81"
   - "a raycast right after moving something reads the collider's old position"
   - "I put things on a new layer and they still collide with everything"
@@ -17,8 +23,10 @@ symptoms:
   - "which Unity, URP or Netcode version is this project on, and what packages are installed"
   - "a polished surface reflects a flat pale grey instead of what is around it"
   - "a realtime reflection probe has no texture in the editor"
+  - "an opaque object with a custom shader is invisible, or flickers, on PC quality"
+  - "a billowing sail or cape flickers where it bends away from its rest shape"
 reads_with: [Multiplayer, NavMeshSystem, WorldStreaming, Environment]
-updated: 2026-10-07
+updated: 2026-10-28
 ---
 
 # Project Config
@@ -120,8 +128,17 @@ Physics ([DynamicsManager.asset](ProjectSettings/DynamicsManager.asset)) — the
 | `m_WorldBounds` extent | 250 m | Ignored: `m_BroadphaseType: 0` (Sweep-and-Prune). See Gotchas. |
 
 URP `PC_RPAsset` (`PC_Renderer`, Forward+ `m_RenderingMode: 2`, native render pass on): HDR on, MSAA off (`m_MSAA: 1`), render scale 1, depth **and** opaque textures required, shadow distance 50 m / **2 cascades** (was 4 until 2026-10-05; renders matched, ~40 % fewer shadow draws — [LevelOfDetail.md](LevelOfDetail.md)) / soft shadows, 2048 shadowmaps, 4 additional lights per object, SRP Batcher on, dynamic batching off, light layers on.
+`PC_Renderer` depth priming: **`Auto`** (since 2026-10-28). With SSAO on, URP already draws a DepthNormals prepass, and priming reuses it so the forward pass shades only the visible opaque pixel (`ZTest Equal`). `Mobile_Renderer` stays `Disabled`.
 Renderer features on `PC_Renderer`: `VolumetricCloudsRenderFeature`, `SandstormRenderFeature`, `FogRenderFeature`, `ScreenSpaceAmbientOcclusion` (DepthNormals source, before opaques) **enabled**; `GlassDistortionRenderFeature`, `PastelQuantizeRenderFeature` **disabled**.
-QualitySettings has exactly **one** level, `PC` (index 0): shadow distance 50 / 2 cascades (URP ignores both and reads `PC_RPAsset`; kept equal so nobody tunes the dead copy), `antiAliasing: 0`, `vSyncCount: 0`, `lodBias: 2`, realtime reflection probes **on** (turned on 2026-10-07 for the sun shrine's mirrors; the only realtime probe is its `TimedReflectionProbe`, every other probe is baked — see [Environment.md](Environment.md), terrain tree distance 5000.
+QualitySettings has **three graphics tiers**, picked in the pause menu's Video ▸ Quality cycler (`GameSettings.QualityLevel`). **High** is the old single `PC` level, unchanged except tree distance; it is the default (`m_CurrentQuality` and Standalone default 2). Each tier has its own URP asset; shadow distance/cascades are mirrored into QualitySettings, which URP ignores, so nobody tunes the dead copy.
+
+| Tier (index) | URP asset | Shadows | Render scale | `lodBias` | Terrain tree distance | Grass density |
+| --- | --- | --- | --- | --- | --- | --- |
+| Low (0) | `PC_Low_RPAsset` | 1024, 30 m, 1 cascade, hard; no additional-light shadows; 2 lights/object | **0.8** | 1 | 250 m | × 0.5 |
+| Medium (1) | `PC_Medium_RPAsset` | 1024, 40 m, 2 cascades, soft (medium) | 1 | 1.5 | 350 m | × 0.75 |
+| High (2) | `PC_RPAsset` | 2048, 50 m, 2 cascades, soft (high) | 1 | 2 | **500 m** | × 1 |
+
+Tree distance is a **terrain quality override** (`terrainQualityOverrides: TreeDistance`), so it beats every terrain's own Tree Distance (gameScene's says 5000). Grass density is `GrassField.tierDensity` ([Grass.md](Grass.md)). All tiers keep `antiAliasing: 0`, `vSyncCount: 0` and realtime reflection probes **on** (turned on 2026-10-07 for the sun shrine's mirrors; the only realtime probe is its `TimedReflectionProbe`, every other probe is baked — see [Environment.md](Environment.md)). Measured (editor, M1 Pro, 1080p, gameScene meadow, whole frame): High 23.8 / Medium 23.1 / **Low 19.9 ms** median, p90 33.0 / 32.6 / 24.9 ms — the editor frame is mostly not shadows or grass.
 
 ## Version control
 
@@ -140,10 +157,13 @@ It **deliberately does not** force `*.asset` / `*.unity` / `*.prefab` to text �
 4. **Gravity is -18.** Anything ported from a tutorial or another project will fall roughly twice as fast as its author intended.
 5. **`m_AutoSyncTransforms: 0`.** Teleport-then-raycast in the same frame reads stale physics. Cross-reference: `transform.position` does not move a Rigidbody here either.
 6. **`m_WorldBounds` is 250 m** while the streamed world is 4000x3000 m. Harmless *today* because `m_BroadphaseType: 0` (SAP) ignores it — but switching to multibox pruning for perf would silently break physics outside a 500 m cube.
-7. **`Assets/Game/Settings/Mobile_RPAsset.asset` + `Mobile_Renderer.asset` are orphans.** No quality level or graphics setting references them; the single `PC` quality level excludes Android and iPhone. Editing them changes nothing.
+7. **`Assets/Game/Settings/Mobile_RPAsset.asset` + `Mobile_Renderer.asset` are orphans.** No quality level or graphics setting references them; every quality level excludes Android and iPhone. Editing them changes nothing.
+12. **A change to `PC_RPAsset` reaches High only.** Low and Medium are copies with their own values; a renderer feature or new pipeline setting must be set on all three (they share `PC_Renderer`).
+13. **Quality levels are matched by name** by `GrassField.tierDensity` and by index in players' PlayerPrefs. Renaming a level breaks the first (it warns); inserting one shifts the second — bump `GameSettings.SchemaVersion` and drop the stored `QualityLevel` the way `GraphicsTiersSchema` does.
 8. **`NewURPRenderFeature` on `PC_Renderer` is an enabled feature with a placeholder name.** Identify what it actually does before touching it.
 9. **Legacy `Input.GetKey` will not compile-warn — it throws at runtime** (`activeInputHandler: 1`). Bindings live in the generated `InputControls.cs`, which only regenerates on `.inputactions` reimport.
 10. **`m_EnterPlayModeOptionsEnabled: 1` with `m_EnterPlayModeOptions: 0`** means fast enter-play-mode is switched on but neither domain nor scene reload is actually disabled — statics *do* reset. Do not assume otherwise.
+14. **Every custom opaque shader needs a DepthNormals pass that matches its forward pass.** Depth priming tests the forward pass against SSAO's DepthNormals prepass. A shader with no DepthNormals pass is missing from that prepass and **draws nothing**. A shader that inherits Lit's pass through `FallBack` is tested against its undisplaced mesh and **flickers or vanishes** wherever its vertex shader moves it. Neither logs anything. The pass must run the same vertex code and the same `clip` as the forward pass: share one depth vertex function between DepthOnly and DepthNormals (`SailDepthVert`, `FrozenDepthVert`), and encode the normal with `EncodeDepthNormal` from `Assets/Game/Art/Shaders/DepthNormals.hlsl` (`RigidDepthVert` covers a shader that neither moves vertices nor clips). Shader Graph and URP Lit already comply. Opaque shaders that still have **no** depth pass and so are invisible with priming on, judged unimportant 2026-10-28: `Wood`, `PortalGoo`, `PortalFluid`, `PortalSurface`, `SchematicHull`, `SchematicWire`, `PackDragTint`.
 11. **Nothing re-renders reflections when the sky changes.** The default reflection is the skybox as baked, and every probe except the sun shrine's is baked, so a polished surface reflects a flat, pale, unchanging grey at every hour. Realtime probes were also switched **off** in QualitySettings until 2026-10-07, which made the first one render nothing and log nothing. **A realtime probe renders only in Play mode**: in the editor `realtimeTexture` stays null and `RenderProbe()` does nothing, so judge reflections in Play mode. For a reflection that follows the day, use a Realtime / Via Scripting probe with a `TimedReflectionProbe` ([Environment.md](Environment.md)).
 
 ## Extending

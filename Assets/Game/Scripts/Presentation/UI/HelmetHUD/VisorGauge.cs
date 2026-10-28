@@ -96,6 +96,10 @@ namespace SpaceGame.Presentation
         private Image hatchImage;
 
         private State lastState = State.Normal;
+
+        /// <summary>The integer <see cref="valueText"/> shows, so it is re-formatted only when that changes.</summary>
+        private int shownValue;
+        private bool hasShownValue;
         private float bloomUntil;
         private bool built;
 
@@ -219,7 +223,13 @@ namespace SpaceGame.Presentation
             if (bloomed) colour *= VisorStyle.BloomStrength;
 
             labelText.text = source.Label;
-            valueText.text = Mathf.CeilToInt(source.Current).ToString();
+            int value = Mathf.CeilToInt(source.Current);
+            if (!hasShownValue || value != shownValue)
+            {
+                shownValue = value;
+                hasShownValue = true;
+                valueText.text = value.ToString();
+            }
             valueText.color = colour;
 
             fillImage.fillAmount = FractionOf(source);

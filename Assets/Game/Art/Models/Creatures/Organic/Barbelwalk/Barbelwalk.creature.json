@@ -1,110 +1,160 @@
 {
  "name": "Barbelwalk",
- "height": 0.909,
+ "height": 0.888,
  "length": 2.796,
  "width": 0.845,
  "clips": {
   "Alert": {
    "take": "Barbelwalk_Alert",
-   "frames": 42,
+   "frames": 36,
    "loop": false
+  },
+  "AlertIdle": {
+   "take": "Barbelwalk_AlertIdle",
+   "frames": 81,
+   "loop": true
   },
   "Attack": {
    "take": "Barbelwalk_Attack",
-   "frames": 32,
+   "frames": 30,
+   "loop": false
+  },
+  "Call": {
+   "take": "Barbelwalk_Call",
+   "frames": 70,
    "loop": false
   },
   "Death": {
    "take": "Barbelwalk_Death",
-   "frames": 82,
+   "frames": 48,
    "loop": false
+  },
+  "DeathR": {
+   "take": "Barbelwalk_DeathR",
+   "frames": 48,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Barbelwalk_Eat",
+   "frames": 181,
+   "loop": true
   },
   "Hurt": {
    "take": "Barbelwalk_Hurt",
-   "frames": 32,
+   "frames": 22,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Barbelwalk_HurtR",
+   "frames": 22,
    "loop": false
   },
   "Idle": {
    "take": "Barbelwalk_Idle",
-   "frames": 92,
+   "frames": 166,
    "loop": true
-  },
-  "IdleCall": {
-   "take": "Barbelwalk_IdleCall",
-   "frames": 182,
-   "loop": false
   },
   "Jump": {
    "take": "Barbelwalk_Jump",
-   "frames": 32,
+   "frames": 24,
    "loop": false
   },
-  "Lie": {
-   "take": "Barbelwalk_Lie",
-   "frames": 2,
+  "LieDown": {
+   "take": "Barbelwalk_LieDown",
+   "frames": 45,
    "loop": false
   },
   "Rest": {
    "take": "Barbelwalk_Rest",
-   "frames": 221,
+   "frames": 136,
    "loop": true
   },
   "Run": {
    "take": "Barbelwalk_Run",
-   "frames": 18,
+   "frames": 13,
    "loop": true
+  },
+  "Shake": {
+   "take": "Barbelwalk_Shake",
+   "frames": 45,
+   "loop": false
+  },
+  "Stand": {
+   "take": "Barbelwalk_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "StandUp": {
+   "take": "Barbelwalk_StandUp",
+   "frames": 40,
+   "loop": false
   },
   "Swim": {
    "take": "Barbelwalk_Swim",
-   "frames": 92,
+   "frames": 31,
    "loop": true
   },
-  "SwimAttack": {
-   "take": "Barbelwalk_SwimAttack",
-   "frames": 42,
-   "loop": false
+  "SwimFast": {
+   "take": "Barbelwalk_SwimFast",
+   "frames": 19,
+   "loop": true
   },
   "SwimIdle": {
    "take": "Barbelwalk_SwimIdle",
-   "frames": 62,
+   "frames": 76,
+   "loop": true
+  },
+  "SwimTurnL": {
+   "take": "Barbelwalk_SwimTurnL",
+   "frames": 31,
+   "loop": true
+  },
+  "SwimTurnR": {
+   "take": "Barbelwalk_SwimTurnR",
+   "frames": 31,
+   "loop": true
+  },
+  "TailSlap": {
+   "take": "Barbelwalk_TailSlap",
+   "frames": 34,
    "loop": false
   },
-  "SwimUnder": {
-   "take": "Barbelwalk_SwimUnder",
-   "frames": 72,
+  "TailSlapR": {
+   "take": "Barbelwalk_TailSlapR",
+   "frames": 34,
+   "loop": false
+  },
+  "ThreatDisplay": {
+   "take": "Barbelwalk_ThreatDisplay",
+   "frames": 54,
    "loop": false
   },
   "TurnL": {
    "take": "Barbelwalk_TurnL",
-   "frames": 82,
+   "frames": 31,
    "loop": true
   },
-  "TurnL180": {
-   "take": "Barbelwalk_TurnL180",
-   "frames": 102,
-   "loop": false
+  "TurnR": {
+   "take": "Barbelwalk_TurnR",
+   "frames": 31,
+   "loop": true
   },
   "Walk": {
    "take": "Barbelwalk_Walk",
-   "frames": 27,
+   "frames": 23,
    "loop": true
-  },
-  "WalkToIdle": {
-   "take": "Barbelwalk_WalkToIdle",
-   "frames": 52,
-   "loop": false
   }
  },
  "stride": {
-  "Run": 0.0,
-  "Walk": 0.607
+  "Run": 1.75,
+  "Walk": 0.791
  },
  "eyes": [
   {
    "object": "Mesh_Barbelwalk_EyeL",
    "centre": [
-    0.0052,
-    -1.243,
+    0.0282,
+    -0.883,
     0.4729
    ],
    "gaze": [
@@ -117,8 +167,8 @@
   {
    "object": "Mesh_Barbelwalk_EyeR",
    "centre": [
-    -0.1144,
-    -1.2466,
+    -0.0914,
+    -0.8866,
     0.4716
    ],
    "gaze": [
@@ -139,5 +189,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Barbelwalk/barbelwalk.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/barbelwalk/barbelwalk.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/barbelwalk"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/barbelwalk/cleanroom"
 }

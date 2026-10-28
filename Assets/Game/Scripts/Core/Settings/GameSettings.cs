@@ -27,7 +27,11 @@ namespace SpaceGame.Core
 
         // Bumped when a default changes in a way that should override what players already have
         // stored. Everything is re-seeded from defaults when the stored version is older.
-        private const int SchemaVersion = 2;
+        private const int SchemaVersion = 3;
+
+        // Schema 3 put the Low and Medium graphics tiers below what was the only quality level,
+        // so a stored index from before it points at Low, not at the level the player had.
+        private const int GraphicsTiersSchema = 3;
 
         /// <summary>
         /// Screen shake is the most over-applied juice technique there is, and the crash landing
@@ -553,8 +557,11 @@ namespace SpaceGame.Core
             if (loaded) return;
             loaded = true; // set first: the seeding below reads PlayerPrefs, not these properties
 
-            if (PlayerPrefs.GetInt(Prefix + "Version", 0) < SchemaVersion)
+            int storedVersion = PlayerPrefs.GetInt(Prefix + "Version", 0);
+            if (storedVersion < SchemaVersion)
             {
+                if (storedVersion < GraphicsTiersSchema)
+                    PlayerPrefs.DeleteKey(Prefix + "QualityLevel");
                 PlayerPrefs.SetInt(Prefix + "Version", SchemaVersion);
             }
 

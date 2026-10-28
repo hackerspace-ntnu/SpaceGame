@@ -35,7 +35,7 @@ symptoms:
   - "the interact prompt sits above the target instead of under the crosshair"
   - "the whole screen is red in a built player while playing, and normal when the game is paused"
 reads_with: [UI, Combat, PlayerCharacter, Multiplayer, InteractionSystem]
-updated: 2026-10-04
+updated: 2026-10-28
 ---
 
 # Visor
@@ -132,6 +132,7 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 - **Whose health it shows is resolved by `GameplayMenuScope.FindLocalPlayer(this)`, never by a `"Player"` tag search.** Every player object carries that tag, so a tag search returns an arbitrary one — which is how two of three players once watched a stranger's health bar.
 - `FindLocalPlayer` returning null is legitimate for a frame or more: NGO publishes the local player object *after* `OnNetworkSpawn`. Never cache the miss.
 - **Suit oxygen is server-authoritative**, exactly like health: a `NetworkVariable` written only by the server, and the drain and the suffocation damage applied only where `Network.Simulates` is true. A client cannot suffocate itself.
+- **Clients see the reserve and the tank in steps, not every frame.** `SuitOxygen.Publish` writes `networkSuit` / `networkTank` only past `suitPublishResolution` (0.1 s of air) / `tankPublishResolution` (0.1% of a tank), and always exactly on an edge: reserve reaching or leaving empty, reaching full; tank plugged in or out, running dry or coming back, reaching full, crossing `warnFraction`. Those are the values a client's own warnings and gauge relabelling compare against, so they stay exact; everything else lags by at most one step. The server's own fields are exact, and every server-side reader (`OxygenPlantMount`'s refilled check, `RefillAirStep`'s remark, the save) reads those, never the published copy. The edge rules are the static `SuitNeedsPublishing` / `TankNeedsPublishing`, pinned by `SupplyChargeTests`.
 - **Oxygen warnings are raised per-machine for its own player** (`IsOwner`), never server-side — announcing them on the authority would put one player's failing suit on everybody's visor.
 - **Damage direction reaches a client by its own owner-targeted RPC.** `NetworkedHealthComponent.AnnounceDamage` is a broadcast gated on a *player* having dealt the hit, so a client mauled by a creature is told nothing by it; `TellOwnerWhereFrom` is a unicast to the victim about their own body, cheap enough to send for every source. `NetMessaging` cannot carry it — that layer has no unicast.
 
@@ -157,6 +158,8 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 - **The warning banner stays visible at the Vitals detail level.** Turning the markers off is not consent to stop being told the suit is failing.
 - **LiberationSans has no warning triangle.** The banner's mark is ASCII `!` / `!!` on purpose; a glyph the font lacks renders as literally nothing, so the severity mark would silently vanish. Same rule as the "no glyph spinners" gotcha in [UI.md](UI.md).
 - **A `BreathableVolume` being disabled or streamed out raises no `OnTriggerExit`.** `BreathableVolume.OnDisable` calls `SuitOxygen.ForgetVolume` for exactly that reason: without it a player standing in a chunk that unloads keeps the shelter for ever and never breathes their own supply again.
+- **An idle vignette writes nothing to its materials.** At zero alpha the shader discards every pixel, so `HelmetDangerVignette` writes the faded-out frame once and then parks each side until a hit raises its alpha; its decay maths keeps running, since the next hit adds to the span it has shrunk to. Inspector tweaks to its look therefore show only on the next hit. Property ids are cached `Shader.PropertyToID` statics.
+- **`VisorGauge` re-formats its number only when the shown integer changes.** Everything else it sets every frame is equality-checked by the UI setters; the `ToString` was not.
 - **Front and back damage are deliberately indistinguishable.** There are two arcs, on the left and right edges; `HitFrom` splits a hit between them by its lateral component, so due-front and due-behind both split evenly. Saying "behind you" honestly would be a shader change, not a maths change.
 - **`ReportDamageDirection` changes no health.** The value arrives separately through the health `NetworkVariable`; applying it there as well would subtract the same hit twice.
 - **`Awake` does not run on an `AddComponent` in an EditMode test.** That is why every decision in `VisorGauge` is a static helper — `FractionOf`, `StateOf`, `ColourFor`, `ShowsHatch`, `SuffixFor` — rather than instance state.

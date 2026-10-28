@@ -33,7 +33,7 @@ symptoms:
   - "under water the view is normal, no haze or caustics, in most of a lake"
   - "looking up from under water the surface is completely white"
 reads_with: [Environment, ArtPipeline]
-updated: 2026-10-25
+updated: 2026-10-28
 ---
 
 # Stylized Water
@@ -55,6 +55,7 @@ Everything else follows.
 | `Water_Glacial` | `Mat_Water_Glacial` | mountains, tundra | milky glacial turquoise, cold shadows |
 | `Water_Lagoon` | `Mat_Water_Lagoon` | tropical coast | very clear aqua, strong caustics, deep falloff |
 | `Water_Blackwater` | `Mat_Water_Blackwater` | dark forest, peat bog | tea-amber shallows to near-black, strong mirror |
+| `Water_Ocean` | `Mat_Water_Ocean` (child of Lagoon) | open sea, dives | Lagoon with 4× clarity (6), deeper blues, deep colour at 9 m, caustics to 12 m |
 
 The variants are **prefab variants of `Water`** that only swap the material, and **material
 variants of `Mat_Water`** that only override colours and tuning — so a fix to the base prefab,

@@ -6,105 +6,141 @@
  "clips": {
   "Alert": {
    "take": "GoldRunner_Alert",
-   "frames": 65,
+   "frames": 75,
    "loop": false
   },
   "Attack": {
    "take": "GoldRunner_Attack",
-   "frames": 13,
+   "frames": 28,
    "loop": false
+  },
+  "AttackLeapKick": {
+   "take": "GoldRunner_AttackLeapKick",
+   "frames": 33,
+   "loop": false
+  },
+  "AttackPeck": {
+   "take": "GoldRunner_AttackPeck",
+   "frames": 22,
+   "loop": false
+  },
+  "Buck": {
+   "take": "GoldRunner_Buck",
+   "frames": 27,
+   "loop": false
+  },
+  "Charge": {
+   "take": "GoldRunner_Charge",
+   "frames": 21,
+   "loop": true
   },
   "Death": {
    "take": "GoldRunner_Death",
-   "frames": 41,
+   "frames": 60,
    "loop": false
   },
-  "Drink": {
-   "take": "GoldRunner_Drink",
-   "frames": 61,
+  "Dodge": {
+   "take": "GoldRunner_Dodge",
+   "frames": 27,
    "loop": false
+  },
+  "Eat": {
+   "take": "GoldRunner_Eat",
+   "frames": 151,
+   "loop": true
   },
   "Hurt": {
    "take": "GoldRunner_Hurt",
-   "frames": 38,
+   "frames": 18,
    "loop": false
   },
-  "HurtBack": {
-   "take": "GoldRunner_HurtBack",
-   "frames": 38,
-   "loop": false
-  },
-  "HurtL": {
-   "take": "GoldRunner_HurtL",
-   "frames": 38,
+  "HurtR": {
+   "take": "GoldRunner_HurtR",
+   "frames": 18,
    "loop": false
   },
   "Idle": {
    "take": "GoldRunner_Idle",
-   "frames": 31,
+   "frames": 151,
    "loop": true
-  },
-  "IdleRuffle": {
-   "take": "GoldRunner_IdleRuffle",
-   "frames": 61,
-   "loop": false
-  },
-  "IdleShake": {
-   "take": "GoldRunner_IdleShake",
-   "frames": 25,
-   "loop": false
   },
   "Jump": {
    "take": "GoldRunner_Jump",
-   "frames": 17,
+   "frames": 41,
    "loop": false
   },
-  "Land": {
-   "take": "GoldRunner_Land",
-   "frames": 101,
+  "MountKneel": {
+   "take": "GoldRunner_MountKneel",
+   "frames": 42,
+   "loop": false
+  },
+  "MountKneelIdle": {
+   "take": "GoldRunner_MountKneelIdle",
+   "frames": 76,
+   "loop": true
+  },
+  "MountRise": {
+   "take": "GoldRunner_MountRise",
+   "frames": 36,
+   "loop": false
+  },
+  "RiddenIdle": {
+   "take": "GoldRunner_RiddenIdle",
+   "frames": 136,
+   "loop": true
+  },
+  "Roar": {
+   "take": "GoldRunner_Roar",
+   "frames": 54,
    "loop": false
   },
   "Run": {
    "take": "GoldRunner_Run",
-   "frames": 13,
+   "frames": 21,
    "loop": true
+  },
+  "Shake": {
+   "take": "GoldRunner_Shake",
+   "frames": 50,
+   "loop": false
   },
   "Stand": {
    "take": "GoldRunner_Stand",
-   "frames": 91,
+   "frames": 2,
+   "loop": true
+  },
+  "Trot": {
+   "take": "GoldRunner_Trot",
+   "frames": 25,
    "loop": true
   },
   "TurnL": {
    "take": "GoldRunner_TurnL",
-   "frames": 65,
+   "frames": 31,
    "loop": true
   },
-  "TurnL180": {
-   "take": "GoldRunner_TurnL180",
-   "frames": 91,
-   "loop": false
+  "TurnR": {
+   "take": "GoldRunner_TurnR",
+   "frames": 31,
+   "loop": true
   },
   "Walk": {
    "take": "GoldRunner_Walk",
-   "frames": 25,
+   "frames": 37,
    "loop": true
-  },
-  "WalkAlert": {
-   "take": "GoldRunner_WalkAlert",
-   "frames": 25,
-   "loop": false
   }
  },
  "stride": {
-  "Run": 9.929,
-  "Walk": 1.526
+  "Run": 4.455,
+  "Trot": 2.475,
+  "Walk": 1.1
  },
  "eyes": [
   {
    "object": "Mesh_GoldRunner_EyeL",
    "centre": [
     0.2759,
-    -0.8824,
+    -0.8044,
     1.7885
    ],
    "gaze": [
@@ -118,7 +154,7 @@
    "object": "Mesh_GoldRunner_EyeR",
    "centre": [
     0.1191,
-    -0.8769,
+    -0.7989,
     1.7992
    ],
    "gaze": [
@@ -139,5 +175,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/GoldRunner/gold_runner.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/gold_runner/gold_runner.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/goldrunner"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/gold_runner/cleanroom"
 }

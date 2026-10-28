@@ -156,6 +156,11 @@ namespace SpaceGame.Agents
         // Optional parameters -- TurnSpeed, Hurt, and whatever dwell flags a creature's tasks name.
         // Writing a parameter a controller does not have logs a warning every frame per agent in
         // the Editor, so the controller is asked once and the answer cached.
+        private static readonly int SpeedXHash = Animator.StringToHash("SpeedX");
+        private static readonly int SpeedYHash = Animator.StringToHash("SpeedY");
+        private static readonly int FallSpeedHash = Animator.StringToHash("FallSpeed");
+        private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
+        private static readonly int IsImmobalizedHash = Animator.StringToHash("IsImmobalized");
         private static readonly int TurnSpeedHash = Animator.StringToHash("TurnSpeed");
         private static readonly int HurtHash = Animator.StringToHash("Hurt");
         private static readonly int MoveAnimSpeedHash = Animator.StringToHash(HumanoidParams.MoveAnimSpeed);
@@ -371,17 +376,17 @@ namespace SpaceGame.Agents
             float damp = snapLocomotion ? 0f : LocomotionDamping;
             snapLocomotion = false;
 
-            animator.SetFloat("SpeedX", localVelocity.x, damp, Time.deltaTime);
-            animator.SetFloat("SpeedY", localVelocity.z, damp, Time.deltaTime);
+            animator.SetFloat(SpeedXHash, localVelocity.x, damp, Time.deltaTime);
+            animator.SetFloat(SpeedYHash, localVelocity.z, damp, Time.deltaTime);
             if (HasParameter(MoveAnimSpeedHash, AnimatorControllerParameterType.Float))
                 animator.SetFloat(MoveAnimSpeedHash, HumanoidParams.StrideRate(
-                    new Vector2(animator.GetFloat("SpeedX"), animator.GetFloat("SpeedY")).magnitude, runClipSpeed));
-            animator.SetFloat("FallSpeed", worldVelocity.y, 0.1f, Time.deltaTime);
+                    new Vector2(animator.GetFloat(SpeedXHash), animator.GetFloat(SpeedYHash)).magnitude, runClipSpeed));
+            animator.SetFloat(FallSpeedHash, worldVelocity.y, 0.1f, Time.deltaTime);
             // Not a constant any more. A jump on a NavMeshAgent moves baseOffset, which never
             // reaches the velocity this method is handed, so the motor is the only thing that
             // knows the animal is in the air.
-            animator.SetBool("IsGrounded", jumpMotor == null || !jumpMotor.IsAirborne);
-            animator.SetBool("IsImmobalized", isImmobile);
+            animator.SetBool(IsGroundedHash, jumpMotor == null || !jumpMotor.IsAirborne);
+            animator.SetBool(IsImmobalizedHash, isImmobile);
 
             // Not scaled by speedScale: this is a real rate in degrees/second, and the controller
             // thresholds it against one. Damped harder than the speeds because a NavMeshAgent's
@@ -407,11 +412,20 @@ namespace SpaceGame.Agents
         public void SetBoolByName(string parameterName, bool value)
         {
             if (string.IsNullOrEmpty(parameterName)) return;
+
+            SetBoolIfPresent(Animator.StringToHash(parameterName), value);
+        }
+
+        /// <summary>
+        /// <see cref="SetBoolByName"/> for a caller that hashed the name once
+        /// (<see cref="Animator.StringToHash"/>), so a flag written every frame costs no hashing.
+        /// </summary>
+        public void SetBoolIfPresent(int parameterHash, bool value)
+        {
             if (!animator || animator.runtimeAnimatorController == null) return;
 
-            int hash = Animator.StringToHash(parameterName);
-            if (HasParameter(hash, AnimatorControllerParameterType.Bool))
-                animator.SetBool(hash, value);
+            if (HasParameter(parameterHash, AnimatorControllerParameterType.Bool))
+                animator.SetBool(parameterHash, value);
         }
 
         private bool HasParameter(int hash, AnimatorControllerParameterType type)

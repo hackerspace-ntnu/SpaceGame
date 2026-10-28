@@ -492,21 +492,26 @@ Shader "SpaceGame/AlgaeRock"
             ColorMask 0
 
             HLSLPROGRAM
-            #pragma vertex   depthVert
-            #pragma fragment depthFrag
+            #pragma vertex   RigidDepthVert
+            #pragma fragment RigidDepthFrag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "../DepthNormals.hlsl"
+            ENDHLSL
+        }
 
-            struct DepthAttr { float4 positionOS : POSITION; };
-            struct DepthVary { float4 positionCS : SV_POSITION; };
+        // ---------------- Depth-normals ----------------
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode"="DepthNormals" }
+            ZWrite On
 
-            DepthVary depthVert(DepthAttr IN)
-            {
-                DepthVary OUT;
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-                return OUT;
-            }
-
-            half4 depthFrag(DepthVary IN) : SV_Target { return 0; }
+            HLSLPROGRAM
+            #pragma vertex   RigidDepthVert
+            #pragma fragment RigidDepthNormalsFrag
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "../DepthNormals.hlsl"
             ENDHLSL
         }
     }

@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78bc78f71f784959b07342dd69ecef3f, type: 3}
+  m_Name: WildCreatureRoster
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::SpaceGame.EditorTools.WildCreatureRoster
+  entries:
+  - name: Barbelwalk
+    height: 1.56
+    rideable: 0
+    saddleBone: 
+  - name: Coilhorn
+    height: 2.4
+    rideable: 0
+    saddleBone: 
+  - name: DomeBack
+    height: 4.4
+    rideable: 0
+    saddleBone: 
+  - name: Drovecamel
+    height: 3.9
+    rideable: 1
+    saddleBone: Spine2
+  - name: FrillBoar
+    height: 4.2
+    rideable: 1
+    saddleBone: Spine2
+  - name: Frillneck
+    height: 3.6
+    rideable: 0
+    saddleBone: 
+  - name: GoldRunner
+    height: 4.2
+    rideable: 1
+    saddleBone: Spine2
+  - name: HoodLizard
+    height: 2.55
+    rideable: 0
+    saddleBone: 
+  - name: Jerbo
+    height: 1.0
+    rideable: 0
+    saddleBone: 
+  - name: Kaval
+    height: 2.25
+    rideable: 0
+    saddleBone: 
+  - name: MothDrake
+    height: 5.4
+    rideable: 0
+    saddleBone: 
+  - name: NeedleWader
+    height: 3.25
+    rideable: 0
+    saddleBone: 
+  - name: PalmNeck
+    height: 5.3
+    rideable: 0
+    saddleBone: 
+  - name: Plumeneck
+    height: 4.8
+    rideable: 1
+    saddleBone: Spine2
+  - name: SailCrest
+    height: 7.8
+    rideable: 1
+    saddleBone: Spine2
+  - name: SailRay
+    height: 2.0
+    rideable: 0
+    saddleBone: 
+  - name: ShellBear
+    height: 4.2
+    rideable: 1
+    saddleBone: Spine2
+  - name: Skarn
+    height: 2.31
+    rideable: 0
+    saddleBone: 
+  - name: SpikeJerbo
+    height: 0.97
+    rideable: 0
+    saddleBone: 
+  - name: SpineGrazer
+    height: 4.1
+    rideable: 1
+    saddleBone: Spine2
+  - name: Starscraper
+    height: 10.5
+    rideable: 0
+    saddleBone: 
+  - name: Tewe
+    height: 4.9
+    rideable: 1
+    saddleBone: Spine2
+  - name: Trilopod
+    height: 1.8
+    rideable: 0
+    saddleBone: 
+  - name: WingWalker
+    height: 4.8
+    rideable: 1
+    saddleBone: Spine2

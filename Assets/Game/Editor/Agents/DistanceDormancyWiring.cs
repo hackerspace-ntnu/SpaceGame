@@ -5,7 +5,7 @@
 // Scope is by folder because the folders already sort the agents: people, robots and animals under
 // Agents/Characters, Robots and creatures, and the caravan's mounted variants of them under
 // Agents/Caravan; vehicles, ships and the sky fleet elsewhere. Matched without case — git holds both
-// Prefabs/Agents/ and Prefabs/agents/.
+// Prefabs/Agents/ and Prefabs/Agents/.
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;

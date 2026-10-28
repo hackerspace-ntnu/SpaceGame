@@ -30,7 +30,7 @@ namespace SpaceGame.EditorTools
     {
         private const string ClankerFactionPath = "Assets/Game/ScriptableObjects/Factions/Core/ClankerFaction.asset";
         private const string HumanoidControllerPath = HumanoidControllerBuilder.ControllerPath;
-        private const string HumanoidNpcPath = "Assets/Game/Prefabs/agents/Characters/Drifters/Drifter_Human.prefab";
+        private const string HumanoidNpcPath = "Assets/Game/Prefabs/Agents/Characters/Drifters/Drifter_Human.prefab";
 
         private static IEnumerable<string> AllBodies => ClankerBuilder.AllPrefabPaths;
 

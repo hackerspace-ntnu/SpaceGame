@@ -233,7 +233,7 @@ namespace SpaceGame.EditorTools
         public void TheNomadPrefabRechecksSightOnAnInterval()
         {
             var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Game/Prefabs/agents/Characters/Nomad.prefab");
+                "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab");
             Assert.IsNotNull(prefab);
             var perception = prefab.GetComponent<PerceptionModule>();
             Assert.IsNotNull(perception);

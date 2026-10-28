@@ -8,7 +8,7 @@ paths:
   - Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs
   - Assets/Game/Editor/Traversal/LadderClimberWiring.cs
   - Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs
-  - Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs
+  - Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs
   - Assets/Game/Editor/Tests/LadderTests.cs
   - Assets/Game/Editor/Tests/LadderTraversalTests.cs
 symptoms:
@@ -34,7 +34,7 @@ on the player does the player's climbing; `NavMeshAgentMotor` (its `.Links.cs` p
 **Scope:** [Ladder.cs](Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs) ·
 [LadderClimber.cs](Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs) ·
 [LadderClimberWiring.cs](Assets/Game/Editor/Traversal/LadderClimberWiring.cs) · [NavLinkAreas.cs](Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs) ·
-[NavMeshAgentMotor.Links.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs)
+[NavMeshAgentMotor.Links.cs](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs)
 **Where ladders come from:**
 - the Sky City's seven `LAD_SkyCity_##` markers
 - the [dune barge](DuneBarge.md)'s five `LAD_*` markers

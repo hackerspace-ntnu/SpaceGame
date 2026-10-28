@@ -1,4 +1,4 @@
-// Builds Assets/Game/Prefabs/agents/vehicle/DesertCrawler.prefab from
+// Builds Assets/Game/Prefabs/Agents/vehicle/DesertCrawler.prefab from
 // Assets/Game/Art/Models/Vehicles/Crawler/desert_crawler.fbx.
 //
 // The crawler is a six-legged habitat: a chassis on six mech legs, two container modules with a

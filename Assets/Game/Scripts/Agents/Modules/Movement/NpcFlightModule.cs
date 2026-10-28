@@ -1,4 +1,4 @@
-// Assets/Game/Scripts/agents/Modules/Movement/NpcFlightModule.cs
+// Assets/Game/Scripts/Agents/Modules/Movement/NpcFlightModule.cs
 // Flies a Sky nomad on its wing pack. When where it is going is too far to walk — its own goal, or for a
 // formation follower its leader's (D5: each pilot flies alone to the shared goal) — it deploys the
 // same craft the player flies (NpcOrnithopter), rides it there and steps off; GoalTravelModule walks the

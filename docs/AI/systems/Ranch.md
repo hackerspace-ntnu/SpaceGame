@@ -6,18 +6,18 @@ paths:
   - Assets/Game/Scripts/World/Ranch/
   - Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/CreatureTrustSaveable.cs
-  - Assets/Game/Scripts/agents/AI/Goals/ScriptedStand.cs
+  - Assets/Game/Scripts/Agents/AI/Goals/ScriptedStand.cs
   - Assets/Game/Editor/World/RanchStockBuilder.cs
   - Assets/Game/Editor/Tests/RanchTests.cs
   - Assets/Game/Scenes/world/gameScene.unity
   - Assets/Game/ScriptableObjects/Ranch/RaxyRanchSite.asset
   - Assets/Game/ScriptableObjects/Objectives/Ranch/
   - Assets/Game/Prefabs/Environment/Structures/NomadSettlement/RanchCorral.prefab
-  - Assets/Game/Prefabs/agents/creatures/Esko.prefab
+  - Assets/Game/Prefabs/Agents/creatures/Esko.prefab
   - Assets/Game/Art/Animations/Creatures/Esko.controller
-  - Assets/Game/Prefabs/agents/creatures/Esko_Ranch.prefab
-  - Assets/Game/Prefabs/agents/creatures/Esko_Wild.prefab
-  - Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Wrangler.prefab
+  - Assets/Game/Prefabs/Agents/creatures/Esko_Ranch.prefab
+  - Assets/Game/Prefabs/Agents/creatures/Esko_Wild.prefab
+  - Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Wrangler.prefab
 symptoms:
   - "there is no wrangler in the Raxy town / nobody offers the ranch quest"
   - "the esko will not take the saddle"

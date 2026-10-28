@@ -249,7 +249,7 @@ namespace SpaceGame.EditorTools
     {
         /// <summary>The ship every team arrives in, and the one the arrival flies.</summary>
         private const string ShipPrefabPath =
-            "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
+            "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         private static GameObject Ship()
         {

@@ -62,7 +62,7 @@ namespace SpaceGame.EditorTools
         [SerializeField] private string reducedMeshFolder = "LOD";
 
         [Tooltip("Prefab folders (not their subfolders) whose characters get LODs: by the menu item, and by the drifter builder for its own prefabs in them.")]
-        [SerializeField] private string[] characterFolders = { "Assets/Game/Prefabs/agents/Characters/Raxy" };
+        [SerializeField] private string[] characterFolders = { "Assets/Game/Prefabs/Agents/Characters/Raxy" };
 
         public float FullDetailAbove => fullDetailAbove;
         public float ReducedAbove => reducedAbove;

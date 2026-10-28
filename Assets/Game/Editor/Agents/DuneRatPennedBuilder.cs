@@ -20,8 +20,8 @@ namespace SpaceGame.EditorTools
 {
     public static class DuneRatPennedBuilder
     {
-        public const string BasePath = "Assets/Game/Prefabs/agents/creatures/DuneRat.prefab";
-        public const string VariantPath = "Assets/Game/Prefabs/agents/creatures/DuneRat_Penned.prefab";
+        public const string BasePath = "Assets/Game/Prefabs/Agents/creatures/DuneRat.prefab";
+        public const string VariantPath = "Assets/Game/Prefabs/Agents/creatures/DuneRat_Penned.prefab";
         private const string FaunaPath = "Assets/Game/ScriptableObjects/Factions/Core/FaunaFaction.asset";
 
         // How far from where it stands the rat picks its next point, and how far off a candidate the NavMesh

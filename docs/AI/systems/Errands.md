@@ -3,14 +3,14 @@ system: Errands
 layer: characters
 summary: "Residents' chores (some moving real props), ambles, pairs, patrols, and the jobs decorations bring"
 paths:
-  - Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs
-  - Assets/Game/Scripts/agents/Residents/Plan/ChoreRounds.cs
-  - Assets/Game/Scripts/agents/Residents/Core/Companions.cs
-  - Assets/Game/Scripts/agents/Residents/Core/PerimeterRing.cs
-  - Assets/Game/Scripts/agents/Residents/Data/ChoreDefinition.cs
+  - Assets/Game/Scripts/Agents/Residents/Body/ErrandRunner.cs
+  - Assets/Game/Scripts/Agents/Residents/Plan/ChoreRounds.cs
+  - Assets/Game/Scripts/Agents/Residents/Core/Companions.cs
+  - Assets/Game/Scripts/Agents/Residents/Core/PerimeterRing.cs
+  - Assets/Game/Scripts/Agents/Residents/Data/ChoreDefinition.cs
   - Assets/Game/ScriptableObjects/Residents/Chores/
-  - Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.cs
-  - Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.SettlementWork.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.SettlementWork.cs
   - Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/
 symptoms:
   - "a basket or crate in a settlement never moves, though haulers walk to it"
@@ -34,7 +34,7 @@ What residents do INSIDE a plan segment, beyond standing at a place: watering pl
 and crates), bringing in the harvest, feeding animals, carrying firewood, wandering, walking in pairs, patrolling the perimeter,
 standing watch up a tower — and the settlement work the decorations bring: every working decoration (a forge, a loom, a drill rig,
 a farm bed) carries its job post and a `SettlementFixture` the item scanner lists. The day plan ([Residents.md](Residents.md)) still says only
-*when and roughly where*; [ErrandRunner](Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs) names the stop.
+*when and roughly where*; [ErrandRunner](Assets/Game/Scripts/Agents/Residents/Body/ErrandRunner.cs) names the stop.
 
 ## Model
 A segment whose activity is `Chore`, `Amble` or `Patrol` is still ONE plan segment. Once its walk to the anchor place is over,

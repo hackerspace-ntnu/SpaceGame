@@ -3,7 +3,7 @@ system: MountSystem
 layer: vehicles
 summary: Merged into Vehicles.md; only the motor capability matrix and mount setup dials remain here.
 paths:
-  - Assets/Game/Scripts/agents/Modules/Riding/
+  - Assets/Game/Scripts/Agents/Modules/Riding/
 symptoms:
   - "looking for the mount system doc"
   - "which motor supports jump, leap or a vertical axis"
@@ -18,11 +18,11 @@ updated: 2026-10-03
 
 **Merged into [Vehicles.md](Vehicles.md)** — model, key types, flows, multiplayer, persistence, gotchas and the recipe for a new rideable all live there. This page keeps only the setup dials.
 
-Files moved: the mount code is `Assets/Game/Scripts/agents/Modules/Riding/`, **not** `agents/modules/`.
+Files moved: the mount code is `Assets/Game/Scripts/Agents/Modules/Riding/`, **not** `agents/modules/`.
 
 ## Motor capability matrix
 
-| Motor ([Motors/](Assets/Game/Scripts/agents/AI/Motors/)) | Rider steer | Jump / Leap | Vertical axis | Needs |
+| Motor ([Motors/](Assets/Game/Scripts/Agents/AI/Motors/)) | Rider steer | Jump / Leap | Vertical axis | Needs |
 |---|---|---|---|---|
 | `NavMeshAgentMotor` | tank | ✅ / ✅ | ❌ | baked NavMesh + `NavMeshAgent` |
 | `HoverRigidbodyMotor` | throttle + yaw | ❌ | ❌ — `input.Vertical` ignored; holds `rideHeight` over ground | Rigidbody + `HoverGroundSensor` |

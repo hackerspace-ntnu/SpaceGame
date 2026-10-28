@@ -24,7 +24,7 @@ namespace SpaceGame.EditorTools
         /// <summary>Folders whose every source file is expedition code.</summary>
         private static readonly string[] ExpeditionFolders =
         {
-            "Assets/Game/Scripts/agents/Expeditions",
+            "Assets/Game/Scripts/Agents/Expeditions",
             "Assets/Game/Editor/Agents/Expeditions",
         };
 
@@ -44,7 +44,7 @@ namespace SpaceGame.EditorTools
             "Assets/Game/Editor/World/WorldChunkScenes.cs",                                        // the chunk walk the baker and the menus share
         };
 
-        private const string ResidentsFolder = "Assets/Game/Scripts/agents/Residents";
+        private const string ResidentsFolder = "Assets/Game/Scripts/Agents/Residents";
 
         /// <summary>A line in <see cref="ResidentsFolder"/> that names an expedition member is an expedition edit.</summary>
         private static readonly Regex ExpeditionMember =
@@ -161,7 +161,7 @@ namespace SpaceGame.EditorTools
 
         /// <summary>
         /// The on-disk path of <paramref name="relative"/>, matching each segment regardless of case: git tracks both
-        /// Scripts/Agents and Scripts/agents, and only one of them is on disk. Fails when it does not exist.
+        /// Scripts/Agents and Scripts/Agents, and only one of them is on disk. Fails when it does not exist.
         /// </summary>
         private static string Resolve(string root, string relative)
         {

@@ -5,9 +5,9 @@ summary: "A Seat is what residents and players sit ON: sit point, foot drop, one
 paths:
   - Assets/Game/Scripts/World/Seating/
   - Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs
-  - Assets/Game/Scripts/agents/Residents/Body/ResidentSeating.cs
-  - Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs
-  - Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs
+  - Assets/Game/Scripts/Agents/Residents/Body/ResidentSeating.cs
+  - Assets/Game/Scripts/Agents/Residents/Body/SeatedBodyFit.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/SeatPlacer.cs
   - Assets/Game/Prefabs/Environment/Decorations/Furniture
   - Assets/Game/Editor/Tests/SeatTests.cs
 symptoms:
@@ -53,11 +53,11 @@ whose spot is a sit takes a free seat or does not sit; a player right-clicks a f
 | Type | Role |
 |---|---|
 | [`Seat`](Assets/Game/Scripts/World/Seating/Seat.cs) | the component above; also `IInteractable` ("RMB: sit"), `IContextualInteractable` (only a player who may sit), `IInteractionMoment` (`None`) |
-| [`ResidentSeating`](Assets/Game/Scripts/agents/Residents/Body/ResidentSeating.cs) | server only, owned by `ResidentRoutine`: `Sync(society, wantedPlace, arrived)` sits and stands, `Release` / `Abandon` |
-| [`ResidentPresence`](Assets/Game/Scripts/agents/Residents/Body/ResidentPresence.cs) | `seat` NetworkVariable; every machine records the claim on its own copy of the seat, raises `Seated` for a `Stool` seat, and holds the sit loop only on a `Floor` seat |
-| [`SeatedBodyFit`](Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs) | after the animator: moves the model until the hips rest on the seat (`TargetLift`: lifted for a Floor sit, lifted or lowered by up to `stoolMaxDrop` for a Stool sit); visual, local |
+| [`ResidentSeating`](Assets/Game/Scripts/Agents/Residents/Body/ResidentSeating.cs) | server only, owned by `ResidentRoutine`: `Sync(society, wantedPlace, arrived)` sits and stands, `Release` / `Abandon` |
+| [`ResidentPresence`](Assets/Game/Scripts/Agents/Residents/Body/ResidentPresence.cs) | `seat` NetworkVariable; every machine records the claim on its own copy of the seat, raises `Seated` for a `Stool` seat, and holds the sit loop only on a `Floor` seat |
+| [`SeatedBodyFit`](Assets/Game/Scripts/Agents/Residents/Body/SeatedBodyFit.cs) | after the animator: moves the model until the hips rest on the seat (`TargetLift`: lifted for a Floor sit, lifted or lowered by up to `stoolMaxDrop` for a Stool sit); visual, local |
 | [`PlayerSeating`](Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs) | `NetMsg.SitRequest` (120) / `StandRequest` (121), owner to server on the player's relay |
-| [`SeatPlacer`](Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs) | menu `Tools/SpaceGame/Residents/Place Seats At Sit Spots`, also run by `ResidentErrandContentBuilder.Run` |
+| [`SeatPlacer`](Assets/Game/Scripts/Agents/Residents/Editor/SeatPlacer.cs) | menu `Tools/SpaceGame/Residents/Place Seats At Sit Spots`, also run by `ResidentErrandContentBuilder.Run` |
 | `SettlementPlaces.SeatlessSpots` | each seat serves ONE spot; used by Generate's problem list and `SeatTests` |
 
 ## Flows

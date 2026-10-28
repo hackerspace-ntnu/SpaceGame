@@ -129,7 +129,7 @@ the downhill side.
 
 Passengers board through [`VesselSeats`](../../../Assets/Game/Scripts/Vehicles/SkyVessel/VesselSeats.cs),
 which is a thin per-machine presentation layer (poses a rider with `ChairPose`, ignores its
-collisions with the hull) over [`NpcSeating`](../../../Assets/Game/Scripts/agents/Modules/Riding/NpcSeating.cs)
+collisions with the hull) over [`NpcSeating`](../../../Assets/Game/Scripts/Agents/Modules/Riding/NpcSeating.cs)
 — the same suppress/restore mechanics a mounted caravan rider uses (`NpcPassenger`). Never
 reimplement seating: `NpcSeating.Suppress`/`Restore`/`Abandon` are what take an NPC's feet without
 touching its brain (it keeps targeting and firing from the seat) and what hand them back only to a

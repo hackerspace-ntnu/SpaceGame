@@ -15,7 +15,7 @@ namespace SpaceGame.EditorTools
     {
         private const string PrefabPath = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/ShockHarpoon.prefab";
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/ShockHarpoon.asset";
-        private const string RaxyPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Drifter_Raxy 2.prefab";
+        private const string RaxyPath = "Assets/Game/Prefabs/Agents/Characters/Raxy/Drifter_Raxy 2.prefab";
 
         /// <summary>WCAG 2.3.1: no more than three flashes in any one second.</summary>
         private const float MaxFlashesPerSecond = 3f;

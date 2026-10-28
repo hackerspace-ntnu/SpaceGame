@@ -19,7 +19,7 @@ one — read [spacegame-agent](../spacegame-agent/SKILL.md) first if a new creat
 needed; this skill assumes the people already exist as agent prefabs.
 
 The Sand Tribe is the worked example throughout: `SandTribeFaction.asset`, `SandTribe.asset`, the
-`Nomad_*` prefabs under `Assets/Game/Prefabs/agents/Characters/`, and
+`Nomad_*` prefabs under `Assets/Game/Prefabs/Agents/Characters/`, and
 [RosterAssetTests.cs](../../../Assets/Game/Editor/Tests/RosterAssetTests.cs).
 
 **Everything here is an authored asset.** The editor scripts that used to generate tribes —

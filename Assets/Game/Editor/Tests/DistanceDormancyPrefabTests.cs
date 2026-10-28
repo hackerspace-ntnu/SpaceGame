@@ -9,7 +9,7 @@ namespace SpaceGame.EditorTools
     public class DistanceDormancyPrefabTests
     {
         [TestCase("Assets/Game/Prefabs/Agents/Characters/Nomad.prefab", true)]
-        [TestCase("Assets/Game/Prefabs/agents/creatures/CrabWalker6.prefab", true)]
+        [TestCase("Assets/Game/Prefabs/Agents/creatures/CrabWalker6.prefab", true)]
         [TestCase("Assets/Game/Prefabs/Agents/Robots/Clanker.prefab", true)]
         [TestCase("Assets/Game/Prefabs/Agents/Caravan/NomadAppa.prefab", true)]
         [TestCase("Assets/Game/Prefabs/Agents/Vehicles/Ground/RigWalker.prefab", false)]

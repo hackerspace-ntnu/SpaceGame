@@ -242,7 +242,7 @@ namespace SpaceGame.EditorTools
 | --- | --- |
 | Spawn with it | `PlayerInventoryNetwork.startingItems` on `Assets/Game/Prefabs/Characters/Player/PlayerCharacterNetworked.prefab` |
 | Dev browser | Nothing to wire — press `I` with `GameSettings.DevMode`; it lists the whole registry |
-| NPC death | `EntityLootTable.lootEntries` (`Scripts/agents/Entity/EntityLootTable.cs`) |
+| NPC death | `EntityLootTable.lootEntries` (`Scripts/Agents/Entity/EntityLootTable.cs`) |
 | Barter | `TradeOffer.wants` / `.gives` (`Scripts/Gameplay/Trading/TradeOffer.cs`) |
 | Lying in the world | Place a prefab instance in a chunk scene; `PickupableItem` does the rest |
 | An NPC using it | `EntityInventoryComponent` + `NpcItemUseModule` |

@@ -11,11 +11,11 @@ paths:
   - Assets/Game/Editor/Workshop/CarriedGearItems.cs
   - Assets/Game/Editor/Workshop/GearThiefCampPlacer.cs
   - Assets/Game/Editor/Tests/WorkshopMissionTests.cs
-  - Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Gatekeeper.prefab
-  - Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily.prefab
-  - Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab
-  - Assets/Game/Prefabs/agents/Caravan/Raider_GearThief.prefab
-  - Assets/Game/Prefabs/agents/Caravan/Raider_GearCarrier.prefab
+  - Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Gatekeeper.prefab
+  - Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily.prefab
+  - Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab
+  - Assets/Game/Prefabs/Agents/Caravan/Raider_GearThief.prefab
+  - Assets/Game/Prefabs/Agents/Caravan/Raider_GearCarrier.prefab
   - Assets/Game/Prefabs/Items/Workshop/HeartGear.prefab
   - Assets/Game/Prefabs/Items/Workshop/VaultReactorCore.prefab
   - Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset

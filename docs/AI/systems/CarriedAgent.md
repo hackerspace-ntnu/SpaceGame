@@ -3,8 +3,8 @@ system: CarriedAgent
 layer: characters
 summary: "A rope or a rocket lifts a NavMesh creature off its mesh; the motor carries it, falls it, lands it"
 paths:
-  - Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs
-  - Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs
+  - Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Carry.cs
+  - Assets/Game/Scripts/Agents/AI/Motors/AgentCarry.cs
   - Assets/Game/Editor/Tests/AgentCarryTests.cs
 symptoms:
   - "a jetpack cannot lift the creature I roped, it just skids along the ground"
@@ -27,8 +27,8 @@ updated: 2026-10-14
 A rope, or a motor strapped to the animal, can take a NavMesh-driven creature off the mesh and hold
 it in the air.
 
-**Scope:** [NavMeshAgentMotor.Carry.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs)
-(the state), [AgentCarry.cs](Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs) (the arithmetic),
+**Scope:** [NavMeshAgentMotor.Carry.cs](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Carry.cs)
+(the state), [AgentCarry.cs](Assets/Game/Scripts/Agents/AI/Motors/AgentCarry.cs) (the arithmetic),
 [AgentCarryTests.cs](Assets/Game/Editor/Tests/AgentCarryTests.cs).
 **Related:** [AgentSystem.md](AgentSystem.md) (the motor) · [LeashSystem.md](LeashSystem.md) and
 [StrapOnBooster.md](StrapOnBooster.md) (the callers) · [Jetpack.md](Jetpack.md) (what lifts) ·
@@ -72,9 +72,9 @@ angry (`GDC-L1-SYS-0005`: a carry that disabled it would be doing the net's job 
 
 | Type | File | Role |
 |---|---|---|
-| `NavMeshAgentMotor` (partial) | [NavMeshAgentMotor.Carry.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs) | `ITowable` (`TowAttachPoint`, `RequestTow`, `RequestThrust`), `IsCarried`, `BeginCarry`/`EndCarry`/`AbandonCarry`, the `FixedUpdate` fall and `TryLand` |
-| `AgentCarry` | [AgentCarry.cs](Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs) | Pure: `IsLift` (slope), `Fall` (gravity + terminal speed), `HasLanded` (tolerance that grows with the fall), `ThrustDragSpeed` (a push along the mesh, bounded) |
-| `ITowable` | [ITowable.cs](Assets/Game/Scripts/agents/AI/Motors/ITowable.cs) | The rope **and** thrust channel. Also `LeggedDriver`, `OrnithopterFlightMotor` |
+| `NavMeshAgentMotor` (partial) | [NavMeshAgentMotor.Carry.cs](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Carry.cs) | `ITowable` (`TowAttachPoint`, `RequestTow`, `RequestThrust`), `IsCarried`, `BeginCarry`/`EndCarry`/`AbandonCarry`, the `FixedUpdate` fall and `TryLand` |
+| `AgentCarry` | [AgentCarry.cs](Assets/Game/Scripts/Agents/AI/Motors/AgentCarry.cs) | Pure: `IsLift` (slope), `Fall` (gravity + terminal speed), `HasLanded` (tolerance that grows with the fall), `ThrustDragSpeed` (a push along the mesh, bounded) |
+| `ITowable` | [ITowable.cs](Assets/Game/Scripts/Agents/AI/Motors/ITowable.cs) | The rope **and** thrust channel. Also `LeggedDriver`, `OrnithopterFlightMotor` |
 
 Tunables, all on the motor: `carryEnterSlope` 0.7 · `carryLandTolerance` 0.15 m ·
 `maxCarryFallSpeed` 30 m/s · `maxThrustDragSpeed` 20 m/s. Gravity is `Physics.gravity` — this

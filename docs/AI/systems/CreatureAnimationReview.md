@@ -55,7 +55,7 @@ A tool for judging creature clips by eye and recording the verdict. *Tools ▸ S
 
 ## Flows
 
-1. **Catalog:** every prefab under `Prefabs/agents/creatures` (recursive) with an `Animator`. Model
+1. **Catalog:** every prefab under `Prefabs/Agents/creatures` (recursive) with an `Animator`. Model
    = the avatar's asset, or — no avatar (Esko, Caraxoids, Glintback, Sporeling, Vrescal) — the
    model file most of the controller's clips come from. Prefabs sharing a model are one body
    (Esko/Esko_Ranch/Esko_Wild → Esko; first path wins). Clips = the model's takes ∪ the

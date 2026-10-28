@@ -3,8 +3,8 @@ system: Stations
 layer: characters
 summary: "A spot whose prop calls for one work cue, the tool its clips need and a stand point its reach lands on"
 paths:
-  - Assets/Game/Scripts/agents/Residents/Plan/StationStand.cs
-  - Assets/Game/Scripts/agents/Residents/Editor/StationAuthoring.cs
+  - Assets/Game/Scripts/Agents/Residents/Plan/StationStand.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/StationAuthoring.cs
   - Assets/Game/ScriptableObjects/Animation/Cues
 symptoms:
   - "a cook stirs, ploughs or swings a pickaxe at the stove"
@@ -42,7 +42,7 @@ A **station** is the contract that replaces that, kept entirely in data.
 - **A cue's loops are exactly its list.** `StationAuthoring` tags the listed actions and removes the cue from every other *looping*
   action (a one-shot is never held, and a moment may still ask for it). The cooking actions also keep the family tag `cook`, which no
   spot holds; chat (`/act cook`) and `Express(cook)` still use it.
-- **Stand point derived from target and reach** ([`StationStand`](Assets/Game/Scripts/agents/Residents/Plan/StationStand.cs)): for a spot that
+- **Stand point derived from target and reach** ([`StationStand`](Assets/Game/Scripts/Agents/Residents/Plan/StationStand.cs)): for a spot that
   names a target and holds a cue with a measured reach (the mean of the cue's looping actions that fit a standing body), the authored
   point moves toward the target until the reach lands on it, by at most `ResidentTuning.stationMaxShift` (0.6 m), never closer than
   `stationMinDistance` (1.0 m) and never farther than authored, then the usual NavMesh check (`SettlementPlaces.TryStand`). The derived point is
@@ -57,7 +57,7 @@ A **station** is the contract that replaces that, kept entirely in data.
 | Type | Role |
 | --- | --- |
 | `SpotUse` / `SettlementSpot` ([Spots/](Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots)) | the kind of spot; the prop's spot with its optional `stationCue`, `HoldCue`, `HasTarget` |
-| `SettlementPlace.HoldCue` ([Core/](Assets/Game/Scripts/agents/Residents/Core/SettlementPlace.cs)) | the loop held at a place; what `ResidentPresence` holds on every machine |
+| `SettlementPlace.HoldCue` ([Core/](Assets/Game/Scripts/Agents/Residents/Core/SettlementPlace.cs)) | the loop held at a place; what `ResidentPresence` holds on every machine |
 | `StationStand` | pure rule: mean reach of a cue's loops, `Derive` the stand point, `Shortfall` of the tool |
 | `CharacterCue.Tools` / `BareHands` | the tool contract; read by `ResidentHands.Station` |
 | `ResidentHands.Station` | draws the cue's tool if the resident carries one (its usual tool when that is among them), or puts its tool on the belt for a bare-hands cue |
@@ -87,7 +87,7 @@ as before. State explicitly: no station state is saved, and a reload re-derives 
 - **A cue is a pool.** Anything tagged with a cue plays for every caller that asks for it. Adding a tag to a station cue's action without adding it to
   `StationAuthoring.Cues` is undone by the next *Author Station Cues* run, which removes every other looping action from the cue.
 - **A spot's cue is data on two levels.** `SpotUse.holdCue` is the default for the kind; `SettlementSpot.stationCue` overrides it for one prop. The builder
-  ([ResidentErrandContentBuilder](Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.cs)) no longer sets a cue: it clears the cue and
+  ([ResidentErrandContentBuilder](Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.cs)) no longer sets a cue: it clears the cue and
   calls `StationAuthoring.Author()`, so a re-run lands on the same data. A prefab override lives in the prefab (the grill's spot in `Deco_GrillBrazier` and
   the flattened copy in `NomadKitchen`; nested instances inherit it).
 - **A resident on a seat reads `Standing`.** The animator's `Seated` flag is only raised by the player's `ChairPose`, so sit loops are limited to either posture

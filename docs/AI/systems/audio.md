@@ -5,7 +5,7 @@ summary: FMOD behind an SfxId vocabulary; one Resources AudioCatalog maps meanin
 paths:
   - Assets/Game/Scripts/Audio/
   - Assets/Game/Scripts/Presentation/Audio/
-  - Assets/Game/Scripts/agents/Audio/
+  - Assets/Game/Scripts/Agents/Audio/
   - Assets/Game/Resources/AudioCatalog.asset
   - Assets/Game/Audio/
 symptoms:
@@ -29,7 +29,7 @@ updated: 2026-10-12
 
 FMOD is the only playback backend; every gameplay sound is asked for by *meaning* (`SfxId`) and resolved to an FMOD event by one Resources-loaded `AudioCatalog` asset.
 
-**Scope:** [`Assets/Game/Scripts/Audio/`](Assets/Game/Scripts/Audio) · [`Assets/Game/Scripts/Presentation/Audio/`](Assets/Game/Scripts/Presentation/Audio) · [`Assets/Game/Scripts/agents/Audio/`](Assets/Game/Scripts/agents/Audio) · [`Assets/Game/Resources/AudioCatalog.asset`](Assets/Game/Resources/AudioCatalog.asset) · [`Assets/Game/Audio/*.bank`](Assets/Game/Audio)
+**Scope:** [`Assets/Game/Scripts/Audio/`](Assets/Game/Scripts/Audio) · [`Assets/Game/Scripts/Presentation/Audio/`](Assets/Game/Scripts/Presentation/Audio) · [`Assets/Game/Scripts/Agents/Audio/`](Assets/Game/Scripts/Agents/Audio) · [`Assets/Game/Resources/AudioCatalog.asset`](Assets/Game/Resources/AudioCatalog.asset) · [`Assets/Game/Audio/*.bank`](Assets/Game/Audio)
 **Related:** [audio-prefab-inventory.md](audio-prefab-inventory.md) (generated per-prefab sweep) · [Multiplayer.md](Multiplayer.md) · [AgentSystem.md](AgentSystem.md)
 
 ## Model
@@ -54,7 +54,7 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 | `AudioManager` | [AudioManager.cs](Assets/Game/Scripts/Presentation/Audio/AudioManager.cs) | **Bus volumes only** (`bus:/`, `/Music`, `/SFX`, `/UI`, `/Reverb`) from `GameSettings`. Singleton on Bootstrap. Not a playback route. |
 | `PlayerAudioModule` | [PlayerAudioModule.cs](Assets/Game/Scripts/Presentation/Audio/PlayerAudioModule.cs) | Player voice: footsteps paced by **distance travelled** (`strideLength`), jump/land/dash, hurt/death/revive. |
 | `UIButton` | [UIButton.cs](Assets/Game/Scripts/Presentation/UI/Buttons/UIButton.cs) | UI audio: `Sfx.Play2D(hoverId)` / `(pressId)` on pointer enter/down. |
-| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/agents/Audio) | **Not audio.** AI perception — a static receiver registry (`Noise.Emit`), server-side. `NoiseReceiverModule.Heard` (C# event, `NoiseType, Vector3, Transform`) fires for every noise heard whatever the masks say. Lives here because it is triggered alongside sounds. |
+| `NoiseEmitter` / `NoiseType` / `NoiseReceiverModule` | [agents/Audio/](Assets/Game/Scripts/Agents/Audio) | **Not audio.** AI perception — a static receiver registry (`Noise.Emit`), server-side. `NoiseReceiverModule.Heard` (C# event, `NoiseType, Vector3, Transform`) fires for every noise heard whatever the masks say. Lives here because it is triggered alongside sounds. |
 
 ## Catalog
 

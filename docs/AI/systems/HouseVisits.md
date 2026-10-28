@@ -3,7 +3,7 @@ system: HouseVisits
 layer: characters
 summary: "Residents call in on the house interior while a player is in it: come in, sit on its Seats, talk, leave"
 paths:
-  - Assets/Game/Scripts/agents/Residents/Visits/
+  - Assets/Game/Scripts/Agents/Residents/Visits/
   - Assets/Game/Scenes/Interiors/NomadHome.unity
   - Assets/Game/Art/Models/_Source~/models/buildings/nomad_interiors_export.py
 symptoms:

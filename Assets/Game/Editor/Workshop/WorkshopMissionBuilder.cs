@@ -19,14 +19,14 @@ namespace SpaceGame.EditorTools
 {
     public static class WorkshopMissionBuilder
     {
-        private const string ShellbackPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Villager.prefab";
-        private const string MechanicPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Mechanic.prefab";
-        private const string GatekeeperPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Gatekeeper.prefab";
-        private const string FamilyPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily.prefab";
-        private const string FamilyMechanicPath = "Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab";
-        private const string OutlawPath = "Assets/Game/Prefabs/agents/Caravan/BountyHunter.prefab";
-        private const string ThiefPath = "Assets/Game/Prefabs/agents/Caravan/Raider_GearThief.prefab";
-        private const string CarrierPath = "Assets/Game/Prefabs/agents/Caravan/Raider_GearCarrier.prefab";
+        private const string ShellbackPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Villager.prefab";
+        private const string MechanicPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Mechanic.prefab";
+        private const string GatekeeperPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Gatekeeper.prefab";
+        private const string FamilyPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily.prefab";
+        private const string FamilyMechanicPath = "Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab";
+        private const string OutlawPath = "Assets/Game/Prefabs/Agents/Caravan/BountyHunter.prefab";
+        private const string ThiefPath = "Assets/Game/Prefabs/Agents/Caravan/Raider_GearThief.prefab";
+        private const string CarrierPath = "Assets/Game/Prefabs/Agents/Caravan/Raider_GearCarrier.prefab";
 
         // Where the vault's reactor core rests on its cradle, as the model marks it.
         private const string CoreRestMark = "Vault_CoreRest";

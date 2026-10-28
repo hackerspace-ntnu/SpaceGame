@@ -4,10 +4,10 @@ layer: pipeline
 summary: "One recorded in-game day of a real settlement, per resident and plan segment, to hold residents rewrites to"
 paths:
   - Assets/Game/Editor/Agents/ResidentsBaseline.cs
-  - Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineRun.cs
-  - Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineSettings.cs
-  - Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineTrack.cs
-  - Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineCounts.cs
+  - Assets/Game/Scripts/Agents/Diagnostics/ResidentsBaselineRun.cs
+  - Assets/Game/Scripts/Agents/Diagnostics/ResidentsBaselineSettings.cs
+  - Assets/Game/Scripts/Agents/Diagnostics/ResidentBaselineTrack.cs
+  - Assets/Game/Scripts/Agents/Diagnostics/ResidentBaselineCounts.cs
 symptoms:
   - "how do I check a change to the residents still gives the same settlement day"
   - "Temp/residents_baseline_summary.txt says FAILED or PARTIAL"

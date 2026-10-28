@@ -6,7 +6,7 @@ paths:
   - Assets/Game/Scripts/Core/Diagnostics/
   - Assets/Game/Scripts/Core/DiagnosticsBridge/
   - Assets/Game/Scripts/Core/Safety/
-  - Assets/Game/Scripts/agents/Diagnostics/
+  - Assets/Game/Scripts/Agents/Diagnostics/
   - Assets/Game/Editor/Agents/AgentBenchmark.cs
   - Assets/Game/Editor/Agents/PlayModeHarness.cs
 symptoms:
@@ -33,7 +33,7 @@ updated: 2026-10-04
 
 One broken feature stops; the rest of the session keeps playing. Two mechanisms and they are not interchangeable: a **barrier** ([`Fault`](Assets/Game/Scripts/Core/Diagnostics/Fault.cs)) at the seams where one caller invokes N independent plug-ins, and a **guard** ([`ISessionGuard`](Assets/Game/Scripts/Core/Safety/ISessionGuard.cs)) that measures a broken *outcome* and hands the session back.
 
-**Scope:** [Core/Diagnostics/](Assets/Game/Scripts/Core/Diagnostics/) — assembly `SpaceGame.Diagnostics`, `references: []`, `autoReferenced: true`; [Core/DiagnosticsBridge/](Assets/Game/Scripts/Core/DiagnosticsBridge/) and [Core/Safety/](Assets/Game/Scripts/Core/Safety/) — both `Assembly-CSharp`; the play-mode harnesses (agent benchmark, residents baseline), [agents/Diagnostics/](Assets/Game/Scripts/agents/Diagnostics/) (`Assembly-CSharp`) and [Editor/Agents/](Assets/Game/Editor/Agents/) `AgentBenchmark.cs`, `ResidentsBaseline.cs`, `PlayModeHarness.cs`.
+**Scope:** [Core/Diagnostics/](Assets/Game/Scripts/Core/Diagnostics/) — assembly `SpaceGame.Diagnostics`, `references: []`, `autoReferenced: true`; [Core/DiagnosticsBridge/](Assets/Game/Scripts/Core/DiagnosticsBridge/) and [Core/Safety/](Assets/Game/Scripts/Core/Safety/) — both `Assembly-CSharp`; the play-mode harnesses (agent benchmark, residents baseline), [agents/Diagnostics/](Assets/Game/Scripts/Agents/Diagnostics/) (`Assembly-CSharp`) and [Editor/Agents/](Assets/Game/Editor/Agents/) `AgentBenchmark.cs`, `ResidentsBaseline.cs`, `PlayModeHarness.cs`.
 **Related:** [Multiplayer.md](Multiplayer.md) · [Testing.md](Testing.md) · [AgentSystem.md](AgentSystem.md) · [UI.md](UI.md) · [WorldStreaming.md](WorldStreaming.md) (`UnderTerrainGuard`, the doctrine every guard here copies)
 
 ## Model
@@ -82,7 +82,7 @@ Barrier sites, and the teardown each coroutine gives back:
 
 | Site | Where | Teardown |
 | --- | --- | --- |
-| `AgentModule.Tick` · `AgentModule.Facing` | [AgentController.RunModule](Assets/Game/Scripts/agents/controller/AgentController.cs) — all four module loops, through `TryEnter`/`Report` (zero allocation per tick) | — |
+| `AgentModule.Tick` · `AgentModule.Facing` | [AgentController.RunModule](Assets/Game/Scripts/Agents/controller/AgentController.cs) — all four module loops, through `TryEnter`/`Report` (zero allocation per tick) | — |
 | `UseChannel.Present` · `UseChannel.Effect` | [UseChannel.cs](Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs) — two sites so presentation and effect quarantine apart | — |
 | `Interactable.Interact` · `Interactable.SecondaryInteract` | [Interactor.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) — owner is the **target**, not the Interactor | — |
 | `CutsceneDirector.RunCutscene` | [CutsceneDirector.cs](Assets/Game/Scripts/Presentation/Cutscenes/Core/CutsceneDirector.cs) | `EndCutscene()` |
@@ -100,13 +100,13 @@ The agent benchmark — the number the agent restructure holds itself to:
 | Type | File | Role |
 | --- | --- | --- |
 | `PlayModeHarness` | [Editor/Agents/PlayModeHarness.cs](Assets/Game/Editor/Agents/PlayModeHarness.cs) | Shared editor half of every play-mode harness: `Request(json)` refuses or stores the settings in SessionState (`SpaceGame.<name>.*`) and returns; an `EditorApplication.update` pump saves the scene setup, lets the owner stage its scene, enters play mode; `start(json)` on `EnteredPlayMode`; Error Pause overridden; scene setup restored in edit mode. The owner's `[InitializeOnLoadMethod]` calls `Install()` |
-| `HarnessRun` | [agents/Diagnostics/HarnessRun.cs](Assets/Game/Scripts/agents/Diagnostics/HarnessRun.cs) | Shared play-mode half: `WaitForBootstrap`, `BeginReport` (header line), `WriteFailure`, `WriteText`, `DoneLine` |
+| `HarnessRun` | [agents/Diagnostics/HarnessRun.cs](Assets/Game/Scripts/Agents/Diagnostics/HarnessRun.cs) | Shared play-mode half: `WaitForBootstrap`, `BeginReport` (header line), `WriteFailure`, `WriteText`, `DoneLine` |
 | `AgentBenchmark` | [Editor/Agents/AgentBenchmark.cs](Assets/Game/Editor/Agents/AgentBenchmark.cs) | Menu `Tools/Agents/Run Agent Benchmark`, or `SpaceGame.EditorTools.AgentBenchmark.Run()` from one bridge call. A `PlayModeHarness` that stages an empty scene |
-| `AgentBenchmarkRun` | [agents/Diagnostics/AgentBenchmarkRun.cs](Assets/Game/Scripts/agents/Diagnostics/AgentBenchmarkRun.cs) | Play-mode harness: empty stage, box NavMesh, fake players, spawn, measure, write `Temp/agent_benchmark.txt` |
-| `AgentBenchmarkSettings` | [agents/Diagnostics/AgentBenchmarkSettings.cs](Assets/Game/Scripts/agents/Diagnostics/AgentBenchmarkSettings.cs) | Every tunable: 200 agents over Raxy_poor/Nomad_Tan/Clanker/Vrescal/RobotHorse/Appa, 4 fake players, 120 baseline + 300 warm-up + 600 recorded frames at `captureDeltaTime` 1/60, seed |
-| `BenchmarkChannel` | [agents/Diagnostics/BenchmarkChannel.cs](Assets/Game/Scripts/agents/Diagnostics/BenchmarkChannel.cs) | One `ProfilerRecorder` + preallocated per-frame samples; median/p95/mean per phase |
-| `BenchmarkPlayer` | [agents/Diagnostics/BenchmarkPlayer.cs](Assets/Game/Scripts/agents/Diagnostics/BenchmarkPlayer.cs) | Unkillable (`IDamageFilter` zeroes every hit) Humans body walking a circle, so the load does not change mid-run |
-| `ResidentsBaseline` / `ResidentsBaselineRun` / `ResidentsBaselineSettings` / `ResidentBaselineTrack` / `ResidentBaselineCounts` | [Editor/Agents/ResidentsBaseline.cs](Assets/Game/Editor/Agents/ResidentsBaseline.cs), [agents/Diagnostics/](Assets/Game/Scripts/agents/Diagnostics/) | The residents baseline: menu `Tools/Agents/Run Residents Baseline` or `SpaceGame.EditorTools.ResidentsBaseline.Run()`; a `PlayModeHarness` that stages the world scene and plays one in-game day of a settlement. What it records and the CSV contract: [ResidentsBaseline.md](ResidentsBaseline.md) |
+| `AgentBenchmarkRun` | [agents/Diagnostics/AgentBenchmarkRun.cs](Assets/Game/Scripts/Agents/Diagnostics/AgentBenchmarkRun.cs) | Play-mode harness: empty stage, box NavMesh, fake players, spawn, measure, write `Temp/agent_benchmark.txt` |
+| `AgentBenchmarkSettings` | [agents/Diagnostics/AgentBenchmarkSettings.cs](Assets/Game/Scripts/Agents/Diagnostics/AgentBenchmarkSettings.cs) | Every tunable: 200 agents over Raxy_poor/Nomad_Tan/Clanker/Vrescal/RobotHorse/Appa, 4 fake players, 120 baseline + 300 warm-up + 600 recorded frames at `captureDeltaTime` 1/60, seed |
+| `BenchmarkChannel` | [agents/Diagnostics/BenchmarkChannel.cs](Assets/Game/Scripts/Agents/Diagnostics/BenchmarkChannel.cs) | One `ProfilerRecorder` + preallocated per-frame samples; median/p95/mean per phase |
+| `BenchmarkPlayer` | [agents/Diagnostics/BenchmarkPlayer.cs](Assets/Game/Scripts/Agents/Diagnostics/BenchmarkPlayer.cs) | Unkillable (`IDamageFilter` zeroes every hit) Humans body walking a circle, so the load does not change mid-run |
+| `ResidentsBaseline` / `ResidentsBaselineRun` / `ResidentsBaselineSettings` / `ResidentBaselineTrack` / `ResidentBaselineCounts` | [Editor/Agents/ResidentsBaseline.cs](Assets/Game/Editor/Agents/ResidentsBaseline.cs), [agents/Diagnostics/](Assets/Game/Scripts/Agents/Diagnostics/) | The residents baseline: menu `Tools/Agents/Run Residents Baseline` or `SpaceGame.EditorTools.ResidentsBaseline.Run()`; a `PlayModeHarness` that stages the world scene and plays one in-game day of a settlement. What it records and the CSV contract: [ResidentsBaseline.md](ResidentsBaseline.md) |
 
 ## Flows
 

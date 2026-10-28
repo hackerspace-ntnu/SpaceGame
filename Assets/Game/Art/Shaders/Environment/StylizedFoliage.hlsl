@@ -77,6 +77,9 @@ CBUFFER_START(UnityPerMaterial)
     half   _GustBrighten;
     float  _BendStrength;
     float  _BendRustle;
+    float  _SurgeStrength;
+    float  _SurgePeriod;
+    float  _SurgeLength;
 
     float  _BarkTiling;
     half   _BarkStrength;
@@ -158,6 +161,9 @@ FoliageVertex PlaceFoliageVertex(FoliageAttributes IN)
                           _WindFrequency, _WindSpeed, rootGust);
     float rise = max(0.0, p.y - root.y);
     float2 lean = windDir * (_WindStrength * strength * (0.15 + push)) * (IN.wind.x * rise);
+    // Under water the swell rocks the plant to and fro along the current, whatever the wind's strength.
+    lean += windDir * (_SurgeStrength * WaterSurge(root.xz, windDir, _FoliageTime, _SurgePeriod, _SurgeLength))
+          * (IN.wind.x * rise);
     float3 bend = FoliageBend(p);
     lean += bend.xy * (_BendStrength * IN.wind.x);
     // Keep the plant roughly its own height: what leans sideways comes off the top.

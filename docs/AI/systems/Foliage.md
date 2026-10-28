@@ -25,8 +25,8 @@ symptoms:
   - "a mushroom cap, petal or pod renders almost black although its material is pale"
   - "the plant in a planter composite floats on top of a little tree"
   - "bushes never move when the player walks through them"
-reads_with: [Grass, GrassInteraction, ArtPipeline, LevelOfDetail, BarkMaps, VegetationKit, VegetationFamilies]
-updated: 2026-10-27
+reads_with: [Grass, GrassInteraction, ArtPipeline, LevelOfDetail, BarkMaps, VegetationKit, VegetationFamilies, AquaticVegetation]
+updated: 2026-10-28
 ---
 
 # Foliage
@@ -58,7 +58,7 @@ the canopy blob they sit on, so a crown shades as a few soft round masses.
   puffballs, pods, bells), gill fins, flakes (scales, wool), faceted crystals, curved leaves. Spines and flakes thin at LOD1, vanish at LOD2.
 - **129 models + 40 kit conversions ([VegetationKit.md](VegetationKit.md)) + 51 colour variants + 10 composites** (trees 10–30 m, bushes 2.5–4.5 m, for the 3 m
   player), prefab name = PascalCase of the FBX name. Four more biome families (Frill, Lattice, Starburst,
-  Scalewood) live in their own source file: [VegetationFamilies.md](VegetationFamilies.md). Families by kit:
+  Scalewood) and the sea plants have their own files: [VegetationFamilies](VegetationFamilies.md), [AquaticVegetation](AquaticVegetation.md). By kit:
 
 | Kit | Trees | Bushes / plants / props |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ the canopy blob they sit on, so a crown shades as a few soft round masses.
   0.7, 0.07, 4.5, 0), bush (0.07, 0.1, 1.5, 0.06, 7.5, 0.9), stem (0.09, 0.15, 1.4, 0.06, 6, 0.7), spiky
   (0.04, 0.03, 1.4, 0.04, 6, 0.5), rigid (0.008, 0.03, 0.7, 0.03, 4, 0.1), hedge (0.015, 0.03, 1.2, 0.04,
   7, 0.25), ground (0, 0, 1, 0.02, 4, 0), bamboo (0.04, 0.4, 1, 0.08, 6, 0), kelp (0.06, 0.4, 0.8, 0.15, 3, 0.4).
-  Wave length/speed and gust size/speed are the same on every material.
+  Wave length/speed and gust size/speed are the same on every material; `_Surge*` (swell) is 0 on land ([AquaticVegetation](AquaticVegetation.md)).
 - **LODs**: LOD1 ~30 % of the leaves enlarged, every 2nd ring; LOD2 lumps per clump (20-tri past 16) + 5 % of the leaves
   on trees > 6 m, every 3rd ring, roots/twigs dropped. Thresholds — trees 1.0 / 0.25 / **cull 0.1**, everything else
   0.5 / 0.12 / **cull 0.05**, cross-faded. With the project's `lodBias` 2 a 20 m tree is LOD0 to ~35 m,
@@ -175,5 +175,7 @@ N/A — plants hold no runtime state; their placement lives in the scene / Terra
   prefab variant that swaps only materials — the `_Autumn`/`_Golden`/`_Dry`/`_Ember`/`_Teal`/`_Glow`
   prefabs are the pattern.
 - **Mass placement**: terrain *Paint Trees* with these prefabs works (instanced, per-plant colour
-  variation from position) and is cheaper per plant than scene GameObjects. A paint-driven scatter
+  variation from position) and is cheaper per plant than scene GameObjects. Paint the **prefab, never
+  the raw FBX**: an FBX prototype gets the importer's default LODs, no cross-fade and no trunk collider
+  (gameScene's four FBX prototypes, 7,612 of its 8,718 trees, were repointed to their prefabs 2026-10-28). A paint-driven scatter
   like the grass's does not exist yet; at gallery densities it is the next performance step.

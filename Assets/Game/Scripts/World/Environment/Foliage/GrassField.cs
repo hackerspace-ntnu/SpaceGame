@@ -52,6 +52,15 @@ namespace SpaceGame.World.Environment
             public GrassFieldProfile profile;
         }
 
+        [Serializable]
+        private struct TierDensity
+        {
+            [Tooltip("A quality level's name, as in Project Settings > Quality.")]
+            public string qualityLevel;
+            [Tooltip("Multiplies Density Scale while that quality level is active.")]
+            [Range(0.1f, 1f)] public float densityScale;
+        }
+
         [Tooltip("GrassCull.compute: culls and animates the tufts on the GPU.")]
         [SerializeField] private ComputeShader cullShader;
 
@@ -67,6 +76,10 @@ namespace SpaceGame.World.Environment
         [Tooltip("Scales every biome's tufts per square metre: how much grass the whole world " +
                  "grows. The ground colour fills in between the tufts.")]
         [SerializeField, Range(0.1f, 1f)] private float densityScale = 0.6f;
+
+        [Tooltip("Lower graphics tiers grow less grass: near tufts overlap many times on screen, so " +
+                 "fewer of them is the grass's biggest saving. A quality level not listed grows it all.")]
+        [SerializeField] private TierDensity[] tierDensity = Array.Empty<TierDensity>();
 
         [Header("Ground From Afar")]
         [Tooltip("Looking across a field, the blades in front hide the ground between the tufts. " +
@@ -153,6 +166,7 @@ namespace SpaceGame.World.Environment
             maxScattersInFlight = Mathf.Max(4, SystemInfo.processorCount / 2);
             RenderPipelineManager.beginCameraRendering += OnBeginCamera;
             GrassFieldProfile.Edited += OnProfileEdited;
+            QualitySettings.activeQualityLevelChanged += OnQualityLevelChanged;
             dirty = true;
         }
 
@@ -163,6 +177,7 @@ namespace SpaceGame.World.Environment
             Shader.SetGlobalVector(GroundCoverId, Vector4.zero);
             RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
             GrassFieldProfile.Edited -= OnProfileEdited;
+            QualitySettings.activeQualityLevelChanged -= OnQualityLevelChanged;
             Release();
             commands.Release();
             commands = null;
@@ -178,6 +193,26 @@ namespace SpaceGame.World.Environment
             foreach (Biome biome in biomes)
                 if (biome.profile == profile)
                     dirty = true;
+        }
+
+        private void OnQualityLevelChanged(int previous, int current) => dirty = true;
+
+        // The active quality level's share of the grass, from tierDensity.
+        private float TierDensityScale()
+        {
+            string level = QualitySettings.names[QualitySettings.GetQualityLevel()];
+            foreach (TierDensity tier in tierDensity)
+                if (tier.qualityLevel == level)
+                    return tier.densityScale;
+            return 1f;
+        }
+
+        private void WarnOfUnknownTiers()
+        {
+            foreach (TierDensity tier in tierDensity)
+                if (Array.IndexOf(QualitySettings.names, tier.qualityLevel) < 0)
+                    Debug.LogWarning($"[GrassField] '{name}' lists grass density for quality level " +
+                                     $"'{tier.qualityLevel}', which does not exist. It is never used.", this);
         }
 
         private void OnBeginCamera(ScriptableRenderContext context, Camera cam)
@@ -231,6 +266,8 @@ namespace SpaceGame.World.Environment
             }
 
             kernels = new GrassBiomeStream.CullKernels(cullShader);
+            WarnOfUnknownTiers();
+            float density = densityScale * TierDensityScale();
             var paints = new List<GroundPaint>();
             var growsAbove = new List<float>();
             var profiles = new List<GrassFieldProfile>();
@@ -243,7 +280,7 @@ namespace SpaceGame.World.Environment
                                    "no material. That biome grows nothing.", this);
                     continue;
                 }
-                streams.Add(new GrassBiomeStream(profile, paints.Count, seed, minimumHeight, densityScale,
+                streams.Add(new GrassBiomeStream(profile, paints.Count, seed, minimumHeight, density,
                                                  plantBaseClearing, plantContactReach));
                 paints.Add(GroundPaint.Splat(biomes[i].terrainLayer));
                 // The scatter fades to nothing at half the profile's full-coverage weight.

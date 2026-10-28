@@ -34,8 +34,10 @@ symptoms:
   - "the grass reads as big triangles or a sawtooth from a distance"
   - "far away the meadow looks like bare tinted ground instead of grass"
   - "a wide dark ring between grass and bare ground when seen from far away"
+  - "the grass is thinner on Low or Medium quality"
+  - "[GrassField] lists grass density for quality level, which does not exist"
 reads_with: [GrassBiomes, GrassInteraction, Rocks, Foliage, Environment, NoiseHeightmap, WorldStreaming]
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # Grass
@@ -66,7 +68,7 @@ biome's ground layer with the terrain brush.
 
 | Type | Role |
 | --- | --- |
-| [GrassField](Assets/Game/Scripts/World/Environment/Foliage/GrassField.cs) | MonoBehaviour, `[ExecuteAlways]`. Biome list, `cullShader` (**GrassCull.compute**), water cut-off (`minimumHeight`), seed, **`densityScale`** (0.6, every biome's tufts/m²), scatter budget, **wind settings**. Hooks `beginCameraRendering` (Game + SceneView cameras whose culling mask has its layer). Also publishes the wind, clock and benders as `_Foliage*` globals for [Foliage](Foliage.md). |
+| [GrassField](Assets/Game/Scripts/World/Environment/Foliage/GrassField.cs) | MonoBehaviour, `[ExecuteAlways]`. Biome list, `cullShader` (**GrassCull.compute**), water cut-off (`minimumHeight`), seed, **`densityScale`** (0.6, every biome's tufts/m²), scatter budget, **wind settings**. **`tierDensity`**: per quality level *name*, a multiplier on `densityScale` (prefab: Low 0.5, Medium 0.75; unlisted = 1); changing the level re-scatters the field. Hooks `beginCameraRendering` (Game + SceneView cameras whose culling mask has its layer). Also publishes the wind, clock and benders as `_Foliage*` globals for [Foliage](Foliage.md). |
 | [GrassBiomeStream](Assets/Game/Scripts/World/Environment/Foliage/GrassBiomeStream.cs) | One biome: a `ChunkScatterStream<GrassInstance>` with four **storage levels** (1, ¼, 1/16, 1/64 of the tufts) chosen by distance → cull dispatches → 4 indirect draws. Chunks are stored at the level they need **2 chunks closer** (look-ahead). |
 | [ChunkScatterStream&lt;T&gt;](Assets/Game/Scripts/World/Environment/Scatter/ChunkScatterStream.cs) | Shared with [Rocks.md](Rocks.md): nearest-first async chunk scatter, per-level pools, re-scatter denser/sparser, eviction, invalidation. Skips its walk while an eye stays in a **settled** chunk (re-walks every 30 ticks). |
 | [ChunkInstancePool&lt;T&gt;](Assets/Game/Scripts/World/Environment/Scatter/ChunkInstancePool.cs) | One storage level's GPU buffer of equal-size chunk slots + CPU copies + fill time (`_SlotFilled`, rocks only); grows by doubling. |
@@ -139,12 +141,12 @@ trails are deliberately not saved.
 - **The ground map must stay premultiplied.** Straight colour let bilinear/mips blend edges toward
   the empty texels' black: a dark ring round every field, widening with distance (coarser mips).
 - **Biomes match by `TerrainLayer` asset**, not index or name: a *duplicate* of `Ground_Meadow` grows nothing.
-- `minimumHeight` is a **world** height (MeadowShowcase: 7.25, the pond): a terrain placed low stays bald.
+- `minimumHeight` is a **world** height (MeadowShowcase: 7.25): low terrain stays bald, unless the profile `growsUnderwater`.
 - **Needs compute shaders and `cullShader`** (the prefab has it); else `Rebuild` logs an error, draws nothing.
 - **A camera draws grass only if its culling mask has the field's layer.** That is the switch for
   keeping grass out of reflection, portal or minimap cameras — each one re-culls and re-draws it.
 - **Four contracts move together:** `GrassInstance.cs` ↔ the compute's `GrassInstance`; `GrassVisible`
-  (compute + shader); `GrassBiomeStream.MaterialFloatIds`; every tuft mesh carries UV1/UV2 morph data.
+  (compute + shader); `GrassBiomeStream.MaterialFloatIds` (now incl. `_Surge*`); every tuft mesh carries UV1/UV2 morph data.
 - **`GrassLodRange` is the one switch distance** — compute picks the level, vertex shader morphs by
   it; disagree and tufts pop mid-morph. Jitter keys off **tint** (rank is not in `GrassVisible`).
 - **Measure LOD pops**: probe camera in 2 cm steps, pixels jumping > 0.12 luma minus the still-camera count.
@@ -184,5 +186,5 @@ trails are deliberately not saved.
   `groundCover*` (field: more layers = less bare ground far away, also for sparse biomes).
 - **Cost knobs**, in order of effect: `densityFalloff` (2 → 2.6 halved Meadow's GPU cost at 300 m),
   `distantTuftDistance`, `fullDensityDistance`. `drawDistance` past 300 m is nearly free.
-- **Depth priming** (renderer asset, project-wide) would let the forward pass skip shading hidden
-  blades; not enabled, because it changes every opaque shader in the project.
+- **Depth priming is `Auto`** (2026-10-28): hidden blades go unshaded, but all three passes must keep
+  calling the same `PlaceGrassVertex` or blades vanish ([ProjectConfig](ProjectConfig.md) gotcha 14).

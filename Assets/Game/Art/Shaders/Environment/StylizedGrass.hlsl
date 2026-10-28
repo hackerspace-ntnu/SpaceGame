@@ -83,6 +83,9 @@ CBUFFER_START(UnityPerMaterial)
     half   _GustBrighten;
     float  _BendStrength;
     float  _TrampleStrength;
+    float  _SurgeStrength;
+    float  _SurgePeriod;
+    float  _SurgeLength;
 
     half   _SheenStrength;
     half   _SheenLift;

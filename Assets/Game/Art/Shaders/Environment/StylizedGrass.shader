@@ -60,6 +60,11 @@ Shader "SpaceGame/StylizedGrass"
         _FlutterFrequency ("Flutter Speed (rad/s)", Range(0, 12)) = 3.5
         _GustBrighten    ("Gust Brighten", Range(0, 1)) = 0.3
 
+        [Header(Under Water)]
+        _SurgeStrength   ("Surge: Rock to and fro (lean)", Range(0, 2)) = 0
+        _SurgePeriod     ("Surge Period (s)", Range(1, 20)) = 6
+        _SurgeLength     ("Surge Wave Length (m)", Float) = 40
+
         [Header(Sheen)]
         _SheenStrength   ("Sheen (bent blades show their backs)", Range(0, 1)) = 0.45
         _SheenLift       ("Back Brightness", Range(0.5, 2)) = 1.3
@@ -200,6 +205,7 @@ Shader "SpaceGame/StylizedGrass"
             #pragma fragment frag
             #pragma target 4.5
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include "../DepthNormals.hlsl"
 
             float4 vert(Attributes IN) : SV_POSITION
             {
@@ -208,13 +214,7 @@ Shader "SpaceGame/StylizedGrass"
 
             half4 frag() : SV_Target
             {
-                float3 normalWS = float3(0, 1, 0);
-            #if defined(_GBUFFER_NORMALS_OCT)
-                float2 octNormal = PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5;
-                return half4(PackFloat2To888(octNormal), 0);
-            #else
-                return half4(normalWS, 0);
-            #endif
+                return EncodeDepthNormal(float3(0, 1, 0));
             }
             ENDHLSL
         }

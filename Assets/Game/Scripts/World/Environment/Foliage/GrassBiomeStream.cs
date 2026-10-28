@@ -76,6 +76,7 @@ namespace SpaceGame.World.Environment
             Shader.PropertyToID("_WindSpeed"), Shader.PropertyToID("_FlutterStrength"),
             Shader.PropertyToID("_FlutterFrequency"), Shader.PropertyToID("_BendStrength"), Shader.PropertyToID("_PatchScale"),
             Shader.PropertyToID("_VariationScale"), Shader.PropertyToID("_TrampleStrength"),
+            Shader.PropertyToID("_SurgeStrength"), Shader.PropertyToID("_SurgePeriod"), Shader.PropertyToID("_SurgeLength"),
         };
 
         /// <summary>The kernels of GrassCull.compute, looked up once per field.</summary>
@@ -107,7 +108,7 @@ namespace SpaceGame.World.Environment
         private GraphicsBuffer args;
 
         /// <param name="slot">The biome's slot in the field's <see cref="PaintedGround"/>.</param>
-        /// <param name="minimumHeight">World height below which nothing grows.</param>
+        /// <param name="minimumHeight">World height below which nothing grows, unless the profile grows under water.</param>
         /// <param name="densityScale">The field's scale on the profile's tufts per square metre.</param>
         /// <param name="contactClearing">The fraction of a plant's base kept clear of grass.</param>
         /// <param name="contactReach">How far beyond a plant's base, in metres, it shades and shelters the grass.</param>
@@ -127,10 +128,11 @@ namespace SpaceGame.World.Environment
             for (int level = 0; level < LevelCount; level++)
                 capacities[level] = GrassScatter.CapacityFor(settings, LevelDensity(level));
             GrassScatter.Settings copy = settings;
+            float lowest = profile.GrowsUnderwater ? float.NegativeInfinity : minimumHeight;
             chunks = new ChunkScatterStream<GrassInstance>(slot, settings.ChunkSize, profile.DrawDistance, profile.EdgeWarp,
                 capacities, distance => LevelFor(profile.DensityAt(Mathf.Max(0f, distance - lookAhead))),
                 (coord, level, ground, capacity) =>
-                    GrassScatter.Build(coord, copy, ground, minimumHeight, seed, LevelDensity(level), capacity));
+                    GrassScatter.Build(coord, copy, ground, lowest, seed, LevelDensity(level), capacity));
         }
 
         /// <summary>Chunks still being scattered on worker threads.</summary>

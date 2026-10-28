@@ -27,6 +27,9 @@ namespace SpaceGame.World.Environment
         [Tooltip("No grass on ground steeper than this.")]
         [SerializeField, Range(0f, 90f)] private float maxSlopeDegrees = 38f;
 
+        [Tooltip("Grows below the field's Minimum Height (its water line): sea grasses and seabed turf.")]
+        [SerializeField] private bool growsUnderwater;
+
         [Tooltip("Tuft height range in metres. The player is about 3 m tall.")]
         [SerializeField] private Vector2 heightRange = new Vector2(0.9f, 1.35f);
 
@@ -142,6 +145,7 @@ namespace SpaceGame.World.Environment
         public float TuftsPerSquareMetre => tuftsPerSquareMetre;
         public float MinimumLayerWeight => minimumLayerWeight;
         public float MaxSlopeDegrees => maxSlopeDegrees;
+        public bool GrowsUnderwater => growsUnderwater;
         public Vector2 HeightRange => heightRange;
         public float HeightClumping => heightClumping;
         public float HeightClumpSize => heightClumpSize;

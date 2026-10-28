@@ -71,6 +71,11 @@ Shader "SpaceGame/StylizedFoliage"
         _FlutterFrequency ("Leaf Flutter Speed", Range(0, 20)) = 7
         _GustBrighten     ("Gust Brighten", Range(0, 1)) = 0.25
 
+        [Header(Under Water)]
+        _SurgeStrength    ("Surge: Rock to and fro (m per m of height)", Range(0, 0.3)) = 0
+        _SurgePeriod      ("Surge Period (s)", Range(1, 20)) = 6
+        _SurgeLength      ("Surge Wave Length (m)", Float) = 40
+
         [Header(Interaction)]
         _BendStrength ("Bender Push (m)", Range(0, 2)) = 0
         _BendRustle   ("Leaf Shake (m) as a body pushes through", Range(0, 0.3)) = 0
@@ -271,6 +276,7 @@ Shader "SpaceGame/StylizedFoliage"
             #pragma multi_compile_instancing
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include "../DepthNormals.hlsl"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 
@@ -295,13 +301,7 @@ Shader "SpaceGame/StylizedFoliage"
             #if defined(LOD_FADE_CROSSFADE)
                 LODFadeCrossFade(IN.positionCS);
             #endif
-                float3 normalWS = normalize(IN.normalWS);
-            #if defined(_GBUFFER_NORMALS_OCT)
-                float2 octNormal = PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5;
-                return half4(PackFloat2To888(octNormal), 0);
-            #else
-                return half4(normalWS, 0);
-            #endif
+                return EncodeDepthNormal(IN.normalWS);
             }
             ENDHLSL
         }

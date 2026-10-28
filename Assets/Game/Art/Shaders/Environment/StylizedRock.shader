@@ -177,6 +177,7 @@ Shader "SpaceGame/StylizedRock"
             #pragma fragment frag
             #pragma target 4.5
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include "../DepthNormals.hlsl"
 
             struct NormalVaryings
             {
@@ -195,13 +196,7 @@ Shader "SpaceGame/StylizedRock"
 
             half4 frag(NormalVaryings IN) : SV_Target
             {
-                float3 normalWS = normalize(IN.normalWS);
-            #if defined(_GBUFFER_NORMALS_OCT)
-                float2 octNormal = PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5;
-                return half4(PackFloat2To888(octNormal), 0);
-            #else
-                return half4(normalWS, 0);
-            #endif
+                return EncodeDepthNormal(IN.normalWS);
             }
             ENDHLSL
         }

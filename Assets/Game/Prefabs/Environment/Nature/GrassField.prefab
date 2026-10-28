@@ -96,8 +96,34 @@ MonoBehaviour:
     profile: {fileID: 11400000, guid: 2c34836608f254f46a7bf8a18bbb687d, type: 2}
   - terrainLayer: {fileID: 8574412962073106934, guid: 1d50e7a0b367c48be956519836ce1f30, type: 2}
     profile: {fileID: 11400000, guid: 3937a9fe29cd244d8b121922787eb60c, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: cdff1913d9af14a7abfb7b2afb83c5e9, type: 2}
+    profile: {fileID: 11400000, guid: a82960ebdcfee4c05b0070ab4e8eb803, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: bd769981dd9fa4dbc9ddaa212bdaf896, type: 2}
+    profile: {fileID: 11400000, guid: 03dd56c9137034525aca121bf79f57ee, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 082bd548072c441edb602fc5a523798d, type: 2}
+    profile: {fileID: 11400000, guid: e828e40ef3dc94b819a63ed84d85dc6f, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 2d7a8bcadc5584d398ed537f7a41f167, type: 2}
+    profile: {fileID: 11400000, guid: 50b05a3a9a523434d8e27058f5240fa6, type: 2}
+  - terrainLayer: {fileID: 8574412962073106934, guid: 9d286dfeaec0949bcadaf6efa1451f3a, type: 2}
+    profile: {fileID: 11400000, guid: ff6734a4cb281469a8a56ad97e079f57, type: 2}
   minimumHeight: -10000
   seed: 1
+  densityScale: 0.6
+  tierDensity:
+  - qualityLevel: Low
+    densityScale: 0.5
+  - qualityLevel: Medium
+    densityScale: 0.75
+  groundCoverStart: 40
+  groundCoverEnd: 200
+  groundCoverLayers: 4
+  plantBaseHeight: 0.6
+  plantBaseClearing: 0.6
+  plantContactReach: 1.5
+  trampleWindow: 64
+  trampleResolution: 256
+  trampleRecoverSeconds: 40
+  trampleHeightTolerance: 1.5
   chunkBuildsPerFrame: 8
   chunkLifetimeTicks: 600
   referenceWindSpeed: 10

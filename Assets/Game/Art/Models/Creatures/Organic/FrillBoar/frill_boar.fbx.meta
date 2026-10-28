@@ -35,7 +35,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Alert
       internalID: -4139440344922709013
       firstFrame: 0
-      lastFrame: 22
+      lastFrame: 29
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -64,7 +64,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_AlertIdle
       internalID: 2331809145817597618
       firstFrame: 0
-      lastFrame: 16
+      lastFrame: 75
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -93,7 +93,36 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Attack
       internalID: 431602406875936162
       firstFrame: 0
-      lastFrame: 13
+      lastFrame: 27
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: AttackGore
+      takeName: Arm_FrillBoar|FrillBoar_AttackGore
+      internalID: -4870879374340343007
+      firstFrame: 0
+      lastFrame: 29
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -122,7 +151,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Bark
       internalID: -6726629556350033714
       firstFrame: 0
-      lastFrame: 22
+      lastFrame: 33
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -147,11 +176,69 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
+      name: Buck
+      takeName: Arm_FrillBoar|FrillBoar_Buck
+      internalID: 3991580333190641296
+      firstFrame: 0
+      lastFrame: 27
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: Charge
+      takeName: Arm_FrillBoar|FrillBoar_Charge
+      internalID: -2132728058395790761
+      firstFrame: 0
+      lastFrame: 14
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
       name: Death
       takeName: Arm_FrillBoar|FrillBoar_Death
       internalID: -3099787193694021603
       firstFrame: 0
-      lastFrame: 12
+      lastFrame: 41
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -180,7 +267,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_DeathR
       internalID: 1220263966950628297
       firstFrame: 0
-      lastFrame: 12
+      lastFrame: 41
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -209,7 +296,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Eat
       internalID: -5742566213956757983
       firstFrame: 0
-      lastFrame: 189
+      lastFrame: 180
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -238,7 +325,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_EatLook
       internalID: -7441390701733043472
       firstFrame: 0
-      lastFrame: 111
+      lastFrame: 105
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -267,7 +354,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_GetUp
       internalID: -6100710160026600599
       firstFrame: 0
-      lastFrame: 46
+      lastFrame: 51
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -296,7 +383,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Hurt
       internalID: 2139452010192619055
       firstFrame: 0
-      lastFrame: 20
+      lastFrame: 16
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -325,7 +412,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_HurtR
       internalID: -978341864088046864
       firstFrame: 0
-      lastFrame: 20
+      lastFrame: 16
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -354,7 +441,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Idle
       internalID: 7941758933122339869
       firstFrame: 0
-      lastFrame: 120
+      lastFrame: 150
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -383,7 +470,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Jump
       internalID: -7916747438826988048
       firstFrame: 0
-      lastFrame: 14
+      lastFrame: 19
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -437,11 +524,156 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
+      name: MountKneel
+      takeName: Arm_FrillBoar|FrillBoar_MountKneel
+      internalID: -1772339252787704644
+      firstFrame: 0
+      lastFrame: 41
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: MountKneelIdle
+      takeName: Arm_FrillBoar|FrillBoar_MountKneelIdle
+      internalID: -2040488201925597779
+      firstFrame: 0
+      lastFrame: 75
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: MountRise
+      takeName: Arm_FrillBoar|FrillBoar_MountRise
+      internalID: 7518584192907888372
+      firstFrame: 0
+      lastFrame: 37
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: PawGround
+      takeName: Arm_FrillBoar|FrillBoar_PawGround
+      internalID: -7276317675988543531
+      firstFrame: 0
+      lastFrame: 44
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 0
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
       name: Rest
       takeName: Arm_FrillBoar|FrillBoar_Rest
       internalID: 5759192741318988638
       firstFrame: 0
-      lastFrame: 1
+      lastFrame: 75
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
+    - serializedVersion: 16
+      name: RiddenIdle
+      takeName: Arm_FrillBoar|FrillBoar_RiddenIdle
+      internalID: 2474866150090057903
+      firstFrame: 0
+      lastFrame: 135
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -470,7 +702,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Run
       internalID: 8861854451443949825
       firstFrame: 0
-      lastFrame: 12
+      lastFrame: 14
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -499,7 +731,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_RunInjured
       internalID: 7246697459923936992
       firstFrame: 0
-      lastFrame: 12
+      lastFrame: 16
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -528,7 +760,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_RunStop
       internalID: -5641038350396240805
       firstFrame: 0
-      lastFrame: 42
+      lastFrame: 35
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -557,7 +789,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Shake
       internalID: -5000134316023627579
       firstFrame: 0
-      lastFrame: 47
+      lastFrame: 44
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -586,7 +818,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Sprint
       internalID: 8376383730325623230
       firstFrame: 0
-      lastFrame: 9
+      lastFrame: 12
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -644,7 +876,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Trot
       internalID: 2741630402384016035
       firstFrame: 0
-      lastFrame: 16
+      lastFrame: 20
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -673,7 +905,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_TurnL
       internalID: 882223638243947693
       firstFrame: 0
-      lastFrame: 62
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -731,7 +963,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_TurnR
       internalID: 6578794936225671043
       firstFrame: 0
-      lastFrame: 62
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -789,7 +1021,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_Walk
       internalID: -5675394538591730158
       firstFrame: 0
-      lastFrame: 24
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -818,7 +1050,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_WalkInjured
       internalID: 7167286639892263370
       firstFrame: 0
-      lastFrame: 24
+      lastFrame: 36
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -847,7 +1079,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_WalkL
       internalID: -4660416742140972883
       firstFrame: 0
-      lastFrame: 24
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -876,7 +1108,7 @@ ModelImporter:
       takeName: Arm_FrillBoar|FrillBoar_WalkR
       internalID: 2469499929917719001
       firstFrame: 0
-      lastFrame: 24
+      lastFrame: 30
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -903,7 +1135,7 @@ ModelImporter:
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 1
+    globalScale: 1.9111817
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
@@ -961,7 +1193,7 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    globalScale: 1
+    globalScale: 0.019111816
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0

@@ -96,4 +96,15 @@ float WindPush(float2 positionXZ, float2 windDir, float time, float waveLength, 
     return wave * (0.25 + gust * 1.15);
 }
 
+// The swell under water (-1 .. ~1.3): plants rock to and fro along the current (the wind
+// direction) instead of leaning one way. A long, slow wave rolls along the current so a bed
+// sways in ripples, with a faster, smaller overtone across it so the beat never quite repeats.
+// Shared by GrassCull.compute (sea grasses) and StylizedFoliage (kelp, fans, sea plants).
+float WaterSurge(float2 positionXZ, float2 currentDir, float time, float period, float waveLength)
+{
+    float2 across = float2(currentDir.y, -currentDir.x);
+    float phase = 6.2831 * (time / max(period, 0.1) - dot(positionXZ, currentDir) / max(waveLength, 0.1));
+    return sin(phase) + 0.3 * sin(phase * 2.3 + 1.7 + dot(positionXZ, across) * 0.11);
+}
+
 #endif

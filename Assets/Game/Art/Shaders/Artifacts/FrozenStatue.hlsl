@@ -96,4 +96,28 @@ void FrozenRimeClip(float3 positionOS, float3 normalOS)
     clip(rime - threshold);
 }
 
+// One vertex for both depth prepasses (DepthOnly and DepthNormals), so they cannot drift apart.
+// Each pass's fragment must still call FrozenRimeClip.
+struct FrozenDepthAttributes
+{
+    float4 positionOS : POSITION;
+    float3 normalOS   : NORMAL;
+};
+
+struct FrozenDepthVaryings
+{
+    float4 positionCS     : SV_POSITION;
+    float3 positionMetres : TEXCOORD0;
+    float3 normalOS       : TEXCOORD1;
+};
+
+FrozenDepthVaryings FrozenDepthVert(FrozenDepthAttributes IN)
+{
+    FrozenDepthVaryings OUT;
+    OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+    OUT.positionMetres = FrozenObjectMetres(IN.positionOS.xyz);
+    OUT.normalOS   = IN.normalOS;
+    return OUT;
+}
+
 #endif // SPACEGAME_FROZENSTATUE_INCLUDED

@@ -1,100 +1,146 @@
 {
  "name": "Frillneck",
- "height": 2.404,
+ "height": 2.398,
  "length": 3.131,
  "width": 1.259,
  "clips": {
-  "AlertTurnL": {
-   "take": "Frillneck_AlertTurnL",
-   "frames": 65,
+  "Alert": {
+   "take": "Frillneck_Alert",
+   "frames": 70,
+   "loop": false
+  },
+  "AlertIdle": {
+   "take": "Frillneck_AlertIdle",
+   "frames": 77,
+   "loop": true
+  },
+  "Attack": {
+   "take": "Frillneck_Attack",
+   "frames": 33,
+   "loop": false
+  },
+  "Death": {
+   "take": "Frillneck_Death",
+   "frames": 60,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "Frillneck_DeathR",
+   "frames": 60,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "Frillneck_Dodge",
+   "frames": 28,
+   "loop": false
+  },
+  "DodgeR": {
+   "take": "Frillneck_DodgeR",
+   "frames": 28,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Frillneck_Eat",
+   "frames": 211,
+   "loop": true
+  },
+  "FrillDisplay": {
+   "take": "Frillneck_FrillDisplay",
+   "frames": 57,
    "loop": false
   },
   "Hurt": {
    "take": "Frillneck_Hurt",
-   "frames": 38,
+   "frames": 24,
    "loop": false
   },
-  "HurtBack": {
-   "take": "Frillneck_HurtBack",
-   "frames": 38,
-   "loop": false
-  },
-  "HurtLeft": {
-   "take": "Frillneck_HurtLeft",
-   "frames": 38,
+  "HurtR": {
+   "take": "Frillneck_HurtR",
+   "frames": 24,
    "loop": false
   },
   "Idle": {
    "take": "Frillneck_Idle",
-   "frames": 91,
+   "frames": 151,
    "loop": true
   },
-  "IdleShake": {
-   "take": "Frillneck_IdleShake",
-   "frames": 25,
-   "loop": false
-  },
-  "IdleTailWag": {
-   "take": "Frillneck_IdleTailWag",
-   "frames": 31,
+  "Jump": {
+   "take": "Frillneck_Jump",
+   "frames": 30,
    "loop": false
   },
   "Run": {
    "take": "Frillneck_Run",
-   "frames": 13,
+   "frames": 21,
+   "loop": true
+  },
+  "Shake": {
+   "take": "Frillneck_Shake",
+   "frames": 54,
+   "loop": false
+  },
+  "Stand": {
+   "take": "Frillneck_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "TailSwipe": {
+   "take": "Frillneck_TailSwipe",
+   "frames": 42,
+   "loop": false
+  },
+  "Trot": {
+   "take": "Frillneck_Trot",
+   "frames": 25,
    "loop": true
   },
   "TurnL": {
    "take": "Frillneck_TurnL",
-   "frames": 65,
+   "frames": 37,
    "loop": true
   },
-  "TurnL180": {
-   "take": "Frillneck_TurnL180",
-   "frames": 91,
-   "loop": false
+  "TurnR": {
+   "take": "Frillneck_TurnR",
+   "frames": 37,
+   "loop": true
   },
   "Walk": {
    "take": "Frillneck_Walk",
-   "frames": 25,
+   "frames": 41,
    "loop": true
-  },
-  "WalkAlert": {
-   "take": "Frillneck_WalkAlert",
-   "frames": 25,
-   "loop": false
   }
  },
  "stride": {
-  "Run": 3.246,
-  "Walk": 0.355
+  "Run": 2.49,
+  "Trot": 1.375,
+  "Walk": 0.6
  },
  "eyes": [
   {
    "object": "Mesh_Frillneck_EyeL",
    "centre": [
-    -0.0822,
-    -1.4608,
+    0.0562,
+    -0.3181,
     2.179
    ],
    "gaze": [
-    0.9431,
-    -0.3062,
-    -0.1295
+    0.8771,
+    -0.4597,
+    0.139
    ],
    "radius": 0.018
   },
   {
    "object": "Mesh_Frillneck_EyeR",
    "centre": [
-    -0.2071,
-    -1.4583,
+    -0.0687,
+    -0.3156,
     2.1748
    ],
    "gaze": [
-    -0.7235,
-    -0.5672,
-    0.3935
+    -0.8771,
+    -0.4597,
+    0.139
    ],
    "radius": 0.018
   }
@@ -109,5 +155,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Frillneck/frillneck.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/frillneck/frillneck.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/frillneck"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/frillneck/cleanroom"
 }

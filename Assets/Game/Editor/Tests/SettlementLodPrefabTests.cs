@@ -40,6 +40,7 @@ namespace SpaceGame.EditorTools
 
             Assert.AreEqual(SettlementLodBaker.MergedMeshPath(path), AssetDatabase.GetAssetPath(lod.Mesh));
             Assert.Greater(lod.Mesh.lodCount, 1, "no Mesh LODs in the merged level");
+            Assert.IsFalse(lod.Mesh.isReadable, "Read/Write on: the player keeps a CPU copy that nothing reads");
             Assert.AreEqual(lod.Materials.Length, lod.Mesh.subMeshCount);
             Assert.Less(lod.Mesh.subMeshCount, originals.Sum(r => r.sharedMaterials.Length), "the merged level must cost fewer draws");
         }

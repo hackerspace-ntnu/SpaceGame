@@ -232,6 +232,7 @@ namespace SpaceGame.EditorTools
         /// <summary>Saves <paramref name="mesh"/> at <paramref name="path"/>, over the asset already there so its GUID survives.</summary>
         private static Mesh SaveMesh(Mesh mesh, string path)
         {
+            MarkGpuOnly(mesh);
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if (existing == null)
             {
@@ -243,6 +244,23 @@ namespace SpaceGame.EditorTools
             Object.DestroyImmediate(mesh);
             EditorUtility.SetDirty(existing);
             return existing;
+        }
+
+        /// <summary>
+        /// Clears Read/Write on <paramref name="mesh"/>, so a player uploads it and frees its CPU copy: a merged
+        /// level is only ever drawn (the Sky city's alone is 2.2 M vertices). Persisted through the serialized
+        /// flag -- <c>UploadMeshData(true)</c> frees the data in memory but saves nothing. The editor keeps the
+        /// data either way, so edit-mode code and tests still read it.
+        /// </summary>
+        private static void MarkGpuOnly(Mesh mesh)
+        {
+            var serialized = new SerializedObject(mesh);
+            SerializedProperty readable = serialized.FindProperty("m_IsReadable");
+            if (readable == null)
+                throw new InvalidOperationException("Mesh has no serialized m_IsReadable; the merged level would keep a " +
+                                                    "CPU copy in the player. Find the flag's new name.");
+            readable.boolValue = false;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

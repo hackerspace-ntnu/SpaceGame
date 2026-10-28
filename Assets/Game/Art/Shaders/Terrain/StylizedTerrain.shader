@@ -441,6 +441,7 @@ Shader "SpaceGame/StylizedTerrain"
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "../DepthNormals.hlsl"
 
             struct A { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct V
@@ -468,14 +469,9 @@ Shader "SpaceGame/StylizedTerrain"
             #if defined(_FLAT_SHADING)
                 float3 normalWS = normalize(cross(ddy(IN.positionWS), ddx(IN.positionWS)));
             #else
-                float3 normalWS = NormalizeNormalPerPixel(IN.normalWS);
+                float3 normalWS = IN.normalWS;
             #endif
-            #if defined(_GBUFFER_NORMALS_OCT)
-                float2 octNormal = saturate(PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5);
-                return half4(PackFloat2To888(octNormal), 0.0);
-            #else
-                return half4(normalWS, 0.0);
-            #endif
+                return EncodeDepthNormal(normalWS);
             }
             ENDHLSL
         }

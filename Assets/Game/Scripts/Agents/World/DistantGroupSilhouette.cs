@@ -8,9 +8,12 @@
 // Plain renderers, no NetworkObjects, nothing saved.
 //
 // Drawn while the group is folded and there is a camera and loaded terrain under the slot -- so never over
-// the void. Not hidden by distance: the server spawns a second or more after a player crosses spawnRadius
-// (its sim tick and player refresh), and hiding at the crossing left only dust standing there meanwhile. When the group spawns the renderers go and the dust stays to
-// settle: the live city arrives inside the cloud, in the same slots, drawing its own merged level.
+// the void -- and the vehicle is within maxDrawDistance of the camera: where the live city's own merged
+// levels and far dust are culled, so nothing is drawn out to the far clip. Never hidden near spawnRadius:
+// the server spawns a second or more after a player crosses it (its sim tick and player refresh), and
+// hiding at the crossing left only dust standing there meanwhile. When the group spawns the renderers go
+// and the dust stays to settle: the live city arrives inside the cloud, in the same slots, drawing its own
+// merged level.
 using SpaceGame.Core;
 using System.Collections.Generic;
 using SpaceGame.Vehicles;
@@ -31,6 +34,13 @@ namespace SpaceGame.Agents
         [Tooltip("A jump farther than this (m) is a load, a refold or a teleport: snap instead of gliding.")]
         [Min(1f)]
         [SerializeField] private float snapDistance = 60f;
+
+        [Tooltip("A vehicle farther than this from the camera (m, across the ground) is not drawn, nor its far " +
+                 "dust: the strider profile's cull (SettlementLodSettings, 1500 m), where the live city's merged " +
+                 "levels and far dust stop too. Must stay above NpcWorldSim's despawnRadius, or a folded city is " +
+                 "invisible in between.")]
+        [Min(1f)]
+        [SerializeField] private float maxDrawDistance = 1500f;
 
         /// <summary>A vehicle of the column and where it stands relative to the leader, heading +Z.</summary>
         public readonly struct Place
@@ -90,11 +100,20 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// Folded, with a camera (NaN: none, not drawn). Hidden by <c>Spawned</c> alone, never by distance, so the
-        /// city stands until the live one replaces it; the two overlap, identical, for at most one publish.
+        /// Folded, with a camera (NaN: none, not drawn) no farther than <paramref name="maxDistance"/>. Near the
+        /// city it is hidden by <c>Spawned</c> alone, so it stands until the live one replaces it; the two overlap,
+        /// identical, for at most one publish.
         /// </summary>
-        public static bool ShouldShow(bool spawned, float cameraDistance) =>
-            !spawned && !float.IsNaN(cameraDistance);
+        public static bool ShouldShow(bool spawned, float cameraDistance, float maxDistance) =>
+            !spawned && !float.IsNaN(cameraDistance) && cameraDistance <= maxDistance;
+
+        /// <summary>Metres from <paramref name="cam"/> to <paramref name="at"/> across the ground; NaN with no camera.</summary>
+        public static float GroundDistance(Camera cam, Vector3 at)
+        {
+            if (cam == null) return float.NaN;
+            Vector3 eye = cam.transform.position;
+            return Vector2.Distance(new Vector2(eye.x, eye.z), new Vector2(at.x, at.z));
+        }
 
         public static Vector3 FollowPosition(Vector3 shown, Vector3 target, float dt, float lag) =>
             Vector3.Lerp(shown, target, 1f - Mathf.Exp(-dt / lag));
@@ -122,11 +141,7 @@ namespace SpaceGame.Agents
                 published.Add(state.GroupHash);
                 View view = ViewFor(state, sim);
                 Follow(view, state, Time.deltaTime);
-                float distance = cam == null
-                    ? float.NaN
-                    : Vector2.Distance(new Vector2(cam.transform.position.x, cam.transform.position.z),
-                                       new Vector2(view.ShownPosition.x, view.ShownPosition.z));
-                Pose(view, terrains, ShouldShow(state.Spawned, distance));
+                Pose(view, terrains, state.Spawned, cam, maxDrawDistance);
             }
 
             gone.Clear();
@@ -149,6 +164,9 @@ namespace SpaceGame.Agents
 
             view = Build(state, sim.FindTemplateByHash(state.TemplateHash));
             views[state.GroupHash] = view;
+            if (maxDrawDistance <= sim.DespawnRadius)
+                Debug.LogError($"[DistantGroupSilhouette] maxDrawDistance {maxDrawDistance:0} m is inside NpcWorldSim's " +
+                               $"despawnRadius {sim.DespawnRadius:0} m: a folded city is invisible between the two.", this);
             return view;
         }
 
@@ -215,18 +233,20 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// Stands every vehicle on the ground under its slot. A hidden one keeps its last place with its far
-        /// dust switched off, so the cloud it left settles where the city was drawn instead of doubling the
-        /// live city's.
+        /// Stands every shown vehicle on the ground under its slot. A hidden one keeps its last place with its
+        /// far dust switched off, so the cloud it left settles where the city was drawn instead of doubling the
+        /// live city's. The ground is only looked up under a vehicle that passes <see cref="ShouldShow"/>.
         /// </summary>
-        private static void Pose(View view, Terrain[] terrains, bool show)
+        private static void Pose(View view, Terrain[] terrains, bool spawned, Camera cam, float maxDistance)
         {
             Quaternion facing = Quaternion.Euler(0f, view.ShownYaw, 0f);
             foreach (Vehicle vehicle in view.Vehicles)
             {
                 Vector3 at = view.ShownPosition + facing * vehicle.Local;
-                float ground = GroundUnder(terrains, at);
-                bool drawn = show && !float.IsNaN(ground);
+                float ground = ShouldShow(spawned, GroundDistance(cam, at), maxDistance)
+                    ? GroundUnder(terrains, at)
+                    : float.NaN;
+                bool drawn = !float.IsNaN(ground);
                 vehicle.Renderer.enabled = drawn;
                 if (vehicle.Dust != null) vehicle.Dust.enabled = drawn;
                 if (!drawn) continue;

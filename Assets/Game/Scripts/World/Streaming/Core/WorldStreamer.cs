@@ -54,6 +54,15 @@ namespace SpaceGame.World
                  "more frames; the chunk simply finishes filling in slightly later.")]
         [SerializeField] private float chunkActivationBudgetMs = 2f;
 
+        [Tooltip("Application.backgroundLoadingPriority while the server's initial preload is running — the " +
+                 "loading screen is up and nobody is playing, so the chunks should land as fast as possible.")]
+        [SerializeField] private ThreadPriority preloadLoadingPriority = ThreadPriority.High;
+
+        [Tooltip("Application.backgroundLoadingPriority once the initial chunks are in, and always on a client. " +
+                 "Low time-slices a chunk's scene integration over several frames instead of landing its " +
+                 "whole object graph in one, which is what keeps streaming during play free of hitches.")]
+        [SerializeField] private ThreadPriority streamingLoadingPriority = ThreadPriority.Low;
+
         [Header("Debug")]
         [SerializeField] private bool showDebugGizmos = true;
 
@@ -337,10 +346,15 @@ namespace SpaceGame.World
         {
             persistentScene = gameObject.scene;
 
-            // Let Unity time-slice the integration phase of additive scene loads instead of
-            // finishing a whole chunk in one frame. Without this a content-heavy chunk lands its
-            // entire object graph — colliders cooked and all — inside a single Update.
-            Application.backgroundLoadingPriority = ThreadPriority.Low;
+            // High only while this machine runs the initial preload behind the loading screen,
+            // where an integration hitch is invisible and every frame saved is a shorter wait.
+            // Everywhere else Low: it time-slices the integration phase of additive scene loads
+            // instead of landing a content-heavy chunk's whole object graph — colliders cooked and
+            // all — inside a single Update. A client never runs the preload (the server drives its
+            // loads and initialChunksLoaded stays false there), and offline mode is never preloaded,
+            // so either would otherwise be left on High for the whole session.
+            bool runsInitialPreload = Network.Server && config != null && !initialChunksLoaded;
+            Application.backgroundLoadingPriority = runsInitialPreload ? preloadLoadingPriority : streamingLoadingPriority;
 
             // Offline: initialize immediately without waiting for Netcode
             if (!Network.IsNetworked)
@@ -384,6 +398,10 @@ namespace SpaceGame.World
             NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
             InitializeChunkStates();
             isReady = true;
+
+            // Also set here, not only in Start: an in-scene NetworkObject can spawn before or after
+            // its Start, and either order must leave the preload on High.
+            if (!initialChunksLoaded) Application.backgroundLoadingPriority = preloadLoadingPriority;
         }
 
         public override void OnNetworkDespawn()
@@ -391,6 +409,9 @@ namespace SpaceGame.World
             pendingMigrations.Clear();
 
             if (!IsServer) return;
+
+            // A session torn down mid-preload must not leave the next scene's loads on High.
+            Application.backgroundLoadingPriority = streamingLoadingPriority;
 
             announcedMigrations.Clear();
             unreplicatedWarned.Clear();
@@ -1526,6 +1547,10 @@ namespace SpaceGame.World
             if (initialChunksLoaded) return;
 
             initialChunksLoaded = true;
+
+            // The loading screen is coming down: from here on, chunks stream in during play.
+            Application.backgroundLoadingPriority = streamingLoadingPriority;
+
             OnInitialChunksReady?.Invoke();
         }
 

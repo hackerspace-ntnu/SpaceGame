@@ -22,6 +22,9 @@ namespace SpaceGame.Vehicles
         private Vector3 lastHull, lastPlayer, startHull, startPlayer;
         private int step = -1;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Editor and development builds only: a release player has no use for an F9 debug probe
+        // polling the keyboard every frame.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
         {
@@ -29,6 +32,7 @@ namespace SpaceGame.Vehicles
             go.AddComponent<ShipDriftProbe>();
             DontDestroyOnLoad(go);
         }
+#endif
 
         private void Update()
         {

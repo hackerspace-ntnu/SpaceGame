@@ -25,7 +25,7 @@ symptoms:
   - "Failed to create agent because it is not close enough to the NavMesh when I fly near the sky city"
   - "a Clanker outrider far away keeps shooting while the rest of its town sleeps"
 reads_with: [AgentSystem, EntitySystem, WorldStreaming, Residents]
-updated: 2026-10-06
+updated: 2026-10-28
 ---
 
 # Simulation Distance
@@ -41,7 +41,7 @@ People and animals far from every player are parked where they stand: still visi
 - **Wake / sleep.** A cell wakes when its rectangle comes within `NpcWorldSim.SpawnRadius` of any wake source and sleeps once all of it is beyond `DespawnRadius`; between the two an awake cell stays awake (hysteresis). Radii are read from `NpcWorldSim`, never copied. The world scene has 250 / 360 (code default for despawn is 350).
 - **Wake sources.** Every body from `SessionPlayers.Collect`, at its real position. A player inside an interior counts **twice**: where they stand (so a mount ridden in with them keeps simulating) and at the visit's `ReturnPosition` (`InteriorManager`, so the settlement stays awake while its houses are visited). Interiors load at world origin.
 - **Subjects (opt-in).** Only agents carrying `DistanceDormant`. Vehicles, the sky fleet, Strider houses and barges never carry it. Prefab folders (case-insensitive) that must carry it: `/prefabs/agents/characters/`, `/robots/`, `/creatures/` and `/caravan/` (caravan prefabs are variants of in-scope people and animals and inherit the marker). `Prefabs/Spikes/` is ignored.
-- **Dormant agent.** `AgentController` parked: no module ticks, motor `ForceStop` + `SuspendSelfDrive`, `AgentTargeting` and `PerceptionModule` skip `Update`, animator idles. Body, collider, faction registration, health and held target untouched.
+- **Dormant agent.** `AgentController` parked: no module ticks, motor `ForceStop` + `SuspendSelfDrive`, `AgentTargeting` and `PerceptionModule` skip `Update`, animator idles, `AgentGroundConform` stops its timed re-probe (it probes again only if the body is moved). Body, collider, faction registration, health and held target untouched.
 - **Exemptions.** A subject in a sleeping cell still simulates when:
 
 | Exemption | Why |
@@ -101,6 +101,7 @@ Holds no state worth persisting; re-derived on the first tick after a load. The 
 - **Only the marker itself switched off releases its agent.** `OnDisable` unparks only when `enabled` is false. A body being destroyed or deactivated runs `OnDisable` with `enabled` still true and stays parked: unparking re-enables its `NavMeshAgent`, and on a Play Mode stop Netcode destroys the sleepers (`ModeChanged` → `ShutdownInternal` → `DespawnAndDestroyNetworkObjects`) after the NavMesh is gone, logging one "not close enough to the NavMesh" each. A reactivated body re-registers and the next `SimulationRange` tick re-derives `Dormant`.
 - **Test registry leak.** `DistanceDormant.All` is static and EditMode `DestroyImmediate` does not run `OnDisable`. Reset it (reflection on the private `ResetStatics`) in SetUp and TearDown or leftovers throw `MissingReferenceException` in the next fixture.
 - **Batch prefab wiring.** When running `WirePrefab` over many prefabs from a script, do about 15 per editor call; the shared editor ran out of memory on large single calls.
+- **Hand-authored bases have no builder to keep the marker.** `Shellback_Villager` and `Shellback_Mechanic` (≈40 villagers in Chunk_2_1) went without it until 2026-10-28 for no recorded reason; it was added with `DistanceDormancyWiring.WirePrefab`, and the Gatekeeper/WorkshopFamily variants `WorkshopMissionBuilder` makes inherit it. `DistanceDormancyPrefabTests` is what catches the next one.
 - **Rebuilds keep the marker only through the builders.** ClankerStack, NomadPrefabBuilder, SculptCharacterBuilder, RobotHorseBuilder, StriderCrabOutriderBuilder, StriderElderBuilder, AppaHerdAuthoring and DuneRatPennedBuilder call `DistanceDormancyWiring.Ensure(root)`.
 
 ## Extending

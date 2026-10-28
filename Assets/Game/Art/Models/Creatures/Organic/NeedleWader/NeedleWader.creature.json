@@ -1,154 +1,170 @@
 {
  "name": "NeedleWader",
- "height": 2.4,
- "length": 1.582,
- "width": 2.63,
+ "height": 1.948,
+ "length": 1.846,
+ "width": 0.741,
  "clips": {
   "Alert": {
    "take": "NeedleWader_Alert",
-   "frames": 65,
+   "frames": 27,
    "loop": false
   },
   "Attack": {
    "take": "NeedleWader_Attack",
-   "frames": 13,
+   "frames": 34,
    "loop": false
   },
   "BalanceFlap": {
    "take": "NeedleWader_BalanceFlap",
-   "frames": 33,
+   "frames": 60,
    "loop": false
   },
   "Death": {
    "take": "NeedleWader_Death",
-   "frames": 41,
+   "frames": 56,
    "loop": false
   },
-  "Drink": {
-   "take": "NeedleWader_Drink",
-   "frames": 61,
+  "DeathAir": {
+   "take": "NeedleWader_DeathAir",
+   "frames": 50,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "NeedleWader_DeathR",
+   "frames": 56,
+   "loop": false
+  },
+  "Eat": {
+   "take": "NeedleWader_Eat",
+   "frames": 181,
+   "loop": true
+  },
+  "EatEnd": {
+   "take": "NeedleWader_EatEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "NeedleWader_EatStart",
+   "frames": 31,
    "loop": false
   },
   "Fly": {
    "take": "NeedleWader_Fly",
-   "frames": 9,
+   "frames": 21,
    "loop": true
   },
   "FlyEvade": {
    "take": "NeedleWader_FlyEvade",
-   "frames": 31,
+   "frames": 41,
    "loop": false
   },
-  "FlyHurt": {
-   "take": "NeedleWader_FlyHurt",
-   "frames": 43,
+  "FlyEvadeR": {
+   "take": "NeedleWader_FlyEvadeR",
+   "frames": 41,
    "loop": false
   },
-  "FlyLand": {
-   "take": "NeedleWader_FlyLand",
-   "frames": 8,
-   "loop": false
-  },
-  "FlyLift": {
-   "take": "NeedleWader_FlyLift",
-   "frames": 9,
-   "loop": false
-  },
-  "FlyUp": {
-   "take": "NeedleWader_FlyUp",
-   "frames": 25,
+  "Groom": {
+   "take": "NeedleWader_Groom",
+   "frames": 105,
    "loop": false
   },
   "Hurt": {
    "take": "NeedleWader_Hurt",
-   "frames": 38,
+   "frames": 27,
+   "loop": false
+  },
+  "HurtAir": {
+   "take": "NeedleWader_HurtAir",
+   "frames": 41,
    "loop": false
   },
   "HurtBack": {
    "take": "NeedleWader_HurtBack",
-   "frames": 38,
+   "frames": 36,
    "loop": false
   },
-  "HurtL": {
-   "take": "NeedleWader_HurtL",
-   "frames": 38,
+  "HurtR": {
+   "take": "NeedleWader_HurtR",
+   "frames": 27,
    "loop": false
   },
   "Idle": {
    "take": "NeedleWader_Idle",
-   "frames": 31,
+   "frames": 166,
    "loop": true
-  },
-  "IdleRuffle": {
-   "take": "NeedleWader_IdleRuffle",
-   "frames": 61,
-   "loop": false
-  },
-  "IdleShake": {
-   "take": "NeedleWader_IdleShake",
-   "frames": 25,
-   "loop": false
   },
   "Land": {
    "take": "NeedleWader_Land",
-   "frames": 101,
+   "frames": 54,
+   "loop": false
+  },
+  "LeapKick": {
+   "take": "NeedleWader_LeapKick",
+   "frames": 42,
+   "loop": false
+  },
+  "Ruffle": {
+   "take": "NeedleWader_Ruffle",
+   "frames": 105,
    "loop": false
   },
   "Run": {
    "take": "NeedleWader_Run",
-   "frames": 13,
+   "frames": 21,
    "loop": true
   },
   "Stand": {
    "take": "NeedleWader_Stand",
-   "frames": 91,
+   "frames": 2,
    "loop": true
   },
-  "Takeoff": {
-   "take": "NeedleWader_Takeoff",
-   "frames": 17,
+  "TakeOff": {
+   "take": "NeedleWader_TakeOff",
+   "frames": 36,
+   "loop": false
+  },
+  "ThreatDisplay": {
+   "take": "NeedleWader_ThreatDisplay",
+   "frames": 54,
    "loop": false
   },
   "TurnL": {
    "take": "NeedleWader_TurnL",
-   "frames": 65,
+   "frames": 41,
    "loop": true
   },
-  "TurnL180": {
-   "take": "NeedleWader_TurnL180",
-   "frames": 91,
-   "loop": false
+  "TurnR": {
+   "take": "NeedleWader_TurnR",
+   "frames": 41,
+   "loop": true
   },
   "Walk": {
    "take": "NeedleWader_Walk",
-   "frames": 25,
+   "frames": 49,
    "loop": true
   },
   "WalkAlert": {
    "take": "NeedleWader_WalkAlert",
-   "frames": 25,
-   "loop": false
+   "frames": 49,
+   "loop": true
   },
-  "WingFlap": {
-   "take": "NeedleWader_WingFlap",
-   "frames": 106,
-   "loop": false
-  },
-  "WingStretch": {
-   "take": "NeedleWader_WingStretch",
-   "frames": 91,
+  "WingBuffet": {
+   "take": "NeedleWader_WingBuffet",
+   "frames": 31,
    "loop": false
   }
  },
  "stride": {
-  "Walk": 0.0
+  "Run": 2.329,
+  "Walk": 0.597
  },
  "eyes": [
   {
    "object": "Mesh_NeedleWader_EyeL1",
    "centre": [
     0.0849,
-    -0.5739,
+    -0.5091,
     1.386
    ],
    "gaze": [
@@ -162,7 +178,7 @@
    "object": "Mesh_NeedleWader_EyeR1",
    "centre": [
     -0.0849,
-    -0.5739,
+    -0.5091,
     1.386
    ],
    "gaze": [
@@ -176,13 +192,13 @@
    "object": "Mesh_NeedleWader_EyeL2",
    "centre": [
     0.1307,
-    -0.5919,
+    -0.5271,
     1.3946
    ],
    "gaze": [
     0.6021,
     -0.2007,
-    -0.7727
+    -0.7728
    ],
    "radius": 0.014
   },
@@ -190,13 +206,13 @@
    "object": "Mesh_NeedleWader_EyeR2",
    "centre": [
     -0.1307,
-    -0.5919,
+    -0.5271,
     1.3946
    ],
    "gaze": [
     -0.6021,
     -0.2007,
-    -0.7727
+    -0.7728
    ],
    "radius": 0.014
   },
@@ -204,7 +220,7 @@
    "object": "Mesh_NeedleWader_EyeL3",
    "centre": [
     0.1726,
-    -0.609,
+    -0.5441,
     1.3959
    ],
    "gaze": [
@@ -218,7 +234,7 @@
    "object": "Mesh_NeedleWader_EyeR3",
    "centre": [
     -0.1726,
-    -0.609,
+    -0.5441,
     1.3959
    ],
    "gaze": [
@@ -239,5 +255,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/NeedleWader/needle_wader.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/needle_wader/needle_wader.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/needlewader"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/needle_wader/cleanroom"
 }

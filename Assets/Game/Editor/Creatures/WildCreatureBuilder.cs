@@ -18,8 +18,9 @@
 //
 // Esko.prefab is the finished peaceful-until-provoked animal: perception, wander, flee or fight,
 // provocation, ragdoll, savers and netcode, all tuned and play-tested. A wild creature is that stack
-// minus the mount (MountModule, SteerModule, saddle and rider-pose components), so the builder copies
-// the Esko's root components field for field instead of describing them a second time here. Its
+// minus the mount (MountModule, SteerModule, saddle and rider-pose components) unless the roster
+// marks it rideable, so the builder copies the Esko's root components field for field instead of
+// describing them a second time here. Its
 // controller already carries every parameter and trigger those modules fire (Hurt, Death, Roar, Ram,
 // Happy, IsGrazing), so each creature only overrides the clips.
 //
@@ -31,11 +32,19 @@
 // Walk from SpeedY 1.6 to 3.3 and Run at 15, so animationSpeedMultiplier maps the run speed to 15
 // and walkAnimBoost lands the walk at 2.4.
 //
+// ## Size and riding
+//
+// WildCreatureRoster.asset gives each creature its game height (the player is 3 m) and whether it is
+// rideable. The height is the FBX import scale, so the prefab root stays at scale 1; strides, reach
+// and the saddle are derived from the scaled body.
+//
 // ## Create-only
 //
-// A prefab that exists is never rebuilt: prefabs are authored assets and may carry hand edits. The
-// import settings, override controller and eye style ARE refreshed every run, so a re-exported FBX
-// reaches an existing prefab. Delete a prefab to rebuild it.
+// Build never rebuilds a prefab that exists: prefabs are authored assets and may carry hand edits.
+// The import settings, override controller and eye style ARE refreshed every run, so a re-exported
+// FBX reaches an existing prefab. A changed roster height rebuilds that prefab (its bones were
+// unpacked at the old import scale); any other roster change needs Rebuild, which overwrites every
+// prefab. Writing over a prefab keeps its GUID.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -70,13 +79,20 @@ namespace SpaceGame.EditorTools
         private const float MinimumStride = 0.2f;
         // Esko's ragdoll mass is tuned for its 1.86 m body; others scale with volume.
         private const float TemplateHeight = 1.86f;
+        // Verify: how far a prefab's measured height may sit from the roster's before it reads as stale.
+        private const float SizeTolerance = 0.05f;
 
-        // Mount and saddle parts of the template: a wild creature is not rideable.
-        private static readonly HashSet<string> NotCloned = new HashSet<string>
+        public const string RosterPath = "Assets/Game/ScriptableObjects/Creatures/WildCreatureRoster.asset";
+
+        // Mount and saddle parts of the template: copied only onto a creature the roster marks rideable.
+        private static readonly HashSet<string> MountParts = new HashSet<string>
         {
             "MountModule", "SteerModule", "SaddleSocket", "SaddleQuickRelease", "SaddleSaveable",
             "MountSaveable", "MountNetworkSync", "MountedRiderPose",
         };
+
+        // Template distances measured centre to centre, which grow with the body's length.
+        private static readonly string[] ReachFields = { "attackRange", "chaseStopDistance" };
 
         // Esko.controller clip -> the creature's slots that may play it, best first. A candidate is
         // skipped if it does not move the skeleton: some donors' "Idle" is a held pose (the mallard's),
@@ -124,20 +140,40 @@ namespace SpaceGame.EditorTools
         }
 
         [MenuItem("Tools/SpaceGame/Creatures/Build Wild Creatures")]
-        public static void BuildAll()
+        public static void BuildAll() => Build(rebuildExisting: false);
+
+        // Writes over every existing prefab. SaveAsPrefabAsset onto an existing path keeps its GUID
+        // and the NetworkObject's GlobalObjectIdHash (AgentSystem Gotchas), so the network list and
+        // saves still resolve; hand edits to the prefab are lost.
+        [MenuItem("Tools/SpaceGame/Creatures/Rebuild Wild Creatures (overwrite prefabs)")]
+        public static void RebuildAll() => Build(rebuildExisting: true);
+
+        private static void Build(bool rebuildExisting)
         {
             var manifests = LoadManifests();
+            var roster = LoadRoster();
             int built = 0, refreshed = 0;
             foreach (var m in manifests)
             {
-                if (!ConfigureImport(m)) continue;
+                var entry = roster.Find(m.name);
+                if (entry == null)
+                    Debug.LogWarning($"[WildCreatureBuilder] {m.name}: not in {RosterPath}; built at its sculpted size and not rideable.");
+                if (!(AssetImporter.GetAtPath(m.fbx) is ModelImporter current))
+                {
+                    Debug.LogError($"[WildCreatureBuilder] {m.name}: {m.fbx} is not imported.");
+                    continue;
+                }
+                float scale = entry != null && entry.height > 0f ? entry.height / UnscaledHeight(m, current.globalScale) : 1f;
+                // A prefab's bones were unpacked at the old import scale, so a new scale must rebuild it.
+                bool rescaled = Mathf.Abs(current.globalScale - scale) > current.globalScale * SizeTolerance;
+                ConfigureImport(m, current, scale);
                 var controller = BuildOverrideController(m);
                 if (controller == null) continue;
                 var eyeMaterial = BuildEyeMaterial(m);
                 string path = $"{PrefabFolder}/{m.name}.prefab";
-                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null)
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null && !rebuildExisting && !rescaled && !SkeletonChanged(m, path))
                     refreshed++;
-                else if (BuildPrefab(m, controller, eyeMaterial, path))
+                else if (BuildPrefab(m, entry, scale, controller, eyeMaterial, path))
                     built++;
                 StampPrefabId(path);
             }
@@ -152,6 +188,14 @@ namespace SpaceGame.EditorTools
         }
 
         // ------------------------------------------------------------------ manifests
+
+        private static WildCreatureRoster LoadRoster()
+        {
+            var roster = AssetDatabase.LoadAssetAtPath<WildCreatureRoster>(RosterPath);
+            if (roster == null)
+                throw new FileNotFoundException($"The wild creature roster is missing at {RosterPath}.");
+            return roster;
+        }
 
         private static List<Manifest> LoadManifests()
         {
@@ -200,15 +244,11 @@ namespace SpaceGame.EditorTools
 
         // ------------------------------------------------------------------ import + animator
 
-        private static bool ConfigureImport(Manifest m)
+        // The game size is the import scale, so the prefab stays at scale 1 and everything measured off
+        // the model (bounds, collider, agent, bones, saddle) is already in game metres.
+        private static void ConfigureImport(Manifest m, ModelImporter importer, float scale)
         {
-            var importer = AssetImporter.GetAtPath(m.fbx) as ModelImporter;
-            if (importer == null)
-            {
-                Debug.LogError($"[WildCreatureBuilder] {m.name}: {m.fbx} is not imported.");
-                return false;
-            }
-            importer.globalScale = 1f;
+            importer.globalScale = scale;
             importer.useFileScale = true;
             importer.materialLocation = ModelImporterMaterialLocation.InPrefab;
             importer.materialName = ModelImporterMaterialName.BasedOnTextureName;
@@ -236,7 +276,6 @@ namespace SpaceGame.EditorTools
             }
             importer.clipAnimations = clips;
             importer.SaveAndReimport();
-            return true;
         }
 
         private static AnimatorOverrideController BuildOverrideController(Manifest m)
@@ -353,6 +392,20 @@ namespace SpaceGame.EditorTools
 
         // The save system finds a runtime-spawned prefab by this id; it must be the prefab's own
         // GUID, written into the file (SaveableWiring.StampPrefabId explains why OnValidate is not enough).
+        // A re-rigged FBX (new bone names) leaves the prefab's unpacked hierarchy pointing at bones the
+        // model no longer has: every clip binds to nothing and the skin collapses. Rebuild it.
+        private static bool SkeletonChanged(Manifest m, string prefabPath)
+        {
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(m.fbx);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            var have = new HashSet<string>(prefab.GetComponentsInChildren<Transform>(true).Select(t => t.name));
+            string missing = model.GetComponentsInChildren<Transform>(true).Select(t => t.name)
+                                  .FirstOrDefault(n => n != model.name && !have.Contains(n));
+            if (missing != null)
+                Debug.Log($"[WildCreatureBuilder] {m.name}: the model's skeleton changed ('{missing}' is not in the prefab); rebuilding.");
+            return missing != null;
+        }
+
         private static void StampPrefabId(string path)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -366,8 +419,10 @@ namespace SpaceGame.EditorTools
             PrefabUtility.SavePrefabAsset(prefab);
         }
 
-        private static bool BuildPrefab(Manifest m, AnimatorOverrideController controller, Material eyeMaterial, string path)
+        private static bool BuildPrefab(Manifest m, WildCreatureRoster.Entry entry, float scale,
+                                        AnimatorOverrideController controller, Material eyeMaterial, string path)
         {
+            bool rideable = entry != null && entry.rideable;
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(m.fbx);
             var template = AssetDatabase.LoadAssetAtPath<GameObject>(TemplatePrefab);
             var root = (GameObject)PrefabUtility.InstantiatePrefab(model);
@@ -389,12 +444,13 @@ namespace SpaceGame.EditorTools
                 // NetworkObject and SaveableEntity are FRESH, never copied: a copied one carries the
                 // template's identity (GlobalObjectIdHash, prefab id) and two prefabs would share it.
                 root.AddComponent<NetworkObject>();
-                CloneComponents(template, root);
+                CloneComponents(template, root, rideable);
                 root.AddComponent<SaveableEntity>();
 
                 Bounds b = BodyBounds(root, m.name);
-                float run = Stride(m, "Run", "Trot", "Sprint", "HopFast");
-                float walk = Stride(m, "Walk", "Hop");
+                // Strides are measured in Blender metres; the import scale makes every stride that much longer.
+                float run = Stride(m, "Run", "Trot", "Sprint", "HopFast") * scale;
+                float walk = Stride(m, "Walk", "Hop") * scale;
                 if (run <= 0f) run = Froude(b.size.y, 1.2f);
                 if (walk <= 0f) walk = Froude(b.size.y, 0.3f);
                 // A run measured slower than the walk is a mis-measure (feet that barely slide in a
@@ -427,13 +483,21 @@ namespace SpaceGame.EditorTools
                     SerializedFields.Edit(rig, so => SerializedFields.SetFloat(so, "totalMass",
                         70f * Mathf.Pow(b.size.y / TemplateHeight, 3f)));
 
+                // Reach is measured centre to centre, so the Esko's has to grow with the body or a
+                // long animal parks with its target still beyond its nose.
+                float lengthRatio = box.size.z / template.GetComponent<BoxCollider>().size.z;
+                ScaleFields(root, lengthRatio, ReachFields);
+
+                if (rideable && !FitSaddle(m, entry, root, template, lengthRatio))
+                    return false;
+
                 WireEyes(m, root, eyeMaterial);
                 SaveablePolicy.Ensure(root, out _);
 
                 EnsureFolder(PrefabFolder);
                 PrefabUtility.SaveAsPrefabAsset(root, path, out bool ok);
                 Debug.Log($"[WildCreatureBuilder] {m.name}: {(ok ? "built" : "FAILED")} {path} — walk {walk:0.00} m/s, " +
-                          $"run {run:0.00} m/s, {b.size.y:0.00} m tall, {m.eyes.Count} eyes");
+                          $"run {run:0.00} m/s, {b.size.y:0.00} m tall, {m.eyes.Count} eyes{(rideable ? ", rideable" : "")}");
                 return ok;
             }
             finally
@@ -442,13 +506,13 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        private static void CloneComponents(GameObject template, GameObject root)
+        private static void CloneComponents(GameObject template, GameObject root, bool rideable)
         {
             foreach (var source in template.GetComponents<Component>())
             {
                 Type type = source.GetType();
                 if (source is Transform || source is Animator || source is NetworkObject || source is SaveableEntity) continue;
-                if (NotCloned.Contains(type.Name)) continue;
+                if (!rideable && MountParts.Contains(type.Name)) continue;
                 var target = root.GetComponent(type);
                 if (target == null) target = root.AddComponent(type);
                 EditorUtility.CopySerialized(source, target);
@@ -476,6 +540,94 @@ namespace SpaceGame.EditorTools
             }
         }
 
+        private static void ScaleFields(GameObject root, float ratio, IEnumerable<string> fields)
+        {
+            foreach (var component in root.GetComponents<Component>())
+            {
+                if (component is Transform) continue;
+                var so = new SerializedObject(component);
+                bool changed = false;
+                foreach (string field in fields)
+                {
+                    var property = so.FindProperty(field);
+                    if (property == null || property.propertyType != SerializedPropertyType.Float) continue;
+                    property.floatValue *= ratio;
+                    changed = true;
+                }
+                if (changed) so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
+        // ------------------------------------------------------------------ saddle
+
+        // The saddle sits on the centreline over the roster's saddle bone, on the highest point of the
+        // skin that bone moves (the back, or the shell or dome a creature carries there). The rider,
+        // the camera and the spill ring keep the Esko's relation to its saddle and body.
+        private static bool FitSaddle(Manifest m, WildCreatureRoster.Entry entry, GameObject root, GameObject template,
+                                      float lengthRatio)
+        {
+            Transform bone = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == entry.saddleBone);
+            if (bone == null)
+            {
+                Debug.LogError($"[WildCreatureBuilder] {m.name}: no bone '{entry.saddleBone}' to hang the saddle off.");
+                return false;
+            }
+            if (!TryBackTop(root, bone, out float backTop))
+            {
+                Debug.LogError($"[WildCreatureBuilder] {m.name}: no skin is weighted to '{entry.saddleBone}', so " +
+                               "there is no back to put the saddle on. Pick another saddle bone in the roster.");
+                return false;
+            }
+            Vector3 saddle = new Vector3(0f, backTop, root.transform.InverseTransformPoint(bone.position).z);
+
+            var templateSocket = new SerializedObject(template.GetComponent<SaddleSocket>());
+            var templateMount = new SerializedObject(template.GetComponent<MountModule>());
+            Vector3 templateSaddle = templateSocket.FindProperty("rootPosition").vector3Value;
+            Vector3 seatAboveSaddle = templateMount.FindProperty("seatOffset").vector3Value - templateSaddle;
+            float heightRatio = backTop / templateSaddle.y;
+
+            SerializedFields.Edit(root.GetComponent<SaddleSocket>(), so =>
+            {
+                SerializedFields.SetString(so, "mountBoneName", entry.saddleBone);
+                SerializedFields.SetVector3(so, "rootPosition", saddle);
+                SerializedFields.SetFloat(so, "dropRadius", templateSocket.FindProperty("dropRadius").floatValue * lengthRatio);
+                SerializedFields.SetFloat(so, "dropHeight", templateSocket.FindProperty("dropHeight").floatValue * heightRatio);
+            });
+            SerializedFields.Edit(root.GetComponent<MountModule>(), so =>
+            {
+                SerializedFields.SetVector3(so, "seatOffset", saddle + seatAboveSaddle);
+                SerializedFields.SetFloat(so, "thirdPersonDistance",
+                    templateMount.FindProperty("thirdPersonDistance").floatValue * lengthRatio);
+            });
+            // A mounted jump plays Esko_Jump, which only a creature with a Jump take fills with a jump;
+            // without one the motor would leap metres in a walk cycle (Saddles Extending).
+            bool jumps = m.clipList.Any(c => c.slot == "Jump");
+            SerializedFields.Edit(root.GetComponent<NavMeshAgentMotor>(), so =>
+            {
+                SerializedFields.SetBool(so, "enableMountedJump", jumps);
+                SerializedFields.SetBool(so, "enableMountedLeap", jumps);
+            });
+            return true;
+        }
+
+        // Highest point, in root space at rest, of the skin whose strongest weight is on this bone.
+        // Unity sorts each vertex's weights strongest first, so boneIndex0 is that bone.
+        private static bool TryBackTop(GameObject root, Transform bone, out float top)
+        {
+            top = float.MinValue;
+            foreach (var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                int index = Array.IndexOf(skin.bones, bone);
+                if (index < 0 || skin.sharedMesh == null) continue;
+                var vertices = skin.sharedMesh.vertices;
+                var weights = skin.sharedMesh.boneWeights;
+                for (int i = 0; i < vertices.Length; i++)
+                    if (weights[i].boneIndex0 == index)
+                        top = Mathf.Max(top, root.transform.InverseTransformPoint(skin.transform.TransformPoint(vertices[i])).y);
+            }
+            return top > float.MinValue;
+        }
+
         private static void WireEyes(Manifest m, GameObject root, Material eyeMaterial)
         {
             if (eyeMaterial == null) return;
@@ -500,8 +652,26 @@ namespace SpaceGame.EditorTools
             var body = root.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.name == $"Mesh_{name}")
                        ?? root.GetComponentsInChildren<SkinnedMeshRenderer>(true).First();
             body.updateWhenOffscreen = false;
-            Bounds world = body.bounds;
-            return new Bounds(root.transform.InverseTransformPoint(world.center), world.size);
+            // Measured off the baked mesh: the renderer's own bounds are its imported localBounds, up
+            // to 1.75x the real height on these exports, which oversized every collider and agent.
+            // The root is unparented at the origin, so the helper's world space is root space.
+            return ClankerBodyBuilder.SkinnedBounds(root);
+        }
+
+        // The body's height at import scale 1, measured off the model as currently imported. The
+        // manifest's height is not used: it disagrees with the mesh by up to 1.6x (Coilhorn).
+        private static float UnscaledHeight(Manifest m, float importScale)
+        {
+            var model = (GameObject)UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(m.fbx));
+            try
+            {
+                model.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                return BodyBounds(model, m.name).size.y / importScale;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(model);
+            }
         }
 
         private static float Stride(Manifest m, params string[] slots)
@@ -528,9 +698,10 @@ namespace SpaceGame.EditorTools
         public static void VerifyAll()
         {
             int failures = 0;
+            var roster = LoadRoster();
             foreach (var m in LoadManifests())
             {
-                var problems = Verify(m);
+                var problems = Verify(m, roster);
                 failures += problems.Count;
                 Debug.Log(problems.Count == 0
                     ? $"[WildCreatureBuilder] {m.name}: OK"
@@ -540,10 +711,12 @@ namespace SpaceGame.EditorTools
         }
 
         public static List<string> VerifyByName(string name) =>
-            Verify(LoadManifests().First(x => x.name == name));
+            Verify(LoadManifests().First(x => x.name == name), LoadRoster());
 
-        private static List<string> Verify(Manifest m)
+        private static List<string> Verify(Manifest m, WildCreatureRoster roster)
         {
+            var entry = roster.Find(m.name);
+            bool rideable = entry != null && entry.rideable;
             var problems = new List<string>();
             string path = $"{PrefabFolder}/{m.name}.prefab";
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -562,14 +735,25 @@ namespace SpaceGame.EditorTools
             var saveable = prefab.GetComponent<SaveableEntity>();
             if (saveable == null || string.IsNullOrEmpty(saveable.PrefabId)) problems.Add("no saveable prefab id");
             if (m.eyes.Count > 0 && prefab.GetComponent<EyeBlink>() == null) problems.Add("no EyeBlink");
-            foreach (string mount in NotCloned)
-                if (prefab.GetComponents<Component>().Any(c => c != null && c.GetType().Name == mount)) problems.Add($"has {mount}");
+            foreach (string part in MountParts)
+            {
+                bool has = prefab.GetComponents<Component>().Any(c => c != null && c.GetType().Name == part);
+                if (has != rideable) problems.Add(rideable ? $"rideable but no {part}" : $"has {part}");
+            }
+            if (rideable && prefab.GetComponentsInChildren<Transform>(true).All(t => t.name != entry.saddleBone))
+                problems.Add($"no saddle bone '{entry.saddleBone}'");
             if (prefab.GetComponents<Component>().Any(c => c == null)) problems.Add("missing script");
 
             // every clip the animator plays must move bones on THIS skeleton, or it bound to nothing
             var instance = UnityEngine.Object.Instantiate(prefab);
             try
             {
+                if (entry != null && entry.height > 0f)
+                {
+                    float height = BodyBounds(instance, m.name).size.y;
+                    if (Mathf.Abs(height - entry.height) > entry.height * SizeTolerance)
+                        problems.Add($"{height:0.00} m tall, roster says {entry.height:0.00} m (rebuild it)");
+                }
                 var played = new List<KeyValuePair<AnimationClip, AnimationClip>>();
                 if (animator.runtimeAnimatorController is AnimatorOverrideController playing)
                     playing.GetOverrides(played);

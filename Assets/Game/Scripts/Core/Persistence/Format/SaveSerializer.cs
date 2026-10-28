@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -114,13 +115,52 @@ namespace SpaceGame.Persistence
             header = null;
             if (string.IsNullOrWhiteSpace(json)) return false;
 
+            using var reader = new StringReader(json);
+            return TryReadHeader(reader, out header);
+        }
+
+        /// <summary>
+        /// Streams <paramref name="text"/> token by token and stops as soon as the root
+        /// <c>"header"</c> object has been read, never building a DOM of the document.
+        ///
+        /// <see cref="SaveDocument"/> declares <c>header</c> first, so a file this build wrote is
+        /// answered from its first few hundred bytes. That matters because the header is read on
+        /// every autosave (<see cref="SaveFileStore.WouldDowngradeFormat"/>) and once per slot in
+        /// the world list, and saves are around a megabyte: parsing all of it to read one int is
+        /// what used to stall both. A file whose header comes later (hand-edited, or another
+        /// writer) still works — the root values before it are skipped, not materialised.
+        ///
+        /// The flip side of stopping early: a file whose header is intact but whose body is
+        /// truncated now yields its header. The full load still reports it corrupt.
+        /// </summary>
+        public static bool TryReadHeader(TextReader text, out SaveHeader header)
+        {
+            header = null;
+            if (text == null) return false;
+
             try
             {
-                JToken headerToken = JObject.Parse(json)["header"];
-                if (headerToken == null) return false;
+                using var reader = new JsonTextReader(text) { CloseInput = false };
 
-                header = headerToken.ToObject<SaveHeader>(Serializer);
-                return header != null;
+                if (!reader.Read() || reader.TokenType != JsonToken.StartObject) return false;
+
+                while (reader.Read() && reader.TokenType == JsonToken.PropertyName)
+                {
+                    bool isHeader = (string)reader.Value == SaveDocument.HeaderKey;
+
+                    // Onto the property's value: an object or array to skip whole, or a primitive.
+                    if (!reader.Read()) return false;
+
+                    if (isHeader)
+                    {
+                        header = Serializer.Deserialize<SaveHeader>(reader);
+                        return header != null;
+                    }
+
+                    reader.Skip();
+                }
+
+                return false;
             }
             catch (JsonException)
             {

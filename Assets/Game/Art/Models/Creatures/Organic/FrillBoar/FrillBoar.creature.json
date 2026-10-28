@@ -6,67 +6,82 @@
  "clips": {
   "Alert": {
    "take": "FrillBoar_Alert",
-   "frames": 23,
+   "frames": 30,
    "loop": false
   },
   "AlertIdle": {
    "take": "FrillBoar_AlertIdle",
-   "frames": 17,
+   "frames": 76,
    "loop": true
   },
   "Attack": {
    "take": "FrillBoar_Attack",
-   "frames": 14,
+   "frames": 28,
+   "loop": false
+  },
+  "AttackGore": {
+   "take": "FrillBoar_AttackGore",
+   "frames": 30,
    "loop": false
   },
   "Bark": {
    "take": "FrillBoar_Bark",
-   "frames": 23,
+   "frames": 34,
    "loop": false
+  },
+  "Buck": {
+   "take": "FrillBoar_Buck",
+   "frames": 28,
+   "loop": false
+  },
+  "Charge": {
+   "take": "FrillBoar_Charge",
+   "frames": 15,
+   "loop": true
   },
   "Death": {
    "take": "FrillBoar_Death",
-   "frames": 13,
+   "frames": 42,
    "loop": false
   },
   "DeathR": {
    "take": "FrillBoar_DeathR",
-   "frames": 13,
+   "frames": 42,
    "loop": false
   },
   "Eat": {
    "take": "FrillBoar_Eat",
-   "frames": 190,
+   "frames": 181,
    "loop": true
   },
   "EatLook": {
    "take": "FrillBoar_EatLook",
-   "frames": 112,
+   "frames": 106,
    "loop": false
   },
   "GetUp": {
    "take": "FrillBoar_GetUp",
-   "frames": 47,
+   "frames": 52,
    "loop": false
   },
   "Hurt": {
    "take": "FrillBoar_Hurt",
-   "frames": 21,
+   "frames": 17,
    "loop": false
   },
   "HurtR": {
    "take": "FrillBoar_HurtR",
-   "frames": 21,
+   "frames": 17,
    "loop": false
   },
   "Idle": {
    "take": "FrillBoar_Idle",
-   "frames": 121,
+   "frames": 151,
    "loop": true
   },
   "Jump": {
    "take": "FrillBoar_Jump",
-   "frames": 15,
+   "frames": 20,
    "loop": false
   },
   "LieDown": {
@@ -74,34 +89,59 @@
    "frames": 76,
    "loop": false
   },
+  "MountKneel": {
+   "take": "FrillBoar_MountKneel",
+   "frames": 42,
+   "loop": false
+  },
+  "MountKneelIdle": {
+   "take": "FrillBoar_MountKneelIdle",
+   "frames": 76,
+   "loop": true
+  },
+  "MountRise": {
+   "take": "FrillBoar_MountRise",
+   "frames": 38,
+   "loop": false
+  },
+  "PawGround": {
+   "take": "FrillBoar_PawGround",
+   "frames": 45,
+   "loop": false
+  },
   "Rest": {
    "take": "FrillBoar_Rest",
-   "frames": 2,
+   "frames": 76,
+   "loop": true
+  },
+  "RiddenIdle": {
+   "take": "FrillBoar_RiddenIdle",
+   "frames": 136,
    "loop": true
   },
   "Run": {
    "take": "FrillBoar_Run",
-   "frames": 13,
+   "frames": 15,
    "loop": true
   },
   "RunInjured": {
    "take": "FrillBoar_RunInjured",
-   "frames": 13,
+   "frames": 17,
    "loop": true
   },
   "RunStop": {
    "take": "FrillBoar_RunStop",
-   "frames": 43,
+   "frames": 36,
    "loop": false
   },
   "Shake": {
    "take": "FrillBoar_Shake",
-   "frames": 48,
+   "frames": 45,
    "loop": false
   },
   "Sprint": {
    "take": "FrillBoar_Sprint",
-   "frames": 10,
+   "frames": 13,
    "loop": true
   },
   "Stand": {
@@ -111,12 +151,12 @@
   },
   "Trot": {
    "take": "FrillBoar_Trot",
-   "frames": 17,
+   "frames": 21,
    "loop": true
   },
   "TurnL": {
    "take": "FrillBoar_TurnL",
-   "frames": 63,
+   "frames": 31,
    "loop": true
   },
   "TurnL180": {
@@ -126,7 +166,7 @@
   },
   "TurnR": {
    "take": "FrillBoar_TurnR",
-   "frames": 63,
+   "frames": 31,
    "loop": true
   },
   "TurnR180": {
@@ -136,38 +176,39 @@
   },
   "Walk": {
    "take": "FrillBoar_Walk",
-   "frames": 25,
+   "frames": 31,
    "loop": true
   },
   "WalkInjured": {
    "take": "FrillBoar_WalkInjured",
-   "frames": 25,
+   "frames": 37,
    "loop": true
   },
   "WalkL": {
    "take": "FrillBoar_WalkL",
-   "frames": 25,
+   "frames": 31,
    "loop": true
   },
   "WalkR": {
    "take": "FrillBoar_WalkR",
-   "frames": 25,
+   "frames": 31,
    "loop": true
   }
  },
  "stride": {
-  "Run": 6.604,
-  "RunInjured": 6.604,
-  "Trot": 4.268,
-  "Walk": 1.62,
-  "WalkInjured": 1.091
+  "Run": 6.03,
+  "RunInjured": 4.22,
+  "Sprint": 8.44,
+  "Trot": 3.75,
+  "Walk": 1.562,
+  "WalkInjured": 0.833
  },
  "eyes": [
   {
    "object": "Mesh_FrillBoar_EyeL",
    "centre": [
     0.3032,
-    -1.1819,
+    -1.3719,
     1.3001
    ],
    "gaze": [
@@ -181,7 +222,7 @@
    "object": "Mesh_FrillBoar_EyeR",
    "centre": [
     -0.3094,
-    -1.2019,
+    -1.3919,
     1.3336
    ],
    "gaze": [
@@ -202,5 +243,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/FrillBoar/frill_boar.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/frill_boar/frill_boar.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/frillboar"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/frill_boar/cleanroom"
 }

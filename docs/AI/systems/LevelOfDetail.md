@@ -35,7 +35,7 @@ symptoms:
   - "a workshop room has no walls or ceiling when seen down a tunnel"
   - "the workshop's lamps are all lit while I am far outside the mountain"
 reads_with: [ArtPipeline, CharacterClothes, SettlementStreets, Workshop]
-updated: 2026-10-12
+updated: 2026-10-28
 ---
 
 # Level of detail
@@ -170,7 +170,7 @@ N/A — no runtime state. LOD is authored on prefabs; a lamp put out by distance
 - **In a preview scene an animated cross-fade never settles** (edit-mode time does not advance):
   set fade mode None on the instance to judge steady-state tiers.
 - **Mesh LOD roughly doubles a shell's index buffer** (L1–L3 add ~87 % of L0's indices).
-- **SSAO stays on the DepthNormals source ([PC_Renderer.asset](Assets/Game/Settings/PC_Renderer.asset)).** Tried 2026-10-05 to drop the normals prepass: `Source: Depth` with `AfterOpaque` removes the pass but puts visible grain and dark halos on flat walls (normals reconstructed from depth, even at High), and `Depth` *before* opaques keeps a depth-only prepass — same draw count — so it saves almost nothing. Nothing else samples `_CameraNormalsTexture`.
+- **SSAO stays on the DepthNormals source ([PC_Renderer.asset](Assets/Game/Settings/PC_Renderer.asset)).** Tried 2026-10-05 to drop the normals prepass: `Source: Depth` with `AfterOpaque` removes the pass but puts visible grain and dark halos on flat walls (normals reconstructed from depth, even at High), and `Depth` *before* opaques keeps a depth-only prepass — same draw count — so it saves almost nothing. Nothing else samples `_CameraNormalsTexture`. The cost is cut instead in the AO pass itself (2026-10-28): `Downsample` on and `BlurQuality` Medium (see [Environment.md](Environment.md) Gotchas). The prepass stays.
 - **The LOD mesh assets are in Git LFS** (`deco_*_lod.asset`, `*_LOD[0-9].asset` in `.gitattributes`):
   ~43 MB Raxy + ~88 MB decorations of YAML. A clone without `git-lfs` gets pointer files and every
   LOD tier renders nothing.

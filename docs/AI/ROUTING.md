@@ -68,6 +68,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a belt or pouch near the hip gets dragged along by a swinging arm | [CharacterClothes](systems/CharacterClothes.md) |
 | a big building is a tangle of stray triangles in the wrong materials in play mode, but fine in the Scene view, the prefab and Blender | [ArtPipeline](systems/ArtPipeline.md) |
 | a big dust puff cuts a hard straight line where it meets the ground | [Monowheel](systems/Monowheel.md) |
+| a big wild creature stops short and bites the air in front of me | [WildCreatures](systems/WildCreatures.md) |
+| a billowing sail or cape flickers where it bends away from its rest shape | [ProjectConfig](systems/ProjectConfig.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a blast makes the sky city or a sky ship go limp | [SkyTribe](systems/SkyTribe.md) |
 | a blob is visibly bigger than the area that caught the player inside it | [FoamGun](systems/FoamGun.md) |
@@ -156,6 +158,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a corpse jitters or stands up after I kill a far-off NPC | [SimulationDistance](systems/SimulationDistance.md) |
 | a crab walker's moveSpeed is raised but it never walks faster than 1.76 m/s | [Striders](systems/Striders.md) |
 | a creature built from several meshes blows apart when it dies, while single-mesh ones fall fine | [Combat](systems/Combat.md) |
+| a creature changed size after its model was replaced | [WildCreatures](systems/WildCreatures.md) |
 | a creature disappears for clients when it walks into another chunk | [EntitySystem](systems/EntitySystem.md) |
 | a creature fed trespass never gets angry no matter how long I stand there | [AgentSystem](systems/AgentSystem.md) |
 | a creature gets up with its limbs still bent or stretched | [Combat](systems/Combat.md) |
@@ -225,6 +228,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0) | [EditorTooling](systems/EditorTooling.md) |
 | a frozen player hit by a blast or a hard shot collapses into a heap with the camera stuck inside their head | [Combat](systems/Combat.md) |
 | a gadget with a tank saves its fill but a client never sees it | [SupplyCharge](systems/SupplyCharge.md) |
+| a galloping wild creature's feet race ahead of its body | [WildCreatures](systems/WildCreatures.md) |
 | a gameplay hotkey still fires while a menu or the chat box is open | [CoreServices](systems/CoreServices.md) |
 | a garment added in Prefab Mode never disappears at distance | [LevelOfDetail](systems/LevelOfDetail.md) |
 | a garment dropped onto a character does not follow the body | [CharacterClothes](systems/CharacterClothes.md) |
@@ -518,6 +522,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a second reactor core lies in the vault after loading the world | [WorkshopMission](systems/WorkshopMission.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a second target appeared after loading the world | [Bounties](systems/Bounties.md) |
+| a setting I changed on PC_RPAsset does nothing on Low or Medium quality | [ProjectConfig](systems/ProjectConfig.md) |
 | a Settlement configured for several decorations of the same kind (e.g. tents) only ever places one, with a clean console | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a settlement decoration prefab has no collider and the player walks through it, or an agent paths straight through a wall or fence | [ArtPipeline](systems/ArtPipeline.md) |
 | a settlement entry never spawns anything even though its count is above zero | [TerrainGeneration](systems/TerrainGeneration.md) |
@@ -633,8 +638,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a war party's monowheel the player took is gone after a reload, or comes back crewed by Striders | [Striders](systems/Striders.md) |
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a wide dark ring between grass and bare ground when seen from far away | [Grass](systems/Grass.md) |
-| a wild creature can be saddled or ridden | [WildCreatures](systems/WildCreatures.md) |
+| a wild creature can be saddled or ridden when the roster says it should not be | [WildCreatures](systems/WildCreatures.md) |
 | a wild creature glides with its legs barely moving, or its feet skate | [WildCreatures](systems/WildCreatures.md) |
+| a wild creature's clips play but its body stays frozen in the bind pose after a re-export | [WildCreatures](systems/WildCreatures.md) |
+| a wild creature's collider or NavMeshAgent is far bigger than its body | [WildCreatures](systems/WildCreatures.md) |
+| a wild creature's feet slide sideways every time it turns on the spot | [WildCreatures](systems/WildCreatures.md) |
+| a wild creature's legs cross, bend backwards or slide while it walks | [WildCreatures](systems/WildCreatures.md) |
 | a wild creature's prefab was not rebuilt after re-exporting its FBX | [WildCreatures](systems/WildCreatures.md) |
 | a wildflower's petals are green | [VegetationKit](systems/VegetationKit.md) |
 | a wingman trails far behind its leader and never closes up | [NpcFlight](systems/NpcFlight.md) |
@@ -757,6 +766,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an old save loads with the rooms back at the start | [Workshop](systems/Workshop.md) |
 | an old save with the story over now asks me to find the vault | [WorkshopMission](systems/WorkshopMission.md) |
 | an old save's provocation/resident record is ignored after the creature moved to a new saver | [Persistence](systems/Persistence.md) |
+| an opaque object with a custom shader is invisible, or flickers, on PC quality | [ProjectConfig](systems/ProjectConfig.md) |
 | an outfit prefab is missing a piece of clothing | [CharacterClothes](systems/CharacterClothes.md) |
 | an Outpost generates but nobody moves in, with a clean console | [Outposts](systems/Outposts.md) |
 | an outpost prefab I hand-edited lost its changes | [Outposts](systems/Outposts.md) |
@@ -1712,6 +1722,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the near edge of the board is cut off the bottom of the frame after I raised the focus camera | [Backpack](systems/Backpack.md) |
 | the net arrives as a crumpled hank of rope instead of a sheet lying on the sand | [Artifacts](systems/Artifacts.md) |
 | the net gun fires, the net lands, and it never catches anything at all | [Artifacts](systems/Artifacts.md) |
+| the Network Messages / Network Objects profiler modules stay empty during play | [Multiplayer](systems/Multiplayer.md) |
+| the new animals are tiny next to the player | [WildCreatures](systems/WildCreatures.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
@@ -1746,6 +1758,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the parked ship stands half a metre off its own skirts with nothing under it | [PlayerShip](systems/PlayerShip.md) |
 | the passengers of a shot-down sky transport appear by a landing site hundreds of metres away | [SkyTribe](systems/SkyTribe.md) |
 | the passengers of a shot-down sky transport appear by a landing site hundreds of metres away | [Vehicles](systems/Vehicles.md) |
+| the performance overlay shows CPU — GPU — in a build | [UI](systems/UI.md) |
 | the pet prompt appears everywhere on the animal instead of only on its head | [AgentSystem](systems/AgentSystem.md) |
 | the pet prompt never appears no matter where I aim at the creature | [AgentSystem](systems/AgentSystem.md) |
 | the pickup prompt shows but RMB does nothing, and the console is clean | [Inventory](systems/Inventory.md) |
@@ -1854,6 +1867,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the rotation never raises a band after loading a save | [Expeditions](systems/Expeditions.md) |
 | the rover in the colony bay is too big and its ramps are in the way | [ColonyInterior](systems/ColonyInterior.md) |
 | the saddle arrives a hundred times too big, or floating beside the animal | [Saddles](systems/Saddles.md) |
+| the saddle floats above or sinks into a wild creature's back | [WildCreatures](systems/WildCreatures.md) |
 | the saddle is the right size for the world but too small for the animal wearing it | [Saddles](systems/Saddles.md) |
 | the saddle stands off the animal like a shelf instead of lying on it | [Saddles](systems/Saddles.md) |
 | the saddle stays still while the animal's back heaves up through it and sinks away under it | [Saddles](systems/Saddles.md) |
@@ -2023,6 +2037,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the walkability tests are green and I still get caught on something in the cabin | [PlayerShip](systems/PlayerShip.md) |
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
+| the walking city is visible from across the whole map | [SettlementLods](systems/SettlementLods.md) |
 | the walking city leaves while its crew are still ashore | [Striders](systems/Striders.md) |
 | the walking city pops in or jumps sideways when I walk up to it | [SettlementLods](systems/SettlementLods.md) |
 | the walking city swings round to face north when it stops | [SettlementLods](systems/SettlementLods.md) |
@@ -2071,6 +2086,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the workshop prefab lost my hand edits | [Workshop](systems/Workshop.md) |
 | the workshop's gears do not turn, or turn through each other | [Workshop](systems/Workshop.md) |
 | the workshop's lamps are all lit while I am far outside the mountain | [LevelOfDetail](systems/LevelOfDetail.md) |
+| the world list freezes for seconds when it opens, longer the more saves there are | [Persistence](systems/Persistence.md) |
 | the world list only shows two saves before it has to be scrolled | [UI](systems/UI.md) |
 | the world renders through some camera that is not my player's | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the worn wing has a yoke and spars but no cloth between them | [Wingsuit](systems/Wingsuit.md) |
@@ -2114,6 +2130,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | timing the jump on the pogo stick's landing makes the hop shorter instead of higher | [Artifacts](systems/Artifacts.md) |
 | trails stop updating or vanish while I work in the Scene view | [GrassInteraction](systems/GrassInteraction.md) |
 | trees and bushes stand perfectly still while the grass around them waves | [Foliage](systems/Foliage.md) |
+| trees disappear a few hundred metres away | [ProjectConfig](systems/ProjectConfig.md) |
 | tufts pop in and out at full size a little way off as I walk | [Grass](systems/Grass.md) |
 | turning a crank also turns the vane next to it | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | turning my head feels laggy, and the view lurches further whenever the frame rate dips | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -2671,6 +2688,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/StormVeil.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Editor/Creatures/WildCreatureRoster.cs` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/Editor/Tests/MonowheelPoseMathTests.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Editor/Tests/StriderDustPrefabTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Tests/StriderTribeAssetTests.cs` | [Striders](systems/Striders.md) |
@@ -2898,6 +2916,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Widgets/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/World/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Settings/PC_Medium_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Art/Models/Characters/EyeMeshes` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/VisualEffects/Lightning.vfx` | [Artifacts](systems/Artifacts.md) |
@@ -2919,7 +2938,6 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Decorations` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab` | [UI](systems/UI.md) |
 | `Assets/Game/Scenes/Tests/WorkshopTest.unity` | [Workshop](systems/Workshop.md) |
-| `Assets/Game/Scenes/world/NoiseTerrain.unity` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Scripts/Core/DiagnosticsBridge/` | [Diagnostics](systems/Diagnostics.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Items/Artifacts/FoamGun` | [FoamGun](systems/FoamGun.md) |
@@ -2952,6 +2970,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/WorkshopMission/` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Art/Materials/Characters/Raxy` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Models/Items/squirter.fbx` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Art/Shaders/DepthNormals.hlsl` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Editor/Agents/EyelidWiring.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Tests/ArmReachTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Editor/Tests/PushableTests.cs` | [Pushables](systems/Pushables.md) |
@@ -2963,13 +2982,16 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Artifacts/Leash` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Ropes` | [RopeCutting](systems/RopeCutting.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/` | [Ornithopter](systems/Ornithopter.md) |
+| `Assets/Game/Settings/PC_Low_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Settings/SkyCityNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `ProjectSettings/EditorBuildSettings.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Art/Textures/Characters/Eyes` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Agents/MouthWiring.cs` | [TalkingMouth](systems/TalkingMouth.md) |
 | `Assets/Game/Editor/Tests/FarDustTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
+| `Assets/Game/Scenes/world/gameScene.unity` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Scenes/world/gameScene.unity` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/ScriptableObjects/Creatures/` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/ScriptableObjects/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Agents/Modules/Quest` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Gameplay/DishControl` | [SatelliteDish](systems/SatelliteDish.md) |
@@ -3004,6 +3026,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Interior/` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Scripts/World/Environment/` | [Environment](systems/Environment.md) |
 | `Assets/Game/Settings/PC_Renderer.asset` | [Environment](systems/Environment.md) |
+| `Assets/Game/Settings/PC_Renderer.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Terrain/VegetationGallery/` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Art/Animations/Creatures/` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/Editor/Agents/EyeStyle.cs` | [StylizedEyes](systems/StylizedEyes.md) |
@@ -3142,4 +3165,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2151 symptoms, 965 paths, 120 docs -->
+<!-- 2168 symptoms, 971 paths, 120 docs -->

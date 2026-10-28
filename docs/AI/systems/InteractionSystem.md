@@ -23,7 +23,7 @@ symptoms:
   - "the bracket and the name land beside what I am pointing at, not on it"
   - "picking a thing up needs a different button depending on what the thing is"
 reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal, Diagnostics, HumanoidAnimation, Pushables]
-updated: 2026-10-13
+updated: 2026-10-28
 ---
 
 # Interaction
@@ -164,7 +164,7 @@ All seven, and the satellite dish's `DishRigSaveable` (`dishRig`), are auto-atta
 - **`CrosshairUI.playerInteractor` is unassigned** on `PlayerHUD.prefab`, so hover-brightening has never run. `VisorReticle` resolves off its own parent chain instead (`GameplayMenuScope.FindLocalPlayer`) — **not** `FindFirstObjectByType<Interactor>()`, which in a session with two players binds an arbitrary body and describes what a stranger is looking at.
 - **The type name is the label of last resort, and it shows.** With no `InteractionPrompt` authored anywhere, a class named for its plumbing is a class the player meets by that name: `ArticulatedPartInteraction` on the ship's doors reads "Articulated Part". Fix it where the information already lives — implement `IInteractionReadout` on the component — rather than by adding the first `InteractionPrompt` in the project.
 - **The interaction barrier is on the TARGET, not on the `Interactor`.** `Interact` and `SecondaryInteract` run inside `Fault.Run(target, …)`, so a broken door costs the player that door — after 5 throws in 10 s the door's own component is disabled — rather than their ability to interact with anything ever again. An `IInteractable` that is not a `Component` is called unguarded, because there is nothing to quarantine. See [Diagnostics](Diagnostics.md).
-- **A readout on the player must not cast.** `ICrosshairReadout.TryReadCrosshair` is called from the HUD's `LateUpdate`; the implementer resolves its aim in its own `Update` and only reports. `WallAimController` publishes last in `Update`, *after* `ShowPlacement` has snapped the uv, so the readout names the cell the press will use rather than the pixel under the crosshair.
+- **A readout on the player must not cast.** `ICrosshairReadout.TryReadCrosshair` is called from the HUD's `LateUpdate`; the implementer resolves its aim in its own `Update` and only reports. `WallAimController` publishes last in `Update`, *after* `ShowPlacement` has snapped the uv, so the readout names the cell the press will use rather than the pixel under the crosshair. The same per-frame rule holds for the look-ray itself: `Interactor` resolves its `~"Player"` layer mask once in `Awake` (`lookMask`), not through `LayerMask.GetMask` per ray, and `VolumeTrigger.OnTriggerStay` — which runs `TryFire` every physics step per overlapping collider — logs nothing.
 
 ## Extending
 

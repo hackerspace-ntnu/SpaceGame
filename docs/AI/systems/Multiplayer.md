@@ -23,8 +23,9 @@ symptoms:
   - "a client joining a game in progress throws NullReferenceException in NetworkObject.Serialize / WriteSceneSynchronizationData"
   - "a builder-made NPC stops moving on clients when it walks into another chunk scene; its prefab has SceneMigrationSynchronization: 0"
   - "a client that joined while the host was streaming chunks has every settlement object twice, and 'Server Scene Handle already exist!' in its log"
+  - "the Network Messages / Network Objects profiler modules stay empty during play"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # Multiplayer / Netcode core
@@ -132,6 +133,7 @@ The layer saves nothing itself; it *carries* persistence. `ReportProfileServerRp
 - **`Failed to bind UDP socket` / "Could not start a local session on port 7782"**: the editor itself holds the port (check `netstat -ano`: the PID is Unity.exe). Disposing a `NetworkDriver` does free its socket (measured 2026-10-04), so a stuck port means a driver was never disposed. The path that orphans it is a **domain reload during Play** (the default "Recompile And Continue Playing"), which skips `OnDestroy`. [PlayModeTransportTeardown.cs](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs) shuts the transport down synchronously in `beforeAssemblyReload`; `NetworkManager.Shutdown()` alone would not, because it only raises a flag that a host acts on over later ticks. A port already stuck is freed only by restarting the editor. Never route singleplayer through `HostDirect`: it calls `SetConnectionData` and overrides the port.
 - **Netcode is an embedded, patched package.** It lives in `Packages/com.unity.netcode.gameobjects`, not the package cache, because `MigrateNetworkObjectsIntoScenes` dereferenced a destroyed `NetworkObject` and took the frame's whole migration batch down with it. Every change is marked `SPACEGAME PATCH`; read [Packages/PATCHES.md](Packages/PATCHES.md) before upgrading, and see [WorldStreaming.md](WorldStreaming.md) for what the bug did.
 - **`NetworkManager.ConnectedClientsList` is server-only** — build rosters from spawned `PlayerIdentity` objects (`PlayerRoster.Build`).
+- **NGO metrics are off** ([NetworkManager.prefab](Assets/Game/Prefabs/Systems/NetworkManager.prefab): `NetworkMessageMetrics: 0`, `NetworkProfilingMetrics: 0`, since 2026-10-28, audit PERF-C11). Nothing in `Assets/` reads them at runtime: there is no `RuntimeNetStatsMonitor` and no metrics API call. With them off, the Profiler's Network Messages and Network Objects modules show nothing, so turn both on for a netcode profiling session and do not commit that. Neither flag is part of the `NetworkConfig.GetConfig` hash, so builds that differ only in these two flags still connect.
 - `cond ? item.ID : default` for a `NetworkList<FixedString64Bytes>` collapses to `string` and NREs — write `default(FixedString64Bytes)`.
 
 ## Extending

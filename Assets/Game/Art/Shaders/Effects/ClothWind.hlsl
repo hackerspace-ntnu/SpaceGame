@@ -158,4 +158,33 @@ void ShapeCloth(float3 basePositionOS, inout float3 positionOS, inout float3 nor
     normalOS = normalize(normalOS - bend * freedom * _WindStrength * 1.2);
 }
 
+// One vertex for both depth prepasses (DepthOnly and DepthNormals), so they cannot drift apart.
+struct ClothDepthAttributes
+{
+    float4 positionOS : POSITION;
+    float3 normalOS   : NORMAL;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
+};
+
+struct ClothDepthVaryings
+{
+    float4 positionCS : SV_POSITION;
+    float3 normalWS   : TEXCOORD0;
+    UNITY_VERTEX_INPUT_INSTANCE_ID
+};
+
+ClothDepthVaryings ClothDepthVert(ClothDepthAttributes IN)
+{
+    ClothDepthVaryings OUT = (ClothDepthVaryings)0;
+    UNITY_SETUP_INSTANCE_ID(IN);
+
+    float3 positionOS = IN.positionOS.xyz;
+    float3 normalOS   = IN.normalOS;
+    ShapeCloth(IN.positionOS.xyz, positionOS, normalOS);
+
+    OUT.positionCS = TransformObjectToHClip(positionOS);
+    OUT.normalWS   = TransformObjectToWorldNormal(normalOS);
+    return OUT;
+}
+
 #endif // SPACEGAME_CLOTHWIND_INCLUDED

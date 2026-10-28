@@ -85,6 +85,31 @@ namespace SpaceGame.Presentation
         private readonly float[] currentSpike = new float[SideCount];     // 0..1, fast decay, drives _Spike
         private readonly float[] currentOvershoot = new float[SideCount]; // extra span, fast decay
 
+        // A side whose faded-out state has already reached its material. The shader discards every
+        // pixel at zero _Pulse, so until the next hit re-raises the alpha its 18 property writes per
+        // frame would change nothing on screen.
+        private readonly bool[] parked = new bool[SideCount];
+
+        private static readonly int SideId = Shader.PropertyToID("_Side");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
+        private static readonly int SpanId = Shader.PropertyToID("_Span");
+        private static readonly int PulseId = Shader.PropertyToID("_Pulse");
+        private static readonly int SpikeId = Shader.PropertyToID("_Spike");
+        private static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+        private static readonly int ArcCenterOffsetId = Shader.PropertyToID("_ArcCenterOffset");
+        private static readonly int ArcRadiusId = Shader.PropertyToID("_ArcRadius");
+        private static readonly int ArcThicknessId = Shader.PropertyToID("_ArcThickness");
+        private static readonly int SpanFeatherId = Shader.PropertyToID("_SpanFeather");
+        private static readonly int HaloThicknessId = Shader.PropertyToID("_HaloThickness");
+        private static readonly int HaloStrengthId = Shader.PropertyToID("_HaloStrength");
+        private static readonly int ShimmerSpeedId = Shader.PropertyToID("_ShimmerSpeed");
+        private static readonly int ShimmerWidthId = Shader.PropertyToID("_ShimmerWidth");
+        private static readonly int ShimmerStrengthId = Shader.PropertyToID("_ShimmerStrength");
+        private static readonly int FlickerStrengthId = Shader.PropertyToID("_FlickerStrength");
+        private static readonly int FlickerSpeedId = Shader.PropertyToID("_FlickerSpeed");
+        private static readonly int SpikeThickenId = Shader.PropertyToID("_SpikeThicken");
+        private static readonly int SpikeBrightenId = Shader.PropertyToID("_SpikeBrighten");
+
         [Tooltip("Damage amount that maps to a full-strength flare. Smaller hits scale down.")]
         [SerializeField, Min(1)] private int damageForFullFlash = 25;
 
@@ -169,11 +194,11 @@ namespace SpaceGame.Presentation
 
             var img = go.GetComponent<Image>();
             var perPanelMat = new Material(material) { hideFlags = HideFlags.DontSave };
-            perPanelMat.SetFloat("_Side", (float)side);
-            perPanelMat.SetColor("_Color", dangerColor);
+            perPanelMat.SetFloat(SideId, (float)side);
+            perPanelMat.SetColor(ColorId, dangerColor);
             ApplyShapeUniforms(perPanelMat);
-            perPanelMat.SetFloat("_Span", 0f);
-            perPanelMat.SetFloat("_Pulse", 0f);
+            perPanelMat.SetFloat(SpanId, 0f);
+            perPanelMat.SetFloat(PulseId, 0f);
             img.material = perPanelMat;
             img.color = Color.white;
             img.raycastTarget = false;
@@ -269,33 +294,43 @@ namespace SpaceGame.Presentation
                 currentOvershoot[i] = Mathf.Max(0f,
                     currentOvershoot[i] - currentOvershoot[i] * dt / Mathf.Max(0.01f, overshootSettle));
 
+                // The state above keeps decaying while parked: the next hit adds to the span it
+                // has shrunk to. Only the writes are skipped, and only once the invisible frame
+                // has been written. A hit sets the alpha back to 1, which un-parks the side.
+                bool invisible = currentAlpha[i] <= 0f;
+                if (invisible && parked[i]) continue;
+
                 var img = images[i];
-                if (img == null || img.material == null) continue;
-                img.material.SetColor("_Color", dangerColor);
-                ApplyShapeUniforms(img.material);
+                if (img == null) continue;
+                Material m = img.material;
+                if (m == null) continue;
+
+                m.SetColor(ColorId, dangerColor);
+                ApplyShapeUniforms(m);
                 float renderedSpan = Mathf.Min(maxSpan + spanOvershoot, currentSpan[i] + currentOvershoot[i]);
-                img.material.SetFloat("_Span", renderedSpan);
-                img.material.SetFloat("_Pulse", currentAlpha[i]);
-                img.material.SetFloat("_Spike", currentSpike[i]);
+                m.SetFloat(SpanId, renderedSpan);
+                m.SetFloat(PulseId, currentAlpha[i]);
+                m.SetFloat(SpikeId, currentSpike[i]);
+                parked[i] = invisible;
             }
         }
 
         private void ApplyShapeUniforms(Material m)
         {
-            m.SetFloat("_Intensity", intensity);
-            m.SetFloat("_ArcCenterOffset", arcCenterOffset);
-            m.SetFloat("_ArcRadius", arcRadius);
-            m.SetFloat("_ArcThickness", arcThickness);
-            m.SetFloat("_SpanFeather", spanFeather);
-            m.SetFloat("_HaloThickness", haloThickness);
-            m.SetFloat("_HaloStrength", haloStrength);
-            m.SetFloat("_ShimmerSpeed", shimmerSpeed);
-            m.SetFloat("_ShimmerWidth", shimmerWidth);
-            m.SetFloat("_ShimmerStrength", shimmerStrength);
-            m.SetFloat("_FlickerStrength", flickerStrength);
-            m.SetFloat("_FlickerSpeed", flickerSpeed);
-            m.SetFloat("_SpikeThicken", spikeThicken);
-            m.SetFloat("_SpikeBrighten", spikeBrighten);
+            m.SetFloat(IntensityId, intensity);
+            m.SetFloat(ArcCenterOffsetId, arcCenterOffset);
+            m.SetFloat(ArcRadiusId, arcRadius);
+            m.SetFloat(ArcThicknessId, arcThickness);
+            m.SetFloat(SpanFeatherId, spanFeather);
+            m.SetFloat(HaloThicknessId, haloThickness);
+            m.SetFloat(HaloStrengthId, haloStrength);
+            m.SetFloat(ShimmerSpeedId, shimmerSpeed);
+            m.SetFloat(ShimmerWidthId, shimmerWidth);
+            m.SetFloat(ShimmerStrengthId, shimmerStrength);
+            m.SetFloat(FlickerStrengthId, flickerStrength);
+            m.SetFloat(FlickerSpeedId, flickerSpeed);
+            m.SetFloat(SpikeThickenId, spikeThicken);
+            m.SetFloat(SpikeBrightenId, spikeBrighten);
         }
 
         private void OnDestroy()

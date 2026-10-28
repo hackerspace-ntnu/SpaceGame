@@ -9,6 +9,7 @@ paths:
   - Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab
   - Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller
 symptoms:
+  - "the performance overlay shows CPU — GPU — in a build"
   - "the game stays frozen after I close the menu and nothing can unfreeze it"
   - "a menu swallows my movement keys, or a hotkey does nothing while a panel is open"
   - "a disabled menu row stays stuck in its hover colour and never resets"
@@ -29,7 +30,7 @@ symptoms:
   - "the map hologram in the ship shows the world with me off in a corner of it"
   - "the emote wheel opens but letting go of V plays nothing"
 reads_with: [Lobby, Inventory, Persistence, audio, Diagnostics, Objectives]
-updated: 2026-10-19
+updated: 2026-10-27
 ---
 
 # UI
@@ -89,7 +90,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `PauseMenuUI` | [Pages/PauseMenuUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/PauseMenuUI.cs) | In-game pause on **M** (not Escape): Audio/Video/Controls/Players/Dev tabs + Resume / Main Menu / Quit, each destructive footer button arm-then-confirm. |
 | `ChatUI` | [Pages/ChatUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/ChatUI.cs) | Fading log bottom-left + input box on **T**; enters the scope without freezing time. Renders through `<noparse>` on top of `ChatText.Sanitize`. |
 | `EmoteWheelUI` | [Pages/EmoteWheelUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/EmoteWheelUI.cs) | Hold **V** (d-pad down): eight wedges of the `EmoteCatalog` round the screen centre, a page per category; mouse or right stick picks, release plays, centre or Esc cancels, Q / E / scroll / shoulders turn the page. Scope held with `freezeTime: false, hideHud: false`; pure geometry in [EmoteWheelLayout](Assets/Game/Scripts/Presentation/UI/Widgets/EmoteWheelLayout.cs). |
-| `DevInventoryUI` | [Pages/DevInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/DevInventoryUI.cs) | Artifact browser on **O** while `GameSettings.DevMode`; hotbar edits go through `IPlayerInventory`, so they replicate. |
+| `DevInventoryUI`, `PerformanceOverlay` | [Pages/DevInventoryUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/DevInventoryUI.cs), [HUD/PerformanceOverlay.cs](Assets/Game/Scripts/Presentation/UI/HUD/PerformanceOverlay.cs) | The two `GameSettings.DevMode` tools. Artifact browser on **O**; hotbar edits go through `IPlayerInventory`, so they replicate. Overlay: top-right panel while `GameSettings.DevMode`: FPS and frame time averaged over 0.5 s, the worst frame of that window, CPU/GPU time from `FrameTimingManager` (needs **Frame Timing Stats** in Player settings for release builds — on), and the quality tier. Local only; self-bootstraps like `DevInventoryUI`. |
 | `TradeUI` | [Pages/TradeUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/TradeUI.cs) | Trader offers vs. your bag, one click per swap; opened by `TraderInteraction`. |
 | `QuestLogUI` | [Pages/QuestLogUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs) | The quest log, J (`UI/QuestLog`): every quest on `QuestLog`, newest first, its current objective and summary, the followed one marked; a click follows another; finished ones struck through below. Esc or J closes; holds the scope (stops the clock solo). Local only. See [Objectives.md](Objectives.md). |
 | `PosterViewerUI` | [Pages/PosterViewerUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/PosterViewerUI.cs) | A wanted poster held up full-screen, opened by `WantedPoster`. Esc, LMB or RMB puts it down; the opening right-click is ignored by frame. Local only. See [WantedPosters.md](WantedPosters.md). |

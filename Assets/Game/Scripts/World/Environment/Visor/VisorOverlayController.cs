@@ -9,6 +9,11 @@ namespace SpaceGame.World
         [SerializeField] private Light primaryLight; // Primary light source for lens flare (leave empty to auto-detect)
         [SerializeField] private float maxRaycastDistance = 10000f; // Maximum distance to check for sun occlusion
         [SerializeField] private float offScreenFlareMultiplier = 0.3f; // Flare intensity when sun is off-screen
+        [Tooltip("Seconds between scene-wide searches for a primary light while none is assigned or found. " +
+                 "The search walks every Light in the loaded scenes, so it must not run every frame.")]
+        [SerializeField, Min(0f)] private float lightSearchInterval = 1f;
+
+        private float nextLightSearchTime;
     
         void Start()
         {
@@ -30,8 +35,9 @@ namespace SpaceGame.World
             if (visorMaterial != null && sourceCamera != null)
             {
                 // Auto-detect primary light if not assigned
-                if (primaryLight == null)
+                if (primaryLight == null && Time.unscaledTime >= nextLightSearchTime)
                 {
+                    nextLightSearchTime = Time.unscaledTime + lightSearchInterval;
                     Light[] lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
                     float maxIntensity = 0;
                     foreach (Light light in lights)

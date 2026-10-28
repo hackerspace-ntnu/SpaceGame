@@ -78,6 +78,9 @@ float _FlutterStrength;
 float _FlutterFrequency;
 float _BendStrength;
 float _TrampleStrength;
+float _SurgeStrength;
+float _SurgePeriod;
+float _SurgeLength;
 float _PatchScale;
 float _VariationScale;
 
@@ -236,7 +239,8 @@ void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
     // The survivors widen to cover for the ones dropped: the field still reads as full.
     float widen = min(_MaxWidthBoost, rsqrt(density));
     // The farthest a tip can be pushed: leaning, a full gale on the waves, flutter and a bender.
-    float reach = height * (1.0 + _WindStrength * 3.2 + _FlutterStrength + _BendStrength + _TrampleStrength) * widen;
+    float reach = height * (1.0 + _WindStrength * 3.2 + _SurgeStrength * 1.3 + _FlutterStrength + _BendStrength + _TrampleStrength)
+                * widen;
     if (!InFrustum(root + float3(0, height * 0.5, 0), reach))
         return;
 
@@ -254,6 +258,8 @@ void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
     float flutter = sin(_GrassTime * _FlutterFrequency * (0.75 + 0.5 * tint) + tint * 6.2831 + along * 1.7);
     float2 sway = windDir * (_WindStrength * _GrassWind.z * (0.15 + push))
                 + float2(windDir.y, -windDir.x) * (flutter * _FlutterStrength);
+    // Sea grasses rock to and fro on the swell instead of leaning downwind.
+    sway += windDir * (_SurgeStrength * WaterSurge(root.xz, windDir, _GrassTime, _SurgePeriod, _SurgeLength));
     float3 bend = Bend(root);
     sway += bend.xy;
 

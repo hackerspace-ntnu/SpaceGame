@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -252,6 +253,47 @@ namespace SpaceGame.Tests.EditMode
 
             Assert.IsTrue(SaveSerializer.TryReadHeader(root.ToString(), out SaveHeader header));
             Assert.AreEqual("Readable", header.SlotLabel);
+        }
+
+        /// <summary>
+        /// The header is streamed and the read stops once it is through, so nothing after it is
+        /// even tokenised: the body below would not parse.
+        /// </summary>
+        [Test]
+        public void Header_ReadStopsBeforeTheBody()
+        {
+            var document = new SaveDocument();
+            document.Header.SlotLabel = "Streamed";
+            document.Header.Version = 7;
+
+            string json = SaveSerializer.ToJson(document);
+            string headerOnly = json.Substring(0, json.IndexOf("\"players\"", StringComparison.Ordinal));
+
+            Assert.IsTrue(SaveSerializer.TryReadHeader(headerOnly + "\"players\": [ {{{ truncated", out SaveHeader header));
+            Assert.AreEqual("Streamed", header.SlotLabel);
+            Assert.AreEqual(7, header.Version);
+        }
+
+        /// <summary>A header that is not the first key is still found; the values before it are skipped.</summary>
+        [Test]
+        public void Header_IsFoundAfterOtherRootValues()
+        {
+            const string json = @"{ ""world"": { ""entities"": [ { ""a"": [1, 2, { ""header"": 9 }] } ] },
+                                    ""note"": ""x"",
+                                    ""header"": { ""version"": 2, ""slotLabel"": ""Late"" } }";
+
+            Assert.IsTrue(SaveSerializer.TryReadHeader(json, out SaveHeader header));
+            Assert.AreEqual("Late", header.SlotLabel);
+            Assert.AreEqual(2, header.Version);
+        }
+
+        [Test]
+        public void Header_MissingOrNotAnObjectIsUnreadable()
+        {
+            Assert.IsFalse(SaveSerializer.TryReadHeader(@"{ ""world"": {} }", out _));
+            Assert.IsFalse(SaveSerializer.TryReadHeader(@"{ ""header"": null }", out _));
+            Assert.IsFalse(SaveSerializer.TryReadHeader("[]", out _));
+            Assert.IsFalse(SaveSerializer.TryReadHeader("not a save at all", out _));
         }
 
         // ─────────────────────────────────────────────

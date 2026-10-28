@@ -220,6 +220,12 @@ namespace SpaceGame.World.Safety
 
         private void Update()
         {
+            // Network.Owns walks the parents for a NetworkObject on every call, and every NPC wears
+            // this guard. Releasing on lost authority (below) only does anything while a hold or a
+            // ground wait is running, so between checks it is asked only then.
+            bool checkDue = Time.time >= nextCheckTime;
+            if (!checkDue && !isParked && groundWaitStartedAt < 0f) return;
+
             if (!HasAuthority())
             {
                 // Released, not just skipped, and the difference matters because authority can be
@@ -233,7 +239,7 @@ namespace SpaceGame.World.Safety
                 return;
             }
 
-            if (Time.time < nextCheckTime) return;
+            if (!checkDue) return;
 
             nextCheckTime = Time.time + Mathf.Max(0.01f, checkInterval);
             EnsureInitialised();

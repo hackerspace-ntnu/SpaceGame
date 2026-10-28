@@ -214,6 +214,28 @@ bone, rust, dried).
 **Worth knowing:** like every plant here they sway on the grass's wind, so never tick "Batching
 Static" on them.
 
+### Sea plants *(AquaticVegetation)*
+
+Fifty plants for the ocean, in eight zones, so each part of a sea can be dressed from its own set:
+the **shore** (glasswort, sea palms, bladderwrack, sea lettuce, cordgrass, pink coralline turf,
+drift on the sand, and an alien rock-pool plant hung with lobed bells), **lagoon** shallows
+(seagrass tufts and a whole meadow patch, turtle grass, sea grapes, mermaid's cups, cactus algae and
+a line of feathery alien fronds), the **coral reef** (staghorn, brain, table, plate, pillar and
+leather corals, two sea fans, anemones, sea whips, a barrel sponge), the **kelp forest** (giant kelp
+that climbs to the surface and lies along it, bull kelp, understory kelps and holdfast debris),
+**rocky reef** (comb red weed, tube sponges, sea pens, sea lilies), the **twilight slope** (glass
+sponges, bamboo and black coral, a harp sponge), the **vents** (bacterial fleece, an alien
+chimney fern, alien abyss bulbs) and the **surface** (floating sargassum, an alien float rosette).
+Nothing glows; the alien ones are built from plausible tissue in muted colours.
+
+Six more kelps came later (a storm-bent giant, elk kelp, a stalked, a palm-like, a ribbon and a
+surge-zone strap kelp) with golden and cold-water colourings, and five **seabed grasses** you paint on the
+terrain like any meadow: seagrass, algae turf, red hair algae, kelp sprouts and pale vent floc.
+
+**Worth knowing:** under water everything rocks to and fro on a slow swell rather than leaning in the
+wind. The tall kelps are sized for water 18–33 m deep, so their tops lie at the surface; the two floating
+plants sit with their origin on the water line.
+
 ### Trees and bushes *(Foliage)*
 
 About two hundred ready-made trees, bushes, plants and overgrown props in the same painterly style

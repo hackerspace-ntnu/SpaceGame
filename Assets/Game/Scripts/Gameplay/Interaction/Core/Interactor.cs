@@ -85,9 +85,19 @@ namespace SpaceGame.Gameplay
 
         private static readonly DistanceComparer ByDistance = new DistanceComparer();
 
+        private const string PlayerLayerName = "Player";
+
+        /// <summary>Everything but the "Player" layer. Resolved once in Awake rather than per look-ray.</summary>
+        private int lookMask;
+
         private class DistanceComparer : IComparer<RaycastHit>
         {
             public int Compare(RaycastHit a, RaycastHit b) => a.distance.CompareTo(b.distance);
+        }
+
+        private void Awake()
+        {
+            lookMask = ~LayerMask.GetMask(PlayerLayerName);
         }
 
         private void Start()
@@ -269,10 +279,8 @@ namespace SpaceGame.Gameplay
             Vector3 origin = lookTransform.position;
             Vector3 direction = lookTransform.forward;
 
-            int layerMask = ~LayerMask.GetMask("Player");
-
             Ray ray = new Ray(origin, direction);
-            int count = Physics.RaycastNonAlloc(ray, rayHits, _castDistance, layerMask);
+            int count = Physics.RaycastNonAlloc(ray, rayHits, _castDistance, lookMask);
 
             rayCastHit = count > 0;
             if (!rayCastHit) return false;

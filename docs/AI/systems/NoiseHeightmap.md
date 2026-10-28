@@ -5,7 +5,7 @@ summary: Edit-time generator writing a whole Terrain from 4-octave Perlin layers
 paths:
   - Assets/Game/Scripts/World/ProceduralGeneration/Heightmap/
   - Assets/Game/Editor/Terrain/NoiseHeightmapGeneratorEditor.cs
-  - Assets/Game/Scenes/world/NoiseTerrain.unity
+  - Assets/Game/Scenes/world/gameScene.unity
   - Assets/Game/Terrain/NoiseTerrain/
   - Assets/Game/Art/Shaders/Terrain/StylizedTerrain.shader
   - Assets/Game/Settings/SpillexoWorldStreamingConfig.asset
@@ -28,7 +28,7 @@ in the editor. Ported from the procedural-playground web generator (github
 same named layers, same per-layer `scale/octaves/persistence/lacunarity/exponent` knobs, same
 normalise-to-0..1 then combine approach.
 
-**Scope:** [Heightmap/](Assets/Game/Scripts/World/ProceduralGeneration/Heightmap), [NoiseHeightmapGeneratorEditor.cs](Assets/Game/Editor/Terrain/NoiseHeightmapGeneratorEditor.cs), the [NoiseTerrain](Assets/Game/Scenes/world/NoiseTerrain.unity) scene.
+**Scope:** [Heightmap/](Assets/Game/Scripts/World/ProceduralGeneration/Heightmap), [NoiseHeightmapGeneratorEditor.cs](Assets/Game/Editor/Terrain/NoiseHeightmapGeneratorEditor.cs), the [NoiseTerrain](Assets/Game/Scenes/world/gameScene.unity) scene.
 
 ## Model
 

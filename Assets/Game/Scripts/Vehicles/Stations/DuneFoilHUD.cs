@@ -54,6 +54,14 @@ namespace SpaceGame.Vehicles
         private float alpha;
         private float needleAngle;
 
+        /// <summary>
+        /// The speed readout in tenths of a metre per second — the resolution its one decimal place
+        /// shows — so the label is formatted only when the number on it changes.
+        /// </summary>
+        private const float SpeedReadoutSteps = 10f;
+        private int shownSpeedSteps;
+        private bool hasShownSpeed;
+
         private void Awake()
         {
             if (locomotion == null) locomotion = GetComponent<DuneFoilLocomotion>();
@@ -132,7 +140,15 @@ namespace SpaceGame.Vehicles
             if (needle != null) needle.localRotation = Quaternion.Euler(0f, 0f, -needleAngle);
 
             if (speedText != null)
-                speedText.text = $"{locomotion.Speed:F1} m/s";
+            {
+                int speedSteps = Mathf.RoundToInt(locomotion.Speed * SpeedReadoutSteps);
+                if (!hasShownSpeed || speedSteps != shownSpeedSteps)
+                {
+                    shownSpeedSteps = speedSteps;
+                    hasShownSpeed = true;
+                    speedText.text = $"{speedSteps / SpeedReadoutSteps:F1} m/s";
+                }
+            }
 
             if (stateText == null) return;
 

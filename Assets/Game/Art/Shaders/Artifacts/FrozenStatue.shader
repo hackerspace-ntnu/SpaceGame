@@ -304,39 +304,47 @@ Shader "SpaceGame/Artifacts/FrozenStatue"
             Cull Back
 
             HLSLPROGRAM
-            #pragma vertex DepthVert
+            #pragma vertex FrozenDepthVert
             #pragma fragment DepthFrag
             #pragma target 3.5
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "FrozenStatue.hlsl"
 
-            struct DepthAttributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS   : NORMAL;
-            };
-
-            struct DepthVaryings
-            {
-                float4 positionCS : SV_POSITION;
-                float3 positionMetres : TEXCOORD0;
-                float3 normalOS   : TEXCOORD1;
-            };
-
-            DepthVaryings DepthVert(DepthAttributes IN)
-            {
-                DepthVaryings OUT;
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.positionMetres = FrozenObjectMetres(IN.positionOS.xyz);
-                OUT.normalOS   = IN.normalOS;
-                return OUT;
-            }
-
-            half4 DepthFrag(DepthVaryings IN) : SV_Target
+            half4 DepthFrag(FrozenDepthVaryings IN) : SV_Target
             {
                 FrozenRimeClip(IN.positionMetres, normalize(IN.normalOS));
                 return 0;
+            }
+            ENDHLSL
+        }
+
+        // The same depth and the same rime cut again, plus normals: SSAO's prepass, and with
+        // depth priming on the depth the forward pass tests against. Without it a statue is
+        // invisible.
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex FrozenDepthVert
+            #pragma fragment DepthNormalsFrag
+            #pragma target 3.5
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "FrozenStatue.hlsl"
+            #include "../DepthNormals.hlsl"
+
+            half4 DepthNormalsFrag(FrozenDepthVaryings IN) : SV_Target
+            {
+                float3 normalOS = normalize(IN.normalOS);
+                FrozenRimeClip(IN.positionMetres, normalOS);
+                return EncodeDepthNormal(TransformObjectToWorldNormal(normalOS));
             }
             ENDHLSL
         }

@@ -47,7 +47,6 @@ namespace SpaceGame.Gameplay
 
         private ITriggerable cached;
         private float armedAt;
-        private float lastStayLog;
 
         /// <summary>
         /// Whether this machine's observation of the volume is the one that counts.
@@ -184,11 +183,6 @@ namespace SpaceGame.Gameplay
         // transition lockout in SceneTransition still prevent immediate re-fire.
         private void OnTriggerStay(Collider other)
         {
-            if (Time.time - lastStayLog > 1f)
-            {
-                Debug.Log($"[VolumeTrigger] '{name}' OnTriggerStay from '{other?.name}' (armedAt-now={armedAt - Time.time:0.00})", this);
-                lastStayLog = Time.time;
-            }
             TryFire(other, "Stay");
         }
 

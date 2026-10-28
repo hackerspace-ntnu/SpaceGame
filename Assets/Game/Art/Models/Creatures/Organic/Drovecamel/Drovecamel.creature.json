@@ -1,122 +1,182 @@
 {
  "name": "Drovecamel",
- "height": 2.322,
+ "height": 2.295,
  "length": 2.717,
  "width": 1.283,
  "clips": {
   "Alert": {
    "take": "Drovecamel_Alert",
-   "frames": 25,
+   "frames": 45,
    "loop": false
   },
   "Attack": {
    "take": "Drovecamel_Attack",
-   "frames": 48,
+   "frames": 34,
+   "loop": false
+  },
+  "AttackKick": {
+   "take": "Drovecamel_AttackKick",
+   "frames": 33,
+   "loop": false
+  },
+  "Buck": {
+   "take": "Drovecamel_Buck",
+   "frames": 33,
    "loop": false
   },
   "Call": {
    "take": "Drovecamel_Call",
-   "frames": 31,
+   "frames": 54,
    "loop": false
   },
   "Death": {
    "take": "Drovecamel_Death",
-   "frames": 206,
+   "frames": 66,
    "loop": false
   },
   "Dodge": {
    "take": "Drovecamel_Dodge",
-   "frames": 37,
+   "frames": 25,
    "loop": false
   },
   "Drink": {
    "take": "Drovecamel_Drink",
-   "frames": 25,
+   "frames": 105,
    "loop": false
   },
   "Eat": {
    "take": "Drovecamel_Eat",
-   "frames": 139,
+   "frames": 169,
    "loop": true
   },
   "Groom": {
    "take": "Drovecamel_Groom",
-   "frames": 205,
+   "frames": 165,
    "loop": false
   },
   "Hurt": {
    "take": "Drovecamel_Hurt",
-   "frames": 54,
+   "frames": 22,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Drovecamel_HurtR",
+   "frames": 22,
    "loop": false
   },
   "Idle": {
    "take": "Drovecamel_Idle",
-   "frames": 301,
+   "frames": 271,
    "loop": true
   },
   "Jump": {
    "take": "Drovecamel_Jump",
-   "frames": 23,
+   "frames": 24,
    "loop": false
   },
   "LieDown": {
    "take": "Drovecamel_LieDown",
-   "frames": 139,
+   "frames": 105,
    "loop": false
+  },
+  "MountKneel": {
+   "take": "Drovecamel_MountKneel",
+   "frames": 44,
+   "loop": false
+  },
+  "MountKneelIdle": {
+   "take": "Drovecamel_MountKneelIdle",
+   "frames": 121,
+   "loop": true
+  },
+  "MountRise": {
+   "take": "Drovecamel_MountRise",
+   "frames": 45,
+   "loop": false
+  },
+  "NeckSwing": {
+   "take": "Drovecamel_NeckSwing",
+   "frames": 33,
+   "loop": false
+  },
+  "Rest": {
+   "take": "Drovecamel_Rest",
+   "frames": 151,
+   "loop": true
+  },
+  "RiddenIdle": {
+   "take": "Drovecamel_RiddenIdle",
+   "frames": 166,
+   "loop": true
   },
   "Run": {
    "take": "Drovecamel_Run",
-   "frames": 18,
+   "frames": 23,
    "loop": true
   },
   "Shake": {
    "take": "Drovecamel_Shake",
-   "frames": 97,
+   "frames": 66,
+   "loop": false
+  },
+  "Spit": {
+   "take": "Drovecamel_Spit",
+   "frames": 42,
    "loop": false
   },
   "Sprint": {
    "take": "Drovecamel_Sprint",
-   "frames": 15,
+   "frames": 19,
+   "loop": true
+  },
+  "Stand": {
+   "take": "Drovecamel_Stand",
+   "frames": 2,
    "loop": true
   },
   "StandUp": {
    "take": "Drovecamel_StandUp",
-   "frames": 139,
+   "frames": 84,
+   "loop": false
+  },
+  "ThreatGrumble": {
+   "take": "Drovecamel_ThreatGrumble",
+   "frames": 54,
    "loop": false
   },
   "Trot": {
    "take": "Drovecamel_Trot",
-   "frames": 27,
+   "frames": 25,
    "loop": true
   },
   "TurnL": {
    "take": "Drovecamel_TurnL",
-   "frames": 97,
+   "frames": 31,
    "loop": true
   },
   "TurnR": {
    "take": "Drovecamel_TurnR",
-   "frames": 97,
+   "frames": 31,
    "loop": true
   },
   "Walk": {
    "take": "Drovecamel_Walk",
-   "frames": 49,
+   "frames": 46,
    "loop": true
   }
  },
  "stride": {
-  "Run": 8.069,
-  "Sprint": 14.633,
-  "Trot": 2.76,
-  "Walk": 1.031
+  "Run": 7.5,
+  "Sprint": 10.0,
+  "Trot": 3.88,
+  "Walk": 1.4
  },
  "eyes": [
   {
    "object": "Mesh_Drovecamel_EyeL.001",
    "centre": [
     0.2037,
-    -1.1934,
+    -1.4364,
     2.0225
    ],
    "gaze": [
@@ -130,7 +190,7 @@
    "object": "Mesh_Drovecamel_EyeR.001",
    "centre": [
     -0.1686,
-    -1.2557,
+    -1.4987,
     2.0015
    ],
    "gaze": [
@@ -151,5 +211,5 @@
  },
  "fbx": "Assets/Game/Art/Models/Creatures/Organic/Drovecamel/drovecamel.fbx",
  "source": "Assets/Game/Art/Models/_Source~/models/creatures/drovecamel/drovecamel.blend",
- "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/drovecamel"
+ "work": "/Users/ferdinandfremming/Documents/creature-models/animation_lab/drovecamel/cleanroom"
 }

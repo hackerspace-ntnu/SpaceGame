@@ -3,7 +3,7 @@ system: Expeditions
 layer: characters
 summary: "Settlement bands: a rotation keeps one band of a settlement's own residents out on the road at all times"
 paths:
-  - Assets/Game/Scripts/agents/Expeditions/
+  - Assets/Game/Scripts/Agents/Expeditions/
   - Assets/Game/Editor/Agents/Expeditions/
   - Assets/Game/Scripts/Core/Persistence/Adapters/ExpeditionSaveable.cs
   - Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs
@@ -39,15 +39,15 @@ A settlement whose culture names an `ExpeditionProfile` keeps one band of 3–10
 ## Model
 | Owner | Where | Owns |
 |---|---|---|
-| [`ExpeditionDirector`](Assets/Game/Scripts/agents/Expeditions/ExpeditionDirector.cs) | on the `NpcWorldSim` object in `persistentScene`; server (`Network.Decides`) | every settlement's rotation (`SettlementState`) and every band (`ExpeditionRecord`), by `settlementId`, so bands run while the home chunk is unloaded; creates and steers the band's group; saves both |
-| [`SettlementExpeditions`](Assets/Game/Scripts/agents/Expeditions/SettlementExpeditions.cs) | on each `Settlement` that runs bands; server | only what needs bodies: muster, walk-out, hand-off, walk-in, applying `Away`, the dead. **Keeps no state** |
+| [`ExpeditionDirector`](Assets/Game/Scripts/Agents/Expeditions/ExpeditionDirector.cs) | on the `NpcWorldSim` object in `persistentScene`; server (`Network.Decides`) | every settlement's rotation (`SettlementState`) and every band (`ExpeditionRecord`), by `settlementId`, so bands run while the home chunk is unloaded; creates and steers the band's group; saves both |
+| [`SettlementExpeditions`](Assets/Game/Scripts/Agents/Expeditions/SettlementExpeditions.cs) | on each `Settlement` that runs bands; server | only what needs bodies: muster, walk-out, hand-off, walk-in, applying `Away`, the dead. **Keeps no state** |
 | `NpcWorldSim` | beside the director | **moves** the band as a runtime group, `Owner = "expedition"`, template `settlement-expedition` |
-| [`ExpeditionMember`](Assets/Game/Scripts/agents/Expeditions/ExpeditionMember.cs) | NetworkBehaviour on every resident prefab | a stand-in's replicated identity; a resident's lent kit weapon while it is with its band at home |
+| [`ExpeditionMember`](Assets/Game/Scripts/Agents/Expeditions/ExpeditionMember.cs) | NetworkBehaviour on every resident prefab | a stand-in's replicated identity; a resident's lent kit weapon while it is with its band at home |
 
 - **Phases** (`ExpeditionPhase`, saved int, append only): `Announced` (raised, members spoken for) → `Departing` (muster + walk-out, residents still home) → `Out` (handed off: stand-ins or folded) → `Returning` (at the hand-off point, walking in) → `Home` / `Lost`. `Ceremony` exists for Phase 2 and is never entered.
 - **Rotation:** a settlement raises its next band when none is underway, or the only one has turned for home (`ExpeditionRules.NextBandDue`), so never three; it departs at `departHour` the next day.
 - **Identity:** a resident's own body never leaves home. From the hand-off it is `Away` (offstage, hidden) and a **stand-in** — a fresh spawn of its `sourcePrefab` — walks the road. Members are the record's, never re-rolled; the dead are never spawned again. `residentKey` = `"r:" + Resident.index`; band id = group id = `exp:<settlementId>:<rotation>`.
-- **Generic:** nothing under `Scripts/agents/Expeditions/` names a culture or species (`ExpeditionGenericityTests`); goals, kits, roles and the muster use are data off `SettlementCulture.expeditions`.
+- **Generic:** nothing under `Scripts/Agents/Expeditions/` names a culture or species (`ExpeditionGenericityTests`); goals, kits, roles and the muster use are data off `SettlementCulture.expeditions`.
 
 ## Key types
 | Type | Role |

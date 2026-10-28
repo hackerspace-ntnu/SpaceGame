@@ -12,7 +12,7 @@
 // Output:
 //   Assets/Game/Art/Animations/Creatures/<Name>.overrideController   the creature's clips on Esko.controller
 //   Assets/Game/ScriptableObjects/Eyes/Creatures/<Name>.asset        its EyeStyle (baked by StylizedEyeBuilder)
-//   Assets/Game/Prefabs/agents/creatures/Wild/<Name>.prefab          the agent
+//   Assets/Game/Prefabs/Agents/creatures/Wild/<Name>.prefab          the agent
 //
 // ## Why Esko
 //
@@ -65,10 +65,10 @@ namespace SpaceGame.EditorTools
     public static class WildCreatureBuilder
     {
         private const string ModelRoot = "Assets/Game/Art/Models/Creatures/Organic";
-        private const string TemplatePrefab = "Assets/Game/Prefabs/agents/creatures/Esko.prefab";
+        private const string TemplatePrefab = "Assets/Game/Prefabs/Agents/creatures/Esko.prefab";
         private const string TemplateController = "Assets/Game/Art/Animations/Creatures/Esko.controller";
         private const string ControllerFolder = "Assets/Game/Art/Animations/Creatures";
-        private const string PrefabFolder = "Assets/Game/Prefabs/agents/creatures/Wild";
+        private const string PrefabFolder = "Assets/Game/Prefabs/Agents/creatures/Wild";
         private const string EyeStyleFolder = "Assets/Game/ScriptableObjects/Eyes/Creatures";
         private const string CatchlightDonorStyle = "Amber";
 

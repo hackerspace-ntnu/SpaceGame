@@ -49,7 +49,7 @@ namespace SpaceGame.EditorTools
     /// </summary>
     public static class CreatureAnimationCatalog
     {
-        private const string PrefabRoot = "Assets/Game/Prefabs/agents/creatures";
+        private const string PrefabRoot = "Assets/Game/Prefabs/Agents/creatures";
         private const string WalkRole = "Walk";
         private const string RunRole = "Run";
 

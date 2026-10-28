@@ -17,10 +17,10 @@ namespace SpaceGame.EditorTools
         // NpcRandomLoadout and nothing for this test to check.
         private static readonly string[] NomadPrefabs =
         {
-            "Assets/Game/Prefabs/agents/Characters/Nomad_Maroon.prefab",
-            "Assets/Game/Prefabs/agents/Characters/Nomad_StrawHat.prefab",
-            "Assets/Game/Prefabs/agents/Characters/Nomad_Tan.prefab",
-            "Assets/Game/Prefabs/agents/Characters/Nomad_Umber.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Nomad_Maroon.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Nomad_StrawHat.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Nomad_Tan.prefab",
+            "Assets/Game/Prefabs/Agents/Characters/Nomad_Umber.prefab",
         };
 
         private static FactionRoster Sand => AssetDatabase.LoadAssetAtPath<FactionRoster>(SandRosterPath);

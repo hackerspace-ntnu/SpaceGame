@@ -177,7 +177,7 @@ namespace SpaceGame.EditorTools
     public class StarterVehicleWiringTests
     {
         private const string ScenePath = "Assets/Game/Scenes/world/persistentScene.unity";
-        private const string ShipPrefabPath = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
+        private const string ShipPrefabPath = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         /// <summary>
         /// Metres of open ground wanted between the parked vehicle and anything solid on the ship.

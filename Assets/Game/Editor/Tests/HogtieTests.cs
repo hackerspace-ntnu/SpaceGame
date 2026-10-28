@@ -905,7 +905,7 @@ namespace SpaceGame.EditorTools
             Assert.Less(mostly, RaxyMostGap, $"A tenth of the rope round a tied Raxy is {mostly * 100f:F1} cm or more off the skin.");
         }
 
-        internal const string RaxyPrefab = "Assets/Game/Prefabs/agents/Characters/Raxy/Drifter_RaxyClassic.prefab";
+        internal const string RaxyPrefab = "Assets/Game/Prefabs/Agents/Characters/Raxy/Drifter_RaxyClassic.prefab";
         private const string LassoPrefab = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/Lasso.prefab";
 
         /// <summary>Past the takedown: <see cref="TiedPose.Apply"/> is handed a clock this far on, so the body is hogtied.</summary>

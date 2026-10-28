@@ -45,7 +45,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
         /// <see cref="ResolveSearchFolders"/> now refuses to run over a path that does not exist.
         private static readonly string[] SearchFolders =
         {
-            "Assets/Game/Prefabs/agents",
+            "Assets/Game/Prefabs/Agents",
             "Assets/Game/Prefabs/Items",
             "Assets/Game/Prefabs/Environment",
             "Assets/Game/Prefabs/Vehicles",

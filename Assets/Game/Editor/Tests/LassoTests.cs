@@ -872,7 +872,7 @@ namespace SpaceGame.EditorTools
         {
             // The real rig, because the whole of this is how a humanoid avatar reads muscle values.
             var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Game/Prefabs/agents/Characters/Nomad.prefab");
+                "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab");
             Assert.IsNotNull(prefab, "the test rig moved");
 
             GameObject nomad = Object.Instantiate(prefab);

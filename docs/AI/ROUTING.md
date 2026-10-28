@@ -658,6 +658,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | after a climb and a mount the player walks on air after dismounting | [LedgeClimbing](systems/LedgeClimbing.md) |
 | after a cutscene the camera stays at chest height instead of the head | [Cutscenes](systems/Cutscenes.md) |
 | after a failure the guards stand twice at the site | [Bounties](systems/Bounties.md) |
+| after a pull on Windows, hundreds of files under Scripts/Agents or Prefabs/Agents show as deleted | [EditorTooling](systems/EditorTooling.md) |
 | after a quickload an empty sky transport hull stays parked at the city and no party owns it | [SkyTribe](systems/SkyTribe.md) |
 | after a quickload the old caravan is still standing beside the new one | [Persistence](systems/Persistence.md) |
 | after a quickload the old caravan is still standing beside the new one and the population counter is one too high | [AgentSystem](systems/AgentSystem.md) |
@@ -2192,11 +2193,11 @@ Longest match wins.
 
 | Path | Read |
 | --- | --- |
+| `Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.SettlementWork.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetSurfaces.cs` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.SettlementWork.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Config/SettlementStreetStyle.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetNetwork.cs` | [SettlementStreets](systems/SettlementStreets.md) |
-| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily_Mechanic.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementLayoutResult.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementStreetLayout.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementTerraceField.cs` | [SettlementStreets](systems/SettlementStreets.md) |
@@ -2210,18 +2211,18 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementEntrance.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPolyline.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/SettlementMuster.cs` | [Expeditions](systems/Expeditions.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.Colony.cs` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.Colony.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Core/SettlementPlaza.cs` | [SettlementStreets](systems/SettlementStreets.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/astronaut_decorations_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Transport/Deco_Handcart_Hover.prefab` | [Pushables](systems/Pushables.md) |
-| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_WorkshopFamily.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_WorkshopFamily.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement/RanchCorral.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs` | [Oxygen](systems/Oxygen.md) |
-| `Assets/Game/Prefabs/agents/Characters/Shellback/Shellback_Gatekeeper.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Shellback/Shellback_Gatekeeper.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Biomes/Outpost.cs` | [Outposts](systems/Outposts.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/nomad_interiors_export.py` | [HouseVisits](systems/HouseVisits.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/satellite_tower_export.py` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Models/_Source~/models/vehicles/desert_monowheel_export.py` | [Monowheel](systems/Monowheel.md) |
@@ -2248,9 +2249,9 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/nature/vegetation_families.blend` | [VegetationFamilies](systems/VegetationFamilies.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Mining/Deco_MineCart.prefab` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Tavern/Deco_FoodCart.prefab` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/Tests/ColonyContentTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Presentation/UI/HelmetHUD/JetpackHeatGaugeSource.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicView.cs` | [ShipSchematic](systems/ShipSchematic.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/Tests/ColonyContentTests.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/mars_colony_export.py` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/dish_transmitter_export.py` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Models/_Source~/models/nature/vegetation_aquatic.blend` | [AquaticVegetation](systems/AquaticVegetation.md) |
@@ -2282,6 +2283,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/Workshop/Workshop.prefab` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FireExtinguisher.prefab` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/ScriptableObjects/Settlements/NomadTerraceStreets.asset` | [SettlementTerraceKit](systems/SettlementTerraceKit.md) |
+| `Assets/Game/Scripts/Agents/Diagnostics/ResidentsBaselineSettings.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DriftRouteSaveable.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/ExpeditionSaveable.cs` | [Expeditions](systems/Expeditions.md) |
@@ -2291,7 +2293,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Artifacts/ShipParts/ShipPartFireTuning.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Scripts/Presentation/Cutscenes/Actions/OrbitCutscene.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPresentationMath.cs` | [Monowheel](systems/Monowheel.md) |
-| `Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineSettings.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Models/_Source~/models/nature/vegetation_kit.blend` | [VegetationKit](systems/VegetationKit.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Aircraft/NpcOrnithopter.prefab` | [NpcFlight](systems/NpcFlight.md) |
@@ -2317,9 +2318,10 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Objectives/Steps/AnswerSignalStep.cs` | [ShipSignal](systems/ShipSignal.md) |
 | `Assets/Game/Scripts/Items/Artifacts/NetGun/SnareStruggleReader.cs` | [Hogtie](systems/Hogtie.md) |
 | `Assets/Game/Art/Models/_Source~/models/creatures/glintback.blend` | [Glintback](systems/Glintback.md) |
-| `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/StriderFaction.asset` | [Striders](systems/Striders.md) |
 | `Assets/Game/ScriptableObjects/Versus/VersusShipSpawnConfig.asset` | [GameModes](systems/GameModes.md) |
+| `Assets/Game/Scripts/Agents/Diagnostics/ResidentBaselineCounts.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/WingsuitFlight.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DialSetSaveable.cs` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DishRigSaveable.cs` | [SatelliteDish](systems/SatelliteDish.md) |
@@ -2330,14 +2332,19 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Props/` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Settlement/Spots/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs` | [SkyTribe](systems/SkyTribe.md) |
-| `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineCounts.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/gear_kit_export.py` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_FoamSurface.mat` | [FoamGun](systems/FoamGun.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Wrangler.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Ground/DesertCrawler.prefab` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Astronaut/Exterior/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement/` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Flamethrower.prefab` | [Flamethrower](systems/Flamethrower.md) |
-| `Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Wrangler.prefab` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [Ladders](systems/Ladders.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/NavPathFollowerSettings.cs` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Scripts/Agents/Diagnostics/ResidentBaselineTrack.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/StationAuthoring.cs` | [Stations](systems/Stations.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackFlight.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/LadderClimber.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/PlayerPushing.cs` | [Pushables](systems/Pushables.md) |
@@ -2349,12 +2356,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Ornithopter/Flight/FlightLaunch.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/World/Environment/Scatter/GroundContacts.cs` | [GrassInteraction](systems/GrassInteraction.md) |
 | `Assets/Game/Scripts/World/Environment/Water/UnderwaterVolume.cs` | [StylizedWater](systems/StylizedWater.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Carry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [ColonyResidents](systems/ColonyResidents.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs` | [Ladders](systems/Ladders.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/NavPathFollowerSettings.cs` | [Locomotion](systems/Locomotion.md) |
-| `Assets/Game/Scripts/agents/Diagnostics/ResidentBaselineTrack.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/StationAuthoring.cs` | [Stations](systems/Stations.md) |
 | `Assets/Game/Art/Models/_Source~/models/nature/vegetation.blend` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/glint_spire.blend` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/weathervane.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
@@ -2362,6 +2363,9 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/AstronautSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Resources/Items/Artifacts/BottledSingularity.asset` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/ScriptableObjects/Workshop/GearThiefCampSite.asset` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/OrnithopterFlightMotor.cs` | [Ornithopter](systems/Ornithopter.md) |
+| `Assets/Game/Scripts/Agents/Diagnostics/ResidentsBaselineRun.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
+| `Assets/Game/Scripts/Agents/Modules/Movement/NpcFlightModule.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Scripts/Agents/Modules/Quest/PoisonSpiralModule.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/HatchCrawler.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/LedgeAirGrab.cs` | [LedgeClimbing](systems/LedgeClimbing.md) |
@@ -2374,9 +2378,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Safety/Guards/SingularityVoidGuard.cs` | [BottledSingularity](systems/BottledSingularity.md) |
 | `Assets/Game/Scripts/Gameplay/Oxygen/OxygenPlantStatusLights.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Items/Placeables/Rules/GearPegPlacement.cs` | [GearDoor](systems/GearDoor.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.cs` | [Ornithopter](systems/Ornithopter.md) |
-| `Assets/Game/Scripts/agents/Diagnostics/ResidentsBaselineRun.cs` | [ResidentsBaseline](systems/ResidentsBaseline.md) |
-| `Assets/Game/Scripts/agents/Modules/Movement/NpcFlightModule.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Art/Models/Environment/nature/Vegetation/Aquatic/` | [AquaticVegetation](systems/AquaticVegetation.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormVeil.mat` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Editor/Creatures/CreatureAnimationReviewWindow.cs` | [CreatureAnimationReview](systems/CreatureAnimationReview.md) |
@@ -2403,10 +2404,13 @@ Longest match wins.
 | `Assets/Game/Art/Models/Environment/Structures/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/mesa_rock.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/wind_vent.blend` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
+| `Assets/Game/Prefabs/Agents/Caravan/Raider_GearCarrier.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Items/ShipParts/TransmitterSparks.prefab` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
-| `Assets/Game/Prefabs/agents/Caravan/Raider_GearCarrier.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/ScriptableObjects/Settlements/NomadStreets.asset` | [SettlementStreets](systems/SettlementStreets.md) |
+| `Assets/Game/Scripts/Agents/Residents/Body/ResidentPushing.cs` | [Pushables](systems/Pushables.md) |
+| `Assets/Game/Scripts/Agents/Residents/Body/ResidentSeating.cs` | [Seats](systems/Seats.md) |
+| `Assets/Game/Scripts/Agents/Residents/Data/ChoreDefinition.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerArmAim.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/LedgeProbe.cs` | [LedgeClimbing](systems/LedgeClimbing.md) |
@@ -2416,9 +2420,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/World/Environment/Foliage/GrassBender.cs` | [GrassInteraction](systems/GrassInteraction.md) |
-| `Assets/Game/Scripts/agents/Residents/Body/ResidentPushing.cs` | [Pushables](systems/Pushables.md) |
-| `Assets/Game/Scripts/agents/Residents/Body/ResidentSeating.cs` | [Seats](systems/Seats.md) |
-| `Assets/Game/Scripts/agents/Residents/Data/ChoreDefinition.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Shaders/Environment/StylizedWaterNoise.hlsl` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Editor/Terrain/NoiseHeightmapGeneratorEditor.cs` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Editor/Vehicles/MonowheelPresentationBuilder.cs` | [Monowheel](systems/Monowheel.md) |
@@ -2427,7 +2428,10 @@ Longest match wins.
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset` | [ColonyResidents](systems/ColonyResidents.md) |
+| `Assets/Game/Scripts/Agents/Modules/Movement/WanderModule.cs` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/Agents/Modules/Quest/RueStrikeModule.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/StationTable.cs` | [StationTable](systems/StationTable.md) |
+| `Assets/Game/Scripts/Agents/Residents/Mind/ResidentMemory.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/FootprintTrail.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/HogtieSettings.cs` | [Hogtie](systems/Hogtie.md) |
@@ -2436,13 +2440,11 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/PosterViewerUI.cs` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelPoseMath.cs` | [Monowheel](systems/Monowheel.md) |
-| `Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs` | [NavMeshSystem](systems/NavMeshSystem.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/StationTable.cs` | [StationTable](systems/StationTable.md) |
-| `Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Shaders/Environment/StylizedFoliage.shader` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Editor/Creatures/CreatureAnimationReviewLog.cs` | [CreatureAnimationReview](systems/CreatureAnimationReview.md) |
 | `Assets/Game/Editor/Creatures/StriderCrabOutriderBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/MonowheelPresentationMathTests.cs` | [Monowheel](systems/Monowheel.md) |
+| `Assets/Game/Prefabs/Agents/Caravan/Raider_GearThief.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Prefabs/Environment/Nature/Vegetation/Aquatic/` | [AquaticVegetation](systems/AquaticVegetation.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Prefabs/Environment/Structures/NomadSettlement` | [LevelOfDetail](systems/LevelOfDetail.md) |
@@ -2451,13 +2453,15 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/ShipParts/TransmitterHusk.prefab` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Prefabs/Items/Workshop/VaultReactorCore.prefab` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Prefabs/Items/Workshop/VaultReactorCore.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
-| `Assets/Game/Prefabs/agents/Caravan/Raider_GearThief.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Resources/Items/Artifacts/StrapOnBooster.asset` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Agents/Modules/Movement/HoardModule.cs` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Scripts/Agents/Modules/Movement/ProwlModule.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Scripts/Agents/Modules/Social/CreatureTrust.cs` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/Residents/Body/SeatedBodyFit.cs` | [Seats](systems/Seats.md) |
+| `Assets/Game/Scripts/Agents/Residents/Core/PerimeterRing.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Scripts/Agents/World/DistantGroupSilhouette.cs` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/Core/Rendering/DistanceCulledLights.cs` | [LevelOfDetail](systems/LevelOfDetail.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/Core/GameWorld.cs` | [Scenes](systems/Scenes.md) |
@@ -2469,9 +2473,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/NpcAviation/EscortSteering.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Scripts/Vehicles/NpcAviation/StationKeeping.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneConsole.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
-| `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
-| `Assets/Game/Scripts/agents/Residents/Body/SeatedBodyFit.cs` | [Seats](systems/Seats.md) |
-| `Assets/Game/Scripts/agents/Residents/Core/PerimeterRing.cs` | [Errands](systems/Errands.md) |
 | `Assets/Game/Art/Animations/Creatures/Glintback.controller` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Materials/Environment/SunMirrorSilver.mat` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Materials/Environment/Water/Mat_Water.mat` | [StylizedWater](systems/StylizedWater.md) |
@@ -2485,16 +2486,16 @@ Longest match wins.
 | `Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Prefabs/Environment/Structures/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Scripts/Agents/Modules/Quest/HerbBoundLife.cs` | [WitchFight](systems/WitchFight.md) |
+| `Assets/Game/Scripts/Agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
+| `Assets/Game/Scripts/Agents/Residents/Body/ErrandRunner.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Scripts/Agents/Residents/Editor/SeatPlacer.cs` | [Seats](systems/Seats.md) |
+| `Assets/Game/Scripts/Agents/Residents/Plan/StationStand.cs` | [Stations](systems/Stations.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/ShimmerCloak.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Status/HeldStandingStatus.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/IPosterOffer.cs` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Scripts/Vehicles/Monowheel/MonowheelGround.cs` | [Monowheel](systems/Monowheel.md) |
 | `Assets/Game/Scripts/World/ProceduralGeneration/Heightmap/` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneCamera.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
-| `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
-| `Assets/Game/Scripts/agents/Residents/Body/ErrandRunner.cs` | [Errands](systems/Errands.md) |
-| `Assets/Game/Scripts/agents/Residents/Editor/SeatPlacer.cs` | [Seats](systems/Seats.md) |
-| `Assets/Game/Scripts/agents/Residents/Plan/StationStand.cs` | [Stations](systems/Stations.md) |
 | `Assets/Game/Art/Shaders/Effects/LightningVFX.shadergraph` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Art/Shaders/Environment/StylizedFoliage.hlsl` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Art/Shaders/Environment/StylizedGrass.shader` | [Grass](systems/Grass.md) |
@@ -2511,6 +2512,11 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Leash.prefab` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Agents/Modules/Combat/BlinkModule.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Scripts/Agents/Residents/Plan/ChoreRounds.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Scripts/Agents/Simulation/DistanceDormant.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Scripts/Agents/Simulation/SimulationRange.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Scripts/Agents/Simulation/SimulationRules.cs` | [SimulationDistance](systems/SimulationDistance.md) |
+| `Assets/Game/Scripts/Agents/entity/EntityBodyEquipment.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/KeeperCarry.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonTally.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Lasso/CaptiveHaul.cs` | [Lifting](systems/Lifting.md) |
@@ -2524,11 +2530,6 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Environment/Water/WaterBody.cs` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneReach.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
-| `Assets/Game/Scripts/agents/Residents/Plan/ChoreRounds.cs` | [Errands](systems/Errands.md) |
-| `Assets/Game/Scripts/agents/Simulation/DistanceDormant.cs` | [SimulationDistance](systems/SimulationDistance.md) |
-| `Assets/Game/Scripts/agents/Simulation/SimulationRange.cs` | [SimulationDistance](systems/SimulationDistance.md) |
-| `Assets/Game/Scripts/agents/Simulation/SimulationRules.cs` | [SimulationDistance](systems/SimulationDistance.md) |
-| `Assets/Game/Scripts/agents/entity/EntityBodyEquipment.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Models/Environment/Structures/Workshop/` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloudVolume.hlsl` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Shaders/Environment/StylizedRock.shader` | [Rocks](systems/Rocks.md) |
@@ -2544,7 +2545,10 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/StriderMonowheelPrefabTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Environment/Nature/RockField.prefab` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Ranch/RaxyRanchSite.asset` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/NavPathFollower.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Scripts/Agents/Modules/Combat/BlinkArena.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Scripts/Agents/Residents/Core/Companions.cs` | [Errands](systems/Errands.md) |
+| `Assets/Game/Scripts/Agents/entity/LootAwaitingGround.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/KeeperPose.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonBall.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/PoisonPips.cs` | [WitchFight](systems/WitchFight.md) |
@@ -2561,9 +2565,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Stations/StationFooting.cs` | [Workshop](systems/Workshop.md) |
 | `Assets/Game/Scripts/World/Bounties/BountyNoticeBoard.cs` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCraneHook.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/NavPathFollower.cs` | [Locomotion](systems/Locomotion.md) |
-| `Assets/Game/Scripts/agents/Residents/Core/Companions.cs` | [Errands](systems/Errands.md) |
-| `Assets/Game/Scripts/agents/entity/LootAwaitingGround.cs` | [NpcFlight](systems/NpcFlight.md) |
 | `Assets/Game/Settings/SpillexoWorldStreamingConfig.asset` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/ThirdParty/UberStylizedWater/Planner Reflection/` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Art/Animations/Humanoid/Lifting Object.fbx` | [Lifting](systems/Lifting.md) |
@@ -2577,8 +2578,8 @@ Longest match wins.
 | `Assets/Game/Editor/Environment/OceanShowcaseTerrain.cs` | [AquaticVegetation](systems/AquaticVegetation.md) |
 | `Assets/Game/Editor/Vehicles/StriderMonowheelBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Prefabs/Agents/Vehicles/Ground/Monowheels/` | [Striders](systems/Striders.md) |
+| `Assets/Game/Prefabs/Agents/creatures/Esko_Ranch.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Astronaut/` | [ColonyInterior](systems/ColonyInterior.md) |
-| `Assets/Game/Prefabs/agents/creatures/Esko_Ranch.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Resources/Items/Artifacts/StormFlask.asset` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Scenes/Tests/CreatureAnimationReview.unity` | [CreatureAnimationReview](systems/CreatureAnimationReview.md) |
 | `Assets/Game/Scripts/Characters/Player/Combat/ArmAim.cs` | [Flashlight](systems/Flashlight.md) |
@@ -2603,10 +2604,13 @@ Longest match wins.
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/Editor/Traversal/PlayerTraversalWiring.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Editor/Workshop/WorkshopMissionBuilder.cs` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/creatures/Esko_Wild.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Prefabs/Agents/creatures/Glintback.prefab` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Prefabs/Environment/Decorations/Furniture` | [Seats](systems/Seats.md) |
-| `Assets/Game/Prefabs/agents/creatures/Esko_Wild.prefab` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/Residents/Mind/Attitude.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Scripts/Agents/World/DistantGroupState.cs` | [SettlementLods](systems/SettlementLods.md) |
+| `Assets/Game/Scripts/Agents/entity/IAirborneCarrier.cs` | [NpcFlight](systems/NpcFlight.md) |
+| `Assets/Game/Scripts/Agents/entity/WornGauntletUser.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash/SkinCoil.cs` | [Hogtie](systems/Hogtie.md) |
@@ -2614,9 +2618,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/CraftDeployment.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitRecolor.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
-| `Assets/Game/Scripts/agents/Residents/Mind/Attitude.cs` | [ResidentReputation](systems/ResidentReputation.md) |
-| `Assets/Game/Scripts/agents/entity/IAirborneCarrier.cs` | [NpcFlight](systems/NpcFlight.md) |
-| `Assets/Game/Scripts/agents/entity/WornGauntletUser.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Animations/Creatures/Esko.controller` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Art/Materials/Environment/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
@@ -2632,6 +2633,10 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Decorations/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Prefabs/Environment/Structures/SkyFleet/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
+| `Assets/Game/Scripts/Agents/AI/Goals/ScriptedStand.cs` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
+| `Assets/Game/Scripts/Agents/Residents/Mind/Rumours.cs` | [ResidentReputation](systems/ResidentReputation.md) |
+| `Assets/Game/Scripts/Agents/World/AbandonedVehicle.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet/RueBomb.cs` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BurningStatus.cs` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -2640,10 +2645,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/World/Bounties/BountyHuntSite.cs` | [Bounties](systems/Bounties.md) |
 | `Assets/Game/Scripts/World/Bounties/BountyHuntSpot.cs` | [Bounties](systems/Bounties.md) |
-| `Assets/Game/Scripts/agents/AI/Goals/ScriptedStand.cs` | [Ranch](systems/Ranch.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
-| `Assets/Game/Scripts/agents/Residents/Mind/Rumours.cs` | [ResidentReputation](systems/ResidentReputation.md) |
-| `Assets/Game/Scripts/agents/World/AbandonedVehicle.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormCloud.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Shaders/Effects/WitchShimmer.shader` | [WitchFight](systems/WitchFight.md) |
 | `Assets/Game/Art/Shaders/Environment/RockShared.hlsl` | [Rocks](systems/Rocks.md) |
@@ -2664,6 +2665,8 @@ Longest match wins.
 | `Assets/Game/Prefabs/Environment/Structures/Outpost/` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Prefabs/Items/Workshop/HeartGear.prefab` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/MotorOrders.cs` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Scripts/Agents/Residents/Mind/Gossip.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Scripts/Gameplay/Ballistics/SprayArc.cs` | [Portals](systems/Portals.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/CrewGear.cs` | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | `Assets/Game/Scripts/Gameplay/Objectives/QuestLog.cs` | [WorkshopMission](systems/WorkshopMission.md) |
@@ -2676,8 +2679,6 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Sites/WorldSiteCatalog.cs` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Scripts/World/Workshop/WorkshopCrane.cs` | [WorkshopCrane](systems/WorkshopCrane.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/MotorOrders.cs` | [Vehicles](systems/Vehicles.md) |
-| `Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/ThirdParty/Quaternius/StylizedNatureMegaKit/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Art/Materials/Environment/SunShaft.mat` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Art/Models/Creatures/Organic/Glintback` | [Glintback](systems/Glintback.md) |
@@ -2695,11 +2696,13 @@ Longest match wins.
 | `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/StriderBargeBuilder.cs` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Editor/Workshop/GearThiefCampPlacer.cs` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Prefabs/Environment/Nature/Vegetation/` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Prefabs/Environment/Water/Water.prefab` | [StylizedWater](systems/StylizedWater.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Jetpack.prefab` | [Jetpack](systems/Jetpack.md) |
-| `Assets/Game/Prefabs/agents/Characters/Raxy/Clothes` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Scenes/Tests/AquaticGrassGallery.unity` | [AquaticVegetation](systems/AquaticVegetation.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/AgentCarry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
+| `Assets/Game/Scripts/Agents/Residents/Mind/Favor.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Scripts/Gameplay/Status/BoundStatus.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Items/Artifacts/SprayerItem.cs` | [ShipTransmitterFire](systems/ShipTransmitterFire.md) |
 | `Assets/Game/Scripts/Items/Artifacts/StrapOnBooster` | [StrapOnBooster](systems/StrapOnBooster.md) |
@@ -2710,8 +2713,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/World/Colony/AirlockPassage.cs` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/World/Colony/AirlockTransit.cs` | [ColonyResidents](systems/ColonyResidents.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/AgentCarry.cs` | [CarriedAgent](systems/CarriedAgent.md) |
-| `Assets/Game/Scripts/agents/Residents/Mind/Favor.cs` | [ResidentReputation](systems/ResidentReputation.md) |
 | `Assets/Game/Art/Materials/Effects/AirlockMist.mat` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Art/Models/Items/strap_on_booster.fbx` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/Art/Models/_Source~/models/creatures/` | [WildCreatures](systems/WildCreatures.md) |
@@ -2769,11 +2770,12 @@ Longest match wins.
 | `Assets/Game/Editor/Vehicles/SeatedBodyMeasure.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Vehicles/VehicleDustWiring.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Editor/Workshop/VaultDoorLayout.json` | [GearDoor](systems/GearDoor.md) |
-| `Assets/Game/Prefabs/agents/creatures/Esko.prefab` | [Ranch](systems/Ranch.md) |
+| `Assets/Game/Prefabs/Agents/creatures/Esko.prefab` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Scenes/Tests/VegetationGallery.unity` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/ScriptableObjects/Environment/Grass/` | [GrassBiomes](systems/GrassBiomes.md) |
 | `Assets/Game/ScriptableObjects/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Settlements/Spots/` | [Residents](systems/Residents.md) |
+| `Assets/Game/Scripts/Agents/Entity/BeltCarrier.cs` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Gameplay/Puzzles/Weathervane` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Traversal/Ladder.cs` | [Ladders](systems/Ladders.md) |
@@ -2784,7 +2786,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Presentation/EmissiveLamp.cs` | [SupplyGauge](systems/SupplyGauge.md) |
 | `Assets/Game/Scripts/World/Bounties/BountyHunt.cs` | [Bounties](systems/Bounties.md) |
-| `Assets/Game/Scripts/agents/Entity/BeltCarrier.cs` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Settings/SettlementLodSettings.asset` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Art/Materials/Items/FlameBillow.mat` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Materials/Vehicles/SandDust.mat` | [VehicleDust](systems/VehicleDust.md) |
@@ -2903,6 +2904,8 @@ Longest match wins.
 | `Assets/Game/Scenes/Tests/OceanShowcase.unity` | [AquaticVegetation](systems/AquaticVegetation.md) |
 | `Assets/Game/ScriptableObjects/Animation/Cues` | [Stations](systems/Stations.md) |
 | `Assets/Game/ScriptableObjects/Factions/Core/` | [AgentSystem](systems/AgentSystem.md) |
+| `Assets/Game/Scripts/Agents/Residents/Visits/` | [HouseVisits](systems/HouseVisits.md) |
+| `Assets/Game/Scripts/Agents/World/NpcGroup.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Scripts/Core/Persistence/Editor/` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Scripts/Core/Persistence/Editor/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Core/Persistence/Format/` | [Persistence](systems/Persistence.md) |
@@ -2913,8 +2916,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Widgets/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/World/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/` | [NavMeshSystem](systems/NavMeshSystem.md) |
-| `Assets/Game/Scripts/agents/Residents/Visits/` | [HouseVisits](systems/HouseVisits.md) |
-| `Assets/Game/Scripts/agents/World/NpcGroup.cs` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Settings/PC_Medium_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Art/Models/Characters/EyeMeshes` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear` | [Saddles](systems/Saddles.md) |
@@ -2954,11 +2955,12 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/ScoutRotaTests.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Tests/SunShrineTests.cs` | [SunShrine](systems/SunShrine.md) |
 | `Assets/Game/Editor/World/QuestSiteBaker.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| `Assets/Game/Prefabs/Agents/Characters/Raxy` | [LevelOfDetail](systems/LevelOfDetail.md) |
+| `Assets/Game/Prefabs/Agents/creatures/Wild/` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Ghosts` | [BodyEquipment](systems/BodyEquipment.md) |
-| `Assets/Game/Prefabs/agents/Characters/Raxy` | [LevelOfDetail](systems/LevelOfDetail.md) |
-| `Assets/Game/Prefabs/agents/creatures/Wild/` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/Scenes/Tests/RockGallery.unity` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/ScriptableObjects/Expeditions/` | [Expeditions](systems/Expeditions.md) |
+| `Assets/Game/Scripts/Agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Scripts/Gameplay/Puzzles/Dials` | [WeathervanePuzzle](systems/WeathervanePuzzle.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | `Assets/Game/Scripts/Presentation/Animation` | [NpcAnimationPlan](systems/NpcAnimationPlan.md) |
@@ -2966,7 +2968,6 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/Vehicles/Rover/Patrol/` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/World/WorkshopMission/` | [WorkshopMission](systems/WorkshopMission.md) |
-| `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Art/Materials/Characters/Raxy` | [CharacterClothes](systems/CharacterClothes.md) |
 | `Assets/Game/Art/Models/Items/squirter.fbx` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Art/Shaders/DepthNormals.hlsl` | [ProjectConfig](systems/ProjectConfig.md) |
@@ -3006,12 +3007,12 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/LadderTests.cs` | [Ladders](systems/Ladders.md) |
 | `Assets/Game/Scenes/Core/Bootstrap.unity` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/ScriptableObjects/Animation` | [HumanoidAnimation](systems/HumanoidAnimation.md) |
+| `Assets/Game/Scripts/Agents/Diagnostics/` | [Diagnostics](systems/Diagnostics.md) |
+| `Assets/Game/Scripts/Agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Scripts/Presentation/Audio/` | [audio](systems/audio.md) |
 | `Assets/Game/Scripts/Presentation/Cloth/` | [Cutscenes](systems/Cutscenes.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Vehicles/SkyVessel/` | [SkyTribe](systems/SkyTribe.md) |
-| `Assets/Game/Scripts/agents/Diagnostics/` | [Diagnostics](systems/Diagnostics.md) |
-| `Assets/Game/Scripts/agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
 | `Assets/Game/Settings/WorldNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Terrain/VegetationGallery2/` | [Foliage](systems/Foliage.md) |
 | `Assets/Game/Editor/Agents/Expeditions/` | [Expeditions](systems/Expeditions.md) |
@@ -3031,6 +3032,9 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/EyeStyle.cs` | [StylizedEyes](systems/StylizedEyes.md) |
 | `Assets/Game/Editor/Tests/SeatTests.cs` | [Seats](systems/Seats.md) |
 | `Assets/Game/Resources/Items/Workshop/` | [GearDoor](systems/GearDoor.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Scripts/Agents/AI/Motors/` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Scripts/Agents/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Scripts/Core/Diagnostics/` | [Diagnostics](systems/Diagnostics.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Core/Teleporting/` | [SceneTransitions](systems/SceneTransitions.md) |
@@ -3038,13 +3042,10 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Arrival/` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal` | [Terminal](systems/Terminal.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/` | [NavMeshSystem](systems/NavMeshSystem.md) |
-| `Assets/Game/Scripts/agents/AI/Motors/` | [Vehicles](systems/Vehicles.md) |
-| `Assets/Game/Scripts/agents/Residents/` | [Residents](systems/Residents.md) |
 | `Assets/Game/Settings/PC_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
 | `Assets/Game/Art/Shaders/Environment/` | [Environment](systems/Environment.md) |
 | `Assets/Game/Editor/Terrain/Outposts/` | [Outposts](systems/Outposts.md) |
-| `Assets/Game/Prefabs/agents/Vehicles/` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Prefabs/Agents/Vehicles/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Hazards` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Gameplay/Health/` | [Combat](systems/Combat.md) |
@@ -3076,6 +3077,7 @@ Longest match wins.
 | `Assets/Game/Editor/Items/HandTools` | [HandTools](systems/HandTools.md) |
 | `Assets/Game/Prefabs/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Resources/Expeditions/` | [Expeditions](systems/Expeditions.md) |
+| `Assets/Game/Scripts/Agents/Entity/` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Scripts/Core/Registry/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/Core/Settings/` | [CoreServices](systems/CoreServices.md) |
 | `Assets/Game/Scripts/Gameplay/Game/` | [GameModes](systems/GameModes.md) |
@@ -3088,17 +3090,16 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Lifting/` | [Lifting](systems/Lifting.md) |
 | `Assets/Game/Scripts/World/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/World/Seating/` | [Seats](systems/Seats.md) |
-| `Assets/Game/Scripts/agents/Entity/` | [EntitySystem](systems/EntitySystem.md) |
 | `ProjectSettings/NavMeshAreas.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Art/Textures/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [SkyTribe](systems/SkyTribe.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Resources/Items/Tools` | [HandTools](systems/HandTools.md) |
+| `Assets/Game/Scripts/Agents/Audio/` | [audio](systems/audio.md) |
 | `Assets/Game/Scripts/Gear/Wingsuit` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Vehicles/Lod/` | [SettlementLods](systems/SettlementLods.md) |
 | `Assets/Game/Scripts/World/Colony/` | [ColonyInterior](systems/ColonyInterior.md) |
 | `Assets/Game/Scripts/World/Safety/` | [WorldStreaming](systems/WorldStreaming.md) |
-| `Assets/Game/Scripts/agents/Audio/` | [audio](systems/audio.md) |
 | `Assets/Game/Terrain/NoiseTerrain/` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Editor/AssetPipeline` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Resources/Residents/` | [Residents](systems/Residents.md) |
@@ -3139,10 +3140,10 @@ Longest match wins.
 | `Assets/Game/Editor/Backpack` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Editor/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Editor/Terrain/` | [TerrainGeneration](systems/TerrainGeneration.md) |
+| `Assets/Game/Prefabs/Agents/` | [AgentSystem](systems/AgentSystem.md) |
 | `Assets/Game/Prefabs/Camera/` | [Environment](systems/Environment.md) |
-| `Assets/Game/Prefabs/agents/` | [AgentSystem](systems/AgentSystem.md) |
 | `Assets/Game/Resources/Items` | [Inventory](systems/Inventory.md) |
-| `Assets/Game/Scripts/agents/` | [AgentSystem](systems/AgentSystem.md) |
+| `Assets/Game/Scripts/Agents/` | [AgentSystem](systems/AgentSystem.md) |
 | `Assets/Game/Tests/EditMode/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Art/Animations` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Scripts/Audio/` | [audio](systems/audio.md) |
@@ -3164,4 +3165,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2167 symptoms, 971 paths, 120 docs -->
+<!-- 2168 symptoms, 971 paths, 120 docs -->

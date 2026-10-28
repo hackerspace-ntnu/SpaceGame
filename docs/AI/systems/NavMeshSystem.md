@@ -6,8 +6,8 @@ paths:
   - Assets/Game/Scripts/World/Streaming/NavMesh/
   - Assets/Game/Settings/WorldNavMesh.asset
   - Assets/Game/Settings/SkyCityNavMesh.asset
-  - Assets/Game/Scripts/agents/Modules/Movement/WanderModule.cs
-  - Assets/Game/Scripts/agents/AI/Motors/
+  - Assets/Game/Scripts/Agents/Modules/Movement/WanderModule.cs
+  - Assets/Game/Scripts/Agents/AI/Motors/
   - ProjectSettings/NavMeshAreas.asset
 symptoms:
   - "an NPC spawns and then stands still forever with a clean console"
@@ -39,7 +39,7 @@ updated: 2026-10-19
 
 One NavMesh for the whole streamed world, baked at author time into a single asset and added to the runtime with one `NavMesh.AddNavMeshData` call; nothing bakes at runtime. Walkable structures outside the chunk scenes (the Sky City fleet) get their own small bake, added at the structure's transform.
 
-**Scope:** `Assets/Game/Scripts/World/Streaming/NavMesh/`, `ProjectSettings/NavMeshAreas.asset`, `Assets/Game/Settings/WorldNavMesh.asset`, `Assets/Game/Scripts/agents/AI/Motors/`
+**Scope:** `Assets/Game/Scripts/World/Streaming/NavMesh/`, `ProjectSettings/NavMeshAreas.asset`, `Assets/Game/Settings/WorldNavMesh.asset`, `Assets/Game/Scripts/Agents/AI/Motors/`
 **Related:** [WorldStreaming.md](WorldStreaming.md) · [Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) · [.claude/skills/spacegame-agent/SKILL.md](.claude/skills/spacegame-agent/SKILL.md)
 
 ## Model
@@ -52,7 +52,7 @@ One NavMesh for the whole streamed world, baked at author time into a single ass
 - **Caves are separate surfaces**, not part of the world mesh — see Gotchas.
 - **So is the Sky City.** `SkyCityFleet` stands in `persistentScene`, which the world bake never scans. SkyCityNavMeshBaker bakes the fleet prefab's collision **in prefab space** into [SkyCityNavMesh.asset](Assets/Game/Settings/SkyCityNavMesh.asset) (a bare `NavMeshData`, ~130 KB), with the world bake's settings and layer mask read from `WorldNavMesh.asset` and its collider filter/mapping (`NavMeshSources.IsBakeable` / `TryColliderToSource`). [StaticNavMeshData](Assets/Game/Scripts/World/Streaming/NavMesh/StaticNavMeshData.cs) on the fleet prefab root adds it at the instance's position and rotation, so moving the fleet needs no re-bake. The fleet now **drifts**: `SettlementDeck` disables `StaticNavMeshData` while the city sails (its residents are parked) and re-enables it at each mooring, which re-adds the mesh at the new pose ([SkyTribe.md](SkyTribe.md)). The escorts are no longer part of the fleet prefab, so their decks are not in the bake. **A test scene bakes its own, the same way.** `WorkshopTest.unity` stands outside the world too: `WorkshopTestSceneBuilder` bakes the scene's colliders with the world bake's settings, mask and collider rules into `WorkshopTest_NavMesh.asset` beside it and adds it with a `StaticNavMeshData` at the origin ([Workshop.md](Workshop.md)). A workshop placed in a chunk scene needs none of that: the world bake covers it.
 - **The ground gets a say.** `NavMeshAgentMotor.ApplyGroundGrip` asks [GroundGrip](Assets/Game/Scripts/Gameplay/Grip/GroundGrip.cs) what the surface under the agent is worth and scales `agent.acceleration` by it, so a [SurfaceCoat](Artifacts/SurfaceCoat.md) patch slows how fast an NPC can change velocity without touching its top speed — it overshoots and cannot brake. **Acceleration only, never `angularSpeed`:** an agent that cannot turn cannot follow its path off the patch, which is stuck rather than sliding. Same reason `LeggedLocomotion.ApplyGroundGrip` leaves yaw alone.
-- **Two motor families:** [NavMeshAgentMotor](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) drives a real `NavMeshAgent`; [LeggedDriver](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) has no agent component and only calls `NavMesh.CalculatePath` (the legs own the transform).
+- **Two motor families:** [NavMeshAgentMotor](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.cs) drives a real `NavMeshAgent`; [LeggedDriver](Assets/Game/Scripts/Agents/AI/Motors/LeggedDriver.cs) has no agent component and only calls `NavMesh.CalculatePath` (the legs own the transform).
 
 ## Agent types & areas
 Exactly **one** agent type is configured project-wide ([ProjectSettings/NavMeshAreas.asset](ProjectSettings/NavMeshAreas.asset)). Every `NavMeshAgent` in the project uses `m_AgentTypeID: 0`; no prefab or scene sets any other value.
@@ -88,12 +88,12 @@ Areas: Unity's three built-ins, unchanged — `0 Walkable` (cost 1), `1 Not Walk
 | `SkyCityNavMeshBaker` | Editor/Environment/SkyCityNavMeshBaker.cs | `World/Streaming/Bake Sky City NavMesh`; bakes `SkyCityFleet.prefab` into `Assets/Game/Settings/SkyCityNavMesh.asset` and puts `StaticNavMeshData` on the fleet root |
 | `WorldNavMeshStaleness` / `WorldNavMeshBuildCheck` | [Editor/WorldNavMeshStaleness.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/WorldNavMeshStaleness.cs) | `World/Streaming/Check World NavMesh Is Current`; fails the player build when stale |
 | `WorldStreamer.SnapAgentsToNavMesh` | [WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) (~L1229) | Re-enables + `Warp`s a loaded chunk's agents onto the mesh |
-| `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | `IMovementMotor` over `NavMeshAgent`; `[DefaultExecutionOrder(-100)]`. Leaves `autoBraking` as the prefab authors it |
-| `LeggedDriver` | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Path-only consumer: `NavMesh.CalculatePath`, no `NavMeshAgent` |
+| `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.cs) | `IMovementMotor` over `NavMeshAgent`; `[DefaultExecutionOrder(-100)]`. Leaves `autoBraking` as the prefab authors it |
+| `LeggedDriver` | [LeggedDriver.cs](Assets/Game/Scripts/Agents/AI/Motors/LeggedDriver.cs) | Path-only consumer: `NavMesh.CalculatePath`, no `NavMeshAgent` |
 | `DeferredNavMeshWarp` | [DeferredNavMeshWarp.cs](Assets/Game/Scripts/Core/Persistence/Runtime/DeferredNavMeshWarp.cs) | Retries a save-restore `Warp` for 10 s, sample radius 4 m |
 | `CaveSpawner` | [CaveSpawner.cs](Assets/Game/Scripts/World/ProceduralGeneration/Cave/Generation/CaveSpawner.cs) | Own `NavMeshSurface`; `SpawnBaked()` adds a pre-baked `NavMeshData` instance |
 | `NavMeshGraph` | [Editor/NavMeshGraph.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/NavMeshGraph.cs) | A triangulation as geometry: welded vertices, islands (union-find over shared *edges*), boundary edges, XZ lookup to the surfaces under a point. Pure data, so tests feed it hand-built meshes |
-| `NavLinkAreas` | [NavLinkAreas.cs](Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs) | Area IDs by name (`Jump`, `Ladder`) and `GroundMask`; [NavMeshAgentMotor.Links.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs) crosses the links |
+| `NavLinkAreas` | [NavLinkAreas.cs](Assets/Game/Scripts/Gameplay/Traversal/NavLinkAreas.cs) | Area IDs by name (`Jump`, `Ladder`) and `GroundMask`; [NavMeshAgentMotor.Links.cs](Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs) crosses the links |
 | `NavMeshAutoLinker` | [Editor/NavMeshAutoLinker.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/NavMeshAutoLinker.cs) | Finds jump links across gaps and down ledges from a `NavMeshGraph`; run by the baker |
 | `SettlementNavMeshAudit` | [Editor/SettlementNavMeshAudit.cs](Assets/Game/Scripts/World/Streaming/NavMesh/Editor/SettlementNavMeshAudit.cs) | `World/Streaming/Audit Settlement NavMesh`: islands, then every settlement place checked against the mesh. See Auto links and audit |
 | `NavMeshReach` | [NavMeshReach.cs](Assets/Game/Scripts/World/Streaming/NavMesh/NavMeshReach.cs) | `CanWalk(from, to)`: a `CalculatePath` that is `PathComplete`. The one reachability check — `SettlementPopulation.reachableFrom` and `WanderModule.onlyReachableDestinations` both call it |

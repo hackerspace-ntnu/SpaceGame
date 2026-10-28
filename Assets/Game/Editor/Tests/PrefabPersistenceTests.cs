@@ -106,11 +106,11 @@ namespace SpaceGame.EditorTools
         //  Per-prefab: the templates to copy
         // ─────────────────────────────────────────────
 
-        private const string Ostrich = "Assets/Game/Prefabs/agents/creatures/Ostrich.prefab";
-        private const string Golem = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
-        private const string ClankerOutrider = "Assets/Game/Prefabs/agents/Robots/ClankerOutrider.prefab";
-        private const string DuneFoil = "Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab";
-        private const string PlayerShip = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
+        private const string Ostrich = "Assets/Game/Prefabs/Agents/creatures/Ostrich.prefab";
+        private const string Golem = "Assets/Game/Prefabs/Agents/creatures/Golem.prefab";
+        private const string ClankerOutrider = "Assets/Game/Prefabs/Agents/Robots/ClankerOutrider.prefab";
+        private const string DuneFoil = "Assets/Game/Prefabs/Agents/Vehicles/Ground/DuneFoil.prefab";
+        private const string PlayerShip = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         [Test]
         public void Ostrich_IsWiredForSaving() =>

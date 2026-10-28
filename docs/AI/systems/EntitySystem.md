@@ -3,7 +3,7 @@ system: EntitySystem
 layer: characters
 summary: How a GameObject becomes an entity — identity, save opt-in, and following the streaming grid between chunks
 paths:
-  - Assets/Game/Scripts/agents/Entity/
+  - Assets/Game/Scripts/Agents/Entity/
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs
   - Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs
   - Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs
@@ -27,7 +27,7 @@ updated: 2026-10-07
 
 How a GameObject becomes a first-class **entity** in SpaceGame: how it is authored or spawned, how it gets a stable identity, and how it follows the streaming grid between chunk scenes.
 
-**Scope:** [Assets/Game/Scripts/agents/Entity/](Assets/Game/Scripts/agents/Entity/), [Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs), [SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), [IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs), [SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), [SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs)
+**Scope:** [Assets/Game/Scripts/Agents/Entity/](Assets/Game/Scripts/Agents/Entity/), [Assets/Game/Scripts/Agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/Agents/Core/EntityTargetRegistry.cs), [SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), [IPersistentEntity.cs](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs), [SaveableEntity.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), [SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs)
 **Related:** [AgentSystem.md](AgentSystem.md) (behaviour modules, factions, perception) · [Persistence.md](Persistence.md) (record/save format) · [WorldStreaming.md](WorldStreaming.md) (chunk load/unload) · [MountSystem.md](MountSystem.md)
 
 ## Model
@@ -36,8 +36,8 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 - **Is it part of the mutable world?** → implements [`IPersistentEntity`](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) (empty marker interface, assembly `SpaceGame.Persistence`, zero refs). Implemented by `AgentController`, `MountModule`, `LeggedLocomotion`, `DuneFoilLocomotion`, `SceneTracked`, `DoorInteraction`, `LeverInteraction`, `ShipPartRack`, `SpaceshipManager`, `VolumeTrigger`, `CutsceneAction`, `ScanBeacon`, `RuinSecret`.
 - **Does it move between chunks?** → [`SceneTracked`](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), which *also* implements `IPersistentEntity` — the two claims are deliberately one.
 - **Does it have a save record?** → [`SaveableEntity`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); you rarely add it by hand.
-- **Is it targetable by AI?** → [`EntityFaction`](Assets/Game/Scripts/agents/Faction/EntityFaction.cs), which self-registers into [`EntityTargetRegistry`](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) on enable. Factionless ⇒ invisible to all targeting. Details in [AgentSystem.md](AgentSystem.md).
-- An AI-driven entity additionally carries the agent stack: `Rigidbody` (kinematic) + `CapsuleCollider` + `NavMeshAgent` + `NavMeshAgentMotor` + [`AgentController`](Assets/Game/Scripts/agents/Controller/AgentController.cs) + `AgentAnimatorDriver` + `HealthComponent` + [`HealthReactionModule`](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs).
+- **Is it targetable by AI?** → [`EntityFaction`](Assets/Game/Scripts/Agents/Faction/EntityFaction.cs), which self-registers into [`EntityTargetRegistry`](Assets/Game/Scripts/Agents/Core/EntityTargetRegistry.cs) on enable. Factionless ⇒ invisible to all targeting. Details in [AgentSystem.md](AgentSystem.md).
+- An AI-driven entity additionally carries the agent stack: `Rigidbody` (kinematic) + `CapsuleCollider` + `NavMeshAgent` + `NavMeshAgentMotor` + [`AgentController`](Assets/Game/Scripts/Agents/Controller/AgentController.cs) + `AgentAnimatorDriver` + `HealthComponent` + [`HealthReactionModule`](Assets/Game/Scripts/Agents/Entity/HealthReactionModule.cs).
 
 ## Authoring an agent prefab
 
@@ -62,13 +62,13 @@ Any doc, comment or memory naming `EntityProfile_BaseAgent`, `_NPC`, `_GenericEn
 | `SaveablePolicy` | [Core/Persistence/Runtime/SaveablePolicy.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs) | The one opt-in rule: `NeedsSaving` / `Ensure` / `EnsureScene(Scene)` / `EnsureSpawned(GameObject)`. Maps each component to its saver — e.g. `Resident` → `ResidentSaveable` (key `"resident"`, the resident's memory of players). |
 | `SaveablePrefabRegistry` | [Core/Persistence/Runtime/SaveablePrefabRegistry.cs](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePrefabRegistry.cs) | `prefabId` (asset GUID) → prefab. Sources: `InventoryItem.itemPrefab`, `Resources/Saveable/`, NGO prefab list (lazy on first miss). |
 | `WorldStreamer` | [World/Streaming/Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) | Static `s_trackedEntities`; `UpdateSceneMembership` / `ResolveDesiredScene` / `MoveTracked` / `MigrateObjectRpc`. |
-| `EntityTargetRegistry` | [agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) | Static list of `EntityFaction`; `ResolveNearest(owner, relationship, pos)`. AI targeting only — no persistence link. |
+| `EntityTargetRegistry` | [agents/Core/EntityTargetRegistry.cs](Assets/Game/Scripts/Agents/Core/EntityTargetRegistry.cs) | Static list of `EntityFaction`; `ResolveNearest(owner, relationship, pos)`. AI targeting only — no persistence link. |
 | `Registry<T>` | [Core/Registry/Registry.cs](Assets/Game/Scripts/Core/Registry/Registry.cs) | Generic `IRegistryEntry` store keyed by string `ID`. **Items only** — nothing entity-shaped uses it. Filled by [RegistryLoader](Assets/Game/Scripts/Core/Registry/RegistryLoader.cs) from `Resources/Items`. |
-| `EntityInventoryComponent` | [agents/Entity/EntityInventoryComponent.cs](Assets/Game/Scripts/agents/Entity/EntityInventoryComponent.cs) | Same `Inventory` class the player uses, on an NPC. |
-| `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
-| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents and worn gear + rolled `LootEntry` list. A worn **wing pack** drops only from a body killed seated aloft or a war-party flier (`DropsWorn`; any other corpse keeps it on, user decision 2026-10-07); `MarkWarFlier(bagDropChance)` (set at spawn by `NpcWorldSim`, never saved) also makes the bag drop only on that roll. |
-| `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
-| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Threshold module toggling (**not saved**: `HealthReactionSaveable` was deleted 2026-10-02 because every prefab's threshold list was empty — a prefab that authors one replays it from scratch after a load), hurt/death SFX; on death the body lies where it fell and the server starts its `Remains` countdown (`corpseLifetime`, 180 s; 0 = stays, a monowheel wreck). See [Combat.md](Combat.md) Gotchas. |
+| `EntityInventoryComponent` | [agents/Entity/EntityInventoryComponent.cs](Assets/Game/Scripts/Agents/Entity/EntityInventoryComponent.cs) | Same `Inventory` class the player uses, on an NPC. |
+| `EntityEquipmentController` | [agents/Entity/EntityEquipmentController.cs](Assets/Game/Scripts/Agents/Entity/EntityEquipmentController.cs) | NPC holds/fires the *same* `UsableItem` prefabs as the player; sets `ExternallyAimed`, aims via `UseArg.R`. |
+| `EntityLootTable` | [agents/Entity/EntityLootTable.cs](Assets/Game/Scripts/Agents/Entity/EntityLootTable.cs) | Death drops: guaranteed inventory contents and worn gear + rolled `LootEntry` list. A worn **wing pack** drops only from a body killed seated aloft or a war-party flier (`DropsWorn`; any other corpse keeps it on, user decision 2026-10-07); `MarkWarFlier(bagDropChance)` (set at spawn by `NpcWorldSim`, never saved) also makes the bag drop only on that roll. |
+| `NpcRandomLoadout` | [agents/Entity/NpcRandomLoadout.cs](Assets/Game/Scripts/Agents/entity/NpcRandomLoadout.cs) | `NetworkBehaviour`. Server rolls one `InventoryItem` from `candidates` into `slot` when it is empty at spawn; a `NetworkVariable` carries whatever is in that slot to every client and late joiner. The sand nomads' random weapon. |
+| `HealthReactionModule` | [agents/Entity/HealthReactionModule.cs](Assets/Game/Scripts/Agents/Entity/HealthReactionModule.cs) | Threshold module toggling (**not saved**: `HealthReactionSaveable` was deleted 2026-10-02 because every prefab's threshold list was empty — a prefab that authors one replays it from scratch after a load), hurt/death SFX; on death the body lies where it fell and the server starts its `Remains` countdown (`corpseLifetime`, 180 s; 0 = stays, a monowheel wreck). See [Combat.md](Combat.md) Gotchas. |
 
 ## Flows
 

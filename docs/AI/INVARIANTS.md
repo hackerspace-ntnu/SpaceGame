@@ -230,4 +230,13 @@ priming on (`Auto`) the forward pass draws only where its depth equals that prep
 **How it fails.** A client join dies with `Scene Hash N does not exist in the HashToBuildIndex table`; a NavMesh bake silently skips every
 chunk; a generated prefab ships an empty motor slot. The config asset says `Scenes/World/Chunks`; disk says `Scenes/world/Chunks`.
 
+**The one exception: git tracking a folder under two casings.** Then fixing references is not enough — git must hold one casing. Until
+2026-10-28 git held both `Scripts/Agents/` and `Scripts/agents/` (likewise `Prefabs/`); Windows folds them into one folder, and a checkout
+silently deleted every file filed under the other casing — hundreds of files showed as ` D` after a pull with nothing else wrong. Both are
+now `Agents` in git and in every reference; **never add a file under lowercase `agents/`**. A clone made before that keeps its old folder
+casing on disk, because git never renames an existing folder on a case-insensitive file system: rename it in two steps (`agents` →
+`agents_tmp` → `Agents`, plus its `.meta`) with Unity and every editor closed. This lists every folder git holds under two casings (expect
+no output):
+`git ls-files | awk -F/ '{p=""; for(i=1;i<NF;i++){p=p $i "/"; print p}}' | sort -u | tr A-Z a-z | sort | uniq -d`
+
 **Where.** [Scenes](systems/Scenes.md) · [WorldStreaming](systems/WorldStreaming.md) · [Multiplayer](systems/Multiplayer.md) · [EditorTooling](systems/EditorTooling.md)

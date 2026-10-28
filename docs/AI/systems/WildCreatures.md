@@ -6,7 +6,7 @@ paths:
   - Assets/Game/Editor/Creatures/WildCreatureBuilder.cs
   - Assets/Game/Editor/Creatures/WildCreatureRoster.cs
   - Assets/Game/ScriptableObjects/Creatures/
-  - Assets/Game/Prefabs/agents/creatures/Wild/
+  - Assets/Game/Prefabs/Agents/creatures/Wild/
   - Assets/Game/Art/Animations/Creatures/
   - Assets/Game/ScriptableObjects/Eyes/Creatures/
   - Assets/Game/Art/Models/_Source~/models/creatures/
@@ -36,7 +36,7 @@ game. The modelling half runs in Blender outside the project; this doc covers wh
 project and the one editor pass that turns it into an agent.
 
 **Scope:** [`WildCreatureBuilder`](Assets/Game/Editor/Creatures/WildCreatureBuilder.cs), the prefabs
-it writes to `Assets/Game/Prefabs/agents/creatures/Wild/`, their override controllers and eye styles.
+it writes to `Assets/Game/Prefabs/Agents/creatures/Wild/`, their override controllers and eye styles.
 **Related:** [AgentSystem.md](AgentSystem.md) (the modules), [ArtPipeline.md](ArtPipeline.md) (the
 `.blend` → FBX export), [StylizedEyes.md](StylizedEyes.md) (eyes and blinking).
 

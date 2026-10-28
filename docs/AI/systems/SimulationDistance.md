@@ -3,9 +3,9 @@ system: SimulationDistance
 layer: characters
 summary: NPCs and animals far from every player freeze in place; cells, exemptions and the dormant parking reason
 paths:
-  - Assets/Game/Scripts/agents/Simulation/SimulationRules.cs
-  - Assets/Game/Scripts/agents/Simulation/DistanceDormant.cs
-  - Assets/Game/Scripts/agents/Simulation/SimulationRange.cs
+  - Assets/Game/Scripts/Agents/Simulation/SimulationRules.cs
+  - Assets/Game/Scripts/Agents/Simulation/DistanceDormant.cs
+  - Assets/Game/Scripts/Agents/Simulation/SimulationRange.cs
   - Assets/Game/Editor/Agents/DistanceDormancyWiring.cs
   - Assets/Game/Editor/Tests/SimulationRulesTests.cs
   - Assets/Game/Editor/Tests/AgentParkingTests.cs
@@ -32,7 +32,7 @@ updated: 2026-10-28
 
 People and animals far from every player are parked where they stand: still visible, doing nothing. Machines and travelling groups never sleep. Design: [the spec](docs/superpowers/specs/2026-10-06-simulation-distance-design.md).
 
-**Scope:** [agents/Simulation/](Assets/Game/Scripts/agents/Simulation/), [DistanceDormancyWiring.cs](Assets/Game/Editor/Agents/DistanceDormancyWiring.cs), [IAirborneCarrier.cs](Assets/Game/Scripts/agents/entity/IAirborneCarrier.cs)
+**Scope:** [agents/Simulation/](Assets/Game/Scripts/Agents/Simulation/), [DistanceDormancyWiring.cs](Assets/Game/Editor/Agents/DistanceDormancyWiring.cs), [IAirborneCarrier.cs](Assets/Game/Scripts/Agents/entity/IAirborneCarrier.cs)
 **Related:** [AgentSystem.md](AgentSystem.md) (`Offstage`, modules) · [EntitySystem.md](EntitySystem.md) · [WorldStreaming.md](WorldStreaming.md) (`ChunkGrid`) · [Residents.md](Residents.md)
 
 ## Model
@@ -64,12 +64,12 @@ People and animals far from every player are parked where they stand: still visi
 
 | Type | File | Role |
 | --- | --- | --- |
-| `SimulationRules`, `SimulationCells`, `DormancyInputs` | [SimulationRules.cs](Assets/Game/Scripts/agents/Simulation/SimulationRules.cs) | Pure maths: `CellOf` (unclamped), `DistanceToCell`, `Advance` (next awake set), `ShouldSleep`. No scene access |
-| `SimulationRange` | [SimulationRange.cs](Assets/Game/Scripts/agents/Simulation/SimulationRange.cs) | On the NpcWorldSim GameObject in `persistentScene.unity` (`[RequireComponent(typeof(NpcWorldSim))]`). Server-or-offline. Public `InteriorReturnPosition` (`Func<Transform, Vector3?>`, the visit's door or null; a test seam, public because `Assembly-CSharp-Editor` has no `InternalsVisibleTo` into `Assembly-CSharp`); public `Tick(players, now)`; `origin` read once in `Start` from `WorldStreamer.Config.worldOrigin` (zero with no streamer) |
-| `DistanceDormant` | [DistanceDormant.cs](Assets/Game/Scripts/agents/Simulation/DistanceDormant.cs) | Opt-in marker. Static registry `All`; stamps last-hurt time from `HealthComponent.OnDamage`; exposes exemption inputs |
-| `AgentController.Dormant` / `IsParked` | [AgentController.cs](Assets/Game/Scripts/agents/controller/AgentController.cs) | `IsParked = Offstage \|\| Dormant`. Motor parks when it first becomes true, unparks only when both clear, except while `RidesAsPassenger` (seating owns the motor; the setter reconciles on put-down). `Simulate` returns early on it, before the passenger branch; `AgentTargeting` and `PerceptionModule` read it |
+| `SimulationRules`, `SimulationCells`, `DormancyInputs` | [SimulationRules.cs](Assets/Game/Scripts/Agents/Simulation/SimulationRules.cs) | Pure maths: `CellOf` (unclamped), `DistanceToCell`, `Advance` (next awake set), `ShouldSleep`. No scene access |
+| `SimulationRange` | [SimulationRange.cs](Assets/Game/Scripts/Agents/Simulation/SimulationRange.cs) | On the NpcWorldSim GameObject in `persistentScene.unity` (`[RequireComponent(typeof(NpcWorldSim))]`). Server-or-offline. Public `InteriorReturnPosition` (`Func<Transform, Vector3?>`, the visit's door or null; a test seam, public because `Assembly-CSharp-Editor` has no `InternalsVisibleTo` into `Assembly-CSharp`); public `Tick(players, now)`; `origin` read once in `Start` from `WorldStreamer.Config.worldOrigin` (zero with no streamer) |
+| `DistanceDormant` | [DistanceDormant.cs](Assets/Game/Scripts/Agents/Simulation/DistanceDormant.cs) | Opt-in marker. Static registry `All`; stamps last-hurt time from `HealthComponent.OnDamage`; exposes exemption inputs |
+| `AgentController.Dormant` / `IsParked` | [AgentController.cs](Assets/Game/Scripts/Agents/controller/AgentController.cs) | `IsParked = Offstage \|\| Dormant`. Motor parks when it first becomes true, unparks only when both clear, except while `RidesAsPassenger` (seating owns the motor; the setter reconciles on put-down). `Simulate` returns early on it, before the passenger branch; `AgentTargeting` and `PerceptionModule` read it |
 | `DistanceDormancyWiring` | [DistanceDormancyWiring.cs](Assets/Game/Editor/Agents/DistanceDormancyWiring.cs) | `Ensure(root)`, `WirePrefab(path)`, `PrefabPathsInOrder()` (bases before variants). Menu `Tools/SpaceGame/Agents/Wire Distance Dormancy` |
-| `IAirborneCarrier` / `AirborneSeat` | [IAirborneCarrier.cs](Assets/Game/Scripts/agents/entity/IAirborneCarrier.cs) | `AirborneSeat.IsSeatedAloft`, shared with `EntityLootTable` |
+| `IAirborneCarrier` / `AirborneSeat` | [IAirborneCarrier.cs](Assets/Game/Scripts/Agents/entity/IAirborneCarrier.cs) | `AirborneSeat.IsSeatedAloft`, shared with `EntityLootTable` |
 
 `NpcFlightModule.IsAirborne` was added for the flying exemption.
 

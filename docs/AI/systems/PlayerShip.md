@@ -6,7 +6,7 @@ paths:
   - Assets/Game/Scripts/Gameplay/Arrival/
   - Assets/Game/Art/Shaders/Effects/EntryPlasma.shader
   - Assets/Game/Scripts/Items/Artifacts/ShipParts/
-  - Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab
+  - Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab
   - Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab
   - Assets/Game/Scripts/Gameplay/Versus/Runtime/
   - Assets/Game/Scripts/Vehicles/Parts/RampApron.cs
@@ -89,10 +89,10 @@ updated: 2026-10-06
 
 The crashed lander: a script-generated, walkable, drivable 60-tonne hover vehicle that also flies the one-time crash-landing that opens a world.
 
-**Scope:** [Assets/Game/Scripts/Gameplay/Arrival/](Assets/Game/Scripts/Gameplay/Arrival/), Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs, [PlayerShip.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab), [Assets/Game/Scripts/Spaceship/](Assets/Game/Scripts/Spaceship/)
+**Scope:** [Assets/Game/Scripts/Gameplay/Arrival/](Assets/Game/Scripts/Gameplay/Arrival/), Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs, [PlayerShip.prefab](Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/PlayerShip.prefab), [Assets/Game/Scripts/Spaceship/](Assets/Game/Scripts/Spaceship/)
 **Related:** [MountSystem.md](MountSystem.md) · [Vehicles.md](Vehicles.md) · [Multiplayer.md](Multiplayer.md) · [Persistence.md](Persistence.md)
 
-> `Assets/Game/Scripts/Spaceship/` is **not** this ship. `SpaceshipManager` + `SpaceshipLaunchInteract` (idle/flight/crash state machine, booster lights, `NetLatch` launch button) belong to [CowBotRocket.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/CowBotRocket.prefab) — a scenery rocket. PlayerShip carries none of it and has no take-off.
+> `Assets/Game/Scripts/Spaceship/` is **not** this ship. `SpaceshipManager` + `SpaceshipLaunchInteract` (idle/flight/crash state machine, booster lights, `NetLatch` launch button) belong to [CowBotRocket.prefab](Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/CowBotRocket.prefab) — a scenery rocket. PlayerShip carries none of it and has no take-off.
 
 ## Model
 

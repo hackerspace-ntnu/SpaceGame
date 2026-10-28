@@ -19,8 +19,8 @@ namespace SpaceGame.EditorTools
 {
     public class AgentGroundConformTests
     {
-        private const string GolemPath = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
-        private const string NomadPath = "Assets/Game/Prefabs/agents/Characters/Nomad.prefab";
+        private const string GolemPath = "Assets/Game/Prefabs/Agents/creatures/Golem.prefab";
+        private const string NomadPath = "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab";
 
         /// The measured median error: the NavMesh floats a quarter of a metre over the sand.
         private const float NavMeshError = 0.257f;

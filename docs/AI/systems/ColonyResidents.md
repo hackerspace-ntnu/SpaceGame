@@ -6,17 +6,17 @@ paths:
   - Assets/Game/Scripts/World/Colony/AirlockPassage.cs
   - Assets/Game/Scripts/World/Colony/AirlockTransit.cs
   - Assets/Game/Scripts/Gameplay/Traversal/INavLinkGate.cs
-  - Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.Links.cs
+  - Assets/Game/Scripts/Agents/AI/Motors/NavMeshAgentMotor.Links.cs
   - Assets/Game/Scripts/Vehicles/Rover/Patrol/
   - Assets/Game/Prefabs/Vehicles/ColonyRover.prefab
   - Assets/Game/Prefabs/Environment/Decorations/Astronaut/Exterior/
   - Assets/Game/Editor/World/ColonyAirlockPassageAuthoring.cs
   - Assets/Game/Editor/World/ColonyStandSnapper.cs
-  - Assets/Game/Scripts/agents/Residents/Editor/ResidentErrandContentBuilder.Colony.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/ResidentErrandContentBuilder.Colony.cs
   - Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset
   - Assets/Game/ScriptableObjects/Residents/Archetypes/Colony/
   - Assets/Game/ScriptableObjects/Residents/Lines/ColonyLines.txt
-  - Assets/Game/Scripts/agents/Residents/Editor/Tests/ColonyContentTests.cs
+  - Assets/Game/Scripts/Agents/Residents/Editor/Tests/ColonyContentTests.cs
   - Assets/Game/Editor/Tests/AirlockTransitTests.cs
   - Assets/Game/Editor/Tests/RoverRouteTests.cs
 symptoms:

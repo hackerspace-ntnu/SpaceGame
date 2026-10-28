@@ -211,7 +211,7 @@ A persistence change that has not been round-tripped does not work. Do all of th
    ```csharp
    [Test]
    public void Golem_StaysWounded() =>
-       PersistenceProbe.For("Assets/Game/Prefabs/agents/creatures/Golem.prefab")
+       PersistenceProbe.For("Assets/Game/Prefabs/Agents/creatures/Golem.prefab")
            .Mutate(go => go.GetComponent<HealthComponent>().Damage(7))
            .AssertSurvivesRoundTrip();
    ```

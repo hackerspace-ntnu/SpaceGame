@@ -23,9 +23,9 @@ namespace SpaceGame.Tests
 
         private const string SitePath = "Assets/Game/ScriptableObjects/Ranch/RaxyRanchSite.asset";
         private const string QuestPath = "Assets/Game/ScriptableObjects/Objectives/Ranch/RaxyRanchQuest.asset";
-        private const string TamePath = "Assets/Game/Prefabs/agents/creatures/Esko_Ranch.prefab";
-        private const string WildPath = "Assets/Game/Prefabs/agents/creatures/Esko_Wild.prefab";
-        private const string WranglerPath = "Assets/Game/Prefabs/agents/Characters/Raxy/Raxy_Wrangler.prefab";
+        private const string TamePath = "Assets/Game/Prefabs/Agents/creatures/Esko_Ranch.prefab";
+        private const string WildPath = "Assets/Game/Prefabs/Agents/creatures/Esko_Wild.prefab";
+        private const string WranglerPath = "Assets/Game/Prefabs/Agents/Characters/Raxy/Raxy_Wrangler.prefab";
         private const string CorralPath = "Assets/Game/Prefabs/Environment/Structures/NomadSettlement/RanchCorral.prefab";
         private const string ChunkPath = "Assets/Game/Scenes/world/Chunks/Chunk_6_3.unity";
         private const string PersistentPath = "Assets/Game/Scenes/world/persistentScene.unity";

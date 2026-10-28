@@ -104,11 +104,7 @@ namespace SpaceGame.EditorTools
             public float CallForHelpEvery;
         }
 
-        // Lower-case "agents" is the real folder on disk, beside Nomad.prefab. macOS resolves
-        // either spelling to the same folder, so the capitalised form other builders use is a
-        // latent bug rather than a visible one -- it would create a SECOND folder on a
-        // case-sensitive filesystem, and AssetDatabase paths are compared as strings.
-        private const string CharacterFolder = "Assets/Game/Prefabs/agents/Characters/Drifters";
+        private const string CharacterFolder = "Assets/Game/Prefabs/Agents/Characters/Drifters";
         private const string ModelFolder = "Assets/Game/Art/Models/Characters";
         private const string MaterialFolder = "Assets/Game/Art/Materials/Characters";
 
@@ -116,7 +112,7 @@ namespace SpaceGame.EditorTools
         // in Clothes/ beside them, and their materials -- the FBX importer remaps the clothes' to
         // Raxy_*.mat there. Moved out of Drifters/ to sit beside it, in an uncommitted restructure
         // this branch already had in flight -- a sibling of CharacterFolder, not a child of it.
-        private const string RaxyPrefabFolder = "Assets/Game/Prefabs/agents/Characters/Raxy";
+        private const string RaxyPrefabFolder = "Assets/Game/Prefabs/Agents/Characters/Raxy";
         private const string RaxyMaterialFolder = MaterialFolder + "/Raxy";
         private const string RaxyFbx = ModelFolder + "/Raxy/raxy.fbx";
         private const string RaxyTexture = ModelFolder + "/Raxy/Textures/raxy_BaseColor.png";

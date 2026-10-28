@@ -236,7 +236,7 @@ namespace SpaceGame.EditorTools
             }
             if (rows.Count == 0)
             {
-                EditorGUILayout.HelpBox("No creature with clips under Assets/Game/Prefabs/agents/creatures.", MessageType.Warning);
+                EditorGUILayout.HelpBox("No creature with clips under Assets/Game/Prefabs/Agents/creatures.", MessageType.Warning);
                 return;
             }
             UpdateStage();

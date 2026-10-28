@@ -50,7 +50,7 @@ Jump at a wall too tall to jump onto and the player climbs it; the grappling hoo
 | `LedgeAirGrab` | Each `FixedUpdate` while `JumpHeld`: airborne, not tethered, `afterJumpDelay` past the last `OnJumped`, then `TryClimbFrom(forward, minHeight, airReach 3.3)`. No public surface — nothing else asks it |
 | `PlayerBodyShape` | `readonly struct` over the body capsule + rigidbody: world `Height`/`Radius`/`Feet` through `lossyScale`, `BlockedAt`, `CastClear`, `IsSelf`. Shared with [LadderClimber](Ladders.md) |
 | `CharacterAction.Mark.Grab` | The frame the hands take the edge. Append-only enum, after `Contact`, `Release` |
-| `CarriedBody` | [CarriedBody.cs](Assets/Game/Scripts/agents/Modules/Riding/CarriedBody.cs): `SuspendGravity(go, owner)` / `Release(go, owner)` own the body's gravity flag. A record only ever claimed by `SuspendGravity` gives back `useGravity` alone — no kinematic, interpolation or velocity restore |
+| `CarriedBody` | [CarriedBody.cs](Assets/Game/Scripts/Agents/Modules/Riding/CarriedBody.cs): `SuspendGravity(go, owner)` / `Release(go, owner)` own the body's gravity flag. A record only ever claimed by `SuspendGravity` gives back `useGravity` alone — no kinematic, interpolation or velocity restore |
 
 ## Flows
 

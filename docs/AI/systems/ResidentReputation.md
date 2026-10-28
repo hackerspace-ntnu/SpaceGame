@@ -3,11 +3,11 @@ system: ResidentReputation
 layer: characters
 summary: "What a settlement thinks of a player and tells each other: deeds, favor shared by closeness, word of mouth"
 paths:
-  - Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs
-  - Assets/Game/Scripts/agents/Residents/Mind/Favor.cs
-  - Assets/Game/Scripts/agents/Residents/Mind/Rumours.cs
-  - Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs
-  - Assets/Game/Scripts/agents/Residents/Mind/Attitude.cs
+  - Assets/Game/Scripts/Agents/Residents/Mind/Gossip.cs
+  - Assets/Game/Scripts/Agents/Residents/Mind/Favor.cs
+  - Assets/Game/Scripts/Agents/Residents/Mind/Rumours.cs
+  - Assets/Game/Scripts/Agents/Residents/Mind/ResidentMemory.cs
+  - Assets/Game/Scripts/Agents/Residents/Mind/Attitude.cs
 symptoms:
   - "only the residents who saw me hit somebody react; the ones next to them never hear about it"
   - "the settlement turns on me neighbour by neighbour for a minute or two after one punch"
@@ -31,18 +31,18 @@ themselves — plans, routine, speech, provocation — are [Residents.md](Reside
 |---|---|
 | A deed is a remembered fact | `ResidentMemory.Deed {profile, act, victim, day, expires, heard}` — harm (`Hit`, `Threatened`, `Killed`, kin readings) or kindness (`Defended`, `BroughtInAlive`, `BroughtInDead`); `victim` is whoever it was done to |
 | Residents know what they saw or were told | `Gossip.Witness` (the subject + everyone in `noticeRadius` with line of sight), then word of mouth |
-| Word of mouth, no hop limit | [`Rumours`](Assets/Game/Scripts/agents/Residents/Mind/Rumours.cs) (ticked by the settlement's `SettlementSociety`): whoever knows tells every resident within `earshot`; listeners pass it on. News moves favor, never starts a fight |
+| Word of mouth, no hop limit | [`Rumours`](Assets/Game/Scripts/Agents/Residents/Mind/Rumours.cs) (ticked by the settlement's `SettlementSociety`): whoever knows tells every resident within `earshot`; listeners pass it on. News moves favor, never starts a fight |
 | Fights spread by calling for help, not by news | the character's own `AlertBroadcaster.callForHelpEvery` (every Raxy: 1 s, in or out of a settlement) — [AgentSystem.md](AgentSystem.md). A resident answers by temperament (`Resident.HandleAllyHurt`) |
-| Favor is shared by closeness | [`Favor`](Assets/Game/Scripts/agents/Residents/Mind/Favor.cs): a deed is worth `favorFor*` to its subject and a share to each resident who learns it — family 0.75, friend 0.5, coworker 0.35, anyone else 0.2 — counted once per resident |
-| Stance reads regard | regard = familiarity (talks) + favor (deeds); [`Attitude.StanceFor`](Assets/Game/Scripts/agents/Residents/Mind/Attitude.cs) is Warm at ≥ `warmAt`, Cold/Afraid at ≤ −`coldAt` or under a **personal** grudge |
+| Favor is shared by closeness | [`Favor`](Assets/Game/Scripts/Agents/Residents/Mind/Favor.cs): a deed is worth `favorFor*` to its subject and a share to each resident who learns it — family 0.75, friend 0.5, coworker 0.35, anyone else 0.2 — counted once per resident |
+| Stance reads regard | regard = familiarity (talks) + favor (deeds); [`Attitude.StanceFor`](Assets/Game/Scripts/Agents/Residents/Mind/Attitude.cs) is Warm at ≥ `warmAt`, Cold/Afraid at ≤ −`coldAt` or under a **personal** grudge |
 | A grudge is personal only up close | `HoldsPersonalGrudge`: harm the resident saw, or harm to its kin however learned. Harm to anyone else it only heard of moves favor and nothing more |
 
 ## Key types
 
 | Type | Role |
 |---|---|
-| [`ResidentMemory`](Assets/Game/Scripts/agents/Residents/Mind/ResidentMemory.cs) | per resident, keyed by save profile: familiarity, favor, deeds; `Regard`, `Holds`, `HoldsPersonalGrudge`, `KinHarmedBy` |
-| [`Gossip`](Assets/Game/Scripts/agents/Residents/Mind/Gossip.cs) | `Witness`, `Pass` (word of mouth), `SpreadAtBedtime` / `SpreadAtHearth` (the day's close), `Learn` (remember + weigh once), `ObservationOf` (the line a deed is told with) |
+| [`ResidentMemory`](Assets/Game/Scripts/Agents/Residents/Mind/ResidentMemory.cs) | per resident, keyed by save profile: familiarity, favor, deeds; `Regard`, `Holds`, `HoldsPersonalGrudge`, `KinHarmedBy` |
+| [`Gossip`](Assets/Game/Scripts/Agents/Residents/Mind/Gossip.cs) | `Witness`, `Pass` (word of mouth), `SpreadAtBedtime` / `SpreadAtHearth` (the day's close), `Learn` (remember + weigh once), `ObservationOf` (the line a deed is told with) |
 | `Favor` | pure: `ValueOf(act)`, `ShareOf(listener, subject)` (closest bond either holds), `Apply` (±`favorLimit`), `IsHarm` (an explicit harm list) |
 | `Rumours` | news: who is within earshot of whom, every `rumourSweepSeconds` (0.5), one hop per `rumourTellSeconds` |
 | `ResidentTuning` | `favorFor{Hit,Threat,Killing,Defending,BountyAlive,BountyDead}`, `{family,friend,coworker,neighbour}Share`, `favorLimit`, `warmAt`, `coldAt`, `rumourTellSeconds` |

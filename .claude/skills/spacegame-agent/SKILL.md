@@ -19,7 +19,7 @@ Three decisions each have exactly one owner: **who to fight** (`AgentTargeting`)
 (`AgentGoal`), **how to move** (`IMovementMotor`). A module that duplicates one of those three is
 the bug this architecture exists to prevent.
 
-Code: `Assets/Game/Scripts/agents/`, namespace `SpaceGame.Agents`, Assembly-CSharp (no asmdef, so a
+Code: `Assets/Game/Scripts/Agents/`, namespace `SpaceGame.Agents`, Assembly-CSharp (no asmdef, so a
 new module needs no assembly wiring). Tick order, full interface members, complete module catalog,
 motors and the animator contract are in **`reference.md`** beside this file.
 
@@ -43,7 +43,7 @@ targets the wrong thing, or ignores the player.
 Writing a new module is the last resort. In order:
 
 1. **Does an existing module do it?** Nearly thirty ship — see the table below and
-   `reference.md` §3, and check `Assets/Game/Scripts/agents/Modules/` for anything newer.
+   `reference.md` §3, and check `Assets/Game/Scripts/Agents/Modules/` for anything newer.
 2. **Does it only need different data?** Most "new behaviour" is a `TargetingProfile`, an
    `NpcTask[]`, a `FactionRelationshipTable` row, or a different priority number.
 3. **Does it decide WHERE, not HOW?** Then it is not a movement module: give it
@@ -67,7 +67,7 @@ prefabs are authored assets now, so copy one and edit it in Prefab Mode.
 2. **Import check (humanoid rigs only)** — confirm the generated avatar reports `isHuman = true`.
    A downgraded generic avatar leaves the character standing still with a **completely clean
    console**.
-3. **Prefab** in `Assets/Game/Prefabs/agents/creatures/` (or `.../Robots/`, `.../Characters/`,
+3. **Prefab** in `Assets/Game/Prefabs/Agents/creatures/` (or `.../Robots/`, `.../Characters/`,
    `.../Caravan/`, `.../Vehicles/{Ground,Aircraft,Spacecraft}/`). Existing examples:
    `DuneRat.prefab`, `Golem.prefab`, `Ostrich.prefab`, `Vrescal.prefab`, `Nomad.prefab`,
    `PatrolRobot.prefab`, `Clanker.prefab` (a borrowed third-party body — see `ClankerBuilder`) and
@@ -210,7 +210,7 @@ normal, expected step, not a sign something is missing.
 ## Writing a new behaviour module
 
 Real, complete, compiles against the interfaces in this repo. Goes in
-`Assets/Game/Scripts/agents/Modules/Movement/`.
+`Assets/Game/Scripts/Agents/Modules/Movement/`.
 
 ```csharp
 // Walks to the nearest piece of loose salvage and stops on top of it, so a scavenger picks over

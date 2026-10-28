@@ -51,10 +51,10 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static readonly (string Path, string Category)[] PrefabRoots =
         {
-            ("Assets/Game/Prefabs/agents/creatures",         "agents"),
-            ("Assets/Game/Prefabs/agents/Robots",            "agents"),
-            ("Assets/Game/Prefabs/agents/Characters",        "agents"),
-            ("Assets/Game/Prefabs/agents/Vehicles",          "vehicles"),
+            ("Assets/Game/Prefabs/Agents/creatures",         "agents"),
+            ("Assets/Game/Prefabs/Agents/Robots",            "agents"),
+            ("Assets/Game/Prefabs/Agents/Characters",        "agents"),
+            ("Assets/Game/Prefabs/Agents/Vehicles",          "vehicles"),
             ("Assets/Game/Prefabs/Vehicles",                 "vehicles"),
             ("Assets/Game/Prefabs/Items/Equipment",          "gear"),
         };

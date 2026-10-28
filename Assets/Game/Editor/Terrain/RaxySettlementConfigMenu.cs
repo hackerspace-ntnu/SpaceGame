@@ -43,7 +43,7 @@ namespace SpaceGame.EditorTools
         private const string Tag = "[RaxySettlementConfig]";
         private const string SourcePath = "Assets/Game/ScriptableObjects/Settlements/NomadSettlement.asset";
         private const string TargetPath = "Assets/Game/ScriptableObjects/Settlements/RaxySettlement.asset";
-        private const string CharacterFolder = "Assets/Game/Prefabs/agents/Characters/Raxy";
+        private const string CharacterFolder = "Assets/Game/Prefabs/Agents/Characters/Raxy";
 
         // Fourteen nomad houses of five beds: the settlement the copies are tuned for.
         private const int ExpectedBeds = 70;

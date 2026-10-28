@@ -5,7 +5,7 @@ summary: "One prefab per garment, skinned by bone name to whichever Raxy wears i
 paths:
   - Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs
   - Assets/Game/Editor/Agents/DrifterClothes.cs
-  - Assets/Game/Prefabs/agents/Characters/Raxy/Clothes
+  - Assets/Game/Prefabs/Agents/Characters/Raxy/Clothes
   - Assets/Game/Art/Materials/Characters/Raxy
 symptoms:
   - "the clothes show a noise pattern in game"
@@ -28,7 +28,7 @@ updated: 2026-10-07
 
 Clothes modelled on a character in Blender, shipped as one prefab per garment and worn by a character prefab as nested instances bound to its skeleton.
 
-**Scope:** [SkinnedGarment.cs](Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs), [DrifterClothes.cs](Assets/Game/Editor/Agents/DrifterClothes.cs), the garment prefabs in [Raxy/Clothes/](Assets/Game/Prefabs/agents/Characters/Raxy/Clothes), their materials in [Materials/Characters/Raxy/](Assets/Game/Art/Materials/Characters/Raxy). Used by [SculptCharacterBuilder.cs](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) and [DrifterRigSync.cs](Assets/Game/Editor/Agents/DrifterRigSync.cs).
+**Scope:** [SkinnedGarment.cs](Assets/Game/Scripts/Presentation/Appearance/SkinnedGarment.cs), [DrifterClothes.cs](Assets/Game/Editor/Agents/DrifterClothes.cs), the garment prefabs in [Raxy/Clothes/](Assets/Game/Prefabs/Agents/Characters/Raxy/Clothes), their materials in [Materials/Characters/Raxy/](Assets/Game/Art/Materials/Characters/Raxy). Used by [SculptCharacterBuilder.cs](Assets/Game/Editor/Agents/SculptCharacterBuilder.cs) and [DrifterRigSync.cs](Assets/Game/Editor/Agents/DrifterRigSync.cs).
 **Related:** [ArtPipeline.md](ArtPipeline.md) (the .blend, the rig, the export) · [AgentSystem.md](AgentSystem.md) (the drifters) · [TalkingMouth.md](TalkingMouth.md)
 
 ## Model

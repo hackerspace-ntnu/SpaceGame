@@ -297,7 +297,7 @@ namespace SpaceGame.Items
                                     sightBlockers, QueryTriggerInteraction.Ignore))
                 {
                     // The holder's own body is between the scanner and half the world.
-                    if (owner == null || !hit.collider.transform.IsChildOf(owner.transform))
+                    if (owner == null || !AimProvider.IsOwnOrRidden(hit.collider.transform, owner.transform))
                     {
                         contacts.RemoveAt(i);
                         totalFound = Mathf.Max(0, totalFound - 1);

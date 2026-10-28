@@ -1,0 +1,169 @@
+{
+ "name": "SpineGrazer",
+ "height": 2.209,
+ "length": 2.729,
+ "width": 0.677,
+ "clips": {
+  "Alert": {
+   "take": "SpineGrazer_Alert",
+   "frames": 25,
+   "loop": false
+  },
+  "Attack": {
+   "take": "SpineGrazer_Attack",
+   "frames": 48,
+   "loop": false
+  },
+  "Call": {
+   "take": "SpineGrazer_Call",
+   "frames": 31,
+   "loop": false
+  },
+  "Death": {
+   "take": "SpineGrazer_Death",
+   "frames": 206,
+   "loop": false
+  },
+  "Drink": {
+   "take": "SpineGrazer_Drink",
+   "frames": 25,
+   "loop": false
+  },
+  "Eat": {
+   "take": "SpineGrazer_Eat",
+   "frames": 139,
+   "loop": true
+  },
+  "EatEnd": {
+   "take": "SpineGrazer_EatEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "SpineGrazer_EatStart",
+   "frames": 37,
+   "loop": false
+  },
+  "Graze": {
+   "take": "SpineGrazer_Graze",
+   "frames": 139,
+   "loop": true
+  },
+  "GrazeEnd": {
+   "take": "SpineGrazer_GrazeEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "GrazeStart": {
+   "take": "SpineGrazer_GrazeStart",
+   "frames": 37,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "SpineGrazer_Hurt",
+   "frames": 37,
+   "loop": false
+  },
+  "Idle": {
+   "take": "SpineGrazer_Idle",
+   "frames": 301,
+   "loop": true
+  },
+  "Jump": {
+   "take": "SpineGrazer_Jump",
+   "frames": 23,
+   "loop": false
+  },
+  "Knockdown": {
+   "take": "SpineGrazer_Knockdown",
+   "frames": 54,
+   "loop": false
+  },
+  "Run": {
+   "take": "SpineGrazer_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Shake": {
+   "take": "SpineGrazer_Shake",
+   "frames": 97,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "SpineGrazer_Sprint",
+   "frames": 15,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "SpineGrazer_StartWalk",
+   "frames": 49,
+   "loop": false
+  },
+  "Trot": {
+   "take": "SpineGrazer_Trot",
+   "frames": 27,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "SpineGrazer_TurnL",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "SpineGrazer_TurnR",
+   "frames": 97,
+   "loop": true
+  },
+  "Walk": {
+   "take": "SpineGrazer_Walk",
+   "frames": 49,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Run": 6.123,
+  "Trot": 4.251,
+  "Walk": 0.768
+ },
+ "eyes": [
+  {
+   "object": "Mesh_SpineGrazer_EyeL.001",
+   "centre": [
+    0.145,
+    -1.2018,
+    1.8317
+   ],
+   "gaze": [
+    0.0004,
+    -0.8979,
+    0.4402
+   ],
+   "radius": 0.024
+  },
+  {
+   "object": "Mesh_SpineGrazer_EyeR.001",
+   "centre": [
+    -0.1276,
+    -1.1935,
+    1.8376
+   ],
+   "gaze": [
+    -0.8225,
+    -0.274,
+    0.4984
+   ],
+   "radius": 0.024
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e4dccb",
+  "iris": "#d3bd43",
+  "pupil_color": "#0e0a08",
+  "pupil": "round",
+  "pupil_size": 0.4,
+  "iris_size": 0.95
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/SpineGrazer/spine_grazer.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/spine_grazer/spine_grazer.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/spinegrazer"
+}

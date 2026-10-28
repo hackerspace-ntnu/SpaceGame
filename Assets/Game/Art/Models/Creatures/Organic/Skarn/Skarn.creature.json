@@ -1,0 +1,144 @@
+{
+ "name": "Skarn",
+ "height": 1.467,
+ "length": 2.187,
+ "width": 0.495,
+ "clips": {
+  "Alert": {
+   "take": "Skarn_Alert",
+   "frames": 161,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Skarn_Attack",
+   "frames": 46,
+   "loop": false
+  },
+  "Death": {
+   "take": "Skarn_Death",
+   "frames": 13,
+   "loop": false
+  },
+  "Drink": {
+   "take": "Skarn_Drink",
+   "frames": 26,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Skarn_Eat",
+   "frames": 107,
+   "loop": true
+  },
+  "Groom": {
+   "take": "Skarn_Groom",
+   "frames": 101,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Skarn_Hurt",
+   "frames": 28,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Skarn_Idle",
+   "frames": 201,
+   "loop": true
+  },
+  "Jump": {
+   "take": "Skarn_Jump",
+   "frames": 15,
+   "loop": false
+  },
+  "Rest": {
+   "take": "Skarn_Rest",
+   "frames": 2,
+   "loop": true
+  },
+  "Roar": {
+   "take": "Skarn_Roar",
+   "frames": 61,
+   "loop": false
+  },
+  "Run": {
+   "take": "Skarn_Run",
+   "frames": 17,
+   "loop": true
+  },
+  "Sneak": {
+   "take": "Skarn_Sneak",
+   "frames": 63,
+   "loop": true
+  },
+  "Sprint": {
+   "take": "Skarn_Sprint",
+   "frames": 14,
+   "loop": true
+  },
+  "Trot": {
+   "take": "Skarn_Trot",
+   "frames": 25,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Skarn_TurnL",
+   "frames": 63,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "Skarn_TurnR",
+   "frames": 63,
+   "loop": true
+  },
+  "Walk": {
+   "take": "Skarn_Walk",
+   "frames": 49,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Sneak": 0.825,
+  "Trot": 0.0,
+  "Walk": 0.164
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Skarn_EyeL",
+   "centre": [
+    0.0475,
+    -0.9898,
+    1.2047
+   ],
+   "gaze": [
+    0.2775,
+    -0.9572,
+    0.082
+   ],
+   "radius": 0.022
+  },
+  {
+   "object": "Mesh_Skarn_EyeR",
+   "centre": [
+    -0.0377,
+    -0.9927,
+    1.2062
+   ],
+   "gaze": [
+    -0.2872,
+    -0.9511,
+    0.1138
+   ],
+   "radius": 0.022
+  }
+ ],
+ "eye_style": {
+  "sclera": "#ddd4bc",
+  "iris": "#d6b45e",
+  "pupil_color": "#0a0806",
+  "pupil": "slit",
+  "pupil_size": 0.5,
+  "iris_size": 0.86
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Skarn/skarn.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/skarn/skarn.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/skarn"
+}

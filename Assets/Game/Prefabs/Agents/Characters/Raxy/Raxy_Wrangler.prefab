@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3405542181790485063
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 412316941071413429, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3459581217
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 412316941071413429, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5578785125735702336, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: prefabId
+      value: 6c863a9bb4bdd4557a47b1d689570907
+      objectReference: {fileID: 0}
+    - target: {fileID: 6320590716706008551, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_Name
+      value: Raxy_Wrangler
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8261904384260683805, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6320590716706008551, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5836642022115593991}
+    - targetCorrespondingSourceObject: {fileID: 6320590716706008551, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4840312441091750766}
+  m_SourcePrefab: {fileID: 100100000, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+--- !u!1 &8716107223398328224 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6320590716706008551, guid: c8f281bb0a3ec471c800cb947618f526, type: 3}
+  m_PrefabInstance: {fileID: 3405542181790485063}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5836642022115593991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8716107223398328224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 311884efdc6de450db1b994190b0ab24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.RanchWrangler
+  site: {fileID: 11400000, guid: 5da55564e22fa42bcb1b248621c35abd, type: 2}
+  arriveRadius: 1.5
+  greetRadius: 14
+  focusSeconds: 4
+  callOut: Hey, spacer! Ever sat an esko? Come talk to me.
+  callRadius: 14
+  offer: Name's Tovak. I break eskos for the town, and I'm short a pair of hands.
+    Come on, I'll show you.
+  afterwards:
+  - Not bad for somebody who fell out of the sky.
+  - The esko's yours to ride whenever you like. Bring her back fed.
+--- !u!114 &4840312441091750766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8716107223398328224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 656d54954b5e6423e8ad532151432811, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.QuestVoice
+  quests:
+  - {fileID: 11400000, guid: 3dadd290767fc458181fa1627a64442f, type: 2}

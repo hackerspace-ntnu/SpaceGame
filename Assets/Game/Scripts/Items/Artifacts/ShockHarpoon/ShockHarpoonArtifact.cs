@@ -422,7 +422,7 @@ namespace SpaceGame.Items
         {
             int count = Physics.RaycastNonAlloc(aim, NpcHits, range, ~0, QueryTriggerInteraction.Ignore);
             Transform holder = owner != null ? owner.transform : transform;
-            return AimProvider.NearestOutside(NpcHits, count, holder, transform, out hit);
+            return AimProvider.NearestOutside(NpcHits, count, holder, AimProvider.RiddenBy(holder), out hit);
         }
 
         private static readonly RaycastHit[] NpcHits = new RaycastHit[16];

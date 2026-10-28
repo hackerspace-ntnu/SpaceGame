@@ -1,6 +1,7 @@
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Core;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Items
 {
@@ -272,7 +273,7 @@ namespace SpaceGame.Items
 
             // Roping yourself: both as a collider under the player, and as a target that resolves
             // up to the player root through some rigging that lives outside their hierarchy.
-            if (owner != null && hit.collider.transform.IsChildOf(owner.transform)) return;
+            if (owner != null && AimProvider.IsOwnOrRidden(hit.collider.transform, owner.transform)) return;
 
             var body = hit.collider.GetComponentInParent<Rigidbody>();
             GameObject root = body != null ? body.gameObject : hit.collider.gameObject;
@@ -425,7 +426,7 @@ namespace SpaceGame.Items
 
             GameObject body = Hogtie.BodyOf(hit);
             if (body == null || body == owner) return false;
-            if (owner != null && body.transform.IsChildOf(owner.transform)) return false;
+            if (owner != null && AimProvider.IsOwnOrRidden(body.transform, owner.transform)) return false;
             if (!Hogtie.CanTie(body)) return false;
 
             // Composed first and assigned only once the verb is certain, so a refusal here leaves

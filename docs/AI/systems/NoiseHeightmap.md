@@ -14,8 +14,10 @@ symptoms:
   - "noise heightmap mountains have flat tops, or the lowest ground is perfectly flat at 0 m"
   - "a terrain rendered in batch mode is solid magenta beyond about 1 km"
   - "changing octaves on a noise layer made the whole map flat or all mountains"
-reads_with: [TerrainGeneration, Scenes, NavMeshSystem]
-updated: 2026-10-20
+  - "water on the noise terrain has no shore foam and its shallows look deep"
+  - "the ground is gone; the scene is streaks, wedges and flickering colours instead of terrain"
+reads_with: [TerrainGeneration, Scenes, NavMeshSystem, StylizedWater]
+updated: 2026-10-26
 ---
 
 # Noise Heightmap
@@ -115,12 +117,13 @@ other world's save shows "This save belongs to a different world".
 
 ## Gotchas
 
+- **`StylizedTerrain` needs its `DepthNormals` pass.** SSAO on `PC_Renderer` reads depth-normals, so URP builds the camera depth texture from the DepthNormals prepass — a `DepthOnly` pass alone leaves the terrain out of it, silently. Water on the terrain then sees no ground: no shore foam, shallows drawn as deep. Any new opaque shader needs both passes.
 - **Heights are clipped flat at both ends of the terrain's range.** `TerrainData` stores 0..1 of `size.y`: above it a flat-topped mountain (Generate logs a `[NoiseHeightmap]` warning with the highest point), below 0 a dead-flat floor with **no** warning. Hills and detail are *signed*, so the lowest `continentalToHeight` key must stay above `hillHeight + detailHeight` — the first build had 12 m against ±30 m hills and its basins came out flat at 0 m.
 - **An octave sum bunches around 0.5, which is why `contrast` exists.** Four octaves at persistence 0.5 rarely leave ~0.25..0.75, so curves keyed over 0..1 would only see their middle. Changing `octaves`/`persistence` changes that spread — re-check `continentalToHeight` and `erosionToRelief` afterwards.
 - **Wavelengths are in metres, so they must suit the terrain size.** At 2 km with the first defaults (continental 2600 m, peaks 900 m) the whole tile was one mountain range on one plain; the defaults were cut until 4 km shows several distinct ranges. The 8 km map kept them, so it has more ranges of the same size, not bigger regions.
 - **Batch-mode camera renders are magenta beyond `basemapDistance` (default 1000 m).** The URP TerrainLit basemap pass is not ready in `-batchmode`; the terrain is fine. Raise `basemapDistance` only for the preview, after saving the scene.
-- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores the alphamap; the layers stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers.
-- **`StylizedTerrain` has no terrain-instancing path.** It reads mesh positions/normals, so the terrain's *Draw Instanced* must stay off (it is).
+- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores the alphamap; the layers stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers. The one exception is painted grass: `GrassField` turns `Ground_*` paint into a `_GrassColorMap` in the terrain's splat property block, which `StylizedTerrain` blends in before its cliff overlay — more strongly with distance, since far grass hides the ground (`_GrassGroundCover`, see [Grass.md](Grass.md)).
+- **`StylizedTerrain` has no terrain-instancing path.** It reads mesh positions/normals, so the terrain's *Draw Instanced* (Terrain → Settings → Basic Terrain) must stay off. Ticked, the ground turns into stretched streaks and black/white wedges that flicker as the camera moves; URP's own terrain shader looks fine on the same terrain, so swapping shaders points the wrong way. Seen 2026-10-25 in `gameScene`: on in the live scene, off on disk.
 - **Height bands are in world metres.** `_MinHeight`/`_MaxHeight` must track the generated range; regenerating with taller mountains or moving the terrain shifts every band.
 - **Shared shader:** a new `StylizedTerrain` property must default to a no-op, or `StylizedTerrain_Mars.mat` on the main-world chunk changes look silently.
 - **Generate wipes a `Settlement`'s terrain sculpting on the same terrain**, with no warning — the settlement still sits where its flattened ground was. Its backup patch holds the pre-sculpt noise heights, so press the settlement's Generate again afterwards (restore, then re-sculpt; seeded by position, same layout). Seen 2026-10-19 on `settlement` at (1560, 75, 838).

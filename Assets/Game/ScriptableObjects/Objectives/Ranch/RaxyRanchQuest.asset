@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7165aa3601d3264682078335aaed4d1, type: 3}
+  m_Name: RaxyRanchQuest
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveChain
+  id: raxy-ranch
+  title: Breaking Eskos
+  summary: Tovak, the Raxy town's wrangler, will teach you to ride an esko, then
+    needs a hand roping in a wild herd grazing south of town.
+  speaker: TOVAK
+  trigger: {fileID: 0}
+  steps:
+  - {fileID: 11400000, guid: edb8d94c6cb7945bd96e07681e2eaf60, type: 2}
+  - {fileID: 11400000, guid: 0c582e2bbd6094a3789e8bf77a38fada, type: 2}
+  - {fileID: 11400000, guid: fbba575c0f0bd498685726a119d1e887, type: 2}
+  - {fileID: 11400000, guid: d875b9e6c2f344adab300fa2ab1acaa7, type: 2}
+  - {fileID: 11400000, guid: 7f6629355906d4048916567657b1d271, type: 2}
+  - {fileID: 11400000, guid: 055f7463e38744ad8a5ba80834ece3e9, type: 2}
+  - {fileID: 11400000, guid: ed6b82e64d6684801a469a9999257788, type: 2}

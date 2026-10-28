@@ -9,6 +9,7 @@
 // would report zero and the creature would slide across the sand with still feet; measuring the
 // transform reports what the server actually did with it.
 using UnityEngine;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
@@ -35,6 +36,13 @@ namespace SpaceGame.Agents
                  "see how fast the body moved, and guessing wrong costs a visibly different " +
                  "playback rate (see walkAnimBoost) rather than the wrong clip.")]
         [SerializeField] private float measuredRunSpeed = 3.5f;
+
+        [Tooltip("SpeedY of the Move tree's fastest anchor, for a controller with a MoveAnimSpeed " +
+                 "parameter (the humanoid one: its run clip sits at 7.2). Past it the whole Move " +
+                 "state plays proportionally faster, as the player's does, so an NPC keeping pace " +
+                 "with a player puts down more steps instead of skating. Ignored by a controller " +
+                 "without the parameter.")]
+        [SerializeField, Min(0f)] private float runClipSpeed = 7.2f;
 
         // The frame something else called Tick. Anything else means nobody is driving this agent's
         // animation on this machine, which is the watching case.
@@ -150,6 +158,7 @@ namespace SpaceGame.Agents
         // the Editor, so the controller is asked once and the answer cached.
         private static readonly int TurnSpeedHash = Animator.StringToHash("TurnSpeed");
         private static readonly int HurtHash = Animator.StringToHash("Hurt");
+        private static readonly int MoveAnimSpeedHash = Animator.StringToHash(HumanoidParams.MoveAnimSpeed);
         private readonly System.Collections.Generic.Dictionary<int, bool> parameterCache
             = new System.Collections.Generic.Dictionary<int, bool>();
 
@@ -364,6 +373,9 @@ namespace SpaceGame.Agents
 
             animator.SetFloat("SpeedX", localVelocity.x, damp, Time.deltaTime);
             animator.SetFloat("SpeedY", localVelocity.z, damp, Time.deltaTime);
+            if (HasParameter(MoveAnimSpeedHash, AnimatorControllerParameterType.Float))
+                animator.SetFloat(MoveAnimSpeedHash, HumanoidParams.StrideRate(
+                    new Vector2(animator.GetFloat("SpeedX"), animator.GetFloat("SpeedY")).magnitude, runClipSpeed));
             animator.SetFloat("FallSpeed", worldVelocity.y, 0.1f, Time.deltaTime);
             // Not a constant any more. A jump on a NavMeshAgent moves baseOffset, which never
             // reaches the velocity this method is handed, so the motor is the only thing that

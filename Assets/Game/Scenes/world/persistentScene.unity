@@ -4309,66 +4309,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Objectives.ObjectiveDirector
   chain: {fileID: 11400000, guid: abe1e3cf38494d249876fbdc51a1f0a2, type: 2}
   quests:
+  - {fileID: 11400000, guid: 3dadd290767fc458181fa1627a64442f, type: 2}
   - {fileID: 11400000, guid: 60b351e7b5bd92c4ab88b0d604875e19, type: 2}
   - {fileID: 11400000, guid: f56f5404d52f9d54b8a85aef8788703a, type: 2}
   - {fileID: 11400000, guid: 121bc16596a24234484fedfee26edb6d, type: 2}
   - {fileID: 11400000, guid: 2d36ee478c712814192c88b71ceaeeda, type: 2}
-  triggerCheckSeconds: 0.5
---- !u!114 &1160628486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32704ea4379d349a28110d214235e837, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyBoard
-  captive:
-    faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
-    surrenderBelow: 0.25
-    followRadius: 25
-    followDistance: 3
-    hideRadius: 3
-    thinkSeconds: 0.5
-  stamp:
-    text: CLAIMED
-    colour: {r: 0.62, g: 0.1, b: 0.08, a: 0.9}
-    angle: 14
-    widthShare: 0.85
-    heightShare: 0.3
-    lift: 0.004
-  takeRange: 8
-  townSearchRadius: 400
-  handInRadius: 60
-  searchOffset: 90
-  revealRange: 40
-  navSampleDistance: 4
-  deliverRadius: 25
-  claimantArchetypes:
   - {fileID: 11400000, guid: fe7e4476a6d14a97a5d9f42efc246ee6, type: 2}
   - {fileID: 11400000, guid: d41b82be878b54fde8b6a1223f3edb79, type: 2}
   - {fileID: 11400000, guid: 4c7004faf4ce4cf994f0f1ca3f2226f5, type: 2}
   - {fileID: 11400000, guid: 0f58cc5f1a6354946985ad9b41aad62e, type: 2}
-  claimantPatience: 20
-  thanksRange: 4
-  takenAwaySeconds: 30
-  thinkSeconds: 0.5
---- !u!114 &1160628487
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160628478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f32ebfbdaa96c41858e2a730dd5d56c6, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.BountySaveable
-  board: {fileID: 1160628486}
+  triggerCheckSeconds: 0.5
 --- !u!4 &1160628485
 Transform:
   m_ObjectHideFlags: 0
@@ -4384,6 +4334,69 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1160628486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32704ea4379d349a28110d214235e837, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Bounties.BountyBoard
+  captive:
+    faction: {fileID: 11400000, guid: a9cd7dda9e9f49fa88a708a2c9141d76, type: 2}
+    surrenderBelow: 0.25
+    followRadius: 25
+    followDistance: 3
+    thinkSeconds: 0.5
+  stamp:
+    text: CLAIMED
+    colour: {r: 0.62, g: 0.1, b: 0.08, a: 0.9}
+    angle: 14
+    widthShare: 0.85
+    heightShare: 0.3
+    lift: 0.004
+  takeRange: 8
+  handInRadius: 60
+  searchOffset: 90
+  revealRange: 40
+  cast:
+    navSampleDistance: 4
+    scatterRadius: 5
+    postArriveRadius: 1
+    walkArriveRadius: 2
+    wanderPauseSeconds: 6
+  deliverRadius: 25
+  claimantArchetypes:
+  - {fileID: 11400000, guid: fe7e4476a6d14a97a5d9f42efc246ee6, type: 2}
+  - {fileID: 11400000, guid: d41b82be878b54fde8b6a1223f3edb79, type: 2}
+  - {fileID: 11400000, guid: 4c7004faf4ce4cf994f0f1ca3f2226f5, type: 2}
+  - {fileID: 11400000, guid: 0f58cc5f1a6354946985ad9b41aad62e, type: 2}
+  claimantPatience: 20
+  thanksRange: 4
+  takenAwaySeconds: 30
+  maxOpenSeconds: 3600
+  outOfBoundsSeconds: 120
+  lostBelowGround: 2
+  lostBelowY: -500
+  builtFloorReach: 1.7
+  thinkSeconds: 0.5
+--- !u!114 &1160628487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1160628478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f32ebfbdaa96c41858e2a730dd5d56c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.BountySaveable
+  board: {fileID: 1160628486}
 --- !u!1001 &1181579169
 PrefabInstance:
   m_ObjectHideFlags: 0

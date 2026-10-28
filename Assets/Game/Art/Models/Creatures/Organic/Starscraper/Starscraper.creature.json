@@ -1,0 +1,195 @@
+{
+ "name": "Starscraper",
+ "height": 8.766,
+ "length": 3.372,
+ "width": 2.435,
+ "clips": {
+  "Alert": {
+   "take": "Starscraper_Alert",
+   "frames": 25,
+   "loop": false
+  },
+  "Attack": {
+   "take": "Starscraper_Attack",
+   "frames": 48,
+   "loop": false
+  },
+  "Call": {
+   "take": "Starscraper_Call",
+   "frames": 31,
+   "loop": false
+  },
+  "Death": {
+   "take": "Starscraper_Death",
+   "frames": 206,
+   "loop": false
+  },
+  "Drink": {
+   "take": "Starscraper_Drink",
+   "frames": 25,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Starscraper_Eat",
+   "frames": 139,
+   "loop": true
+  },
+  "EatEnd": {
+   "take": "Starscraper_EatEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "Starscraper_EatStart",
+   "frames": 37,
+   "loop": false
+  },
+  "Graze": {
+   "take": "Starscraper_Graze",
+   "frames": 139,
+   "loop": true
+  },
+  "GrazeEnd": {
+   "take": "Starscraper_GrazeEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "GrazeStart": {
+   "take": "Starscraper_GrazeStart",
+   "frames": 37,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Starscraper_Hurt",
+   "frames": 37,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Starscraper_Idle",
+   "frames": 301,
+   "loop": true
+  },
+  "IdlePatience": {
+   "take": "Starscraper_IdlePatience",
+   "frames": 2,
+   "loop": false
+  },
+  "Knockdown": {
+   "take": "Starscraper_Knockdown",
+   "frames": 54,
+   "loop": false
+  },
+  "Run": {
+   "take": "Starscraper_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Shake": {
+   "take": "Starscraper_Shake",
+   "frames": 97,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "Starscraper_Sprint",
+   "frames": 15,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "Starscraper_StartWalk",
+   "frames": 49,
+   "loop": false
+  },
+  "Trot": {
+   "take": "Starscraper_Trot",
+   "frames": 27,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Starscraper_TurnL",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "Starscraper_TurnL180",
+   "frames": 116,
+   "loop": false
+  },
+  "TurnR": {
+   "take": "Starscraper_TurnR",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnR180": {
+   "take": "Starscraper_TurnR180",
+   "frames": 116,
+   "loop": false
+  },
+  "Walk": {
+   "take": "Starscraper_Walk",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkL": {
+   "take": "Starscraper_WalkL",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkR": {
+   "take": "Starscraper_WalkR",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkStop": {
+   "take": "Starscraper_WalkStop",
+   "frames": 127,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 19.14,
+  "Sprint": 28.53,
+  "Trot": 7.06,
+  "Walk": 2.065
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Starscraper_EyeL",
+   "centre": [
+    0.2372,
+    -1.0462,
+    7.1626
+   ],
+   "gaze": [
+    0.789,
+    -0.5926,
+    -0.1623
+   ],
+   "radius": 0.055
+  },
+  {
+   "object": "Mesh_Starscraper_EyeR",
+   "centre": [
+    -0.1842,
+    -1.0431,
+    7.1654
+   ],
+   "gaze": [
+    -0.7747,
+    -0.603,
+    -0.1901
+   ],
+   "radius": 0.055
+  }
+ ],
+ "eye_style": {
+  "sclera": "#c9ced8",
+  "iris": "#2b2440",
+  "pupil_color": "#07060a",
+  "pupil": "round",
+  "pupil_size": 0.45,
+  "iris_size": 0.78
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Starscraper/starscraper.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/starscraper/starscraper.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/starscraper"
+}

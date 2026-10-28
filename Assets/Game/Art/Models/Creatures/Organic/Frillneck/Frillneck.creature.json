@@ -1,0 +1,113 @@
+{
+ "name": "Frillneck",
+ "height": 2.404,
+ "length": 3.131,
+ "width": 1.259,
+ "clips": {
+  "AlertTurnL": {
+   "take": "Frillneck_AlertTurnL",
+   "frames": 65,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Frillneck_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "Frillneck_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtLeft": {
+   "take": "Frillneck_HurtLeft",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Frillneck_Idle",
+   "frames": 91,
+   "loop": true
+  },
+  "IdleShake": {
+   "take": "Frillneck_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "IdleTailWag": {
+   "take": "Frillneck_IdleTailWag",
+   "frames": 31,
+   "loop": false
+  },
+  "Run": {
+   "take": "Frillneck_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Frillneck_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "Frillneck_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "Frillneck_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "Frillneck_WalkAlert",
+   "frames": 25,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 3.246,
+  "Walk": 0.355
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Frillneck_EyeL",
+   "centre": [
+    -0.0822,
+    -1.4608,
+    2.179
+   ],
+   "gaze": [
+    0.9431,
+    -0.3062,
+    -0.1295
+   ],
+   "radius": 0.018
+  },
+  {
+   "object": "Mesh_Frillneck_EyeR",
+   "centre": [
+    -0.2071,
+    -1.4583,
+    2.1748
+   ],
+   "gaze": [
+    -0.7235,
+    -0.5672,
+    0.3935
+   ],
+   "radius": 0.018
+  }
+ ],
+ "eye_style": {
+  "sclera": "#2a2018",
+  "iris": "#3a2a1c",
+  "pupil_color": "#0b0806",
+  "pupil": "round",
+  "pupil_size": 0.5,
+  "iris_size": 0.6
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Frillneck/frillneck.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/frillneck/frillneck.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/frillneck"
+}

@@ -26,9 +26,14 @@ namespace SpaceGame.Agents
                  "— every machine instantiates its own copy from the replicated saddled flag.")]
         [SerializeField] private GameObject saddlePrefab;
 
-        [Tooltip("Bone the saddle hangs off. Left empty this looks for `spine1`, which is where " +
-                 "the back is on every creature rigged in this project.")]
+        [Tooltip("Bone the saddle hangs off. Left empty, the bone named mountBoneName is used.")]
         [SerializeField] private Transform mountBone;
+
+        [Tooltip("Name of the back bone to hang the saddle off when mountBone is empty. The saddle " +
+                 "must ride a bone, not the root: on the root it stays put while the animated back " +
+                 "heaves up through it and sinks away under it. `spine1` on the Appa-family rigs, " +
+                 "`RigSpine1` on the Esko.")]
+        [SerializeField] private string mountBoneName = "spine1";
 
         [Tooltip("Where the saddle sits, in the ANIMAL ROOT's space — not the bone's. " +
                  "Authoring against the root is what makes this measurable: the saddle model's " +
@@ -38,6 +43,11 @@ namespace SpaceGame.Agents
                  "anything.")]
         [SerializeField] private Vector3 rootPosition = Vector3.zero;
         [SerializeField] private Vector3 rootEuler = Vector3.zero;
+
+        [Tooltip("Name prefix of the saddle's rider-seat marker (SEAT_Rider_Loper, …): the point on " +
+                 "the seat the rider's pelvis sits on. MountedRiderPose holds the rider there, so the " +
+                 "rider rides the animal's back instead of a fixed point on its root.")]
+        [SerializeField] private string riderSeatPrefix = "SEAT_Rider";
 
         [Tooltip("Undo the bone's scale, but keep the ANIMAL's. Every transform in an imported " +
                  "FBX carries lossyScale 100 (the centimetre convention), so a saddle parented to " +
@@ -69,13 +79,27 @@ namespace SpaceGame.Agents
         [SerializeField] private float dropHeight = 1.2f;
 
         private GameObject saddleInstance;
+        private Transform riderSeat;
         private bool saddled;
+        private CreatureTrust trust;
 
         /// <summary>Whether an animal is wearing a saddle right now.</summary>
         public bool IsSaddled => saddled;
 
+        /// <summary>
+        /// Whether it would let a saddle on: true unless it is an animal that must be won over first
+        /// (<see cref="CreatureTrust"/>) and has not been yet.
+        /// </summary>
+        public bool AcceptsSaddle => trust == null || trust.IsTame;
+
         /// <summary>The live saddle, or null. The pack container hangs off this.</summary>
         public GameObject Saddle => saddleInstance;
+
+        /// <summary>
+        /// Where the rider's pelvis belongs on the live saddle, moving with the animal's back; null
+        /// while bare or when the saddle has no marker.
+        /// </summary>
+        public Transform RiderSeat => riderSeat;
 
         /// <summary>What this animal's saddle is, as an item. Read by the artifact that fits it.</summary>
         public InventoryItem SaddleItem => saddleItem;
@@ -83,7 +107,11 @@ namespace SpaceGame.Agents
         private void Awake()
         {
             if (mount == null) mount = GetComponentInChildren<MountModule>(true);
-            if (mountBone == null) mountBone = FindBone("spine1");
+            if (mountBone == null) mountBone = FindBone(mountBoneName);
+            if (mountBone == null && saddlePrefab != null)
+                Debug.LogWarning($"[SaddleSocket] {name} has no bone '{mountBoneName}'; the saddle " +
+                                 "will sit on the root and not move with the back.", this);
+            trust = GetComponent<CreatureTrust>();
             ApplySaddled(saddled || startSaddled);
         }
 
@@ -103,6 +131,31 @@ namespace SpaceGame.Agents
         {
             foreach (Transform t in GetComponentsInChildren<Transform>(true))
                 if (t.name == boneName)
+                    return t;
+            return null;
+        }
+
+        /// <summary>
+        /// <paramref name="bone"/>'s bind pose in this animal's root space, read off the skinned
+        /// mesh that binds it; its current pose when nothing does (the root itself, a bare rig).
+        /// </summary>
+        private Matrix4x4 RestPoseInRoot(Transform bone)
+        {
+            foreach (SkinnedMeshRenderer skin in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                int index = System.Array.IndexOf(skin.bones, bone);
+                if (index < 0 || skin.sharedMesh == null || index >= skin.sharedMesh.bindposeCount) continue;
+                return transform.worldToLocalMatrix * skin.transform.localToWorldMatrix *
+                       skin.sharedMesh.GetBindposes()[index].inverse;
+            }
+            return transform.worldToLocalMatrix * bone.localToWorldMatrix;
+        }
+
+        private Transform FindRiderSeat(Transform saddle)
+        {
+            if (string.IsNullOrEmpty(riderSeatPrefix)) return null;
+            foreach (Transform t in saddle.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith(riderSeatPrefix, System.StringComparison.Ordinal))
                     return t;
             return null;
         }
@@ -147,7 +200,7 @@ namespace SpaceGame.Agents
         private bool Decide(bool wanted, GameObject actor)
         {
             if (wanted == saddled) return false;
-            if (wanted && saddlePrefab == null) return false;
+            if (wanted && (saddlePrefab == null || !AcceptsSaddle)) return false;
 
             // Refuse to strip a saddle out from under a rider — the seat would vanish mid-ride and
             // MountModule would be disabled while it still held a player.
@@ -186,19 +239,25 @@ namespace SpaceGame.Agents
                 saddleInstance.transform.localScale =
                     Vector3.one * (animal / (Mathf.Abs(bone) > 1e-4f ? bone : 1f));
 
-                // Placed in world terms AFTER parenting, so the bone's own orientation and scale
-                // drop out of the arithmetic entirely. It still rides the bone from here on.
-                saddleInstance.transform.position = transform.TransformPoint(rootPosition);
-                saddleInstance.transform.rotation = transform.rotation * Quaternion.Euler(rootEuler);
+                // Placed against the bone's REST pose, which is what rootPosition was read off. The
+                // bone's current pose is whatever frame the animal is on when the saddle goes on;
+                // fitted mid-stride, an offset taken from it is baked in skewed for good.
+                Matrix4x4 boneFromSaddle = RestPoseInRoot(parent).inverse *
+                                           Matrix4x4.TRS(rootPosition, Quaternion.Euler(rootEuler), Vector3.one);
+                saddleInstance.transform.localPosition = boneFromSaddle.GetPosition();
+                saddleInstance.transform.localRotation = boneFromSaddle.rotation;
 
                 foreach (SaddleRemover remover in
                          saddleInstance.GetComponentsInChildren<SaddleRemover>(true))
                     remover.Bind(this);
+
+                riderSeat = FindRiderSeat(saddleInstance.transform);
             }
             else if (!saddled && saddleInstance != null)
             {
                 Destroy(saddleInstance);
                 saddleInstance = null;
+                riderSeat = null;
             }
 
             if (mount != null)

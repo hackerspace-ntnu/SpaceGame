@@ -8,6 +8,7 @@
 // while NetworkedHealthComponent publishes the result. Player→AI, AI→player and player→player all
 // become correct at once, because they were never actually three problems.
 using UnityEngine;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 
 namespace SpaceGame.Gameplay
@@ -48,11 +49,33 @@ namespace SpaceGame.Gameplay
                 return DamageDefense.None;
             }
 
+            if (IsRiddenBySource(health, source)) return DamageDefense.None;
+
             if (Network.Simulates(health)) return health.Damage(amount, source, kind);
 
             NetMessaging.NetSendTo(health.gameObject, NetMsg.Damage,
                 new NetArg { A = amount, B = (int)kind }.With(source));
             return DamageDefense.None;
+        }
+
+        /// <summary>
+        /// Is <paramref name="health"/> the mount <paramref name="source"/> is riding, or someone
+        /// else seated on it? A rider never hurts what they sit on.
+        ///
+        /// <para>
+        /// Every item already looks past the ridden mount when it picks a target
+        /// (<see cref="AimProvider.IsOwnOrRidden"/>), so this is the backstop for the hits no item
+        /// aimed: a blast radius, a cone, a fragment. Asked here, on the machine that dealt the
+        /// hit, because the replicated parenting it reads is the same on every machine. The
+        /// rider's own health is left alone — whether a rider can hurt themselves is not this
+        /// rule's business.
+        /// </para>
+        /// </summary>
+        private static bool IsRiddenBySource(HealthComponent health, Transform source)
+        {
+            Transform ridden = AimProvider.RiddenBy(source);
+            return ridden != null && health.transform.IsChildOf(ridden)
+                   && source.GetComponentInParent<HealthComponent>() != health;
         }
 
         /// <summary>Convenience for the common "I hit this collider" shape.</summary>

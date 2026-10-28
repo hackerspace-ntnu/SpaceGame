@@ -33,7 +33,8 @@ namespace SpaceGame.Items
     /// <para>
     /// <b>The heavier end wins.</b> A taut rope has to move something, and which end it moves is
     /// decided by <see cref="PlayerPullShare"/> from the two masses. A light creature comes to you.
-    /// A heavy one plants its feet and takes you with it.
+    /// A heavy one plants its feet and takes you with it — unless you rope it from the saddle, where your
+    /// end weighs what your mount weighs (<see cref="HolderMass"/>).
     /// </para>
     /// <para>
     /// <b>Tap somebody close by and they are tied up.</b> Within <see cref="bindReach"/>, with no
@@ -189,6 +190,11 @@ namespace SpaceGame.Items
                  "still tied by a click that missed them. A tap near somebody ties them; the " +
                  "crosshair need not be exactly on them.")]
         [SerializeField, Range(0f, 90f)] private float bindCone = 50f;
+
+        [Tooltip("The bulkiest body a click can tie, as a multiple of the thrower's own solid " +
+                 "volume. A Nomad is about 2.5x a player and an Esko over 12x: an animal that size " +
+                 "is caught with a throw, never hogtied.")]
+        [SerializeField, Min(1f)] private float maxTieVolumeShare = 4f;
 
         [Tooltip("Seconds tying somebody up takes: the thrower kneels and works the rope on while " +
                  "the person is forced down. They are helpless from the first moment.")]
@@ -379,6 +385,25 @@ namespace SpaceGame.Items
         public static float PlayerPullShare(float targetMass, float playerMass = AssumedPlayerMass) =>
             Mathf.Clamp01(targetMass / Mathf.Max(targetMass + playerMass, 0.001f));
 
+        /// <summary>
+        /// What the end of a rope held at <paramref name="ropeHolder"/> weighs: a player on foot, or — roping from the
+        /// saddle — the animal or vehicle they sit on, with the rope dallied round it. That is what lets a rider hold a
+        /// beast that would drag a player on foot across the sand.
+        ///
+        /// <para>
+        /// Worked out on both ends of the rope from the seat every machine already replicates (a seated rider is parented
+        /// into its mount) and the same deterministic weighing, so the two ends agree without a message, as
+        /// <see cref="PlayerPullShare"/> requires.
+        /// </para>
+        /// </summary>
+        public static float HolderMass(Transform ropeHolder)
+        {
+            MountModule seat = ropeHolder != null ? ropeHolder.GetComponentInParent<MountModule>() : null;
+            if (seat == null || !seat.IsMounted) return AssumedPlayerMass;
+
+            return Mathf.Max(AssumedPlayerMass, LassoTether.EstimateMassOf(seat.gameObject));
+        }
+
         // ── Wire verbs, in NetArg.B of the USE message ─────────────────────────
         //
         // A is already the hotbar slot, so B it is — the same convention the grapple uses. Note
@@ -494,9 +519,7 @@ namespace SpaceGame.Items
         {
             if (aimProvider == null) return false;
 
-            Ray aimRay = aimProvider.GetAimRay();
-            if (!Physics.Raycast(aimRay, out RaycastHit hit, hitchRange, ~0, QueryTriggerInteraction.Ignore))
-                return false;
+            if (!aimProvider.TryGetAimHit(hitchRange, out RaycastHit hit)) return false;
 
             Transform caught = CatchRoot;
             if (!LassoHitch.IsHitchable(hit, owner.transform, caught, hitchGroundAngle)) return false;
@@ -595,8 +618,24 @@ namespace SpaceGame.Items
             return nearest;
         }
 
-        /// <summary>Somebody, not the thrower, not already tied.</summary>
-        private bool Tieable(GameObject person) => person != null && person != owner && !IsCaptive(person);
+        /// <summary>
+        /// Somebody, not the thrower or the mount under them, not already tied, and small enough
+        /// to tie.
+        /// </summary>
+        private bool Tieable(GameObject person) =>
+            person != null && !AimProvider.IsOwnOrRidden(person.transform, owner.transform)
+            && !IsCaptive(person) && !TooBigToTie(person);
+
+        /// <summary>
+        /// Is <paramref name="person"/> more than <see cref="maxTieVolumeShare"/> times as bulky as
+        /// the thrower? Bulk, not height or mass: an Esko stands lower than a Nomad, and its
+        /// Rigidbody is authored at 1 kg. A thrower with no solid collider to compare limits nothing.
+        /// </summary>
+        private bool TooBigToTie(GameObject person)
+        {
+            float own = LassoTether.SolidVolumeOf(owner);
+            return own > 0f && LassoTether.SolidVolumeOf(person) > own * maxTieVolumeShare;
+        }
 
         /// <summary>
         /// The search for somebody close by reaches this much past <see cref="bindReach"/>: a body's
@@ -629,7 +668,7 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// One aim ray, owner-side — the only machine with a camera behind its aim — and the nearest
-        /// thing it meets that is not the thrower.
+        /// thing it meets that is not the thrower or the mount they are riding.
         ///
         /// <para>
         /// The thrower is skipped rather than trusted to be out of the way: the ray leaves the eye,
@@ -641,25 +680,8 @@ namespace SpaceGame.Items
         private bool TryAim(float range, out RaycastHit hit)
         {
             hit = default;
-            if (aimProvider == null || owner == null) return false;
-
-            int count = Physics.RaycastNonAlloc(aimProvider.GetAimRay(), AimHits, range, ~0,
-                                                QueryTriggerInteraction.Ignore);
-            float nearest = float.PositiveInfinity;
-
-            for (int i = 0; i < count; i++)
-            {
-                if (AimHits[i].distance >= nearest || AimHits[i].collider.transform.IsChildOf(owner.transform)) continue;
-
-                nearest = AimHits[i].distance;
-                hit = AimHits[i];
-            }
-
-            return nearest < float.PositiveInfinity;
+            return aimProvider != null && owner != null && aimProvider.TryGetAimHit(range, out hit);
         }
-
-        /// <summary>The aim ray's own buffer. Reused: the hint asks it every frame.</summary>
-        private static readonly RaycastHit[] AimHits = new RaycastHit[16];
 
         /// <summary>
         /// Nothing. Both halves of this item are a rope being drawn and a creature being pulled,
@@ -876,7 +898,7 @@ namespace SpaceGame.Items
 
             Ray aimRay = aimProvider.GetAimRay();
 
-            if (!Physics.Raycast(aimRay, out RaycastHit aimHit, reach, ~0, QueryTriggerInteraction.Ignore))
+            if (!aimProvider.TryGetAimHit(reach, out RaycastHit aimHit))
             {
                 obstructed = false;
                 return aimRay.origin + aimRay.direction * reach;
@@ -1016,7 +1038,7 @@ namespace SpaceGame.Items
                 Vector3 stepDirNorm = stepDir.sqrMagnitude > 1e-6f ? stepDir.normalized : velocity.normalized;
 
                 bool landed = Physics.Linecast(prev, headPos, out RaycastHit groundHit, ~0, QueryTriggerInteraction.Ignore)
-                              && !groundHit.collider.transform.IsChildOf(owner.transform);
+                              && !AimProvider.IsOwnOrRidden(groundHit.collider.transform, owner.transform);
                 if (landed) headPos = groundHit.point;
 
                 _ropeEndPoint = headPos;
@@ -2253,7 +2275,7 @@ namespace SpaceGame.Items
             if (ownerRb == null || ownerRb.isKinematic) return;
 
             Vector3 radial = distance > 0.001f ? toTarget / distance : Vector3.up;
-            float share = PlayerPullShare(targetMass);
+            float share = PlayerPullShare(targetMass, HolderMass(owner.transform));
 
             // How far past the rope's length the animal has got, as the speed that would close it
             // this step — capped, because one frame where the creature is far outside the rope
@@ -2377,7 +2399,7 @@ namespace SpaceGame.Items
                                        ref Rigidbody rb, ref Transform hitTransform, ref Vector3 latchPoint)
         {
             if (col == null) return false;
-            if (col.transform.IsChildOf(owner.transform)) return false;
+            if (AimProvider.IsOwnOrRidden(col.transform, owner.transform)) return false;
 
             float d = Vector3.Distance(headPos, col.ClosestPoint(headPos));
             if (d >= bestDist) return false;

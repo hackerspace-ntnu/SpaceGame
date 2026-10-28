@@ -1,0 +1,220 @@
+{
+ "name": "WingWalker",
+ "height": 3.4,
+ "length": 4.989,
+ "width": 2.922,
+ "clips": {
+  "Alert": {
+   "take": "WingWalker_Alert",
+   "frames": 25,
+   "loop": false
+  },
+  "Attack": {
+   "take": "WingWalker_Attack",
+   "frames": 48,
+   "loop": false
+  },
+  "AttackL": {
+   "take": "WingWalker_AttackL",
+   "frames": 61,
+   "loop": false
+  },
+  "AttackR": {
+   "take": "WingWalker_AttackR",
+   "frames": 61,
+   "loop": false
+  },
+  "Bark": {
+   "take": "WingWalker_Bark",
+   "frames": 29,
+   "loop": false
+  },
+  "Call": {
+   "take": "WingWalker_Call",
+   "frames": 31,
+   "loop": false
+  },
+  "Death": {
+   "take": "WingWalker_Death",
+   "frames": 206,
+   "loop": false
+  },
+  "Dodge": {
+   "take": "WingWalker_Dodge",
+   "frames": 37,
+   "loop": false
+  },
+  "Drink": {
+   "take": "WingWalker_Drink",
+   "frames": 25,
+   "loop": false
+  },
+  "Eat": {
+   "take": "WingWalker_Eat",
+   "frames": 139,
+   "loop": true
+  },
+  "EatEnd": {
+   "take": "WingWalker_EatEnd",
+   "frames": 31,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "WingWalker_EatStart",
+   "frames": 37,
+   "loop": false
+  },
+  "GetUp": {
+   "take": "WingWalker_GetUp",
+   "frames": 139,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "WingWalker_Hurt",
+   "frames": 66,
+   "loop": false
+  },
+  "HurtL": {
+   "take": "WingWalker_HurtL",
+   "frames": 54,
+   "loop": false
+  },
+  "Idle": {
+   "take": "WingWalker_Idle",
+   "frames": 301,
+   "loop": true
+  },
+  "IdleAggressive": {
+   "take": "WingWalker_IdleAggressive",
+   "frames": 98,
+   "loop": false
+  },
+  "Jump": {
+   "take": "WingWalker_Jump",
+   "frames": 23,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "WingWalker_LieDown",
+   "frames": 139,
+   "loop": false
+  },
+  "Rest": {
+   "take": "WingWalker_Rest",
+   "frames": 2,
+   "loop": true
+  },
+  "Run": {
+   "take": "WingWalker_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Shake": {
+   "take": "WingWalker_Shake",
+   "frames": 97,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "WingWalker_Sprint",
+   "frames": 15,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "WingWalker_StartWalk",
+   "frames": 49,
+   "loop": false
+  },
+  "Trot": {
+   "take": "WingWalker_Trot",
+   "frames": 27,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "WingWalker_TurnL",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "WingWalker_TurnL180",
+   "frames": 116,
+   "loop": false
+  },
+  "TurnR": {
+   "take": "WingWalker_TurnR",
+   "frames": 97,
+   "loop": true
+  },
+  "TurnR180": {
+   "take": "WingWalker_TurnR180",
+   "frames": 116,
+   "loop": false
+  },
+  "Walk": {
+   "take": "WingWalker_Walk",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkL": {
+   "take": "WingWalker_WalkL",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkR": {
+   "take": "WingWalker_WalkR",
+   "frames": 49,
+   "loop": true
+  },
+  "WalkStop": {
+   "take": "WingWalker_WalkStop",
+   "frames": 127,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 4.733,
+  "Sprint": 16.836,
+  "Trot": 0.602,
+  "Walk": 1.06
+ },
+ "eyes": [
+  {
+   "object": "Mesh_WingWalker_EyeL",
+   "centre": [
+    0.4282,
+    -1.9054,
+    2.615
+   ],
+   "gaze": [
+    0.7407,
+    -0.5144,
+    0.4321
+   ],
+   "radius": 0.038
+  },
+  {
+   "object": "Mesh_WingWalker_EyeR",
+   "centre": [
+    -0.0177,
+    -1.9574,
+    2.7564
+   ],
+   "gaze": [
+    -0.6233,
+    -0.5529,
+    0.5529
+   ],
+   "radius": 0.038
+  }
+ ],
+ "eye_style": {
+  "sclera": "#c9b48a",
+  "iris": "#7a4a22",
+  "pupil_color": "#100a08",
+  "pupil": "round",
+  "pupil_size": 0.55,
+  "iris_size": 0.8
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/WingWalker/wing_walker.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/wing_walker/wing_walker.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/wingwalker"
+}

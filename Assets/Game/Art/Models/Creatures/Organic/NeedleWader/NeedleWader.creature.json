@@ -1,0 +1,243 @@
+{
+ "name": "NeedleWader",
+ "height": 2.4,
+ "length": 1.582,
+ "width": 2.63,
+ "clips": {
+  "Alert": {
+   "take": "NeedleWader_Alert",
+   "frames": 65,
+   "loop": false
+  },
+  "Attack": {
+   "take": "NeedleWader_Attack",
+   "frames": 13,
+   "loop": false
+  },
+  "BalanceFlap": {
+   "take": "NeedleWader_BalanceFlap",
+   "frames": 33,
+   "loop": false
+  },
+  "Death": {
+   "take": "NeedleWader_Death",
+   "frames": 41,
+   "loop": false
+  },
+  "Drink": {
+   "take": "NeedleWader_Drink",
+   "frames": 61,
+   "loop": false
+  },
+  "Fly": {
+   "take": "NeedleWader_Fly",
+   "frames": 9,
+   "loop": true
+  },
+  "FlyEvade": {
+   "take": "NeedleWader_FlyEvade",
+   "frames": 31,
+   "loop": false
+  },
+  "FlyHurt": {
+   "take": "NeedleWader_FlyHurt",
+   "frames": 43,
+   "loop": false
+  },
+  "FlyLand": {
+   "take": "NeedleWader_FlyLand",
+   "frames": 8,
+   "loop": false
+  },
+  "FlyLift": {
+   "take": "NeedleWader_FlyLift",
+   "frames": 9,
+   "loop": false
+  },
+  "FlyUp": {
+   "take": "NeedleWader_FlyUp",
+   "frames": 25,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "NeedleWader_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "NeedleWader_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtL": {
+   "take": "NeedleWader_HurtL",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "NeedleWader_Idle",
+   "frames": 31,
+   "loop": true
+  },
+  "IdleRuffle": {
+   "take": "NeedleWader_IdleRuffle",
+   "frames": 61,
+   "loop": false
+  },
+  "IdleShake": {
+   "take": "NeedleWader_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "Land": {
+   "take": "NeedleWader_Land",
+   "frames": 101,
+   "loop": false
+  },
+  "Run": {
+   "take": "NeedleWader_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "Stand": {
+   "take": "NeedleWader_Stand",
+   "frames": 91,
+   "loop": true
+  },
+  "Takeoff": {
+   "take": "NeedleWader_Takeoff",
+   "frames": 17,
+   "loop": false
+  },
+  "TurnL": {
+   "take": "NeedleWader_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "NeedleWader_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "NeedleWader_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "NeedleWader_WalkAlert",
+   "frames": 25,
+   "loop": false
+  },
+  "WingFlap": {
+   "take": "NeedleWader_WingFlap",
+   "frames": 106,
+   "loop": false
+  },
+  "WingStretch": {
+   "take": "NeedleWader_WingStretch",
+   "frames": 91,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Walk": 0.0
+ },
+ "eyes": [
+  {
+   "object": "Mesh_NeedleWader_EyeL1",
+   "centre": [
+    0.0849,
+    -0.5739,
+    1.386
+   ],
+   "gaze": [
+    0.5486,
+    -0.2494,
+    -0.798
+   ],
+   "radius": 0.017
+  },
+  {
+   "object": "Mesh_NeedleWader_EyeR1",
+   "centre": [
+    -0.0849,
+    -0.5739,
+    1.386
+   ],
+   "gaze": [
+    -0.5486,
+    -0.2494,
+    -0.798
+   ],
+   "radius": 0.017
+  },
+  {
+   "object": "Mesh_NeedleWader_EyeL2",
+   "centre": [
+    0.1307,
+    -0.5919,
+    1.3946
+   ],
+   "gaze": [
+    0.6021,
+    -0.2007,
+    -0.7727
+   ],
+   "radius": 0.014
+  },
+  {
+   "object": "Mesh_NeedleWader_EyeR2",
+   "centre": [
+    -0.1307,
+    -0.5919,
+    1.3946
+   ],
+   "gaze": [
+    -0.6021,
+    -0.2007,
+    -0.7727
+   ],
+   "radius": 0.014
+  },
+  {
+   "object": "Mesh_NeedleWader_EyeL3",
+   "centre": [
+    0.1726,
+    -0.609,
+    1.3959
+   ],
+   "gaze": [
+    0.6524,
+    -0.1506,
+    -0.7428
+   ],
+   "radius": 0.011
+  },
+  {
+   "object": "Mesh_NeedleWader_EyeR3",
+   "centre": [
+    -0.1726,
+    -0.609,
+    1.3959
+   ],
+   "gaze": [
+    -0.6524,
+    -0.1506,
+    -0.7428
+   ],
+   "radius": 0.011
+  }
+ ],
+ "eye_style": {
+  "sclera": "#2a1a0c",
+  "iris": "#1a0f07",
+  "pupil_color": "#030202",
+  "pupil": "round",
+  "pupil_size": 0.5,
+  "iris_size": 0.9
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/NeedleWader/needle_wader.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/needle_wader/needle_wader.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/needlewader"
+}

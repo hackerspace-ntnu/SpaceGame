@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f52934c495944b1a824fe335608cd21, type: 3}
+  m_Name: RanchWinTrust
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WinTrustStep
+  id: ranch-win-trust
+  title: Win the esko's trust
+  briefing:
+  - This one's tame, but she's never carried anybody.
+  - Walk up easy and scratch her head. Let her decide she likes you.
+  lookAtFocus: 0
+  site: {fileID: 11400000, guid: 5da55564e22fa42bcb1b248621c35abd, type: 2}
+  onBegin: 0
+  progress: "<b>RMB</b>  pet its head  \xB7  trust {0}/{1}"

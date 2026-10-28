@@ -1,0 +1,130 @@
+// GPU-driven culling for RockField, run once per rock size class per camera:
+//
+//   Reset     - zero every segment's counter (a segment is one model at one Mesh LOD).
+//   Cull      - one thread per stored rock, one dispatch per pool. A rock past the draw distance,
+//               smaller on screen than the cull size, or outside the frustum together with its
+//               shadow is dropped; a kept rock picks its LOD by its size on screen and is appended
+//               to its model's segment for that LOD. Near every cut-off, and just after its chunk
+//               lands, it is scaled into the ground, eased, so no rock pops in or out.
+//   WriteArgs - copies each segment's count, clamped to its capacity, into its indirect draw.
+
+#pragma kernel Reset
+#pragma kernel Cull
+#pragma kernel WriteArgs
+
+#include "RockShared.hlsl"
+
+// Layout matches RockInstance.cs.
+struct RockInstance
+{
+    float4 positionScale;   // xyz mesh origin, w uniform scale
+    float4 rotation;        // quaternion
+    float4 stretchVariant;  // xyz stretch, w variant index + tint as its fraction
+    float4 bounds;          // xyz bounding-sphere centre, w radius
+};
+
+StructuredBuffer<RockInstance> _Instances;
+StructuredBuffer<uint> _SlotCounts;
+StructuredBuffer<float> _SlotFilled;    // ChunkInstancePool's clock when each slot was filled
+StructuredBuffer<uint2> _Segments;      // x first index in _Visible, y capacity
+StructuredBuffer<uint> _VariantLods;    // LODs each model's mesh has
+RWStructuredBuffer<uint> _Counts;
+RWStructuredBuffer<RockVisible> _Visible;
+RWByteAddressBuffer _Args;
+
+uint _SlotCapacity;
+uint _SegmentCount;
+
+float4 _FrustumPlanes[6];
+float3 _CameraPosition;
+float _ScreenScale;         // screen-height share per metre of size per metre of distance
+float3 _ShadowDirection;    // the way the sun's light travels; zero without shadows
+float _ShadowLength;        // in radii of the rock
+
+float _DrawDistance;
+float _CullSize;
+float _Lod1Size;
+float _Lod2Size;
+float _ShrinkBand;
+float _FadeBand;            // share of the draw distance the rocks rise over
+float _ScatterClock;        // the pool's clock now
+float _ArrivalSeconds;      // how long a newly landed chunk's rocks take to rise
+
+#define LOD_COUNT 3
+
+[numthreads(64, 1, 1)]
+void Reset(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < _SegmentCount)
+        _Counts[id.x] = 0;
+}
+
+// Five uints per draw; the instance count is the second of them.
+[numthreads(64, 1, 1)]
+void WriteArgs(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < _SegmentCount)
+        _Args.Store((id.x * 5 + 1) * 4, min(_Counts[id.x], _Segments[id.x].y));
+}
+
+// A capsule from a to b: outside only when both ends are beyond the same plane.
+bool CapsuleInFrustum(float3 a, float3 b, float radius)
+{
+    [unroll]
+    for (int i = 0; i < 6; i++)
+    {
+        float3 n = _FrustumPlanes[i].xyz;
+        float w = _FrustumPlanes[i].w;
+        if (dot(n, a) + w < -radius && dot(n, b) + w < -radius)
+            return false;
+    }
+    return true;
+}
+
+[numthreads(64, 1, 1)]
+void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
+{
+    uint slot = group.y;
+    if (id.x >= _SlotCounts[slot])
+        return;
+
+    RockInstance rock = _Instances[slot * _SlotCapacity + id.x];
+    float3 centre = rock.bounds.xyz;
+    float radius = rock.bounds.w;
+    float range = max(length(centre - _CameraPosition), 1e-3);
+    if (range >= _DrawDistance)
+        return;
+    float screen = 2.0 * radius * _ScreenScale / range;
+    if (screen < _CullSize)
+        return;
+    float3 shadowEnd = centre + _ShadowDirection * (radius * _ShadowLength);
+    if (!CapsuleInFrustum(centre, shadowEnd, radius))
+        return;
+
+    uint variant = (uint)rock.stretchVariant.w;
+    float tint = frac(rock.stretchVariant.w);
+    // The LOD switch is jittered per rock, so a field changes detail as a scatter, not a ring.
+    float lodScreen = screen * (0.9 + 0.2 * tint);
+    uint lod = lodScreen < _Lod2Size ? 2 : lodScreen < _Lod1Size ? 1 : 0;
+    lod = min(lod, _VariantLods[variant] - 1);
+
+    // Shrink into the ground just before the cut-offs, so a rock never pops out of view, and
+    // rise out of it when its chunk lands in view. Eased: a linear scale shows most of the
+    // rock's area in the last moment, which reads as a pop.
+    float bySize = smoothstep(0.0, 1.0, (screen / _CullSize - 1.0) / _ShrinkBand);
+    float byRange = smoothstep(0.0, 1.0, (_DrawDistance - range) / (_DrawDistance * _FadeBand));
+    float byArrival = smoothstep(0.0, 1.0, (_ScatterClock - _SlotFilled[slot]) / _ArrivalSeconds);
+
+    RockVisible kept;
+    kept.positionScale = float4(rock.positionScale.xyz,
+                                rock.positionScale.w * min(min(bySize, byRange), byArrival));
+    kept.rotation = rock.rotation;
+    kept.stretchTint = float4(rock.stretchVariant.xyz, tint);
+
+    uint segment = variant * LOD_COUNT + lod;
+    uint index;
+    InterlockedAdd(_Counts[segment], 1, index);
+    uint2 place = _Segments[segment];
+    if (index < place.y)
+        _Visible[place.x + index] = kept;
+}

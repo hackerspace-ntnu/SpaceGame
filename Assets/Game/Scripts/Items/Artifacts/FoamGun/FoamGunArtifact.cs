@@ -50,6 +50,7 @@
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using UnityEngine;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Items
 {
@@ -530,7 +531,7 @@ namespace SpaceGame.Items
                 // Asked of the COLLIDER's transform, not the hit's: over anything with a rigidbody
                 // the latter is the body's root, so a filter written against it matches everything
                 // or nothing.
-                if (owner != null && collider.transform.IsChildOf(owner.transform)) continue;
+                if (owner != null && AimProvider.IsOwnOrRidden(collider.transform, owner.transform)) continue;
 
                 // A body, not a crate. HealthComponent is the same test the Foamed condition needs
                 // for its own break-early rule, so anything this catches can also be freed.

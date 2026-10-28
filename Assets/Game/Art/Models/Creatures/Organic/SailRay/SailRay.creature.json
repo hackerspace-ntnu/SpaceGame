@@ -1,0 +1,169 @@
+{
+ "name": "SailRay",
+ "height": 1.191,
+ "length": 1.302,
+ "width": 0.583,
+ "clips": {
+  "Alert": {
+   "take": "SailRay_Alert",
+   "frames": 42,
+   "loop": false
+  },
+  "AlertEnd": {
+   "take": "SailRay_AlertEnd",
+   "frames": 42,
+   "loop": false
+  },
+  "Attack": {
+   "take": "SailRay_Attack",
+   "frames": 32,
+   "loop": false
+  },
+  "Death": {
+   "take": "SailRay_Death",
+   "frames": 82,
+   "loop": false
+  },
+  "Eat": {
+   "take": "SailRay_Eat",
+   "frames": 92,
+   "loop": true
+  },
+  "Hurt": {
+   "take": "SailRay_Hurt",
+   "frames": 32,
+   "loop": false
+  },
+  "Idle": {
+   "take": "SailRay_Idle",
+   "frames": 92,
+   "loop": true
+  },
+  "Jump": {
+   "take": "SailRay_Jump",
+   "frames": 32,
+   "loop": false
+  },
+  "JumpL135": {
+   "take": "SailRay_JumpL135",
+   "frames": 47,
+   "loop": false
+  },
+  "Lie": {
+   "take": "SailRay_Lie",
+   "frames": 2,
+   "loop": false
+  },
+  "LowPose": {
+   "take": "SailRay_LowPose",
+   "frames": 2,
+   "loop": false
+  },
+  "Rest": {
+   "take": "SailRay_Rest",
+   "frames": 221,
+   "loop": true
+  },
+  "Roar": {
+   "take": "SailRay_Roar",
+   "frames": 92,
+   "loop": false
+  },
+  "Run": {
+   "take": "SailRay_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "RunStop": {
+   "take": "SailRay_RunStop",
+   "frames": 26,
+   "loop": false
+  },
+  "Sneak": {
+   "take": "SailRay_Sneak",
+   "frames": 42,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "SailRay_TurnL",
+   "frames": 82,
+   "loop": true
+  },
+  "TurnL135Aggr": {
+   "take": "SailRay_TurnL135Aggr",
+   "frames": 107,
+   "loop": false
+  },
+  "TurnL180": {
+   "take": "SailRay_TurnL180",
+   "frames": 102,
+   "loop": false
+  },
+  "TurnL45Aggr": {
+   "take": "SailRay_TurnL45Aggr",
+   "frames": 102,
+   "loop": false
+  },
+  "Walk": {
+   "take": "SailRay_Walk",
+   "frames": 27,
+   "loop": true
+  },
+  "WalkInto": {
+   "take": "SailRay_WalkInto",
+   "frames": 31,
+   "loop": false
+  },
+  "WalkStop": {
+   "take": "SailRay_WalkStop",
+   "frames": 52,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 1.232,
+  "Sneak": 0.112,
+  "Walk": 0.261
+ },
+ "eyes": [
+  {
+   "object": "Mesh_SailRay_EyeL",
+   "centre": [
+    0.0691,
+    -0.6229,
+    0.4615
+   ],
+   "gaze": [
+    0.8296,
+    -0.5185,
+    0.2074
+   ],
+   "radius": 0.022
+  },
+  {
+   "object": "Mesh_SailRay_EyeR",
+   "centre": [
+    -0.0691,
+    -0.6229,
+    0.4615
+   ],
+   "gaze": [
+    -0.8296,
+    -0.5185,
+    0.2074
+   ],
+   "radius": 0.022
+  }
+ ],
+ "eye_style": {
+  "sclera": "#c66a22",
+  "iris": "#d9822a",
+  "pupil_color": "#0d0b0a",
+  "pupil": "round",
+  "pupil_size": 0.3,
+  "iris_size": 0.92
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/SailRay/sail_ray.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/sail_ray/sail_ray.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/sailray"
+}

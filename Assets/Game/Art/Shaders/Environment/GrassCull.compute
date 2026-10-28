@@ -1,0 +1,280 @@
+// GPU-driven culling and animation for GrassField, run once per biome per camera:
+//
+//   Reset     - zero the four detail-level counters.
+//   Cull      - one thread per stored tuft, one dispatch per storage-level pool. A tuft past
+//               the draw distance, thinned out by distance, or outside the frustum is dropped;
+//               a tuft about to be thinned out shrinks first, so none pops out at full size;
+//               a kept tuft is widened for the ones thinned around it, animated ONCE here (wind
+//               waves, gusts, flutter, benders, sinking) and appended to the near, mid, far or
+//               distant list. A distant tuft is a flat row of spikes, turned here to face the camera.
+//   WriteArgs - copies the counts, clamped to the list sizes, into the indirect draw arguments.
+//   Trample  - once per frame, not per biome: recovers the trail map (GrassTrample.cs) and stamps
+//               the benders into it. Cull lays trampled tufts over along the trail.
+//
+// Animating per tuft here instead of per vertex in every pass is most of the saving: the
+// vertex shader only bends a tuft that is already posed.
+
+#pragma kernel Reset
+#pragma kernel Cull
+#pragma kernel WriteArgs
+#pragma kernel Trample
+
+#include "GrassShared.hlsl"
+
+// Layout matches GrassInstance.cs.
+struct GrassInstance
+{
+    float4 positionScale;   // xyz root, w height in metres
+    float4 yawTintAccent;   // x yaw, y tint | ground contact (GrassPackHalves), z flower hue, w thinning rank 0..1
+};
+
+StructuredBuffer<GrassInstance> _Instances;
+StructuredBuffer<uint> _SlotCounts;
+RWStructuredBuffer<uint> _Counts;
+RWStructuredBuffer<GrassVisible> _Near;
+RWStructuredBuffer<GrassVisible> _Mid;
+RWStructuredBuffer<GrassVisible> _Far;
+RWStructuredBuffer<GrassVisible> _Distant;
+RWByteAddressBuffer _Args;
+
+uint _SlotCapacity;
+uint _NearCapacity;
+uint _MidCapacity;
+uint _FarCapacity;
+uint _DistantCapacity;
+
+float4 _FrustumPlanes[6];
+float3 _CameraPosition;
+float _GrassTime;
+float _MidDistance;
+float _FarDistance;
+float _DistantDistance;
+float _FadeStart;
+float _DrawDistance;
+float _FullDensityDistance;
+float _DensityFalloff;
+float _ThinningFade;
+float _MaxWidthBoost;
+
+float4 _GrassWind;          // xy direction (world XZ), z strength scale
+float4 _GrassBenders[8];    // xyz position, w radius
+float4 _GrassBenderMotion[8]; // xy heading on the ground, z speed m/s
+float _GrassBenderCount;
+
+// The trail map, a wrap-around window of ground cells around the viewer (GrassTrample.cs).
+// Texel: x how flat 0..1, y foot height × x, zw heading the grass was laid over in.
+RWTexture2D<float4> _TrampleMap;
+Texture2D<float4> _Trample;
+int4 _TrampleWindow;        // xy first cell of the window, zw first cell of the window last update
+float4 _TrampleParams;      // x cell size m, y cells per side, z recovery this update, w height tolerance m
+
+// From the biome's material.
+float _WindStrength;
+float _WaveLength;
+float _WaveSpeed;
+float _WindFrequency;
+float _WindSpeed;
+float _FlutterStrength;
+float _FlutterFrequency;
+float _BendStrength;
+float _TrampleStrength;
+float _PatchScale;
+float _VariationScale;
+
+[numthreads(1, 1, 1)]
+void Reset()
+{
+    _Counts[0] = 0;
+    _Counts[1] = 0;
+    _Counts[2] = 0;
+    _Counts[3] = 0;
+}
+
+// Five uints per draw; the instance count is the second of them.
+[numthreads(1, 1, 1)]
+void WriteArgs()
+{
+    _Args.Store(4, min(_Counts[0], _NearCapacity));
+    _Args.Store(24, min(_Counts[1], _MidCapacity));
+    _Args.Store(44, min(_Counts[2], _FarCapacity));
+    _Args.Store(64, min(_Counts[3], _DistantCapacity));
+}
+
+bool InFrustum(float3 centre, float radius)
+{
+    [unroll]
+    for (int i = 0; i < 6; i++)
+        if (dot(_FrustumPlanes[i].xyz, centre) + _FrustumPlanes[i].w < -radius)
+            return false;
+    return true;
+}
+
+// How far the benders push this root sideways (xy), and how much they flatten it (z).
+float3 Bend(float3 root)
+{
+    float2 push = 0;
+    float flatten = 0;
+    int count = (int)_GrassBenderCount;
+    for (int i = 0; i < count; i++)
+    {
+        float4 bender = _GrassBenders[i];
+        float3 delta = root - bender.xyz;
+        float reach = saturate(1.0 - length(delta.xz) / bender.w)
+                    * saturate(1.0 - abs(delta.y) / (bender.w * 2.0));
+        push += normalize(delta.xz + 1e-4) * reach;
+        flatten = max(flatten, reach);
+    }
+    return float3(push * _BendStrength, flatten);
+}
+
+// Below this speed (m/s) a body flattens the grass under it but does not turn it: standing
+// still or shuffling keeps the direction the trail was laid in.
+#define TRAMPLE_TURN_SPEED 0.3
+// Bilinear filtering blends the headings of neighbouring texels; where they cancel out to
+// shorter than this, the trail has no clear direction.
+#define TRAMPLE_MIN_HEADING 0.2
+
+[numthreads(8, 8, 1)]
+void Trample(uint3 id : SV_DispatchThreadID)
+{
+    int size = (int)_TrampleParams.y;
+    // The one cell of the current window this texel holds: a positive modulo, which is a mask
+    // because the map's side is a power of two.
+    int2 cell = _TrampleWindow.xy + ((int2(id.xy) - _TrampleWindow.xy) & (size - 1));
+    bool remembered = all(cell >= _TrampleWindow.zw) && all(cell < _TrampleWindow.zw + size);
+    float4 trail = remembered ? _TrampleMap[id.xy] : 0;
+
+    float foot = trail.x > 0 ? trail.y / trail.x : 0;
+    trail.x = max(0, trail.x - _TrampleParams.z);
+
+    float2 centre = (cell + 0.5) * _TrampleParams.x;
+    int count = (int)_GrassBenderCount;
+    for (int i = 0; i < count; i++)
+    {
+        float4 bender = _GrassBenders[i];
+        float stamp = smoothstep(0, 1, saturate(1.0 - length(centre - bender.xz) / bender.w));
+        if (stamp <= trail.x)
+            continue;
+        trail.x = stamp;
+        foot = bender.y - bender.w;
+        float4 motion = _GrassBenderMotion[i];
+        if (motion.z > TRAMPLE_TURN_SPEED)
+            trail.zw = motion.xy;
+    }
+    trail.y = foot * trail.x;
+    _TrampleMap[id.xy] = trail;
+}
+
+// How flat the trails lie at this root (0..1), and the way they lie (xy, unit), falling back
+// to the tuft's own facing where the trail has no direction.
+float3 Trampled(float3 root, float2 facing)
+{
+    float2 cell = root.xz / _TrampleParams.x;
+    if (any(cell < _TrampleWindow.xy + 1) || any(cell >= _TrampleWindow.xy + _TrampleParams.y - 1))
+        return float3(facing, 0);
+    // Bilinear by hand between the four cell centres around the root, wrapped with the same mask
+    // as the Trample kernel: no sampler state to depend on.
+    float2 between = cell - 0.5;
+    int2 corner = (int2)floor(between);
+    float2 t = between - corner;
+    int mask = (int)_TrampleParams.y - 1;
+    float4 trail = lerp(lerp(_Trample[uint2(corner & mask)], _Trample[uint2((corner + int2(1, 0)) & mask)], t.x),
+                        lerp(_Trample[uint2((corner + int2(0, 1)) & mask)], _Trample[uint2((corner + 1) & mask)], t.x),
+                        t.y);
+    if (trail.x <= 0)
+        return float3(facing, 0);
+    float foot = trail.y / trail.x;
+    float flat = smoothstep(0, 1, trail.x) * saturate(1.0 - abs(root.y - foot) / _TrampleParams.w);
+    float laid = length(trail.zw);
+    float2 direction = laid > TRAMPLE_MIN_HEADING ? trail.zw / laid : facing;
+    return float3(direction, flat);
+}
+
+void Append(uint list, GrassVisible tuft)
+{
+    uint index;
+    InterlockedAdd(_Counts[list], 1, index);
+    if (list == 0 && index < _NearCapacity)
+        _Near[index] = tuft;
+    else if (list == 1 && index < _MidCapacity)
+        _Mid[index] = tuft;
+    else if (list == 2 && index < _FarCapacity)
+        _Far[index] = tuft;
+    else if (list == 3 && index < _DistantCapacity)
+        _Distant[index] = tuft;
+}
+
+[numthreads(64, 1, 1)]
+void Cull(uint3 id : SV_DispatchThreadID, uint3 group : SV_GroupID)
+{
+    uint slot = group.y;
+    if (id.x >= _SlotCounts[slot])
+        return;
+
+    GrassInstance tuft = _Instances[slot * _SlotCapacity + id.x];
+    float3 root = tuft.positionScale.xyz;
+    float height = tuft.positionScale.w;
+    float rank = tuft.yawTintAccent.w;
+
+    float range = length(root - _CameraPosition);
+    if (range >= _DrawDistance)
+        return;
+    // Thin with distance — GrassFieldProfile.DensityAt: whole out to the full-density distance,
+    // then falling as (full / range)^falloff, which at 2 keeps the tufts on screen about level.
+    // A tuft survives while its rank is below the density left at its range.
+    float density = range <= _FullDensityDistance
+        ? 1.0
+        : exp2(_DensityFalloff * log2(_FullDensityDistance / range));   // the ratio is always positive
+    if (rank >= density)
+        return;
+    // Instead of vanishing at full size, a tuft shrinks away over the last _ThinningFade of the
+    // range it is drawn out to, where (full / range)^falloff falls to its rank.
+    float reachRange = _FullDensityDistance * exp2(-log2(max(rank, 1e-4)) / _DensityFalloff);
+    height *= saturate((reachRange - range) / (reachRange * _ThinningFade));
+    if (height <= 0.0)
+        return;
+    // The survivors widen to cover for the ones dropped: the field still reads as full.
+    float widen = min(_MaxWidthBoost, rsqrt(density));
+    // The farthest a tip can be pushed: leaning, a full gale on the waves, flutter and a bender.
+    float reach = height * (1.0 + _WindStrength * 3.2 + _FlutterStrength + _BendStrength + _TrampleStrength) * widen;
+    if (!InFrustum(root + float3(0, height * 0.5, 0), reach))
+        return;
+
+    float2 tintContact = GrassUnpackHalves(tuft.yawTintAccent.y);
+    float tint = tintContact.x;
+    float patchUV = 1.0 / max(_PatchScale, 0.01);
+    float patch = GrassNoise(root.xz * patchUV) * 0.65 + GrassNoise(root.xz * patchUV * 2.7) * 0.35;
+    float variation = GrassNoise(root.xz / max(_VariationScale, 0.01) + 31.7) * 0.7 + tint * 0.3;
+
+    float2 windDir = normalize(_GrassWind.xy + float2(1e-5, 0));
+    float along = dot(root.xz, windDir);
+    float gust;
+    float push = WindPush(root.xz, windDir, _GrassTime, _WaveLength, _WaveSpeed, _WindFrequency, _WindSpeed, gust);
+    // Each tuft flutters at its own rate (±25 %), so neighbours drift out of step instead of ticking together.
+    float flutter = sin(_GrassTime * _FlutterFrequency * (0.75 + 0.5 * tint) + tint * 6.2831 + along * 1.7);
+    float2 sway = windDir * (_WindStrength * _GrassWind.z * (0.15 + push))
+                + float2(windDir.y, -windDir.x) * (flutter * _FlutterStrength);
+    float3 bend = Bend(root);
+    sway += bend.xy;
+
+    float s, c;
+    sincos(tuft.yawTintAccent.x, s, c);
+    // Trails are only remembered near the viewer; the window test is the first thing it does.
+    float3 trampled = Trampled(root, float2(c, s));
+    float flat = trampled.z * _TrampleStrength;
+    sway += trampled.xy * flat;
+
+    GrassVisible kept;
+    kept.rootHeight = float4(root, height);
+    kept.turnSway = float4(c, s, sway);
+    kept.look = float4(tint, GrassPackHalves(patch, tintContact.y), variation, tuft.yawTintAccent.z);
+    // Past 1 a trail lays the grass further over, but presses it no lower than flat.
+    kept.motion = float4(saturate(push), max(bend.z, saturate(flat)), 1.0 - smoothstep(_FadeStart, _DrawDistance, range), widen);
+
+    // Detail level by distance, jittered per tuft so the switch is a scatter, not a ring.
+    float lodRange = GrassLodRange(root, _CameraPosition, tint);
+    uint list = lodRange < _MidDistance ? 0 : lodRange < _FarDistance ? 1 : lodRange < _DistantDistance ? 2 : 3;
+    if (list == 3)
+        kept.turnSway.xy = GrassFaceEye(root, _CameraPosition);
+    Append(list, kept);
+}

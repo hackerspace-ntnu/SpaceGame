@@ -6,8 +6,9 @@ using SpaceGame.Persistence;
 namespace SpaceGame.Core.Persistence
 {
     /// <summary>
-    /// Keeps a creature as tame as the players made it. Trust is won one gift at a time over a long
-    /// visit, and a creature that forgets it on load hands back every item it was given for nothing.
+    /// Keeps a creature as tame as the players made it (<see cref="CreatureTrust"/>). It cannot be recomputed:
+    /// nothing in the world records the gifts or pets that won it over, so a creature that forgets it on load
+    /// hands back every item it was given for nothing, or refuses the saddle it was ready for.
     /// Whether it is dead is not here: that is <see cref="HealthSaveable"/>'s.
     /// </summary>
     [RequireComponent(typeof(CreatureTrust))]

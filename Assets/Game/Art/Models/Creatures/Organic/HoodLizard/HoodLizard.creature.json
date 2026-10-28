@@ -1,0 +1,168 @@
+{
+ "name": "HoodLizard",
+ "height": 1.581,
+ "length": 3.102,
+ "width": 1.437,
+ "clips": {
+  "Alert": {
+   "take": "HoodLizard_Alert",
+   "frames": 42,
+   "loop": false
+  },
+  "AlertEnd": {
+   "take": "HoodLizard_AlertEnd",
+   "frames": 42,
+   "loop": false
+  },
+  "Attack": {
+   "take": "HoodLizard_Attack",
+   "frames": 32,
+   "loop": false
+  },
+  "Death": {
+   "take": "HoodLizard_Death",
+   "frames": 82,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "HoodLizard_Hurt",
+   "frames": 32,
+   "loop": false
+  },
+  "Idle": {
+   "take": "HoodLizard_Idle",
+   "frames": 92,
+   "loop": true
+  },
+  "IdleCall": {
+   "take": "HoodLizard_IdleCall",
+   "frames": 182,
+   "loop": false
+  },
+  "Jump": {
+   "take": "HoodLizard_Jump",
+   "frames": 32,
+   "loop": false
+  },
+  "JumpL135": {
+   "take": "HoodLizard_JumpL135",
+   "frames": 47,
+   "loop": false
+  },
+  "Lie": {
+   "take": "HoodLizard_Lie",
+   "frames": 2,
+   "loop": false
+  },
+  "LowPose": {
+   "take": "HoodLizard_LowPose",
+   "frames": 2,
+   "loop": false
+  },
+  "Rest": {
+   "take": "HoodLizard_Rest",
+   "frames": 221,
+   "loop": true
+  },
+  "Run": {
+   "take": "HoodLizard_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "RunStop": {
+   "take": "HoodLizard_RunStop",
+   "frames": 26,
+   "loop": false
+  },
+  "Swim": {
+   "take": "HoodLizard_Swim",
+   "frames": 92,
+   "loop": true
+  },
+  "SwimIdle": {
+   "take": "HoodLizard_SwimIdle",
+   "frames": 62,
+   "loop": false
+  },
+  "TurnL": {
+   "take": "HoodLizard_TurnL",
+   "frames": 82,
+   "loop": true
+  },
+  "TurnL135Aggr": {
+   "take": "HoodLizard_TurnL135Aggr",
+   "frames": 107,
+   "loop": false
+  },
+  "TurnL180": {
+   "take": "HoodLizard_TurnL180",
+   "frames": 102,
+   "loop": false
+  },
+  "TurnL45Aggr": {
+   "take": "HoodLizard_TurnL45Aggr",
+   "frames": 102,
+   "loop": false
+  },
+  "Walk": {
+   "take": "HoodLizard_Walk",
+   "frames": 27,
+   "loop": true
+  },
+  "WalkInto": {
+   "take": "HoodLizard_WalkInto",
+   "frames": 31,
+   "loop": false
+  },
+  "WalkStop": {
+   "take": "HoodLizard_WalkStop",
+   "frames": 52,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 0.592,
+  "Walk": 1.444
+ },
+ "eyes": [
+  {
+   "object": "Mesh_HoodLizard_EyeL",
+   "centre": [
+    0.0776,
+    -0.8984,
+    1.1102
+   ],
+   "gaze": [
+    0.5033,
+    -0.8556,
+    0.1208
+   ],
+   "radius": 0.04
+  },
+  {
+   "object": "Mesh_HoodLizard_EyeR",
+   "centre": [
+    -0.049,
+    -0.8572,
+    1.1393
+   ],
+   "gaze": [
+    -0.5033,
+    -0.8556,
+    0.1208
+   ],
+   "radius": 0.04
+  }
+ ],
+ "eye_style": {
+  "sclera": "#4a3a2c",
+  "iris": "#c8661f",
+  "pupil_color": "#0d0b0a",
+  "pupil": "round",
+  "pupil_size": 0.38,
+  "iris_size": 0.86
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/HoodLizard/hood_lizard.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/hood_lizard/hood_lizard.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/hoodlizard"
+}

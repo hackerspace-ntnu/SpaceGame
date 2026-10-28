@@ -48,6 +48,13 @@ Shader "SpaceGame/StylizedTerrain"
         _FogStart      ("Distance Tint Start", Float) = 80
         _FogEnd        ("Distance Tint End",   Float) = 600
         _FogStrength   ("Distance Tint Strength", Range(0, 1)) = 0.0
+
+        // Set per terrain by GrassField (GrassGroundTint) through the splat property block, so
+        // painted grass reads as colour on the ground from afar. A zero rect means none.
+        [HideInInspector][NoScaleOffset] _GrassColorMap ("Grass Colour Map", 2D) = "black" {}
+        [HideInInspector] _GrassMapRect   ("Grass Map Rect (origin xz, 1/size xz)", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _GrassMinHeight ("Grass Min Height", Float) = -10000
+        [HideInInspector] _GrassMapWarp   ("Grass Edge Warp (metres, period)", Vector) = (0, 1, 0, 0)
     }
 
     SubShader
@@ -120,7 +127,16 @@ Shader "SpaceGame/StylizedTerrain"
                 float  _FogStart;
                 float  _FogEnd;
                 float  _FogStrength;
+                float4 _GrassMapRect;
+                float  _GrassMinHeight;
+                float4 _GrassMapWarp;
             CBUFFER_END
+
+            TEXTURE2D(_GrassColorMap);
+            SAMPLER(sampler_GrassColorMap);
+            // Set globally by GrassField: x the distance the grass starts hiding the ground, y one
+            // over the length of that ramp, z the extra tuft layers a far view looks through.
+            float4 _GrassGroundCover;
 
             struct Attributes
             {
@@ -234,6 +250,30 @@ Shader "SpaceGame/StylizedTerrain"
                 float patch = smoothstep(1.0 - _MacroCoverage, 1.0 - _MacroCoverage + 0.2,
                                          patchNoise(IN.positionWS.xz / max(0.0001, _MacroScale)));
                 albedo = lerp(albedo, _ColorMacro.rgb, patch * _MacroStrength);
+
+                // ---- Painted grass (GrassField), so a field reads from afar ----
+                // Before the cliff overlay: grass does not grow on cliffs, and neither does its colour.
+                if (_GrassMapRect.z > 0.0)
+                {
+                    // Warped like the tufts' paint read, so the colour's outline is organic too.
+                    float2 warpUV = IN.positionWS.xz / max(0.0001, _GrassMapWarp.y);
+                    float2 warp = float2(valueNoise(warpUV + 17.3), valueNoise(warpUV + 41.9)) * 2.0 - 1.0;
+                    float2 grassUV = (IN.positionWS.xz + warp * _GrassMapWarp.x - _GrassMapRect.xy) * _GrassMapRect.zw;
+                    half4 grass = SAMPLE_TEXTURE2D(_GrassColorMap, sampler_GrassColorMap, grassUV);
+                    // Premultiplied by coverage and stored linear (GrassGroundTint): un-premultiply,
+                    // then convert the materials' sRGB colours.
+                    half3 grassColour = grass.rgb / max(grass.a, 1e-3);
+                #if !defined(UNITY_COLORSPACE_GAMMA)
+                    grassColour = SRGBToLinear(grassColour);
+                #endif
+                    half cover = grass.a * step(_GrassMinHeight, IN.positionWS.y);
+                    // From afar the blades in front hide the ground between the tufts: every layer
+                    // of tufts the view looks through closes the gaps the one before left.
+                    float layers = 1.0 + _GrassGroundCover.z
+                        * saturate((distance(IN.positionWS, _WorldSpaceCameraPos) - _GrassGroundCover.x) * _GrassGroundCover.y);
+                    cover = 1.0 - pow(saturate(1.0 - cover), layers);
+                    albedo = lerp(albedo, grassColour, cover);
+                }
 
                 // ---- Slope-based cliff overlay, layered into strata ----
                 // dot(N, up): 1 = flat ground, 0 = vertical cliff.
@@ -379,6 +419,64 @@ Shader "SpaceGame/StylizedTerrain"
             }
 
             half4 DepthFrag(V IN) : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        // Depth + normals. With SSAO on depth-normals the renderer builds the camera depth
+        // texture from THIS pass, not DepthOnly — without it the terrain is missing from that
+        // texture, and the water's shore foam and see-through (which read it) vanish.
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex   DepthNormalsVert
+            #pragma fragment DepthNormalsFrag
+            #pragma shader_feature_local _FLAT_SHADING
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile_instancing
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct A { float4 positionOS : POSITION; float3 normalOS : NORMAL; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct V
+            {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+                float3 normalWS   : TEXCOORD1;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            V DepthNormalsVert(A IN)
+            {
+                V OUT;
+                UNITY_SETUP_INSTANCE_ID(IN);
+                UNITY_TRANSFER_INSTANCE_ID(IN, OUT);
+                OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
+                OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
+                return OUT;
+            }
+
+            half4 DepthNormalsFrag(V IN) : SV_Target
+            {
+                // The same normal the forward pass lights with, so SSAO agrees with the shading.
+            #if defined(_FLAT_SHADING)
+                float3 normalWS = normalize(cross(ddy(IN.positionWS), ddx(IN.positionWS)));
+            #else
+                float3 normalWS = NormalizeNormalPerPixel(IN.normalWS);
+            #endif
+            #if defined(_GBUFFER_NORMALS_OCT)
+                float2 octNormal = saturate(PackNormalOctQuadEncode(normalWS) * 0.5 + 0.5);
+                return half4(PackFloat2To888(octNormal), 0.0);
+            #else
+                return half4(normalWS, 0.0);
+            #endif
+            }
             ENDHLSL
         }
     }

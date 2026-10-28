@@ -3,6 +3,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Gameplay.Ragdoll;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Items
 {
@@ -1254,7 +1255,7 @@ namespace SpaceGame.Items
             {
                 Collider met = impactHits[i].collider;
                 if (met == null) continue;
-                if (shooter != null && met.transform.IsChildOf(shooter.transform)) continue;
+                if (shooter != null && AimProvider.IsOwnOrRidden(met.transform, shooter.transform)) continue;
                 if (impactHits[i].distance >= nearest) continue;
 
                 nearest = impactHits[i].distance;

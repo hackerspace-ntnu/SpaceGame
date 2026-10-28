@@ -1,0 +1,183 @@
+{
+ "name": "MothDrake",
+ "height": 3.6,
+ "length": 3.596,
+ "width": 3.192,
+ "clips": {
+  "AlertTurnL": {
+   "take": "MothDrake_AlertTurnL",
+   "frames": 65,
+   "loop": false
+  },
+  "Ascend": {
+   "take": "MothDrake_Ascend",
+   "frames": 25,
+   "loop": false
+  },
+  "DeathAir": {
+   "take": "MothDrake_DeathAir",
+   "frames": 43,
+   "loop": false
+  },
+  "Fly": {
+   "take": "MothDrake_Fly",
+   "frames": 9,
+   "loop": true
+  },
+  "FlyEvade": {
+   "take": "MothDrake_FlyEvade",
+   "frames": 31,
+   "loop": false
+  },
+  "FlyFast": {
+   "take": "MothDrake_FlyFast",
+   "frames": 9,
+   "loop": false
+  },
+  "Hover": {
+   "take": "MothDrake_Hover",
+   "frames": 33,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "MothDrake_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtAir": {
+   "take": "MothDrake_HurtAir",
+   "frames": 41,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "MothDrake_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtL": {
+   "take": "MothDrake_HurtL",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "MothDrake_Idle",
+   "frames": 91,
+   "loop": true
+  },
+  "IdleShake": {
+   "take": "MothDrake_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "Land": {
+   "take": "MothDrake_Land",
+   "frames": 101,
+   "loop": false
+  },
+  "LandAir": {
+   "take": "MothDrake_LandAir",
+   "frames": 8,
+   "loop": false
+  },
+  "LowTakeOff": {
+   "take": "MothDrake_LowTakeOff",
+   "frames": 12,
+   "loop": false
+  },
+  "Ruffle": {
+   "take": "MothDrake_Ruffle",
+   "frames": 61,
+   "loop": false
+  },
+  "Run": {
+   "take": "MothDrake_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "TailWag": {
+   "take": "MothDrake_TailWag",
+   "frames": 31,
+   "loop": false
+  },
+  "TakeOff": {
+   "take": "MothDrake_TakeOff",
+   "frames": 17,
+   "loop": false
+  },
+  "TurnL": {
+   "take": "MothDrake_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "MothDrake_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "MothDrake_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "MothDrake_WalkAlert",
+   "frames": 25,
+   "loop": false
+  },
+  "WingFlap": {
+   "take": "MothDrake_WingFlap",
+   "frames": 106,
+   "loop": false
+  },
+  "WingStretch": {
+   "take": "MothDrake_WingStretch",
+   "frames": 91,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 0.812,
+  "Walk": 0.524
+ },
+ "eyes": [
+  {
+   "object": "Mesh_MothDrake_EyeL",
+   "centre": [
+    0.2307,
+    0.1216,
+    2.4385
+   ],
+   "gaze": [
+    0.8144,
+    -0.5599,
+    -0.1527
+   ],
+   "radius": 0.024
+  },
+  {
+   "object": "Mesh_MothDrake_EyeR",
+   "centre": [
+    0.1216,
+    0.0691,
+    2.4367
+   ],
+   "gaze": [
+    -0.5599,
+    -0.8144,
+    -0.1527
+   ],
+   "radius": 0.024
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e6e7d9",
+  "iris": "#c55434",
+  "pupil_color": "#1e152a",
+  "pupil": "round",
+  "pupil_size": 0.5,
+  "iris_size": 0.75
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/MothDrake/moth_drake.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/moth_drake/moth_drake.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/mothdrake"
+}

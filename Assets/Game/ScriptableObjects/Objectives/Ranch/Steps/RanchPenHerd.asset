@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b894e7ab046544f08b6d6c1541fc583, type: 3}
+  m_Name: RanchPenHerd
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.PenHerdStep
+  id: ranch-pen-herd
+  title: Pen the wild eskos
+  briefing:
+  - There they are. Here, a rope each.
+  - Hold the button to swing the loop, let go to throw it.
+  - 'Rope them from the saddle: she''ll take the strain. On foot, one of these will
+    drag you halfway to the dunes.'
+  - Tow them back into the corral, let go once they're inside, and shut the gate.
+  lookAtFocus: 0
+  site: {fileID: 11400000, guid: 5da55564e22fa42bcb1b248621c35abd, type: 2}
+  onBegin: 2
+  count: 'In the corral: <b>{0}/{1}</b>'
+  gateOpen: The gate is open
+  shutIt: "All in \xB7 <b>shut the gate</b>"

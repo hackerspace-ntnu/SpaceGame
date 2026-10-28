@@ -219,6 +219,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2587982446461795468}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5127800117972762571}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7826805259140671004}
   m_SourcePrefab: {fileID: 100100000, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}
 --- !u!95 &176337004500388985 stripped
 Animator:
@@ -361,6 +367,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 3.5
+  runClipSpeed: 7.2
   strideEndPhases: []
 --- !u!114 &2942734442224939726
 MonoBehaviour:
@@ -376,6 +383,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 5773246978882158280}
   animatorDriver: {fileID: 6073845140653462437}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &5250026723770419512
@@ -409,7 +417,6 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -422,7 +429,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -477,6 +483,7 @@ MonoBehaviour:
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 1.5
   maxWaitTime: 6
   stopDistance: 0.2
@@ -605,8 +612,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SaddleSocket
   saddlePrefab: {fileID: 800051937174562022, guid: ffd539db339aa7f448ce109bf7fabfc7, type: 3}
   mountBone: {fileID: 0}
+  mountBoneName: spine1
   rootPosition: {x: 0, y: 1.1, z: -0.15}
   rootEuler: {x: 0, y: 0, z: 0}
+  riderSeatPrefix: SEAT_Rider
   compensateBoneScale: 1
   startSaddled: 0
   mount: {fileID: 614546361279212061}
@@ -876,6 +885,13 @@ MonoBehaviour:
     breakDamage: 10
   swallowed:
     seconds: 6
+  shocked:
+    seconds: 3
+    immunity: 2
+  bound:
+    seconds: 86400
+    stillSecondsToEscape: 30
+    stillTolerance: 0.3
   inflationTarget: {fileID: 7640608676881219498}
 --- !u!114 &7655477926058837577
 MonoBehaviour:
@@ -954,15 +970,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &1650530464596609212
@@ -1061,6 +1074,61 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
+--- !u!114 &5127800117972762571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd7acca8877904c148d3b9c0494ea961, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountedRiderPose
+  mountModule: {fileID: 614546361279212061}
+  rideActionName: Ride
+  gains:
+    bounceGain: 2.5
+    bounceMax: 9
+    speedGain: 0.7
+    speedMax: 12
+    turnGain: 6
+    turnMax: 10
+  motionSmooth: 9
+  motionRejectThreshold: 60
+  hipsAboveSeat: 0.22
+  swayFollow: 0.6
+  swayBaselineSeconds: 1.2
+  blendDuration: 0.25
+--- !u!114 &7826805259140671004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906698745191926969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.8
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
 --- !u!4 &7640608676881219498 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -5111575511331140030, guid: 130a109cae36cfe4d966506e17022b7c, type: 3}

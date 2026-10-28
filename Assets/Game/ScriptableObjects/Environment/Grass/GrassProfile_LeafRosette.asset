@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c4d4ac8990e4257a6573efcdd6263f, type: 3}
+  m_Name: GrassProfile_LeafRosette
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.GrassFieldProfile
+  material: {fileID: 2100000, guid: 30a026cfc7ca84f278d39ce1f8132bb1, type: 2}
+  tuftsPerSquareMetre: 3
+  minimumLayerWeight: 0.5
+  maxSlopeDegrees: 38
+  heightRange: {x: 1.05, y: 1.5}
+  heightClumping: 0.35
+  heightClumpSize: 6
+  flowerChance: 0.015
+  edgeWarp: 1
+  densityVariation: 0.35
+  densityVariationSize: 14
+  groundTint: 0.6
+  tuftMesh: {fileID: 0}
+  bladesPerTuft: 5
+  bladeSegments: 5
+  bladeWidth: 0.8
+  bladeFold: 0.8
+  tuftSpread: 0.1
+  bladeLean: 0.9
+  midTuftDistance: 8
+  farTuftDistance: 20
+  farBladesPerTuft: 3
+  farBladeWidthScale: 1.3
+  distantTuftDistance: 40
+  distantTuftWidth: 1.2
+  lodMorphBand: 0.3
+  chunkSize: 16
+  drawDistance: 300
+  fadeStartFraction: 0.8
+  fullDensityDistance: 30
+  densityFalloff: 2.6
+  thinningFade: 0.25
+  maxWidthBoost: 1.5
+  canopyColorStart: 35
+  canopyColorEnd: 120

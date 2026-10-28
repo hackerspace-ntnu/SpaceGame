@@ -10,7 +10,8 @@ namespace SpaceGame.Presentation
     /// the moment the crew reach it — and, where the step asks, the camera turned to what it is
     /// about. Every quest is briefed, whichever one the visor follows: a crewmate finishing a step
     /// of another quest is news. Each line is spoken by its quest's <see cref="ObjectiveChain.Speaker"/>,
-    /// else by <see cref="speaker"/>.
+    /// else by <see cref="speaker"/> — and, where the quest has a <see cref="QuestVoice"/> loaded on this machine, said
+    /// through that character.
     ///
     /// <para>
     /// <b>Per machine, nothing on the wire.</b> Every machine hears the same step change through
@@ -184,7 +185,8 @@ namespace SpaceGame.Presentation
             pending.RemoveAt(0);
             if (next.Look) LookAtFocus(next.Quest, player);
 
-            popup.Show(next.Text, secondsPerLine);
+            // Said by the quest's own character where one stands in the world, so the mouth moves and the crew see it.
+            popup.Show(next.Text, secondsPerLine, QuestVoice.Of(next.Quest.Chain));
             lastVisible = now;
         }
 

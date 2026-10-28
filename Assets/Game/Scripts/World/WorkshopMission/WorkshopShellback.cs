@@ -8,7 +8,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Agents;
-using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
 using SpaceGame.Presentation.Speech;
@@ -33,6 +32,8 @@ namespace SpaceGame.World
 
         [Tooltip("Shortest time a line it says on its own stays up, seconds.")]
         [SerializeField, Min(0.5f)] private float secondsPerLine = 4f;
+
+        private const string StoryReason = "workshop story";
 
         private readonly Queue<string> pending = new();
 
@@ -70,11 +71,9 @@ namespace SpaceGame.World
             focus = GetComponentInChildren<InteractionFocusModule>(true);
             health = GetComponent<HealthComponent>();
 
-            // The story's hold and the story's lines: the stock watcher would freeze a walk whenever a player is near,
-            // and idle glances and small talk do not belong to people whose home was just robbed.
-            foreach (WatchModule watch in GetComponentsInChildren<WatchModule>(true)) watch.enabled = false;
-            foreach (IdleLookAroundModule look in GetComponentsInChildren<IdleLookAroundModule>(true)) look.enabled = false;
-            foreach (ChatterModule chatter in GetComponentsInChildren<ChatterModule>(true)) chatter.enabled = false;
+            // The story's hold and the story's lines: idle glances and small talk do not belong to people whose home
+            // was just robbed.
+            ScriptedStand.QuietStockModules(gameObject);
         }
 
         protected virtual void OnDisable()
@@ -93,18 +92,12 @@ namespace SpaceGame.World
         public void Stand(Pose spot, Transform greet, bool run = false)
         {
             if (!IsAlive || goal == null) return;
-            goal.TrySetSampled(spot.position, arriveRadius, "workshop story", hold: true, facePoint: spot.position + spot.forward * 5f,
-                               run: run);
+            ScriptedStand.Stand(goal, spot, arriveRadius, StoryReason, run);
             if (HasArrived) FaceIfNear(greet);
         }
 
         /// <summary>Server: straight to <paramref name="spot"/>, where no walk leads or the story moved on in a reload.</summary>
-        public void PutAt(Pose spot)
-        {
-            NetworkedTeleport.Move(gameObject, spot.position, spot.rotation);
-            if (goal != null) goal.TrySetSampled(spot.position, arriveRadius, "workshop story", hold: true,
-                                                 facePoint: spot.position + spot.forward * 5f);
-        }
+        public void PutAt(Pose spot) => ScriptedStand.PutAt(gameObject, goal, spot, arriveRadius, StoryReason);
 
         /// <summary>Server: turn to <paramref name="player"/> if they are within <see cref="GreetRadius"/>. True when it did.</summary>
         protected bool FaceIfNear(Transform player)

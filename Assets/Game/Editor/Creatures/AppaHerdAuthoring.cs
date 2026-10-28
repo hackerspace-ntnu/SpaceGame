@@ -195,8 +195,8 @@ namespace SpaceGame.EditorTools
 
                 root.AddComponent<CrewSaveable>();
 
-                var pose = root.AddComponent<MountedRiderPose>();
-                SerializedFields.Edit(pose, so => SerializedFields.Set(so, "mountModule", root.GetComponent<MountModule>()));
+                // The rider's saddle pose is Appa.prefab's own (every saddled mount carries one), so the
+                // herder inherits it; adding a second here would give the variant two.
 
                 var herding = root.AddComponent<HerdingModule>();
                 SerializedFields.Edit(herding, so => SerializedFields.SetInt(so, "priority", ModulePriority.Social + 1));

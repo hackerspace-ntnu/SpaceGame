@@ -1,0 +1,205 @@
+{
+ "name": "ShellBear",
+ "height": 2.6,
+ "length": 4.847,
+ "width": 2.573,
+ "clips": {
+  "Alert": {
+   "take": "ShellBear_Alert",
+   "frames": 72,
+   "loop": false
+  },
+  "AngryIdle": {
+   "take": "ShellBear_AngryIdle",
+   "frames": 121,
+   "loop": false
+  },
+  "Attack": {
+   "take": "ShellBear_Attack",
+   "frames": 121,
+   "loop": false
+  },
+  "AttackHigh": {
+   "take": "ShellBear_AttackHigh",
+   "frames": 92,
+   "loop": false
+  },
+  "AttackRun": {
+   "take": "ShellBear_AttackRun",
+   "frames": 57,
+   "loop": false
+  },
+  "Death": {
+   "take": "ShellBear_Death",
+   "frames": 42,
+   "loop": false
+  },
+  "DeathLying": {
+   "take": "ShellBear_DeathLying",
+   "frames": 24,
+   "loop": false
+  },
+  "Eat": {
+   "take": "ShellBear_Eat",
+   "frames": 222,
+   "loop": true
+  },
+  "GetUp": {
+   "take": "ShellBear_GetUp",
+   "frames": 121,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "ShellBear_Hurt",
+   "frames": 87,
+   "loop": false
+  },
+  "HurtWalk": {
+   "take": "ShellBear_HurtWalk",
+   "frames": 102,
+   "loop": false
+  },
+  "Idle": {
+   "take": "ShellBear_Idle",
+   "frames": 201,
+   "loop": true
+  },
+  "Idle2": {
+   "take": "ShellBear_Idle2",
+   "frames": 201,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "ShellBear_LieDown",
+   "frames": 92,
+   "loop": false
+  },
+  "Rear": {
+   "take": "ShellBear_Rear",
+   "frames": 91,
+   "loop": false
+  },
+  "RearIdle": {
+   "take": "ShellBear_RearIdle",
+   "frames": 151,
+   "loop": false
+  },
+  "RearRoar": {
+   "take": "ShellBear_RearRoar",
+   "frames": 58,
+   "loop": false
+  },
+  "Rest": {
+   "take": "ShellBear_Rest",
+   "frames": 126,
+   "loop": true
+  },
+  "RestBreathe": {
+   "take": "ShellBear_RestBreathe",
+   "frames": 126,
+   "loop": false
+  },
+  "Run": {
+   "take": "ShellBear_Run",
+   "frames": 18,
+   "loop": true
+  },
+  "Sneak": {
+   "take": "ShellBear_Sneak",
+   "frames": 162,
+   "loop": true
+  },
+  "Stand": {
+   "take": "ShellBear_Stand",
+   "frames": 101,
+   "loop": true
+  },
+  "StartWalk": {
+   "take": "ShellBear_StartWalk",
+   "frames": 42,
+   "loop": false
+  },
+  "Trot": {
+   "take": "ShellBear_Trot",
+   "frames": 22,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "ShellBear_TurnL",
+   "frames": 82,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "ShellBear_TurnR",
+   "frames": 82,
+   "loop": true
+  },
+  "Walk": {
+   "take": "ShellBear_Walk",
+   "frames": 82,
+   "loop": true
+  },
+  "WalkFast": {
+   "take": "ShellBear_WalkFast",
+   "frames": 52,
+   "loop": false
+  },
+  "WalkL": {
+   "take": "ShellBear_WalkL",
+   "frames": 82,
+   "loop": true
+  },
+  "WalkR": {
+   "take": "ShellBear_WalkR",
+   "frames": 82,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Run": 2.871,
+  "Sneak": 0.065,
+  "Trot": 3.461,
+  "Walk": 0.472
+ },
+ "eyes": [
+  {
+   "object": "Mesh_ShellBear_EyeL",
+   "centre": [
+    0.1705,
+    -2.0598,
+    1.8887
+   ],
+   "gaze": [
+    0.5984,
+    -0.7217,
+    0.3478
+   ],
+   "radius": 0.03
+  },
+  {
+   "object": "Mesh_ShellBear_EyeR",
+   "centre": [
+    -0.1761,
+    -2.0726,
+    1.9088
+   ],
+   "gaze": [
+    -0.7875,
+    -0.3606,
+    -0.4998
+   ],
+   "radius": 0.03
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e2d9b0",
+  "iris": "#d2c27a",
+  "pupil_color": "#0b0806",
+  "pupil": "round",
+  "pupil_size": 0.35,
+  "iris_size": 0.85
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/ShellBear/shell_bear.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/shell_bear/shell_bear.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/shellbear"
+}

@@ -22,6 +22,12 @@ namespace SpaceGame.Agents
                  "the agent on the NavMesh; off it, every point is refused.")]
         [SerializeField] private bool onlyReachableDestinations = false;
 
+        [Tooltip("Keep within this many metres of home, the point where the agent stood when it first " +
+                 "wandered: every destination is drawn round that point instead of round wherever it has got to. " +
+                 "For a herd that grazes one patch of desert, or stock kept in a yard. 0: no home, the agent drifts " +
+                 "as far as its walks take it.")]
+        [SerializeField, Min(0f)] private float homeRadius = 0f;
+
         [Header("Wait")]
         [SerializeField] private float minWaitTime = 0.5f;
         [SerializeField] private float maxWaitTime = 2f;
@@ -40,6 +46,8 @@ namespace SpaceGame.Agents
         /// and the creature re-rolls a destination it was already halfway to.
         /// </summary>
         private bool restoredThisEnable;
+        private bool hasHome;
+        private Vector3 home;
 
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
@@ -66,6 +74,16 @@ namespace SpaceGame.Agents
         public float WaitTimer => waitTimer;
 
         /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        /// <summary>
+        /// Move the home range (<see cref="homeRadius"/>) to <paramref name="point"/> — an animal penned somewhere new
+        /// grazes there from now on. No effect on an agent without a home range.
+        /// </summary>
+        public void SetHome(Vector3 point)
+        {
+            home = point;
+            hasHome = true;
+        }
+
         public void RestoreWander(bool destinationSet, Vector3 destination, float wait)
         {
             hasDestination = destinationSet;
@@ -83,6 +101,7 @@ namespace SpaceGame.Agents
             "• minDestinationDistance — ignore destinations closer than this\n" +
             "• maxSampleAttempts — tries per destination before giving up\n" +
             "• onlyReachableDestinations — refuse points no complete path leads to (islanded NavMesh)\n" +
+            "• homeRadius — keep within this distance of where it first wandered (0 = drift freely)\n" +
             "• minWaitTime / maxWaitTime — idle pause range after reaching each point\n" +
             "• stopDistance — how close counts as 'reached'\n" +
             "• speedMultiplier — movement speed scale while wandering";
@@ -103,6 +122,12 @@ namespace SpaceGame.Agents
 
             if (!hasDestination)
             {
+                if (!hasHome)
+                {
+                    home = context.Position;
+                    hasHome = true;
+                }
+
                 if (!TryPickDestination(context.Position, out currentDestination))
                 {
                     // Back off rather than re-rolling next frame. With onlyReachableDestinations on,
@@ -121,12 +146,14 @@ namespace SpaceGame.Agents
 
         private bool TryPickDestination(Vector3 origin, out Vector3 destination)
         {
-            float radius = limitWanderRadius ? wanderRadius : freeRoamRadius;
+            bool homed = homeRadius > 0f && hasHome;
+            float radius = homed ? homeRadius : limitWanderRadius ? wanderRadius : freeRoamRadius;
             float sample = limitWanderRadius ? sampleDistance : Mathf.Max(sampleDistance, radius * 0.2f);
+            Vector3 centre = homed ? home : origin;
 
             for (int i = 0; i < maxSampleAttempts; i++)
             {
-                Vector3 candidate = origin + Random.insideUnitSphere * radius;
+                Vector3 candidate = centre + Random.insideUnitSphere * radius;
 
                 if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, sample, NavMesh.AllAreas))
                     continue;

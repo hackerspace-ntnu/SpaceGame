@@ -18,7 +18,7 @@ symptoms:
   - "the creature warns me forever at its nest and never attacks"
   - "the Glintback cannot be petted even though it took my gifts"
 reads_with: [AgentSystem, Inventory, Multiplayer, Persistence, ArtPipeline]
-updated: 2026-09-30
+updated: 2026-10-26
 ---
 
 # Glintback
@@ -51,7 +51,7 @@ field of batteries, a tank and a scanner at (248, 0, 6), and boulders for cover.
 | Type | Priority / key | Notes |
 | --- | --- | --- |
 | `HoardModule` | Ambient + 3 (13) | **Above the telegraph (12) on purpose:** it must keep feeding trespass while the telegraph holds the body in Drawn. It hands the frame down once Drawn or targeting |
-| `CreatureTrust` | NetworkBehaviour | `NetworkVariable<float>`, server-written; `Gift()` and `Restore()` |
+| `CreatureTrust` | NetworkBehaviour | `NetworkVariable<float>`, server-written; `Gift()` and `Restore()`. `petsToTame` 0 here: petting earns nothing and `PettableModule` stays shut until tame. The ranch's eskos set it and are won by petting instead ([Ranch.md](Ranch.md)) |
 | `CreatureTrustSaveable` | `creatureTrust` `{ trust }` | added by `SaveablePolicy` for any `CreatureTrust` |
 
 Animator (`Glintback.controller`): `Locomotion` / `LocomotionTrusting` blend trees on `SpeedY` (Idle

@@ -137,7 +137,7 @@ namespace SpaceGame.Items
                                    out bool isNeck)
         {
             // Every creature rig here names its neck (RigNeck1, neck2, Neck_07). The nearest bone alone put
-            // an ostrich's loop round its shin and a Dunehorn's round its barrel.
+            // an ostrich's loop round its shin and an Esko's round its barrel.
             isNeck = NearestSegment(skeleton, caughtAt, bone => bone.name.IndexOf("neck", System.StringComparison.OrdinalIgnoreCase) >= 0,
                                     out rides, out toward);
             return isNeck || NearestSegment(skeleton, caughtAt, bone => true, out rides, out toward);

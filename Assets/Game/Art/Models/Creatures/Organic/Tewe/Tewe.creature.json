@@ -1,0 +1,176 @@
+{
+ "name": "Tewe",
+ "height": 2.536,
+ "length": 2.512,
+ "width": 0.659,
+ "clips": {
+  "Alert": {
+   "take": "Tewe_Alert",
+   "frames": 23,
+   "loop": false
+  },
+  "AlertIdle": {
+   "take": "Tewe_AlertIdle",
+   "frames": 17,
+   "loop": true
+  },
+  "Attack": {
+   "take": "Tewe_Attack",
+   "frames": 14,
+   "loop": false
+  },
+  "Bark": {
+   "take": "Tewe_Bark",
+   "frames": 23,
+   "loop": false
+  },
+  "Death": {
+   "take": "Tewe_Death",
+   "frames": 13,
+   "loop": false
+  },
+  "DeathR": {
+   "take": "Tewe_DeathR",
+   "frames": 13,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Tewe_Eat",
+   "frames": 190,
+   "loop": true
+  },
+  "GetUp": {
+   "take": "Tewe_GetUp",
+   "frames": 47,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "Tewe_Hurt",
+   "frames": 21,
+   "loop": false
+  },
+  "HurtR": {
+   "take": "Tewe_HurtR",
+   "frames": 21,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Tewe_Idle",
+   "frames": 121,
+   "loop": true
+  },
+  "Jump": {
+   "take": "Tewe_Jump",
+   "frames": 16,
+   "loop": false
+  },
+  "LieDown": {
+   "take": "Tewe_LieDown",
+   "frames": 76,
+   "loop": false
+  },
+  "LookAround": {
+   "take": "Tewe_LookAround",
+   "frames": 112,
+   "loop": false
+  },
+  "Rest": {
+   "take": "Tewe_Rest",
+   "frames": 2,
+   "loop": true
+  },
+  "Run": {
+   "take": "Tewe_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "Shake": {
+   "take": "Tewe_Shake",
+   "frames": 48,
+   "loop": false
+  },
+  "Sprint": {
+   "take": "Tewe_Sprint",
+   "frames": 10,
+   "loop": true
+  },
+  "Stand": {
+   "take": "Tewe_Stand",
+   "frames": 2,
+   "loop": true
+  },
+  "Trot": {
+   "take": "Tewe_Trot",
+   "frames": 17,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "Tewe_TurnL",
+   "frames": 63,
+   "loop": true
+  },
+  "TurnR": {
+   "take": "Tewe_TurnR",
+   "frames": 63,
+   "loop": true
+  },
+  "Walk": {
+   "take": "Tewe_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkInjured": {
+   "take": "Tewe_WalkInjured",
+   "frames": 25,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Run": 7.909,
+  "Sprint": 10.053,
+  "Trot": 2.009,
+  "Walk": 1.605,
+  "WalkInjured": 1.573
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Tewe_EyeL.001",
+   "centre": [
+    0.1005,
+    -1.0379,
+    2.2263
+   ],
+   "gaze": [
+    0.7211,
+    -0.691,
+    0.0501
+   ],
+   "radius": 0.018
+  },
+  {
+   "object": "Mesh_Tewe_EyeR.001",
+   "centre": [
+    -0.0998,
+    -1.0376,
+    2.2269
+   ],
+   "gaze": [
+    -0.7211,
+    -0.691,
+    0.0501
+   ],
+   "radius": 0.018
+  }
+ ],
+ "eye_style": {
+  "sclera": "#3a2218",
+  "iris": "#6e2c16",
+  "pupil_color": "#070404",
+  "pupil": "round",
+  "pupil_size": 0.45,
+  "iris_size": 0.85
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Tewe/tewe.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/tewe/tewe.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/tewe"
+}

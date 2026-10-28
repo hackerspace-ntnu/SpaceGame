@@ -50,7 +50,7 @@ symptoms:
   - "a seated resident's legs pass through the pot or cushion it sits on"
   - "hidden residents still start gestures and fidgets, and their animators still evaluate"
 reads_with: [PlayerCharacter, AgentSystem, ArtPipeline, Multiplayer, Combat, InteractionSystem, TalkingMouth, AnimationCatalog, Pushables]
-updated: 2026-10-06
+updated: 2026-10-21
 ---
 
 # Humanoid Animation
@@ -187,6 +187,8 @@ None. Everything is seconds long or re-asserted by gameplay state that already s
 
 - **A body nobody sees does no animation work (2026-10-04, written without a Play run).** `BodyLanguage.Dormant` (set by `ResidentPresence.ShowHidden`) makes `Writes` false, so `React`, `Express` and `Hold` start nothing; `IdleVariation.Update` returns and disarms its fidget roll (so it does not fire the moment the body is seen), `SpeechGestures` releases its loop and waits. `Release` still works, so a loop held at hide time is let go. The Animator's `cullingMode` is also set to `CullCompletely` for as long as the renderers are off (they are what it culls on) and put back after; the earlier setting on these prefabs is `CullUpdateTransforms`, which still evaluates the state machine. 539 of the 817 gesture and fidget starts of the 2026-10-03 Play day were from hidden bodies; the count after the gate, and the Animator's saved cost, have **not been measured**.
 - **A resident on a stool reads `Seated`, one on a cushion reads `Standing` (2026-10-04).** `ResidentPresence` raises the `Seated` bool only for a `Stool` seat ([Seats.md](Seats.md)), so the base layer's chair sit plays and `Posture` is `Seated`: the `talking` hold then picks `Talk Seated` and the other `Seated` Full loops, and `IdleVariation` raises no fidget (it wants `Standing`). The cushion keeps the Full `sitground` loop over the standing locomotion, so the Standing-only rule and `SitOn` in the entry above still hold for it.
+- **`Ride` is a generated, by-name Full loop (2026-10-21).** [`RideClipGenerator`](Assets/Game/Editor/Animation/RideClipGenerator.cs) writes `Ride/Ride.anim` — `Sit Idle` with muscle offsets from `RidePoseProfile` (thighs opened round a barrel) — and `Actions/Riding/Ride.asset` (no cue, so no pool draws it), then rebuilds. `MountedRiderPose` plays it on every saddle rider ([Vehicles.md](Vehicles.md)). Edit the profile and re-run *Generate Ride Clip*; never hand-edit the clip.
+- **NPCs write `MoveAnimSpeed` too (2026-10-21).** The Move state's speed parameter used to be the player's alone; an NPC walking to a goal at a player's pace (6 m/s, [AgentSystem.md](AgentSystem.md)) pins `SpeedY` past the run anchor (7.2) and skated. `AgentAnimatorDriver` now writes `HumanoidParams.StrideRate` — the player's own rule, shared — whenever the controller has the parameter. A creature controller without it is untouched.
 
 ## Extending
 - **An animation:** select clips → *Create Actions From Selected Clips* (or create a `CharacterAction` by hand) → set slot/playback/marks → **tag its cues** → *Rebuild*. Tagged, it already plays wherever gameplay asks for those cues; to play it by name, reference the asset and call `CharacterActions.Play`. Check it in the Animation Library or with `/act <name>`.

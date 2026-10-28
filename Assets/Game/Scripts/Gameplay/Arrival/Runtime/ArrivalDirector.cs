@@ -611,10 +611,7 @@ namespace SpaceGame.Gameplay.Arrival
         // loading twenty-odd chunks nobody would stand on. A marker at the landing point holds
         // the ground that matters; the crew get their anchoring back the moment they may stand.
 
-        private WorldStreamer worldStreamer;
-
-        private WorldStreamer Streamer =>
-            worldStreamer != null ? worldStreamer : worldStreamer = FindFirstObjectByType<WorldStreamer>();
+        private static WorldStreamer Streamer => WorldStreamer.Current;
 
         private void HoldStreamingAtLandingSite(ArrivalFlight flight)
         {

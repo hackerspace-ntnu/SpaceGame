@@ -132,6 +132,111 @@ It is a workshop, not a wardrobe. You can try as many looks as you like in it, b
 still ships with exactly one, written into the code — which is what keeps the palette from
 quietly drifting into a dozen half-finished variants.
 
+### Grass *(Grass)*
+
+Grass grows wherever you paint it. Each grass biome — meadows in green, gold, autumn orange,
+brown, dark and sage; dry steppe; tall savanna; short turf; sparse scrub for red desert; hardy
+tufts and moss for rocky ground — comes with its own ground texture, and painting that texture on a terrain
+with the normal terrain brush grows that grass there, in its own colours and heights. One grass
+object in a world covers every terrain, including world tiles as they load in, and repainting
+shows the new grass as soon as the brush stroke ends. Grass reaches 90–200 m: thick around the
+player, thinning and widening with distance so the far field costs about as much as the near
+one, and beyond that the painted ground itself carries the grass colour.
+
+**Worth knowing:** the grass recognises its ground texture by the exact asset, so painting with a
+copy of the meadow texture grows nothing; and two grass objects in one world double the grass.
+
+### Grass that reacts *(GrassInteraction)*
+
+The grass and bushes respond to what is in them. Walking through a meadow parts it and leaves a
+trail of flattened grass, laid over the way you walked, that slowly stands back up; bushes lean
+aside and rustle as you push through. Trees and bushes painted onto the terrain stand in the
+grass instead of on it: nothing grows through their trunks, and the grass around their base is
+a little taller and shaded. A gust shows the paler backs of the blades, so wind rolls across a
+field as a silvery wave.
+
+**Worth knowing:** only bodies carrying a grass bender leave trails — so far just the player — and
+trails are a picture each machine draws for itself, never saved or sent over the network.
+
+### Rocks *(Rocks)*
+
+Rocks are painted on like grass, but with the terrain's detail brush, so the ground texture stays
+as it is. Each rock look — red desert, yellow desert, grey stone, mossy — grows three sizes at
+once: pebbles at your feet, boulders up to your shoulder and a few massive rocks you can see from
+far away, all gathered into natural patches. The big ones are solid near the players.
+
+**Worth knowing:** a terrain needs a one-click setup first (Tools/World/Rocks), and NPCs do not
+know the rocks are there, so they can walk through them.
+
+### The grass biomes *(GrassBiomes)*
+
+Twenty-four ready-made grasses, each a set of three files: its shape and size, its colours, and
+the ground texture you paint to grow it. They cover green meadows in six colourings, dry steppe,
+tall savanna, turf, red-desert scrub, rocky tufts and moss, and eleven odd shapes from reeds to
+crystal shards. A new one is made by copying an existing set and changing it.
+
+**Worth knowing:** sizes are for the 3 m tall player, so meadows reach the hip and tall grass and
+reeds stand over the player's head.
+
+### Bark textures *(BarkMaps)*
+
+An optional painted bark for the trees: ridged, furrowed, weathered, scaled and ringed woods, and
+six barks that grew somewhere else — twisted rope strands, pored skin, overlapping scales, veined
+skin, blistered stalks and seed-studded ribs. Each is a tileable texture that shades a tree's own
+bark colour, plus moss that creeps up from the roots into the cracks. A bark material switches it
+on with one tick-box. Nothing glows: these are plants, not lamps.
+
+**Worth knowing:** the existing bark colours are so dark that the texture vanishes on them, so
+brighten a bark's colours when you switch its texture on.
+
+### The converted nature kit *(VegetationKit)*
+
+Forty-four trees and plants from a free nature pack, rebuilt to match our own: leafy green and
+autumn-red broadleaf trees, drooping spruces, bare weathered snags, leafy bushes (one in flower),
+ferns, big-leaved plants, clover, wildflowers, grass clumps, ground blossoms, mushrooms and a shelf
+fungus. They sway with the same wind and use the same colours as every other plant, so they mix
+freely with the rest.
+
+**Worth knowing:** the pack's trees are a little heavier to draw than ours, and its path stones
+are not converted yet.
+
+### Four biome families *(VegetationFamilies)*
+
+Twenty-four plants in four families, each a matching set of trees, bushes, small plants and a
+ground prop so one biome can be dressed from one family. **Frill** (wet swamps): stilt-rooted,
+vine-wrapped trees crowned with big ruffled cabbage-like leaves. **Lattice** (dry badlands):
+bone-pale twisted trunks holding perforated shelves, cage-like pods and dry coral. **Starburst**
+(dry savanna): long grey stalks fanning from a fallen base, each topped by a red star over a shaggy
+dead collar. **Scalewood** (wet primeval forest): tall scaled poles with bottlebrush tips, slender
+trees hung with paddle-leaf fans, and spoon-leaf bushes. Several come in a second colouring (plum,
+bone, rust, dried).
+
+**Worth knowing:** like every plant here they sway on the grass's wind, so never tick "Batching
+Static" on them.
+
+### Trees and bushes *(Foliage)*
+
+About two hundred ready-made trees, bushes, plants and overgrown props in the same painterly style
+as the grass, sized for the 3 m player: meadows and old woods, winter, highland pines, savanna,
+red desert and cactus flats, oases and wetlands, alien groves and glowing reefs, fungal hollows
+and salvage farms, plus seasonal and weather colourings (spring, autumn, drought, sandstorm dust,
+frost, charred, night glow). Drag them in or paint them with the terrain's tree brush; the two
+VegetationGallery test scenes show every kit on its matching grass. They sway on the same wind
+as the grass, and walking through a bush parts it.
+
+**Worth knowing:** never tick "Batching Static" on them — it breaks their swaying.
+
+### Ponds and lakes *(StylizedWater)*
+
+Water is our own shader, built up in layers like a painting: the colour deepens from pale
+turquoise at the shore to blue in the middle, the bottom shows through the shallows with a
+dancing web of sunlight on it, the sky and reeds reflect at a low angle, and foam rings the
+shore, laps in toward it and streaks the open water. Slow swells roll underneath it all.
+
+**Worth knowing:** nothing on the water scrolls. Every pattern changes shape over time
+instead of sliding, because a pattern that slides as one fixed picture is what made the
+previous, bought-in water look fake.
+
 ### The Mars colony: airlocks, stairs and interiors *(ColonyInterior)*
 
 The Mars colony's buildings are hollow now, and you walk straight into them: no loading, no fade. Climb the stairs and right-click the round hull door: the chamber vents in a blast of mist under a spinning amber beacon, and the door swings open. Step in, shut it behind you, right-click the inner hatch, and the chamber fills with haze as it pressurises before the inner hatch slides apart. If you forget the door behind you, the inner hatch tells you to close it first. Inside, modules, domed hubs and the tubes between them are one connected station, with windows you can look out of and a geodesic dome you can see the sky through. You can breathe in there, and every room is furnished from one library of colony props: bunks sized for a suited 3 m crew, lockers, a galley, hydroponics, research desks, rock analysis benches, workbenches, shelving and crates along the walls, the real EVA suits hanging on their stands, an oxygen filler that already has power, a map projector and, in the domed buildings, a gear wall. The large colony has a rover bay: the real rover parked on a lift under the dome, with its tool wall, wheel rack and diagnostic cart round it. Gear lies only on the gear walls and the small wall boards, and only batteries and oxygen tanks: take them and they stay taken, even after a reload.
@@ -163,6 +268,12 @@ Outside the broken gate a Shellback paces back and forth, frantic. Come close an
 **Worth knowing:** written and built, but not yet played, not tried with a second player, and not saved and reloaded in a real world. The Shellback outside is never saved: if he is killed he is back next time the world loads. In the world today the workshop is the bare building, so it is his family (three Shellbacks the story brings in) who meet you; in the outpost version it is the residents who live upstairs. In the bare building only the host hears what happens. While this story is open, the visor shows it instead of the crash-site objectives.
 
 When the Heart Gear is home the Shellbacks thank you and offer to help fix your ship: they kept one part that fits it, a sealed reactor core, in their vault. You have to find the vault yourself, deep behind the turning rooms: turn the main room with its big cog to open the hidden hallways, then turn your way through. The vault door has a small gear lock. The core is far too heavy to bolt on by hand, so you carry it up to the crane console on the third floor, hang it on the hoist's hook and lower it onto your ship parked in the main hall. Let go over its reactor mount and the core is fitted, which ends the story. It is also one of the ship's missing modules, so it counts towards repairing the ship. Not yet played by a person, with a second player, or through a real save and reload.
+
+### Breaking eskos at the Raxy ranch *(Ranch)*
+
+In the Raxy town square stands Tovak, a drover in chaps and a wide hat, who calls out to you as you pass. Talk to him and he walks you out past the animal keep to his ranch: a big corral and a yard where a tame esko grazes. She won't take a saddle from a stranger, so you scratch her head a few times until she trusts you; then he lays a saddle down for you, you put it on her, climb up and learn to walk, gallop and jump. He rides out with you to a wild herd grazing south of town and hands everyone a lasso. The wild ones bolt when you come near, and they weigh as much as she does: rope one on foot and it drags you across the sand, rope it from the saddle and she holds it. Tow all three into the corral, let go once they're inside and shut the gate.
+
+**Worth knowing:** the ranch is in both worlds, Story and Spillexo, next to each one's Raxy town. the ranch is its own little world object that knows where Tovak should stand for each part of the job; he waits for you when you fall behind. Built and tested in the editor, but not yet played start to finish, not tried with a second player, and not saved and reloaded in a real world.
 
 ### Doorways, interiors and teleporting *(SceneTransitions)*
 
@@ -676,6 +787,18 @@ After the crash the crew share one short chain of objectives: try the basic cont
 Every 3D asset starts as a Blender file in a source library Unity deliberately cannot see, sitting beside the script that generated it and a note recording how it was built. Colours never come from the model: they are linked from one shared palette of 54 materials that grows only when nothing existing serves, and the export makes them local on the way out. From there an export writes the FBX, Unity imports it, and a generator script assembles the prefab, its clips and its animation controller — the finished prefab is never wired by hand.
 
 **Worth knowing:** Never re-run a generator over a Blender file that already exists — the file, not the script, is the truth, and several of them (the lander interior, the nomad, the six-legged vrescal) carry hand edits that exist nowhere else and would be gone forever.
+
+### Creatures from concept art *(WildCreatures)*
+
+A creature drawn as concept art reaches the game in two halves. Outside the project, a quick AI-generated 3D model of the drawing is cleaned up, a real animal's skeleton and animations (a wolf's, a boar's, a duck's, a scorpion's — whichever moves most like the drawing) are laid into it, its coat is painted to match the picture and it is given real eyeballs. Inside the project, one menu command turns each one into a wild animal: it copies the Esko's tried behaviour — wander, notice you, run or fight back when hurt, go limp when it dies — without the saddle, plays the creature's own walk, run, graze, attack and death on the Esko's animation setup, moves it exactly as fast as its feet step so they do not slide, and wires its eyes to blink.
+
+**Worth knowing:** the command never rebuilds a creature that already has a prefab — delete it to rebuild — and every creature it makes behaves like a peaceful Esko until someone edits its prefab by hand.
+
+### Reviewing creature animations *(CreatureAnimationReview)*
+
+A window and its own scene for judging every creature clip by eye. It plays one creature's clips one after another, or one clip name (every Walk, every Death) on the whole cast side by side. Each creature stands on a strip of grid floor that scrolls at the speed the game moves it, so feet that slide are easy to see. One key marks each clip good, needing work or broken, with a note. The verdicts are kept in a file in the project and can be copied out as a list for whoever fixes the clips. It also flags clips that do not move at all and frames where the pose jumps.
+
+**Worth knowing:** it runs without pressing Play, because Play in a scene outside the build is sent to the main menu. Those flags are hints to look closer, not verdicts: attacks and falls move fast on purpose.
 
 ### The eyes on a character's face *(StylizedEyes)*
 

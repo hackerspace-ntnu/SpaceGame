@@ -1,0 +1,143 @@
+{
+ "name": "GoldRunner",
+ "height": 2.2,
+ "length": 2.159,
+ "width": 1.398,
+ "clips": {
+  "Alert": {
+   "take": "GoldRunner_Alert",
+   "frames": 65,
+   "loop": false
+  },
+  "Attack": {
+   "take": "GoldRunner_Attack",
+   "frames": 13,
+   "loop": false
+  },
+  "Death": {
+   "take": "GoldRunner_Death",
+   "frames": 41,
+   "loop": false
+  },
+  "Drink": {
+   "take": "GoldRunner_Drink",
+   "frames": 61,
+   "loop": false
+  },
+  "Hurt": {
+   "take": "GoldRunner_Hurt",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtBack": {
+   "take": "GoldRunner_HurtBack",
+   "frames": 38,
+   "loop": false
+  },
+  "HurtL": {
+   "take": "GoldRunner_HurtL",
+   "frames": 38,
+   "loop": false
+  },
+  "Idle": {
+   "take": "GoldRunner_Idle",
+   "frames": 31,
+   "loop": true
+  },
+  "IdleRuffle": {
+   "take": "GoldRunner_IdleRuffle",
+   "frames": 61,
+   "loop": false
+  },
+  "IdleShake": {
+   "take": "GoldRunner_IdleShake",
+   "frames": 25,
+   "loop": false
+  },
+  "Jump": {
+   "take": "GoldRunner_Jump",
+   "frames": 17,
+   "loop": false
+  },
+  "Land": {
+   "take": "GoldRunner_Land",
+   "frames": 101,
+   "loop": false
+  },
+  "Run": {
+   "take": "GoldRunner_Run",
+   "frames": 13,
+   "loop": true
+  },
+  "Stand": {
+   "take": "GoldRunner_Stand",
+   "frames": 91,
+   "loop": true
+  },
+  "TurnL": {
+   "take": "GoldRunner_TurnL",
+   "frames": 65,
+   "loop": true
+  },
+  "TurnL180": {
+   "take": "GoldRunner_TurnL180",
+   "frames": 91,
+   "loop": false
+  },
+  "Walk": {
+   "take": "GoldRunner_Walk",
+   "frames": 25,
+   "loop": true
+  },
+  "WalkAlert": {
+   "take": "GoldRunner_WalkAlert",
+   "frames": 25,
+   "loop": false
+  }
+ },
+ "stride": {
+  "Run": 9.929,
+  "Walk": 1.526
+ },
+ "eyes": [
+  {
+   "object": "Mesh_GoldRunner_EyeL",
+   "centre": [
+    0.2759,
+    -0.8824,
+    1.7885
+   ],
+   "gaze": [
+    0.8466,
+    -0.4492,
+    0.2855
+   ],
+   "radius": 0.032
+  },
+  {
+   "object": "Mesh_GoldRunner_EyeR",
+   "centre": [
+    0.1191,
+    -0.8769,
+    1.7992
+   ],
+   "gaze": [
+    -0.8095,
+    -0.5866,
+    0.0233
+   ],
+   "radius": 0.032
+  }
+ ],
+ "eye_style": {
+  "sclera": "#f0e6cc",
+  "iris": "#6b3a1c",
+  "pupil_color": "#0a0604",
+  "pupil": "round",
+  "pupil_size": 0.45,
+  "iris_size": 0.8
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/GoldRunner/gold_runner.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/gold_runner/gold_runner.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/goldrunner"
+}

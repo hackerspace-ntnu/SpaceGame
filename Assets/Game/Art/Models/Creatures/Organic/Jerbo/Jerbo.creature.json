@@ -1,0 +1,98 @@
+{
+ "name": "Jerbo",
+ "height": 0.62,
+ "length": 0.673,
+ "width": 0.397,
+ "clips": {
+  "Alert": {
+   "take": "Jerbo_Alert",
+   "frames": 221,
+   "loop": false
+  },
+  "Death": {
+   "take": "Jerbo_Death",
+   "frames": 45,
+   "loop": false
+  },
+  "Eat": {
+   "take": "Jerbo_Eat",
+   "frames": 221,
+   "loop": true
+  },
+  "EatEnd": {
+   "take": "Jerbo_EatEnd",
+   "frames": 29,
+   "loop": false
+  },
+  "EatStart": {
+   "take": "Jerbo_EatStart",
+   "frames": 29,
+   "loop": false
+  },
+  "Hop": {
+   "take": "Jerbo_Hop",
+   "frames": 26,
+   "loop": true
+  },
+  "HopFast": {
+   "take": "Jerbo_HopFast",
+   "frames": 18,
+   "loop": true
+  },
+  "Hurt": {
+   "take": "Jerbo_Hurt",
+   "frames": 29,
+   "loop": false
+  },
+  "Idle": {
+   "take": "Jerbo_Idle",
+   "frames": 221,
+   "loop": true
+  }
+ },
+ "stride": {
+  "Hop": 0.0,
+  "HopFast": 0.0
+ },
+ "eyes": [
+  {
+   "object": "Mesh_Jerbo_EyeL",
+   "centre": [
+    -0.0054,
+    -0.2712,
+    0.4305
+   ],
+   "gaze": [
+    0.3037,
+    -0.9514,
+    0.0506
+   ],
+   "radius": 0.014
+  },
+  {
+   "object": "Mesh_Jerbo_EyeR",
+   "centre": [
+    -0.0586,
+    -0.2737,
+    0.446
+   ],
+   "gaze": [
+    -0.4507,
+    -0.8913,
+    0.0501
+   ],
+   "radius": 0.014
+  }
+ ],
+ "eye_style": {
+  "sclera": "#e9e2da",
+  "iris": "#4c7493",
+  "pupil_color": "#0b0d10",
+  "pupil": "round",
+  "pupil_size": 0.45,
+  "iris_size": 0.9
+ },
+ "fbx": "Assets/Game/Art/Models/Creatures/Organic/Jerbo/jerbo.fbx",
+ "source": "Assets/Game/Art/Models/_Source~/models/creatures/jerbo/jerbo.blend",
+ "work": "/private/tmp/claude-501/-Users-ferdinandfremming-Documents-hackerspace-spillgruppen-SpaceGame/1e19dd1a-5fa7-4d4f-99bf-55bed7c945d0/scratchpad/ai/work/jerbo"
+}

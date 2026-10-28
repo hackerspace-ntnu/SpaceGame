@@ -21,15 +21,13 @@ namespace SpaceGame.World.Safety
 {
     public static class TerrainProbe
     {
-        private static WorldStreamer s_streamer;
-
         /// <summary>
         /// Terrain surface height at <paramref name="worldPos"/>'s X/Z, or false when no terrain
         /// covers that position.
         /// </summary>
         public static bool TryGetTerrainHeight(Vector3 worldPos, out float terrainY)
         {
-            var streamer = ResolveStreamer();
+            var streamer = WorldStreamer.Current;
             if (streamer != null && streamer.TryGetTerrainHeight(worldPos, out terrainY))
                 return true;
 
@@ -49,21 +47,8 @@ namespace SpaceGame.World.Safety
         /// </summary>
         public static bool IsInsideStreamedWorld(Vector3 worldPos)
         {
-            var streamer = ResolveStreamer();
+            var streamer = WorldStreamer.Current;
             return streamer != null && streamer.IsInsideWorldGrid(worldPos);
-        }
-
-        /// <summary>
-        /// Cached because this runs on a timer for every guarded body; re-resolved whenever the
-        /// cache is stale, since WorldStreamer is destroyed and recreated across scene reloads and
-        /// a destroyed reference compares equal to null.
-        /// </summary>
-        private static WorldStreamer ResolveStreamer()
-        {
-            if (s_streamer == null)
-                s_streamer = Object.FindFirstObjectByType<WorldStreamer>();
-
-            return s_streamer;
         }
 
         /// <summary>

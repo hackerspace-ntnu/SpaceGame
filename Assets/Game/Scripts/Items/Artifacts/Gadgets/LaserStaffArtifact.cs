@@ -546,7 +546,7 @@ namespace SpaceGame.Items
                                      hitMask, QueryTriggerInteraction.Ignore))
                     return;
 
-                if (owner == null || !hit.collider.transform.IsChildOf(owner.transform))
+                if (owner == null || !AimProvider.IsOwnOrRidden(hit.collider.transform, owner.transform))
                 {
                     _endPoint = hit.point;
                     _hitNormal = hit.normal;

@@ -86,6 +86,7 @@ GameObject:
   - component: {fileID: 4096167215982986529}
   - component: {fileID: 6442703998842180346}
   - component: {fileID: 2374147978583016137}
+  - component: {fileID: 1075318980856515251}
   m_Layer: 0
   m_Name: Caraxoid_Mother
   m_TagString: Untagged
@@ -240,6 +241,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1
   measuredRunSpeed: 17.1784
+  runClipSpeed: 7.2
   strideEndPhases: []
 --- !u!114 &2430071462146078573
 MonoBehaviour:
@@ -255,6 +257,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 7736563656831092041}
   animatorDriver: {fileID: 9221487809540173517}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &2141838881403881633
@@ -288,7 +291,6 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -301,7 +303,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -378,6 +379,7 @@ MonoBehaviour:
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 2
   maxWaitTime: 6
   stopDistance: 0.2
@@ -431,7 +433,6 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
-  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -760,6 +761,13 @@ MonoBehaviour:
     breakDamage: 10
   swallowed:
     seconds: 6
+  shocked:
+    seconds: 3
+    immunity: 2
+  bound:
+    seconds: 86400
+    stillSecondsToEscape: 30
+    stillTolerance: 0.3
   inflationTarget: {fileID: 7242953730485990826}
 --- !u!114 &4454242615689040444
 MonoBehaviour:
@@ -983,15 +991,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &2374147978583016137
@@ -1006,6 +1011,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
+--- !u!114 &1075318980856515251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8688218422114882932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.8
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
 --- !u!1001 &4331453374316141599
 PrefabInstance:
   m_ObjectHideFlags: 0

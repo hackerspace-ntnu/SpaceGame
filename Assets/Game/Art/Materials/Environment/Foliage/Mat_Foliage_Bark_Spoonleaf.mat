@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Mat_Foliage_Bark_Spoonleaf
+  m_Shader: {fileID: 4800000, guid: dab1cf356f5ce477cbed8a5a7321e078, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _BARK_TEXTURE
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BarkMap:
+        m_Texture: {fileID: 2800000, guid: 65220f92235f345b09ca869ace31d956, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AccentChance: 0
+    - _AccentEmission: 0
+    - _AccentSize: 0.45
+    - _AmbientStrength: 1
+    - _BarkStrength: 1
+    - _BarkTexture: 1
+    - _BarkTiling: 0.5
+    - _BendRustle: 0.072
+    - _BendStrength: 0.9
+    - _ClumpBrightness: 0.2
+    - _Cull: 2
+    - _FlutterFrequency: 7.5
+    - _FlutterStrength: 0.06
+    - _GradientPower: 0.8
+    - _GrooveStrength: 0.4
+    - _GustBrighten: 0
+    - _HeightWeight: 1
+    - _InnerOcclusion: 1
+    - _LeafBrightness: 0
+    - _LeafTintAmount: 0
+    - _LightWrap: 0.5
+    - _LimbFrequency: 1.5
+    - _LimbSway: 0.1
+    - _MossAmount: 0
+    - _MossHeight: 0.25
+    - _ShadowStrength: 0.7
+    - _ShellWeight: 0
+    - _Translucency: 0
+    - _VariationStrength: 0
+    - _WaveLength: 9
+    - _WaveSpeed: 1.8
+    - _WindFrequency: 0.12
+    - _WindSpeed: 4
+    - _WindStrength: 0.07
+    m_Colors:
+    - _AccentColorA: {r: 0.96999997, g: 0.65999997, b: 0.78, a: 1}
+    - _AccentColorB: {r: 0.97999996, g: 0.92, b: 0.8, a: 1}
+    - _GrooveColor: {r: 0.11999995, g: 0.089999996, b: 0.06999998, a: 1}
+    - _InnerColor: {r: 0.18, g: 0.14, b: 0.13, a: 1}
+    - _LeafTintColor: {r: 0.54999995, g: 0.39999998, b: 0.17999998, a: 1}
+    - _MossColor: {r: 0.29999998, g: 0.37999994, b: 0.14999998, a: 1}
+    - _OuterColor: {r: 0.48, g: 0.4, b: 0.34, a: 1}
+    - _VariationColorA: {r: 0.44, g: 0.38, b: 0.34, a: 1}
+    - _VariationColorB: {r: 0.5, g: 0.42, b: 0.34, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

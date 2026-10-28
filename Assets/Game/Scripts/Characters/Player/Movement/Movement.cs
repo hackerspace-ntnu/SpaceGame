@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Ragdoll;
+using SpaceGame.Presentation;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Characters
@@ -251,6 +252,7 @@ namespace SpaceGame.Characters
         {
             stance = GetComponent<PlayerStance>();
             ledgeClimber = GetComponent<LedgeClimber>();
+            PlayerPace.Report(moveSpeed);
         }
 
         private void Start()
@@ -679,10 +681,7 @@ namespace SpaceGame.Characters
         private float StrideRate(Vector3 localVelocity, bool crouching)
         {
             float clipSpeed = crouching ? crouchClipSpeed : runClipSpeed;
-            if (clipSpeed <= 0.01f) return 1f;
-
-            float planar = new Vector2(localVelocity.x, localVelocity.z).magnitude;
-            return planar <= clipSpeed ? 1f : planar / clipSpeed;
+            return HumanoidParams.StrideRate(new Vector2(localVelocity.x, localVelocity.z).magnitude, clipSpeed);
         }
 
         public void ForceIdleAnimation()

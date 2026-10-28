@@ -385,8 +385,9 @@ namespace SpaceGame.Items
             // the crosshair. A miss still has to look like paint falling somewhere real.
             arg.P = SprayArc.Sample(origin, direction, jetSpeed, jetGravity, jetFlightTime);
 
+            Transform self = owner != null ? owner.transform : null;
             if (!SprayArc.Trace(origin, direction, jetSpeed, jetGravity, jetFlightTime, ~0,
-                                 out RaycastHit hit, out float _))
+                                 self, AimProvider.RiddenBy(self), out RaycastHit hit, out float _))
                 return;
 
             arg.P = hit.point;

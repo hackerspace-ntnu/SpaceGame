@@ -42,6 +42,19 @@ namespace SpaceGame.Presentation
         public static readonly int CycleOffsetHash = Animator.StringToHash(CycleOffset);
         public static readonly int SeatedHash = Animator.StringToHash(Seated);
 
+        /// <summary>
+        /// The <see cref="MoveAnimSpeed"/> for a body whose locomotion floats read
+        /// <paramref name="planarSpeed"/>, when the Move tree's fastest anchor sits at
+        /// <paramref name="clipSpeed"/>: exactly 1 up to the anchor, proportionally faster past it.
+        /// A blend tree only picks WHICH clip plays, so past its last anchor this is the only thing
+        /// that keeps the feet on the ground. Shared by the player and every humanoid NPC.
+        /// </summary>
+        public static float StrideRate(float planarSpeed, float clipSpeed)
+        {
+            if (clipSpeed <= 0.01f) return 1f;
+            return planarSpeed <= clipSpeed ? 1f : planarSpeed / clipSpeed;
+        }
+
         /// <summary>Mirror switch of an action layer's states, one per slot.</summary>
         public static string ActionMirror(CharacterAction.Slot slot) => "ActionMirror" + slot;
 

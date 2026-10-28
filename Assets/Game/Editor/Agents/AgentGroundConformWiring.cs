@@ -33,16 +33,16 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// How much of the slope a body with legs on every side takes on. Nearly all of it: every
         /// foot is on the hillside, so the shell hugging it is what standing on it looks like.
-        /// The Vrescal hexapod is the only agent in this project that qualifies.
+        /// The Vrescal hexapod and the four-legged grazers and Caraxoids qualify.
         /// </summary>
         public const float ManyLeggedSlopeFollow = 0.8f;
 
         /// <summary>
-        /// Prefab file names whose agent walks on more than two legs. A list rather than something
-        /// derived from the rig because it is one entry: counting foot bones to rediscover a fact
-        /// that fits on one line would be the more fragile of the two.
+        /// Prefab file-name prefixes whose agent walks on more than two legs. A list rather than
+        /// something derived from the rig: the DuneRat's bone names claim four legs and it walks on
+        /// two, so counting foot bones would rediscover the fact wrongly.
         /// </summary>
-        private static readonly string[] ManyLegged = { "Vrescal" };
+        private static readonly string[] ManyLegged = { "Vrescal", "Esko", "Appa", "Sandloper", "Caraxoid" };
 
         /// <summary>
         /// Adds <see cref="AgentGroundConform"/> to <paramref name="root"/> if it drives a

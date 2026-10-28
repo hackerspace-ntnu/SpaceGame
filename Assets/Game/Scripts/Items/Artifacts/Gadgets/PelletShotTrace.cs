@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Items
 {
@@ -84,7 +85,7 @@ namespace SpaceGame.Items
             {
                 if (!Physics.Raycast(origin, dir, out RaycastHit hit, range, mask,
                                      QueryTriggerInteraction.Ignore)
-                    || (holder != null && hit.collider.transform.IsChildOf(holder)))
+                    || AimProvider.IsOwnOrRidden(hit.collider.transform, holder))
                 {
                     into.Add(new Pellet(dir, origin + dir * range, -dir, range, false, null, null, false));
                     continue;

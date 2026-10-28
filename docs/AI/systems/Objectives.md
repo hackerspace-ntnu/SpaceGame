@@ -26,7 +26,7 @@ symptoms:
   - "a villager offers a quest the crew have already taken on"
   - "talking to the elder before the step that asks for it finished the step early"
 reads_with: [CrashSiteQuest, Visor, UI, Multiplayer, Persistence, WorkshopMission, Expeditions, SpriteHamletQuest]
-updated: 2026-10-15
+updated: 2026-10-26
 ---
 
 # Objectives
@@ -70,8 +70,8 @@ quest finishes) or something in the world gives it. The quest most recently take
   SERVER; `TrackLocalPlayer` / `Status` / `TryGetWaypoint` / `TryGetFocus` / `TryGetBeacon` on EVERY machine.
   Memory lives in the quest's [`ObjectiveWorld`](Assets/Game/Scripts/Gameplay/Objectives/ObjectiveWorld.cs), wiped by
   `ForgetStep` whenever that quest's step changes.
-- **A step every player must do themselves** overrides `TrackLocalPlayer` (true when this machine's player is done)
-  and meets on `world.EveryoneFinished`; the server counts reports per `OwnerClientId` (`LearnControlsStep`).
+- **A step every player must do themselves** overrides `TrackLocalPlayer` and meets on `world.EveryoneFinished` (one
+  only one player can do — one animal to ride — on `world.AnyoneFinished`); `LearnControlsStep.CanPractise` says where.
 - **What a step spawns is an ordinary pickup.** [`PlacedItemStep`](Assets/Game/Scripts/Gameplay/Objectives/Steps/PlacedItemStep.cs)
   drops it via `GameServices.World.Spawn` in `TryBegin` and finds it again through `ScannerRegistry`.
 - **Remarks: one-off lines partway through a step.** `RemarkCount`, `RemarkLines(i)`, `IsRemarkDue(world, i)`; the
@@ -93,7 +93,7 @@ quest finishes) or something in the world gives it. The quest most recently take
 | [`ObjectiveSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ObjectiveSaveable.cs) | Global saver, key `objectives`: the story quest's step **id**, `complete`, `begun`, `remarks` top-level (the pre-side-quest format, unchanged), plus `quests[]` = `{id, order, step, complete, begun, remarks}` for every other quest |
 | `ReachSettlementStep` | Generic: go to a town in the baked town list by name (`ObjectiveWorld.TryFindTown`); waypoint + beacon on it; met when any crew member is within its reach + `arrivalMargin` |
 | [`StartQuestStep`](Assets/Game/Scripts/Gameplay/Objectives/Steps/StartQuestStep.cs) | Gives a catalog `quest` in `TryBegin` (`ObjectiveWorld.StartQuest`). `completion`: `HandOff` = met at once, both quests run on; `WaitForQuest` = met when that quest `IsComplete` (a sub-quest), meanwhile `Status` = `waitingStatus` and waypoint/beacon forwarded from the sub-quest's current step. A refused or missing quest counts as done, never blocks |
-| [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays every quest's step lines through `NpcDialogPopupUI`, prefixed with the quest's `speaker` (else `LANDER`), once the local player is present; `LookAtCutscene` to the focus. Remembers per quest what was heard |
+| [`ObjectiveBriefing`](Assets/Game/Scripts/Presentation/Objectives/ObjectiveBriefing.cs) | Plays every quest's step lines through `NpcDialogPopupUI`, prefixed with the quest's `speaker` (else `LANDER`), once the local player is present; `LookAtCutscene` to the focus. Remembers per quest what was heard. Said through the character a [`QuestVoice`](Assets/Game/Scripts/Gameplay/Objectives/QuestVoice.cs) names for the quest when one is loaded and alive here (mouth, bubbles), else on the popup alone. Catalog today: `raxy-ranch` ([Ranch.md](Ranch.md)) |
 | [`VisorObjective`](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorObjective.cs) | Top-right panel: heading (the active quest's name, upper case), title, `Status`, range; NEW OBJECTIVE pop + accent pulse on a new step or a switch of quest; waypoint diamond pinned to the edge off screen (`VisorProjection.PinToScreen`). Shows `QuestLog.Active.Objective` |
 | `ObjectiveBeacon` | Placeholder light column over the **active** quest's `TryGetBeacon` only |
 | [`QuestLogUI`](Assets/Game/Scripts/Presentation/UI/Pages/QuestLogUI.cs) | J (`UI/QuestLog` in `InputSystem_Actions`): every open quest newest first with its objective and summary, FOLLOWING on the active one, click another to follow it; finished quests struck through. See [UI.md](UI.md) |

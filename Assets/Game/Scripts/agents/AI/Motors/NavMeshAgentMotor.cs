@@ -689,8 +689,7 @@ namespace SpaceGame.Agents
             }
 
             agent.stoppingDistance = Mathf.Max(0.01f, intent.StopDistance);
-            float baseMultiplier = intent.IsRunning ? 1f : walkSpeedMultiplier;
-            agent.speed = defaultSpeed * baseMultiplier * Mathf.Max(0.01f, intent.SpeedMultiplier);
+            agent.speed = intent.GaitSpeed(defaultSpeed * walkSpeedMultiplier, defaultSpeed);
 
             agent.isStopped = false;
 

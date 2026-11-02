@@ -1853,6 +1853,7 @@ GameObject:
   - component: {fileID: 2823846218482738107}
   - component: {fileID: -6237145473055005482}
   - component: {fileID: 7076298197136034819}
+  - component: {fileID: 4585872490835641806}
   m_Layer: 0
   m_Name: Astronaut
   m_TagString: Untagged
@@ -2009,6 +2010,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0913581
   measuredRunSpeed: 3.5
+  runClipSpeed: 7.2
   strideEndPhases: []
 --- !u!114 &3375535353894040033
 MonoBehaviour:
@@ -2082,6 +2084,7 @@ MonoBehaviour:
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 0.5
   maxWaitTime: 2
   stopDistance: 0.2
@@ -2221,6 +2224,8 @@ MonoBehaviour:
   provokedLines: []
   drawnAction: {fileID: 11400000, guid: f3e39aa5b90d46a4a40092eb9602769d, type: 2}
   waryAction: {fileID: 11400000, guid: d9403d33a047405d91dc92050ffee8a9, type: 2}
+  drawnAnimatorBool: 
+  waryAnimatorBool: 
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &2764534341285111010
@@ -2270,7 +2275,6 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
-  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -2355,6 +2359,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 0}
   animatorDriver: {fileID: 0}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &7042077159880695061
@@ -2374,7 +2379,6 @@ MonoBehaviour:
   dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -2387,7 +2391,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -2432,7 +2435,6 @@ MonoBehaviour:
   restartFromBeginningAfterSeconds: 10
   useDelayBetweenDialogues: 1
   dialogueDelaySeconds: 1.5
-  voiceId: 401
   voiceSound:
     Guid:
       Data1: 0
@@ -2666,6 +2668,9 @@ MonoBehaviour:
   slopeFollow: 0.35
   maxTiltDegrees: 30
   tiltFollowSpeed: 8
+  reprobeDistance: 0.02
+  reprobeAngle: 2
+  maxProbeInterval: 0.25
 --- !u!114 &-6608916718902315951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2843,15 +2848,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathImpulse: 2.5
   deathImpulseLift: 0.35
 --- !u!114 &6562874730427849516
@@ -3137,6 +3139,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1311b02679a7594ab362594a4804d43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DistanceDormant
+--- !u!114 &4585872490835641806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cd327d71ce36471e9a2d58922d443ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.Residents.ResidentWeaponModule
+  priority: 22
+  active: 1
+  trigger: 0
+  minRange: 4
+  maxRange: 20
+  hurtThreshold: 0.4
+  cooldown: 7.5
+  burstCount: 1
+  burstInterval: 0.14
+  reactionDelay: 0.45
+  targetHeightOffset: 1.1
+  leadSeconds: 0.25
+  spreadDegrees: 2.5
+  requireLineOfSight: 1
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  claimFacing: 1
+  facingPriority: 22
 --- !u!1 &2581286100790949836
 GameObject:
   m_ObjectHideFlags: 0

@@ -386,6 +386,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player loaded from a save cannot move and nothing in the log says why | [Hogtie](systems/Hogtie.md) |
 | a player stays seated after the seat was moved, or stands up inside the seat | [Seats](systems/Seats.md) |
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
+| a player who joined mid-round is stuck on the loading screen | [Arena](systems/Arena.md) |
 | a player's punch shows BLOCKED and does no damage | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a PNG named after a Blender image appeared beside the .blend after an export | [ArtPipeline](systems/ArtPipeline.md) |
 | a poison ball over a keeper says BLOCKED | [WitchFight](systems/WitchFight.md) |
@@ -1014,6 +1015,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I click the lash rail and a gauntlet gets the click instead | [BodyEquipment](systems/BodyEquipment.md) |
 | I crawl through a hatch and end up back outside, or deeper inside | [DuneBarge](systems/DuneBarge.md) |
 | I died during the witch's monologue, stuck in the dialogue while things attacked me | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
+| I died in the arena and there is no respawn button | [Arena](systems/Arena.md) |
 | I died in versus and respawned in the enemy team's ship | [GameModes](systems/GameModes.md) |
 | I edited the .inputactions asset and the new key binding does nothing | [CoreServices](systems/CoreServices.md) |
 | I examined a clue and the objective did not move on | [WorkshopMission](systems/WorkshopMission.md) |
@@ -1040,6 +1042,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I never see Sky fliers flying in formation | [SkyTribe](systems/SkyTribe.md) |
 | I painted rocks with Paint Details and nothing appears | [Rocks](systems/Rocks.md) |
 | I painted the grass layer and nothing grows | [Grass](systems/Grass.md) |
+| I picked a weapon up in the arena with a full hotbar and nothing happened | [Arena](systems/Arena.md) |
 | I put a gear on a peg and it does not turn | [GearDoor](systems/GearDoor.md) |
 | I put every wild esko in the corral and the quest does not finish | [Ranch](systems/Ranch.md) |
 | I put my backpack down inside the ship and ended up under the ship | [Backpack](systems/Backpack.md) |
@@ -1123,6 +1126,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my saver's key is nowhere in the save JSON | [Persistence](systems/Persistence.md) |
 | my shots leave from behind me and hit my own back while the jetpack is lit | [Jetpack](systems/Jetpack.md) |
 | my tank reads full in my hand but the server is draining it | [SupplyCharge](systems/SupplyCharge.md) |
+| my teammate's shots do nothing to me in the arena | [Arena](systems/Arena.md) |
 | my worn gear is flung off my body when I die | [Combat](systems/Combat.md) |
 | Newtonsoft stack-overflows saving a storm | [Environment](systems/Environment.md) |
 | No baked site catalog on the world's streaming config, so the transmitter has no towns to hear | [ShipSignal](systems/ShipSignal.md) |
@@ -1136,6 +1140,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | no sand comes off the wheels however fast it goes | [Monowheel](systems/Monowheel.md) |
 | no sound plays for the client but the host hears it | [audio](systems/audio.md) |
 | no war party ever comes although a tribe is at war | [AgentSystem](systems/AgentSystem.md) |
+| nobody dies in fewer than three hits in the arena | [Arena](systems/Arena.md) |
 | nobody works at a post or sits at a spot although the prefab has it (planner skipped it) | [Residents](systems/Residents.md) |
 | nobody works at a yard: its job archetype is never handed out | [Residents](systems/Residents.md) |
 | noise heightmap mountains have flat tops, or the lowest ground is perfectly flat at 0 m | [NoiseHeightmap](systems/NoiseHeightmap.md) |
@@ -1357,6 +1362,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the animal cannot be ridden, or can be ridden with no saddle on it | [Saddles](systems/Saddles.md) |
 | the animals in a settlement pen walk out through the fence, or stay in when the gate is open | [ArtPipeline](systems/ArtPipeline.md) |
 | the aperture's edge and its halo wobble out of phase with one another | [Portals](systems/Portals.md) |
+| the arena logs no ObjectiveDirector / no BountyBoard | [Arena](systems/Arena.md) |
+| the arena never starts a round and just says waiting for both teams | [Arena](systems/Arena.md) |
 | the arm holding the torch drops whenever I pick something up | [Flashlight](systems/Flashlight.md) |
 | the arm stays up after the torch is switched off | [Flashlight](systems/Flashlight.md) |
 | the arm twists to the crosshair while holding a two-handed item | [Flashlight](systems/Flashlight.md) |
@@ -2051,6 +2058,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the water pattern never changes, it just slides | [StylizedWater](systems/StylizedWater.md) |
 | the water's bed reads as black or the water is one flat colour | [StylizedWater](systems/StylizedWater.md) |
 | the water's swells are invisible on a plane | [StylizedWater](systems/StylizedWater.md) |
+| the weapon pads are empty | [Arena](systems/Arena.md) |
 | the weepfan's paddles are half red, as if the red rib were painted across the leaf | [VegetationFamilies](systems/VegetationFamilies.md) |
 | the wheels spin backwards, or sideways to the way it is moving | [Monowheel](systems/Monowheel.md) |
 | the white room does not exist — the singularity only makes bodies vanish where they stood | [BottledSingularity](systems/BottledSingularity.md) |
@@ -2239,6 +2247,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/buildings/raxy_outposts_export.py` | [Outposts](systems/Outposts.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/ClampedStrapOnBooster.prefab` | [StrapOnBooster](systems/StrapOnBooster.md) |
 | `Assets/Game/ScriptableObjects/Factions/Rosters/StriderHostileLines.asset` | [Striders](systems/Striders.md) |
+| `Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.Arena.cs` | [Arena](systems/Arena.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/WorkshopMissionSaveable.cs` | [WorkshopMission](systems/WorkshopMission.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs` | [Oxygen](systems/Oxygen.md) |
@@ -2275,6 +2284,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/vehicles/dune_barge_export.py` | [DuneBarge](systems/DuneBarge.md) |
 | `Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/ScriptableObjects/Objectives/Steps/08_AnswerSignal.asset` | [ShipSignal](systems/ShipSignal.md) |
+| `Assets/Game/ScriptableObjects/Settlements/NomadArenaSettlement.asset` | [Arena](systems/Arena.md) |
 | `Assets/Game/Scripts/Characters/Player/Movement/JetpackThirdPerson.cs` | [Jetpack](systems/Jetpack.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/DishConsoleSaveable.cs` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Models/_Source~/models/buildings/workshop_export.py` | [Workshop](systems/Workshop.md) |
@@ -2427,6 +2437,7 @@ Longest match wins.
 | `Assets/Game/Resources/Items/ShipParts/DishTransmitter.asset` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopCrane](systems/WorkshopCrane.md) |
 | `Assets/Game/Resources/Items/Workshop/VaultReactorCore.asset` | [WorkshopMission](systems/WorkshopMission.md) |
+| `Assets/Game/ScriptableObjects/Arena/NomadArenaWeapons.asset` | [Arena](systems/Arena.md) |
 | `Assets/Game/ScriptableObjects/Residents/ColonyCulture.asset` | [ColonyResidents](systems/ColonyResidents.md) |
 | `Assets/Game/Scripts/Agents/Modules/Movement/WanderModule.cs` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/Agents/Modules/Quest/RueStrikeModule.cs` | [WitchFight](systems/WitchFight.md) |
@@ -2618,6 +2629,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Equipped/CraftDeployment.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitRecolor.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Presentation/UI/HUD/ArenaHudUI.cs` | [Arena](systems/Arena.md) |
 | `Assets/Game/Art/Animations/Creatures/Esko.controller` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/Art/Materials/Environment/SatelliteTower` | [SatelliteDish](systems/SatelliteDish.md) |
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.shader` | [FoamGun](systems/FoamGun.md) |
@@ -2975,6 +2987,7 @@ Longest match wins.
 | `Assets/Game/Editor/Tests/ArmReachTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Editor/Tests/PushableTests.cs` | [Pushables](systems/Pushables.md) |
 | `Assets/Game/Prefabs/Environment/SunShrine` | [SunShrine](systems/SunShrine.md) |
+| `Assets/Game/Scenes/Arena/NomadArena.unity` | [Arena](systems/Arena.md) |
 | `Assets/Game/ScriptableObjects/Objectives/` | [Objectives](systems/Objectives.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Gameplay/SpriteHamlet` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
@@ -2989,6 +3002,7 @@ Longest match wins.
 | `Assets/Game/Editor/Agents/MouthWiring.cs` | [TalkingMouth](systems/TalkingMouth.md) |
 | `Assets/Game/Editor/Tests/FarDustTests.cs` | [VehicleDust](systems/VehicleDust.md) |
 | `Assets/Game/Resources/AudioCatalog.asset` | [audio](systems/audio.md) |
+| `Assets/Game/Resources/Worlds/Arena.asset` | [Arena](systems/Arena.md) |
 | `Assets/Game/Scenes/world/gameScene.unity` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Scenes/world/gameScene.unity` | [Ranch](systems/Ranch.md) |
 | `Assets/Game/ScriptableObjects/Creatures/` | [WildCreatures](systems/WildCreatures.md) |
@@ -3066,6 +3080,7 @@ Longest match wins.
 | `Assets/Game/Prefabs/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Prefabs/Items/Workshop/` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Scripts/Core/Rendering/` | [CoreServices](systems/CoreServices.md) |
+| `Assets/Game/Scripts/Gameplay/Arena/` | [Arena](systems/Arena.md) |
 | `Assets/Game/Scripts/Gear/JumpingRod` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Artifacts` | [Artifacts](systems/Artifacts.md) |
 | `Assets/Game/Scripts/Items/Inventory` | [Inventory](systems/Inventory.md) |
@@ -3165,4 +3180,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2168 symptoms, 971 paths, 120 docs -->
+<!-- 2176 symptoms, 978 paths, 121 docs -->

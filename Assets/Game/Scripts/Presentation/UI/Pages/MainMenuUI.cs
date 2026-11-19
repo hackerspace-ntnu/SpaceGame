@@ -12,6 +12,8 @@ public class MainMenuUI : MonoBehaviour
     [SerializeField] private GameWorld storyWorld;
     [Tooltip("The Spillexo world: one authored terrain, no chunk streaming.")]
     [SerializeField] private GameWorld spillexoWorld;
+    [Tooltip("The arena: a settlement walled in for a two-team elimination match. Never saved.")]
+    [SerializeField] private GameWorld arenaWorld;
 
     [Header("World selection")]
     [Tooltip("The prefab every menu entry is cloned from, so the screens this menu opens carry its " +
@@ -21,8 +23,9 @@ public class MainMenuUI : MonoBehaviour
     // Which world the open route leads into. Set by the front-menu entry that started the route,
     // and read by every screen after it, so the world list, the lobby and the scene load all agree.
     private bool spillexoChosen;
+    private bool arenaChosen;
 
-    private GameWorld ChosenWorld => spillexoChosen ? spillexoWorld : storyWorld;
+    private GameWorld ChosenWorld => arenaChosen ? arenaWorld : spillexoChosen ? spillexoWorld : storyWorld;
 
     /// <summary>The world the screens this menu opens stage saves against.</summary>
     public WorldStreamingConfig WorldConfig => ChosenWorld != null ? ChosenWorld.Identity : null;
@@ -50,6 +53,7 @@ public class MainMenuUI : MonoBehaviour
     public void StartDisposable()
     {
         spillexoChosen = false;
+        arenaChosen = false;
         WorldSession.StageNew("Disposable", WorldConfig, disposable: true);
         EnterWorld();
     }
@@ -70,6 +74,7 @@ public class MainMenuUI : MonoBehaviour
     private void OpenWorldRoute(string title, bool spillexo)
     {
         spillexoChosen = spillexo;
+        arenaChosen = false;
         MenuChoiceUI.Open(this, title,
             new MenuChoiceUI.Choice("Singleplayer", StartSinglePlayer),
             new MenuChoiceUI.Choice("Multiplayer", StartMultiPlayer));
@@ -82,9 +87,24 @@ public class MainMenuUI : MonoBehaviour
     public void StartVersus()
     {
         spillexoChosen = false;
+        arenaChosen = false;
         MenuChoiceUI.Open(this, "VERSUS",
             new MenuChoiceUI.Choice("Host a game", HostVersus),
             new MenuChoiceUI.Choice("Join a game", JoinVersus));
+    }
+
+    /// <summary>
+    /// Front-menu entry: two teams in the arena, last team standing takes the round. Multiplayer
+    /// only, like VS, and the host's rules page is VS's with the team count locked at two. Bound by
+    /// name from MainMenu.unity; do not rename.
+    /// </summary>
+    public void StartArena()
+    {
+        spillexoChosen = false;
+        arenaChosen = true;
+        MenuChoiceUI.Open(this, "ARENA",
+            new MenuChoiceUI.Choice("Host a game", HostArena),
+            new MenuChoiceUI.Choice("Join a game", JoinArena));
     }
 
     /// <summary>
@@ -118,6 +138,17 @@ public class MainMenuUI : MonoBehaviour
     /// <summary>Host: rules first, so the host picks the team shape before anyone can join it.</summary>
     public void HostVersus() => VersusRulesUI.Open(this);
 
+    /// <summary>Host: the VS rules page, locked to two teams.</summary>
+    public void HostArena() => VersusRulesUI.Open(this, arena: true);
+
+    /// <summary>Join: as <see cref="JoinVersus"/>, onto the arena list.</summary>
+    public void JoinArena()
+    {
+        WorldSession.Clear();
+        VersusSession.Clear();
+        LobbyUI.Open(this, LobbyRoute.ArenaJoin);
+    }
+
     /// <summary>
     /// Join: straight to the lobby, with no world and no leftover match state of our own.
     ///
@@ -149,6 +180,13 @@ public class MainMenuUI : MonoBehaviour
     {
         WorldSession.Clear();
         LobbyUI.Open(this, LobbyRoute.VersusHost);
+    }
+
+    /// <summary>Finishes the host route the arena's rules page started. See <see cref="EnterVersusLobby"/>.</summary>
+    public void EnterArenaLobby()
+    {
+        WorldSession.Clear();
+        LobbyUI.Open(this, LobbyRoute.ArenaHost);
     }
 
     /// <summary>

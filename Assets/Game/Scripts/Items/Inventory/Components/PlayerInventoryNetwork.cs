@@ -427,8 +427,16 @@ namespace SpaceGame.Items
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        private void DropItemServerRpc(int slotIndex)
+        private void DropItemServerRpc(int slotIndex) => DropSlot(slotIndex);
+
+        /// <summary>
+        /// Server. Puts what a slot holds on the ground at the player, carrying its state, and
+        /// empties the slot. The drop key's server half, and what an arena death drops a player's
+        /// weapons with. An empty or out-of-range slot is ignored.
+        /// </summary>
+        public void DropSlot(int slotIndex)
         {
+            if (!Network.Simulates(this)) return;
             if (slotIndex < 0 || slotIndex >= networkItems.Count) return;
 
             HotbarSlotWire wire = networkItems[slotIndex];

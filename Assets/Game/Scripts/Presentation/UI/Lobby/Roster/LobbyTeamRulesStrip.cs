@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using SpaceGame.Core.Lobbies;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Presentation.Lobbies
 {
@@ -87,9 +88,14 @@ namespace SpaceGame.Presentation.Lobbies
             shownTeamCount = snapshot.TeamCount;
             shownTeamSize = snapshot.TeamSize;
 
-            Teams.SetLimits(VersusRules.MinTeams, VersusRules.ClampTeams(VersusRules.MaxTeams, shownTeamSize));
+            // An arena is two sides, always: the count is shown but nobody can move it.
+            if (snapshot.IsArena)
+                Teams.SetLimits(ArenaRules.TeamCount, ArenaRules.TeamCount);
+            else
+                Teams.SetLimits(VersusRules.MinTeams, VersusRules.ClampTeams(VersusRules.MaxTeams, shownTeamSize));
+
             Teams.SetValue(shownTeamCount);
-            Teams.SetInteractable(isHost);
+            Teams.SetInteractable(isHost && !snapshot.IsArena);
 
             TeamSize.SetLimits(VersusRules.MinTeamSize,
                                VersusRules.ClampTeamSize(VersusRules.MaxTeamSize, shownTeamCount));

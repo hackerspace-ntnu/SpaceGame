@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Presentation
 {
@@ -12,6 +13,12 @@ namespace SpaceGame.Presentation
     /// below the horizon — because this sits in exactly the same flow, one page further in:
     /// <see cref="MainMenuUI.HostVersus"/> opens it, and "Start lobby" calls back into
     /// <see cref="MainMenuUI.EnterVersusLobby"/>.
+    ///
+    /// <para>
+    /// The arena route opens the same page with the team count locked at
+    /// <see cref="ArenaRules.TeamCount"/>: only the team size is the host's to choose, and "Start
+    /// lobby" leads to <see cref="MainMenuUI.EnterArenaLobby"/> instead.
+    /// </para>
     /// </summary>
     public class VersusRulesUI : MenuScreen
     {
@@ -20,6 +27,8 @@ namespace SpaceGame.Presentation
 
         /// <summary>What the lobby reads when it creates the session.</summary>
         public static int StagedTeamSize { get; set; } = VersusRules.DefaultTeamSize;
+
+        private bool arena;
 
         private MenuStepper teamsStepper;
         private MenuStepper teamSizeStepper;
@@ -40,14 +49,16 @@ namespace SpaceGame.Presentation
         /// <see cref="VersusRules.DefaultTeamSize"/> — the same reasoning
         /// a config screen gives for resetting its settings to defaults.
         /// </summary>
-        public static VersusRulesUI Open(MainMenuUI owner)
+        public static VersusRulesUI Open(MainMenuUI owner, bool arena = false)
         {
             var existing = Existing<VersusRulesUI>();
             if (existing != null) return existing;
 
             ResetToDefaults();
+            if (arena) StageTeams(ArenaRules.TeamCount);
 
             var ui = new GameObject(nameof(VersusRulesUI)).AddComponent<VersusRulesUI>();
+            ui.arena = arena;
             ui.Present(owner);
             return ui;
         }
@@ -114,8 +125,11 @@ namespace SpaceGame.Presentation
         private void StartLobby()
         {
             MainMenuUI owner = Menu;
+            bool toArena = arena;
             Close();
-            owner.EnterVersusLobby();
+
+            if (toArena) owner.EnterArenaLobby();
+            else owner.EnterVersusLobby();
         }
 
         /// <summary>
@@ -128,7 +142,7 @@ namespace SpaceGame.Presentation
         /// </summary>
         private void Refresh()
         {
-            teamsStepper.SetValue(StagedTeams);
+            if (teamsStepper != null) teamsStepper.SetValue(StagedTeams);
             teamSizeStepper.SetValue(StagedTeamSize);
             seatsLabel.text = DescribeSeats(StagedTeams, StagedTeamSize);
         }
@@ -137,20 +151,25 @@ namespace SpaceGame.Presentation
 
         protected override void Build()
         {
-            Title("VERSUS");
+            Title(arena ? "ARENA" : "VERSUS");
 
             RectTransform column = Column();
 
-            // Both steppers keep VersusRules' full own-axis range for the lifetime of the page,
-            // rather than being re-narrowed from Refresh via SetLimits to whatever the OTHER axis's
-            // current value still allows. Narrowing them would make a chevron stop responding the
-            // instant its own axis hit the ceiling implied by the other one — the same silent
-            // refusal StageTeams/StageTeamSize's doc explains they exist to avoid. Correctness
-            // instead comes entirely from the staging methods: whichever axis the host just moved
-            // lands where asked, and the other one is pulled down to fit.
-            teamsStepper = MenuStepper.Create(EntryPrefab, column, "Teams", StagedTeams,
-                VersusRules.MinTeams, VersusRules.MaxTeams,
-                value => { StageTeams(value); Refresh(); });
+            // An arena is always two sides, so its page has no Teams row at all — a stepper that
+            // never moves would only look broken.
+            if (!arena)
+            {
+                // Both steppers keep VersusRules' full own-axis range for the lifetime of the page,
+                // rather than being re-narrowed from Refresh via SetLimits to whatever the OTHER axis's
+                // current value still allows. Narrowing them would make a chevron stop responding the
+                // instant its own axis hit the ceiling implied by the other one — the same silent
+                // refusal StageTeams/StageTeamSize's doc explains they exist to avoid. Correctness
+                // instead comes entirely from the staging methods: whichever axis the host just moved
+                // lands where asked, and the other one is pulled down to fit.
+                teamsStepper = MenuStepper.Create(EntryPrefab, column, "Teams", StagedTeams,
+                    VersusRules.MinTeams, VersusRules.MaxTeams,
+                    value => { StageTeams(value); Refresh(); });
+            }
 
             teamSizeStepper = MenuStepper.Create(EntryPrefab, column, "Team size", StagedTeamSize,
                 VersusRules.MinTeamSize, VersusRules.MaxTeamSize,

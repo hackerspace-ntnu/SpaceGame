@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.World.Bounties
 {
@@ -38,7 +39,9 @@ namespace SpaceGame.World.Bounties
             board = BountyBoard.Instance;
             if (board == null)
             {
-                Debug.LogError("[Bounties] No BountyBoard in the scene, so the crew's bounty cannot be shared.", this);
+                // An arena has no bounties by design; anywhere else a missing board is a bug.
+                if (ArenaMatch.Instance == null)
+                    Debug.LogError("[Bounties] No BountyBoard in the scene, so the crew's bounty cannot be shared.", this);
                 return;
             }
 

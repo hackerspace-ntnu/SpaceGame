@@ -12,6 +12,7 @@
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Characters
 {
@@ -66,6 +67,10 @@ namespace SpaceGame.Characters
             // respawn. Healing again would be harmless; moving them would not.
             if (health == null || health.Alive) return;
 
+            // An arena round is elimination: the match revives everyone itself between rounds, so
+            // a dead player asking to come back mid-round is refused here, on the deciding machine.
+            if (ArenaMatch.Instance != null) return;
+
             // The rule of respawn: you come back inside your ship — in versus, your TEAM's ship.
             // The seat resolver answers wherever the ship has been driven or landed, which the
             // world's free-standing spawn point cannot. Only when no ship can take this player —
@@ -92,9 +97,22 @@ namespace SpaceGame.Characters
                 return;
             }
 
-            // Everything holding them, dropped before they move and only once there is somewhere to
-            // move to — a player who stays down because no ship could take them stays roped as well.
-            // See RespawnRelease for why the release belongs here rather than at the death.
+            // Only once there is somewhere to move to — a player who stays down because no ship
+            // could take them stays roped as well. See RespawnRelease for why the release belongs
+            // here rather than at the death.
+            ReviveAt(position, rotation);
+        }
+
+        /// <summary>
+        /// Server. Lets go of everything holding this player, moves them, and brings them back at
+        /// full health — the respawn itself, once somewhere to stand has been decided. The arena's
+        /// round reset calls it directly with its own team spawn.
+        /// </summary>
+        public void ReviveAt(Vector3 position, Quaternion rotation)
+        {
+            if (!Network.Simulates(this) || health == null) return;
+
+            // Everything holding them, dropped before they move.
             RespawnRelease.Everything(gameObject);
 
             // Placement first, healing second, and the order is load-bearing. Healing raises

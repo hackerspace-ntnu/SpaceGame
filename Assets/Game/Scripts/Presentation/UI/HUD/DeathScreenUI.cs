@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Characters;
+using SpaceGame.Gameplay.Arena;
 
 /// <summary>
 /// The local player's death overlay.
@@ -53,8 +54,14 @@ public class DeathScreenUI : MonoBehaviour
 
         // The player's state, not an event. See the class note: by the time this HUD exists, the
         // death it needs to react to may already have been announced and lost.
-        deathScreen.gameObject.SetActive(player.IsDead);
+        deathScreen.gameObject.SetActive(player.IsDead && !InArena);
     }
+
+    /// <summary>
+    /// An arena death is an elimination: there is no button to press, the match revives everyone
+    /// between rounds, and the player spectates until then — see <c>ArenaMatch</c>.
+    /// </summary>
+    private static bool InArena => ArenaMatch.Instance != null;
 
     /// <summary>Drops the subscriptions. Safe to call twice, and safe on a player already destroyed.</summary>
     public void Dismiss()
@@ -70,7 +77,7 @@ public class DeathScreenUI : MonoBehaviour
 
     private void ShowDeathScreen()
     {
-        if (deathScreen != null) deathScreen.gameObject.SetActive(true);
+        if (deathScreen != null && !InArena) deathScreen.gameObject.SetActive(true);
     }
 
     private void HideDeathScreen()

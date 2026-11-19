@@ -1,6 +1,7 @@
 using System;
 using Unity.Services.Lobbies.Models;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Core.Lobbies
 {
@@ -21,9 +22,21 @@ namespace SpaceGame.Core.Lobbies
         /// symmetry: a lobby created by a build that shipped before VS existed carries no
         /// <see cref="LobbyKeys.Mode"/> key at all, and it must keep reading as the story lobby it
         /// always was rather than suddenly being offered as a match.
+        ///
+        /// <para>
+        /// An arena lobby is a versus lobby too — it has teams like one — so this answers true for
+        /// both. <see cref="IsArena"/> tells them apart.
+        /// </para>
         /// </summary>
-        public static bool IsVersus(Lobby lobby) =>
-            LobbyData.Text(lobby, LobbyKeys.Mode) == LobbyKeys.ModeVersus;
+        public static bool IsVersus(Lobby lobby)
+        {
+            string mode = LobbyData.Text(lobby, LobbyKeys.Mode);
+            return mode == LobbyKeys.ModeVersus || mode == LobbyKeys.ModeArena;
+        }
+
+        /// <summary>Whether this lobby is an arena match: a versus lobby locked to two teams that loads the arena scene.</summary>
+        public static bool IsArena(Lobby lobby) =>
+            LobbyData.Text(lobby, LobbyKeys.Mode) == LobbyKeys.ModeArena;
 
         /// <summary>
         /// How many teams this lobby is split into. Falls back to
@@ -91,7 +104,9 @@ namespace SpaceGame.Core.Lobbies
             int rawTeams = LobbyData.Int(lobby, LobbyKeys.TeamCount, VersusRules.DefaultTeams);
             int rawSize = LobbyData.Int(lobby, LobbyKeys.TeamSize, VersusRules.DefaultTeamSize);
 
-            teamCount = VersusRules.ClampTeams(rawTeams, rawSize);
+            // An arena is always two sides, whatever the key says — the key is only there because
+            // the arena lobby shares versus's data layout.
+            teamCount = IsArena(lobby) ? ArenaRules.TeamCount : VersusRules.ClampTeams(rawTeams, rawSize);
             teamSize = VersusRules.ClampTeamSize(rawSize, teamCount);
         }
 

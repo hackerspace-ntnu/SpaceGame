@@ -22,7 +22,7 @@ symptoms:
   - "the object I put in Bootstrap is gone the moment the game starts"
   - "which scene is build index 0 or 1, and where does the world scene live"
 reads_with: [WorldStreaming, Multiplayer, SceneTransitions]
-updated: 2026-10-28
+updated: 2026-11-19
 ---
 
 # Scenes
@@ -51,6 +51,7 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 | MainMenu | [Core/MainMenu.unity](Assets/Game/Scenes/Core/MainMenu.unity) | Front end: `MainMenuUI`, lobby preview camera, world select | 1 |
 | persistentScene | [world/persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) | **Root gameplay scene.** Managers, streamer, save system, spawn point, arrival cutscene, Appa | 7 |
 | NoiseTerrain | [world/gameScene.unity](Assets/Game/Scenes/world/gameScene.unity) | **Root of the Spillexo world** (menu entry *Spillexo*, `SceneReference` `Spillexo`): one 8 km terrain from `NoiseHeightmapGenerator` ([NoiseHeightmap.md](NoiseHeightmap.md)) authored straight into the scene, plus a copy of persistentScene's managers, save system, NPC sim, weather, objectives, arrival and spawn point — **no `WorldStreamer`, no chunks**. Its own NavMesh, baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)) | 70 |
+| NomadArena | [Arena/NomadArena.unity](Assets/Game/Scenes/Arena/NomadArena.unity) | **Root of the arena** (menu entry *Arena*, `GameWorld` `Arena`, `SceneReference` `NomadArena`): a 640 m terrain of its own (`Assets/Game/Terrain/Arena/`), a resident-free Nomad settlement, `NetworkGameManager` + `SpawnManager`, Sun, Global Volume, and the `Arena` root (`ArenaMatch`, walls, team spawns, weapon pads, breathable air). No save system, no streamer, no NavMesh. See [Arena.md](Arena.md) | 72 |
 | AlgeaCave | [Interiors/AlgeaCave.unity](Assets/Game/Scenes/Interiors/AlgeaCave.unity) | Additive interior; target of `Interior_AlgeaCave` (note the `Algea` spelling) | 8 |
 | SandstoneCaveInterior | [Interiors/SandstoneCaveInterior.unity](Assets/Game/Scenes/Interiors/SandstoneCaveInterior.unity) | Additive interior, ~3.5 MB, 20+ `AlgaeLight_*`; target of `Interior_SandstoneCave` | 9 |
 | Ferdinand_Test_world | [Tests/Ferdinand_Test_world.unity](Assets/Game/Scenes/Tests/Ferdinand_Test_world.unity) | Second-world root; own `WorldStreamer` + `InteriorManager`. Editor-only entry, no menu route | 58 |

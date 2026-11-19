@@ -7,6 +7,7 @@ using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 using SpaceGame.Persistence;
 using SpaceGame.Presentation;
 
@@ -185,7 +186,11 @@ namespace SpaceGame.Items
           // TryStow is first-fit across the pack's surfaces, so a pickup goes wherever it fits
           // rather than into a numbered slot. It can refuse: the limit is surface area now, and a
           // 1.35 m staff needs a diagonal that a loaded pack may not have left.
-          if (!added)
+          //
+          // Not in an arena: there the hotbar is the whole carry limit, so a full one refuses the
+          // pickup. A weapon stowed in the pack would also outlive the round reset, which only
+          // empties hotbars, and the death drop, which only drops them.
+          if (!added && ArenaMatch.Instance == null)
           {
              BackpackController backpack = interactor.GetComponentInParent<BackpackController>();
              if (backpack != null && backpack.Pack != null)

@@ -125,9 +125,9 @@ namespace SpaceGame.Presentation.Lobbies
             // creating it listed is the choice that matches pressing "Host a game".
             string lobbyName = route.IsVersus() ? null : WorldSession.DisplayName;
 
-            VersusSetup versus = route.IsVersus()
-                ? new VersusSetup(VersusRulesUI.StagedTeams, VersusRulesUI.StagedTeamSize)
-                : VersusSetup.None;
+            VersusSetup versus = route.IsArena() ? VersusSetup.Arena(VersusRulesUI.StagedTeamSize)
+                               : route.IsVersus() ? new VersusSetup(VersusRulesUI.StagedTeams, VersusRulesUI.StagedTeamSize)
+                               : VersusSetup.None;
 
             await session.CreateAsync(lobbyName, false, versus);
 

@@ -28,6 +28,7 @@ namespace SpaceGame.Tests
         [TestCase("StartStory")]
         [TestCase("StartSpillexo")]
         [TestCase("StartVersus")]
+        [TestCase("StartArena")]
         [TestCase("StartMultiPlayer")]
         [TestCase("StartSinglePlayer")]
         [TestCase("QuitGame")]

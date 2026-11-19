@@ -202,7 +202,7 @@ namespace SpaceGame.Presentation.Lobbies
             // filters cannot reliably express "this custom key equals this value" across SDK
             // versions, and a filter that quietly matched nothing would read as "nobody is hosting"
             // on the one screen whose entire job is to say otherwise.
-            page.Browser.Apply(lobbies.FindAll(lobby => route.Accepts(LobbyTeams.IsVersus(lobby))),
+            page.Browser.Apply(lobbies.FindAll(lobby => route.Accepts(LobbyTeams.IsVersus(lobby), LobbyTeams.IsArena(lobby))),
                                refresh.HasLanded);
         }
 

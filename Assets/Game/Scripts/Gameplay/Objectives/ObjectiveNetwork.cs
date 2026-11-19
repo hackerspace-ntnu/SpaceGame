@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Gameplay.Objectives
 {
@@ -38,8 +39,10 @@ namespace SpaceGame.Gameplay.Objectives
             director = ObjectiveDirector.Instance;
             if (director == null)
             {
-                Debug.LogError("[Objectives] No ObjectiveDirector in the scene, so the crew's " +
-                               "objectives cannot be shared.", this);
+                // An arena has no quests by design; anywhere else a missing director is a bug.
+                if (ArenaMatch.Instance == null)
+                    Debug.LogError("[Objectives] No ObjectiveDirector in the scene, so the crew's " +
+                                   "objectives cannot be shared.", this);
                 return;
             }
 

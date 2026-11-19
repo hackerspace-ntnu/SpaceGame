@@ -6,7 +6,6 @@
 // channel, which every client has as soon as it has persistentScene.
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using Unity.Services.Lobbies.Models;
@@ -93,9 +92,7 @@ namespace SpaceGame.Core
 
             while (!VersusTeamRoster.TryGet(clientId, out _))
             {
-                if (NetworkManager.Singleton == null ||
-                    !NetworkManager.Singleton.ConnectedClientsIds.Contains(clientId))
-                    yield break;
+                if (!IsStillConnected(clientId)) yield break;
 
                 if (Time.time >= deadline)
                 {

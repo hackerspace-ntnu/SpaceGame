@@ -22,7 +22,7 @@ symptoms:
   - "the compiler cannot resolve Unity's Lobby type inside this folder"
   - "a lobby control looks enabled but does nothing while a request is in flight"
 reads_with: [UI, GameModes, Multiplayer]
-updated: 2026-09-02
+updated: 2026-11-19
 ---
 
 # Lobby
@@ -106,6 +106,7 @@ Nothing here is saved. Lobby state lives on the service and dies with the sessio
 - **A cancelled join that succeeds must be handed back.** `LobbyJoinFlow.Abandon` calls `LeaveAsync`, or the player occupies a slot in a lobby nothing is showing — and becomes their own next 409.
 - **Private means delisted, not locked**, and `BeginGame()` deliberately sets no `IsLocked`: locking made joining a session in progress impossible, and the host is usually alone when the first friend tries.
 - **A VS host allocates Relay for `VersusRules.MaxSeats`, not `VersusSetup.Seats`.** Relay's allocation size is fixed at creation and the live steppers can grow a team afterwards; the *lobby's* advertised max follows the rules so "3/8" in the browser is trustworthy.
+- **`Mode` is `story`, `versus` or `arena`.** An arena lobby is versus in every respect (`LobbyTeams.IsVersus` is true for it), locked to two teams by `LobbyTeams.ReadRules`; `LobbyTeams.IsArena` and the `ArenaHost`/`ArenaJoin` routes keep it off the VS browser and vice versa. See [Arena.md](Arena.md).
 - **An absent `Mode` key reads as story** (`LobbyTeams.IsVersus`), which is why mode and team rules are stamped in `CreateLobbyOptions` rather than in a follow-up update — a poll landing in the gap would flash a VS lobby into the story browser. The relay code is in there for the same reason.
 - **Out-of-range team indices are folded by modulus, not clamped to 0** (`LobbyTeams.FoldTeam`), so a peer on a build with more teams does not pile everyone onto team one.
 - **Unsubscribe.** The session outlives the screen and will raise `Changed`/`Failed` at a destroyed page; `LobbyUI.OnDestroy` and `LobbyJoinFlow.Dispose` are what stop a poll driving thrown-away rects.

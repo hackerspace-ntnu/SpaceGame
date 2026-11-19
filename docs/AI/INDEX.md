@@ -143,6 +143,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | --- | --- | --- |
 | [AnimationCatalog](systems/AnimationCatalog.md) | What each humanoid clip library became: cuts, actions, loops, measured locomotion speeds | [HumanoidAnimation](systems/HumanoidAnimation.md), [AgentSystem](systems/AgentSystem.md), [Residents](systems/Residents.md), [ArtPipeline](systems/ArtPipeline.md), [Stations](systems/Stations.md) |
 | [AquaticVegetation](systems/AquaticVegetation.md) | 56 sea plants in eight ocean zones that rock on the swell, plus five paintable seabed grass biomes | [Foliage](systems/Foliage.md), [Grass](systems/Grass.md), [GrassBiomes](systems/GrassBiomes.md), [VegetationFamilies](systems/VegetationFamilies.md), [StylizedWater](systems/StylizedWater.md), [BarkMaps](systems/BarkMaps.md) |
+| [Arena](systems/Arena.md) | Two-team elimination in a walled settlement: best-of rounds, weapon pads, scaled damage, no friendly fire | [GameModes](systems/GameModes.md), [Combat](systems/Combat.md), [Lobby](systems/Lobby.md), [Multiplayer](systems/Multiplayer.md), [Artifacts](systems/Artifacts.md) |
 | [BarkMaps](systems/BarkMaps.md) | Opt-in painted bark and skin textures and moss for StylizedFoliage — thirteen tileable triplanar maps | [Foliage](systems/Foliage.md) |
 | [CrashSiteQuest](systems/CrashSiteQuest.md) | The story quest after the crash: controls, oxygen, terminal, module, artifact, transmitter, signal, repair | [Objectives](systems/Objectives.md), [PlayerShip](systems/PlayerShip.md), [Oxygen](systems/Oxygen.md), [ShipSignal](systems/ShipSignal.md), [ShipTransmitterFire](systems/ShipTransmitterFire.md), [SatelliteDish](systems/SatelliteDish.md) |
 | [Cutscenes](systems/Cutscenes.md) | Coroutine cutscene components plus shared presentation helpers: letterbox, shake, cloth wind, tint. | [SceneTransitions](systems/SceneTransitions.md), [PlayerShip](systems/PlayerShip.md), [CutsceneExamples](systems/CutsceneExamples.md), [audio](systems/audio.md), [Diagnostics](systems/Diagnostics.md), [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
@@ -205,4 +206,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/animation-action-inventory.md](systems/animation-action-inventory.md) — generated list of the new animation actions and cue coverage
 - [systems/hand-tool-grip-audit.md](systems/hand-tool-grip-audit.md) — generated grip audit of every hand tool, and the work-clip table
 
-<!-- 120 system docs, 6 redirects -->
+<!-- 121 system docs, 6 redirects -->

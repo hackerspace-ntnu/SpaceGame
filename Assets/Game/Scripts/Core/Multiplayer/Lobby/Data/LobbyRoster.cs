@@ -116,7 +116,8 @@ namespace SpaceGame.Core.Lobbies
                 teamSize,
                 localSlot,
                 HostSlot(lobby),
-                LobbyTeams.IsVersus(lobby));
+                LobbyTeams.IsVersus(lobby),
+                LobbyTeams.IsArena(lobby));
         }
     }
 }

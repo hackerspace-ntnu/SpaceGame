@@ -49,8 +49,12 @@ namespace SpaceGame.Core.Lobbies
 
         public readonly bool IsVersus;
 
+        /// <summary>An arena lobby: versus, with the team count locked at two.</summary>
+        public readonly bool IsArena;
+
         public RosterSnapshot(string[] names, int[] suitColors, int[] teams, int[] teamColors,
-            int[] occupancy, int teamCount, int teamSize, int localSlot, int hostSlot, bool isVersus)
+            int[] occupancy, int teamCount, int teamSize, int localSlot, int hostSlot, bool isVersus,
+            bool isArena = false)
         {
             Names = names ?? Array.Empty<string>();
             SuitColors = suitColors ?? Array.Empty<int>();
@@ -62,6 +66,7 @@ namespace SpaceGame.Core.Lobbies
             LocalSlot = localSlot;
             HostSlot = hostSlot;
             IsVersus = isVersus;
+            IsArena = isArena;
         }
 
         /// <summary>Which team we stand on, or -1 when <see cref="LocalSlot"/> cannot be answered.</summary>

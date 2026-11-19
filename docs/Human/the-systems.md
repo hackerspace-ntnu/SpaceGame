@@ -786,9 +786,15 @@ Hosting, browsing, joining, the roster and the team rules, built on Unity's lobb
 
 ### Match types *(GameModes)*
 
-Three ways to play. *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene. *Disposable* is a throwaway sandbox off the main menu for trying something out: it skips the crash-landing cutscene entirely — the ship is already sitting there, landed — and nothing about the session is ever written to disk, so there is no world to name, save or come back to.
+Four ways to play. *Arena* is two teams fighting rounds of last-team-standing inside a walled nomad settlement, with weapons picked up from pads around the map — first team to three rounds wins (see the Arena entry below). *Versus* is team PvP in the full streamed world — 2 to 8 teams of up to 12, capped at 24 seats, each team arriving in its own team-coloured ship — and it has no scoring and no ending; it stops when people leave. The *story run* is the ordinary game with a timer and a win scene. *Disposable* is a throwaway sandbox off the main menu for trying something out: it skips the crash-landing cutscene entirely — the ship is already sitting there, landed — and nothing about the session is ever written to disk, so there is no world to name, save or come back to.
 
 **Worth knowing:** a third mode, a bot deathmatch arena, was deleted in September 2026. Its scene had been empty for months, no match orchestrator was placed anywhere, and no menu button reached it.
+
+### The arena *(Arena)*
+
+Two teams fight in rounds inside a nomad settlement, walled in by invisible walls. Everyone starts each round empty-handed at their team's side, and weapons — the game's own artifacts — sit on crates around the streets and reappear a little while after someone takes one. Dying takes you out until the round ends, and you watch from a free-flying camera. The last team with anyone standing wins the round, and the first team to three rounds wins the match. You cannot hurt your own team, and every hit is toned down and capped so a fight lasts a few seconds instead of one shot.
+
+**Worth knowing:** with only one player in the arena it waits forever — a round needs someone on each side.
 
 ### Quests *(Objectives)*
 

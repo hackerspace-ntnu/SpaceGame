@@ -19,12 +19,12 @@ symptoms:
   - "pressing F5 in a disposable session says the save was ignored"
   - "a disposable session's ship is standing on the ground already with no descent or blackout"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-10-19
+updated: 2026-11-19
 ---
 
 # Game Modes
 
-**Versus** — team PvP in the streamed world, everyone starts in a team ship — the plain story run — and **Disposable**, a throwaway singleplayer sandbox that skips the crash and never saves.
+**Versus** — team PvP in the streamed world, everyone starts in a team ship — **Arena**, two-team elimination rounds in a walled settlement ([Arena.md](Arena.md)) — the plain story run — and **Disposable**, a throwaway singleplayer sandbox that skips the crash and never saves.
 
 A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one `MatchManager`), was deleted on 2026-09-22. Its arena scene had been empty since commit `7cbccf9f`, no `MatchManager` existed in any scene or prefab, and no menu button reached it, so the whole path was unreachable. If a bot arena is wanted again it is a new build, not a restore.
 
@@ -70,6 +70,7 @@ A third family, the **Minigame arena** (bot deathmatch, three gamemodes off one 
 | Mode | Files | Rules |
 | --- | --- | --- |
 | Versus (PvP world) | `Versus/**`, `Arrival/**`, `NetworkGameManager.Versus.cs` | 2–8 teams × 1–12, product ≤ 24 seats. One identical ship per team on a ring. No scoring, no win condition, no end — the mode ends when people leave. |
+| Arena | `Arena/**`, `NetworkGameManager.Arena.cs` — see [Arena.md](Arena.md) | A versus session locked to 2 teams (lobby mode `"arena"`) in its own scene, `NomadArena`. Last team standing wins the round, first to 3 rounds wins the match; weapons come from pads. Never saved. |
 | Story / singleplayer | `Gameplay/Game/State/**` | Host of one; `GameManager.GameTimer` + `WinGame()` → `onWinScene` through Netcode's scene manager. |
 | Disposable | `WorldSession.Disposable`, `ArrivalDirector.SpawnAlreadyLanded` | The story run with two things turned off: the crash-landing cutscene (the ship is put down already landed at the same spot it would have crashed) and every save trigger. No world name, no file, no F5/F9. |
 

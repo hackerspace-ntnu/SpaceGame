@@ -38,7 +38,7 @@ namespace SpaceGame.Core.Lobbies
             {
                 { LobbyKeys.RelayJoinCode, Member(relayJoinCode) },
                 { LobbyKeys.GameState, Public(LobbyKeys.StateWaiting) },
-                { LobbyKeys.Mode, Public(versus.IsVersus ? LobbyKeys.ModeVersus : LobbyKeys.ModeStory) }
+                { LobbyKeys.Mode, Public(versus.Mode) }
             };
 
             if (versus.IsVersus)

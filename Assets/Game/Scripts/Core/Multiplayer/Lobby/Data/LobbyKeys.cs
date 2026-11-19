@@ -38,7 +38,8 @@ namespace SpaceGame.Core.Lobbies
         public const string StateInGame = "in-game";
 
         /// <summary>
-        /// Which kind of lobby this is: <see cref="ModeStory"/> or <see cref="ModeVersus"/>.
+        /// Which kind of lobby this is: <see cref="ModeStory"/>, <see cref="ModeVersus"/> or
+        /// <see cref="ModeArena"/>.
         ///
         /// Public, not Member, for the same reason <see cref="GameState"/> is: a VS joiner's list
         /// must not offer story lobbies (or a story joiner's list VS ones), and that filter has to
@@ -48,6 +49,12 @@ namespace SpaceGame.Core.Lobbies
 
         public const string ModeStory = "story";
         public const string ModeVersus = "versus";
+
+        /// <summary>
+        /// A team match in the arena scene: a versus lobby in every respect — teams, colours, the
+        /// team picker — except that it is always two teams and loads the arena instead of the world.
+        /// </summary>
+        public const string ModeArena = "arena";
 
         /// <summary>How many teams this VS lobby is split into. Member: meaningless until you are in.</summary>
         public const string TeamCount = "TeamCount";

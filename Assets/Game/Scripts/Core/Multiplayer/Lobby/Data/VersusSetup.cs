@@ -1,4 +1,5 @@
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 
 namespace SpaceGame.Core.Lobbies
 {
@@ -33,15 +34,28 @@ namespace SpaceGame.Core.Lobbies
         public static readonly VersusSetup None = default;
 
         public readonly bool IsVersus;
+
+        /// <summary>An arena match: versus rules locked to two teams. See <see cref="LobbyKeys.ModeArena"/>.</summary>
+        public readonly bool IsArena;
+
         public readonly int TeamCount;
         public readonly int TeamSize;
 
-        public VersusSetup(int teamCount, int teamSize)
+        public VersusSetup(int teamCount, int teamSize) : this(teamCount, teamSize, arena: false) { }
+
+        private VersusSetup(int teamCount, int teamSize, bool arena)
         {
             TeamCount = VersusRules.ClampTeams(teamCount, teamSize);
             TeamSize = VersusRules.ClampTeamSize(teamSize, TeamCount);
             IsVersus = true;
+            IsArena = arena;
         }
+
+        /// <summary>An arena lobby of two teams of <paramref name="teamSize"/>.</summary>
+        public static VersusSetup Arena(int teamSize) => new(ArenaRules.TeamCount, teamSize, arena: true);
+
+        /// <summary>The <see cref="LobbyKeys.Mode"/> value this setup is advertised under.</summary>
+        public string Mode => IsArena ? LobbyKeys.ModeArena : IsVersus ? LobbyKeys.ModeVersus : LobbyKeys.ModeStory;
 
         /// <summary>
         /// What the lobby advertises as its maximum — NOT what Relay allocates. See the type doc.

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arena;
 using SpaceGame.Gameplay.Arrival;
 using SpaceGame.World;
 
@@ -172,6 +173,14 @@ namespace SpaceGame.Core
 
             if (!string.IsNullOrEmpty(pendingScene))
                 yield return WaitForPendingScene(pendingScene);
+
+            // An arena stands everybody at their team's side of the arena instead — checked first,
+            // because an arena match is also a versus session and must not go looking for ships.
+            if (ArenaMatch.Instance != null)
+            {
+                yield return SpawnIntoArena(clientId, ArenaMatch.Instance);
+                yield break;
+            }
 
             // A versus match starts everybody inside their own team's ship rather than on a
             // SpawnPoint, so it takes a different route to a position entirely. Checked after the

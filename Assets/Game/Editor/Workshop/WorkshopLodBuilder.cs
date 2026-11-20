@@ -9,6 +9,9 @@
 //
 // Distances are measured past the piece's own edge (half its bounds' diagonal from its centre), so a room you
 // stand in is at full detail wherever in it you stand, and a tunnel net spanning the whole maze is too.
+//
+// The mountain's skin is the exception: it is the landmark seen from across the map, and it is cheap (one renderer,
+// ~32 k triangles). It always draws its full mesh and is never culled by its group, only by the camera's far plane.
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -36,15 +39,28 @@ namespace SpaceGame.EditorTools
         // Inside: past a room's own edge the rock is between it and the camera, except down the ship tunnel; the
         // main room is still drawn from the lane in front of the open gate. It keeps half detail until it is culled:
         // the lower levels shed the thin clay walls and ceilings a room is seen from inside by (renders, 2026-10-12).
-        // Outside: the skin is the landmark, never culled on the 4 x 3 km map (its diagonal), and drops to low
-        // detail only where its stripes are a few pixels wide.
+        // Outside: the ship tunnel and the gate fill the mountain's mouth and the shaft's rock its summit crater, so they
+        // are never culled (culled, the skin shows a hole through to the sky), and drop to low detail only where they
+        // are a few pixels wide.
         public const float InsideCulledMetres = 150f;
         private static readonly Reach Inside = new(full: 25f, half: InsideCulledMetres, culled: InsideCulledMetres);
-        private static readonly Reach Outside = new(full: 100f, half: 300f, culled: 5000f);
+        private static readonly Reach Outside = new(full: 100f, half: 300f, culled: NeverCulledMetres);
 
-        /// <summary>What is seen from outside the mountain: its skin, the ship tunnel, and the gate in it.</summary>
-        private static readonly string[] OutsideParts = { "Static_Mountain", "Static_ShipTunnel" };
+        /// <summary>
+        /// What is seen from outside the mountain besides its skin: the ship tunnel, the gate in it, and the rock of the
+        /// shaft, whose rim is the summit crater.
+        /// </summary>
+        private static readonly string[] OutsideParts = { "Static_ShipTunnel", "Static_Rock" };
         private const string GateRoot = "GearDoor";
+
+        /// <summary>The mountain's skin, the landmark: full detail at every range, never culled by its group.</summary>
+        private const string LandmarkPart = "Static_Mountain";
+
+        // A last tier at height 0 (an infinite reach) is never culled. A finite cull height bakes the editor's lodBias
+        // into the prefab, and a lower quality level (Low's bias is half of High's) culls at half the range.
+        private const float NeverCulledMetres = float.PositiveInfinity;
+        private const float NeverCulled = 0f;
+        private const short FullMeshLod = 0;
 
         // Mesh LOD levels the two lower tiers force: each level halves the triangles.
         private const int HalfDetailMeshLod = 1;
@@ -73,18 +89,37 @@ namespace SpaceGame.EditorTools
                 if (renderer != null) grouped.Add(renderer);
 
             Transform gate = root.transform.Find(GateRoot);
-            int groups = 0, levelled = 0, outside = 0;
+            int groups = 0, levelled = 0, outside = 0, landmarks = 0;
             foreach (MeshRenderer renderer in root.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (!renderer.enabled || grouped.Contains(renderer)) continue;
                 if (!renderer.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) continue;
 
+                groups++;
+                if (renderer.name.StartsWith(LandmarkPart))
+                {
+                    GroupLandmark(renderer);
+                    landmarks++;
+                    continue;
+                }
                 bool seenOutside = IsOutside(renderer.transform, gate);
                 if (Group(renderer, filter.sharedMesh, seenOutside ? Outside : Inside)) levelled++;
                 if (seenOutside) outside++;
-                groups++;
             }
-            return $"LODs: {groups} groups ({levelled} with Mesh LOD levels, {outside} seen from outside)";
+            return $"LODs: {groups} groups ({levelled} with Mesh LOD levels, {outside} seen from outside, {landmarks} never culled)";
+        }
+
+        /// <summary>
+        /// One tier that is never culled, pinned to the full mesh: without a forced level the renderer would pick a
+        /// coarser Mesh LOD level by itself with distance.
+        /// </summary>
+        private static void GroupLandmark(MeshRenderer landmark)
+        {
+            landmark.forceMeshLod = FullMeshLod;
+            LODGroup group = landmark.gameObject.AddComponent<LODGroup>();
+            group.fadeMode = LODFadeMode.None;
+            group.SetLODs(new[] { new LOD(NeverCulled, new Renderer[] { landmark }) });
+            group.RecalculateBounds();
         }
 
         private static bool IsOutside(Transform piece, Transform gate)

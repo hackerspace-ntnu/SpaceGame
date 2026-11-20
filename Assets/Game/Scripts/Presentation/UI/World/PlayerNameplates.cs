@@ -13,6 +13,7 @@ using SpaceGame.Voice;
 namespace SpaceGame.Presentation
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(WorldOverlay.ProjectionOrder)]
     public class PlayerNameplates : MonoBehaviour
     {
         [Header("Look")]
@@ -55,10 +56,10 @@ namespace SpaceGame.Presentation
         private const float NearClearance = 0.6f;
 
         /// <summary>
-        /// How far short of the head to stop, so the target's own collider never blocks the view of
-        /// their own name. Cheaper and steadier than filtering hits by hierarchy.
+        /// Hits gathered per occlusion ray. The target's own colliders are skipped, and a ray down a
+        /// running player's length can cross several of them before reaching anything else.
         /// </summary>
-        private const float FarClearance = 0.9f;
+        private const int OcclusionHitCapacity = 16;
 
         private sealed class Plate
         {
@@ -72,6 +73,7 @@ namespace SpaceGame.Presentation
         private readonly Dictionary<PlayerIdentity, Plate> plates = new();
         private readonly HashSet<PlayerIdentity> seenThisFrame = new();
         private readonly List<PlayerIdentity> stale = new();
+        private readonly RaycastHit[] occlusionHits = new RaycastHit[OcclusionHitCapacity];
 
         private void OnDisable()
         {
@@ -144,7 +146,7 @@ namespace SpaceGame.Presentation
                 return;
             }
 
-            if (hideBehindGeometry && IsOccluded(eyePosition, head, distance))
+            if (hideBehindGeometry && IsOccluded(eyePosition, head, distance, player.transform))
             {
                 Hide(plate);
                 return;
@@ -186,15 +188,31 @@ namespace SpaceGame.Presentation
             return Mathf.Lerp(1f, minAlpha, Mathf.Clamp01(t));
         }
 
-        private bool IsOccluded(Vector3 from, Vector3 head, float distance)
+        /// <summary>
+        /// True when something other than <paramref name="target"/> itself stands between the eye and
+        /// the head.
+        /// <para>
+        /// The target's own colliders are filtered by hierarchy rather than by stopping the ray short
+        /// of them. Physics does not auto-sync transforms here, so a remote player's colliders sit at
+        /// the last physics step's pose while their body is drawn at this frame's interpolated one —
+        /// at speed that gap is most of a metre, enough for the player's own capsule to cross the ray
+        /// and blink their name off and on.
+        /// </para>
+        /// </summary>
+        private bool IsOccluded(Vector3 from, Vector3 head, float distance, Transform target)
         {
-            float span = distance - NearClearance - FarClearance;
+            float span = distance - NearClearance;
             if (span <= 0f) return false;
 
             Vector3 direction = (head - from) / distance;
 
-            return Physics.Raycast(from + direction * NearClearance, direction, span,
-                                   occluders, QueryTriggerInteraction.Ignore);
+            int count = Physics.RaycastNonAlloc(from + direction * NearClearance, direction, occlusionHits,
+                                                span, occluders, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+                if (!occlusionHits[i].collider.transform.IsChildOf(target)) return true;
+
+            return false;
         }
 
         private void HideAll()

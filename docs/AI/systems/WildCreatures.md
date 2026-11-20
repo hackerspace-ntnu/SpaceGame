@@ -26,7 +26,7 @@ symptoms:
   - "a wild creature's feet slide sideways every time it turns on the spot"
   - "a creature changed size after its model was replaced"
 reads_with: [AgentSystem, ArtPipeline, StylizedEyes, Persistence, Multiplayer, Combat]
-updated: 2026-10-28
+updated: 2026-11-02
 ---
 
 # Wild Creatures
@@ -65,9 +65,9 @@ it writes to `Assets/Game/Prefabs/Agents/creatures/Wild/`, their override contro
   back, or the shell/dome on it). `seatOffset` keeps the Esko's seat-above-saddle offset; camera
   distance and spill radius grow with length, spill height with back height. Mounted jump/leap stay
   on only if the creature has a `Jump` take. Rideable 2026-10-27: Drovecamel, FrillBoar,
-  GoldRunner, Plumeneck, SailCrest, ShellBear, SpineGrazer, Tewe, WingWalker (DomeBack was
-  tried: its saddle disappeared inside the moss dome, whose skin is not on the spine bones). Like the Esko, a bare
-  animal is not rideable — fit a saddle item first.
+  GoldRunner, Plumeneck, SailCrest, ShellBear, SpineGrazer, Tewe, WingWalker; Skarn 2026-11-02 at 3.5 m (DomeBack was
+  tried: its saddle disappeared inside the moss dome, whose skin is not on the spine bones). Unlike the Esko,
+  they ride **bareback**: `FitSaddle` sets `SaddleSocket.ridableBareback` (*Verify* checks it; [Saddles.md](Saddles.md)).
 - **Every creature plays its own clips on `Esko.controller`** through an
   `AnimatorOverrideController` (`Animations/Creatures/<Name>.overrideController`). The Esko
   controller already has every parameter and trigger the copied modules fire (`Hurt`, `Death`,

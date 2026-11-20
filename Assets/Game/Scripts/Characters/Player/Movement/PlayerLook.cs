@@ -472,6 +472,10 @@ namespace SpaceGame.Characters
         /// <summary>How far the lens is banked, degrees. Owned by the flight while it lasts.</summary>
         private float viewRoll;
 
+        /// <summary>The attitude the flight handed over on the physics step before last, and on
+        /// the last one. The view is blended between the two — see <see cref="SetFlightAttitude"/>.</summary>
+        private float flightPitchFrom, flightPitchTo, flightRollFrom, flightRollTo;
+
         /// <summary>
         /// Hand the view to a wing, or take it back.
         ///
@@ -485,21 +489,54 @@ namespace SpaceGame.Characters
         public void SetFlying(bool value)
         {
             flying = value;
-            if (!value) viewRoll = 0f;
+            viewRoll = 0f;
+
+            // The first blend starts from where the player was already looking, so opening the
+            // wings eases the view onto the nose instead of jumping to it.
+            flightPitchFrom = flightPitchTo = pitch;
+            flightRollFrom = flightRollTo = 0f;
 
             ApplyLensRotation();
         }
 
         /// <summary>
-        /// Where the wing is pointing, each frame it is out. Pitch is in this component's own
-        /// convention — positive looks DOWN — so a nose-up flight state arrives negative.
+        /// Where the wing is pointing, once per physics step while it is out. Pitch is in this
+        /// component's own convention — positive looks DOWN — so a nose-up flight state arrives
+        /// negative.
+        ///
+        /// <para>
+        /// Stored, not applied. The flight steps at the physics rate, but the body it rides is an
+        /// interpolated Rigidbody whose position and heading move every rendered frame; a lens
+        /// written straight from here held still for several frames and then jumped, which against
+        /// a smoothly moving body read as the whole glide stuttering. <see cref="Update"/> blends
+        /// the last two steps with the Rigidbody's own interpolation fraction instead, so the
+        /// view's attitude and the body's pose stay in the same phase.
+        /// </para>
         /// </summary>
         public void SetFlightAttitude(float pitchDegrees, float rollDegrees)
         {
             if (!flying) return;
 
-            pitch = Mathf.Clamp(pitchDegrees, -verticalClamp, verticalClamp);
-            viewRoll = rollDegrees;
+            flightPitchFrom = flightPitchTo;
+            flightRollFrom = flightRollTo;
+            flightPitchTo = Mathf.Clamp(pitchDegrees, -verticalClamp, verticalClamp);
+            flightRollTo = rollDegrees;
+        }
+
+        /// <summary>
+        /// How far the render frame is between the last physics step and the next, 0..1 — the
+        /// fraction Rigidbody interpolation poses the body with.
+        /// </summary>
+        private static float PhysicsStepFraction =>
+            Mathf.Clamp01((Time.time - Time.fixedTime) / Time.fixedDeltaTime);
+
+        private void ApplyFlightAttitude()
+        {
+            float t = PhysicsStepFraction;
+            pitch = Mathf.Lerp(flightPitchFrom, flightPitchTo, t);
+            viewRoll = Mathf.Lerp(flightRollFrom, flightRollTo, t);
+
+            ApplyLensRotation();
         }
 
         /// <summary>
@@ -564,7 +601,7 @@ namespace SpaceGame.Characters
             // turn the body out from under a heading the flight model owns.
             if (flying)
             {
-                ApplyLensRotation();
+                ApplyFlightAttitude();
                 TickLookDownOffset();
                 return;
             }

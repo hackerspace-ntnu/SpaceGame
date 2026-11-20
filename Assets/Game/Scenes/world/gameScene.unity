@@ -92891,6 +92891,7 @@ GameObject:
   - component: {fileID: 1093352019}
   - component: {fileID: 1093352018}
   - component: {fileID: 1093352017}
+  - component: {fileID: 1093352021}
   m_Layer: 0
   m_Name: NoiseTerrain
   m_TagString: Untagged
@@ -93121,7 +93122,7 @@ Terrain:
   m_StaticShadowCaster: 0
   m_IgnoreQualitySettings: 0
   m_ReflectionProbeUsage: 1
-  m_MaterialTemplate: {fileID: 2100000, guid: 14be7ed96574d4b03a16b4f4544d8f9a, type: 2}
+  m_MaterialTemplate: {fileID: 2100000, guid: 4043eb0c20c3a4fa9b7d5188f1dd8528, type: 2}
   m_BakeLightProbesForTrees: 1
   m_PreserveTreePrototypeLayers: 0
   m_DeringLightProbesForTrees: 1
@@ -93149,6 +93150,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1093352021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1093352016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53fe41edceef54ac09525fd9011c8bd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.TerrainGroundPaint
+  dryGrassland: {fileID: 8574412962073106934, guid: 6ad95e136267445e893a8551e56e3b8a, type: 2}
+  forestFloor: {fileID: 8574412962073106934, guid: dfea30348486b4d899b613258283cf5c, type: 2}
+  ownGround: {fileID: 8574412962073106934, guid: 4b4f49b0b086a4de395d79778be7f65d, type: 2}
 --- !u!1001 &1094712732
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -99200,7 +99216,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4915069bcedd246af995e6bd62b8d5dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveHotkeys
-  worldSceneName: NoiseTerrain
+  worldSceneName: gameScene
   quickSaveKey: 98
   quickLoadKey: 102
   enabledInBuilds: 1

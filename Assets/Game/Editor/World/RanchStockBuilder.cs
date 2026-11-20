@@ -2,7 +2,8 @@
 //   Esko_Ranch  — the tame esko kept in the yard: has to be won over (CreatureTrust) before it takes a saddle,
 //                     and grazes a small home patch so it is still in the yard when the crew get there.
 //   Esko_Wild   — one of the wild herd (RanchStock): grazes its range, bolts from anybody who comes close at a
-//                     lumbering trot a galloping rider can run down, and is just as wary of a saddle.
+//                     lumbering trot a galloping rider can run down, and is just as wary of a saddle. Like every
+//                     rideable wild creature it can be ridden bareback (SaddleSocket.ridableBareback).
 //   Raxy_Wrangler   — the drover who works the ranch (RanchWrangler) and says its quest's lines (QuestVoice).
 // Both eskos weigh a real animal's weight, so on foot a roped one drags the player and from the saddle the mount
 // holds it (LassoArtifact.HolderMass).
@@ -136,6 +137,7 @@ namespace SpaceGame.EditorTools
         {
             TuneStock(horn, WildPetsToTame, WildHomeRadius, "Wild esko");
             Set(Ensure<RanchStock>(horn), "kind", k => k.enumValueIndex = (int)RanchStock.Kind.Wild);
+            Set(horn.GetComponent<SaddleSocket>(), "ridableBareback", p => p.boolValue = true);
 
             var flee = new SerializedObject(horn.GetComponent<FleeModule>());
             flee.FindProperty("fleeFromCurrentTarget").boolValue = false;

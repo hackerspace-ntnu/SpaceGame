@@ -8,7 +8,9 @@
 //
 // What the saddle changes about the animal:
 //   * it becomes rideable   -- the MountModule is enabled; without a saddle it is disabled, and a
-//                              disabled Behaviour is one the Interactor skips outright
+//                              disabled Behaviour is one the Interactor skips outright. An animal
+//                              marked ridableBareback keeps its MountModule on either way, and the
+//                              rider sits on a seat at the saddle's place on the bare back
 //   * it can carry gear     -- the saddle prefab brings its own PackContainer
 //   * it can be taken off   -- by the trigger on the saddle, see SaddleRemover
 using System.Collections.Generic;
@@ -64,8 +66,14 @@ namespace SpaceGame.Agents
         [SerializeField] private bool startSaddled;
 
         [Header("What it enables")]
-        [Tooltip("Enabled while saddled, disabled while bare. Nobody rides a bare animal.")]
+        [Tooltip("Enabled while saddled, disabled while bare -- unless ridableBareback.")]
         [SerializeField] private MountModule mount;
+
+        [Tooltip("Ridden with or without a saddle. Bare, the rider's pelvis sits on the back itself, " +
+                 "at the point the saddle would be fitted (rootPosition on the mount bone); the saddle " +
+                 "then only adds its seat height and its gear faces. The wild creatures; not the Esko, " +
+                 "whose ranch lesson is fitting one.")]
+        [SerializeField] private bool ridableBareback;
 
         [Tooltip("Given back to the world when the saddle is taken off, and what the item that " +
                  "fits it must match. Without it a removed saddle simply vanishes.")]
@@ -80,6 +88,7 @@ namespace SpaceGame.Agents
 
         private GameObject saddleInstance;
         private Transform riderSeat;
+        private Transform bareSeat;
         private bool saddled;
         private CreatureTrust trust;
 
@@ -96,10 +105,10 @@ namespace SpaceGame.Agents
         public GameObject Saddle => saddleInstance;
 
         /// <summary>
-        /// Where the rider's pelvis belongs on the live saddle, moving with the animal's back; null
-        /// while bare or when the saddle has no marker.
+        /// Where the rider's pelvis belongs, moving with the animal's back: the live saddle's marker,
+        /// or the bare back of a <see cref="ridableBareback"/> animal; null otherwise.
         /// </summary>
-        public Transform RiderSeat => riderSeat;
+        public Transform RiderSeat => saddled ? riderSeat : bareSeat;
 
         /// <summary>What this animal's saddle is, as an item. Read by the artifact that fits it.</summary>
         public InventoryItem SaddleItem => saddleItem;
@@ -112,6 +121,7 @@ namespace SpaceGame.Agents
                 Debug.LogWarning($"[SaddleSocket] {name} has no bone '{mountBoneName}'; the saddle " +
                                  "will sit on the root and not move with the back.", this);
             trust = GetComponent<CreatureTrust>();
+            if (ridableBareback) bareSeat = BuildBareSeat();
             ApplySaddled(saddled || startSaddled);
         }
 
@@ -149,6 +159,30 @@ namespace SpaceGame.Agents
                        skin.sharedMesh.GetBindposes()[index].inverse;
             }
             return transform.worldToLocalMatrix * bone.localToWorldMatrix;
+        }
+
+        private Transform MountParent => mountBone != null ? mountBone : transform;
+
+        /// <summary>
+        /// Puts <paramref name="child"/> of the mount bone at <see cref="rootPosition"/>, against the
+        /// bone's REST pose, which is what rootPosition was read off. The bone's current pose is
+        /// whatever frame the animal is on; fitted mid-stride, an offset taken from it is baked in
+        /// skewed for good.
+        /// </summary>
+        private void PlaceOnBack(Transform child)
+        {
+            Matrix4x4 boneFromSeat = RestPoseInRoot(MountParent).inverse *
+                                     Matrix4x4.TRS(rootPosition, Quaternion.Euler(rootEuler), Vector3.one);
+            child.localPosition = boneFromSeat.GetPosition();
+            child.localRotation = boneFromSeat.rotation;
+        }
+
+        private Transform BuildBareSeat()
+        {
+            var seat = new GameObject("SEAT_Rider_Bareback").transform;
+            seat.SetParent(MountParent, false);
+            PlaceOnBack(seat);
+            return seat;
         }
 
         private Transform FindRiderSeat(Transform saddle)
@@ -228,7 +262,7 @@ namespace SpaceGame.Agents
 
             if (saddled && saddleInstance == null && saddlePrefab != null)
             {
-                Transform parent = mountBone != null ? mountBone : transform;
+                Transform parent = MountParent;
                 saddleInstance = Instantiate(saddlePrefab, parent);
                 saddleInstance.name = saddlePrefab.name;
                 // The bone's scale is the animal's own scale times the FBX centimetre factor, so
@@ -238,14 +272,7 @@ namespace SpaceGame.Agents
                 float animal = compensateBoneScale ? transform.lossyScale.x : 1f;
                 saddleInstance.transform.localScale =
                     Vector3.one * (animal / (Mathf.Abs(bone) > 1e-4f ? bone : 1f));
-
-                // Placed against the bone's REST pose, which is what rootPosition was read off. The
-                // bone's current pose is whatever frame the animal is on when the saddle goes on;
-                // fitted mid-stride, an offset taken from it is baked in skewed for good.
-                Matrix4x4 boneFromSaddle = RestPoseInRoot(parent).inverse *
-                                           Matrix4x4.TRS(rootPosition, Quaternion.Euler(rootEuler), Vector3.one);
-                saddleInstance.transform.localPosition = boneFromSaddle.GetPosition();
-                saddleInstance.transform.localRotation = boneFromSaddle.rotation;
+                PlaceOnBack(saddleInstance.transform);
 
                 foreach (SaddleRemover remover in
                          saddleInstance.GetComponentsInChildren<SaddleRemover>(true))
@@ -261,7 +288,7 @@ namespace SpaceGame.Agents
             }
 
             if (mount != null)
-                mount.enabled = saddled;
+                mount.enabled = saddled || ridableBareback;
         }
 
         // ── Taking it off ────────────────────────────────────────────────────

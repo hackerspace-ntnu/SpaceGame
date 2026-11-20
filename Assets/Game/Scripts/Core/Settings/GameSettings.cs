@@ -42,6 +42,14 @@ namespace SpaceGame.Core
         public const float MinCameraShake = 0f;
         public const float MaxCameraShake = 1f;
 
+        /// <summary>
+        /// Bounds for the first-person walking dip. The same kind of control as camera shake, for
+        /// the same reason: a view that rises and falls with every step makes some players ill, so
+        /// zero must stay a real "off".
+        /// </summary>
+        public const float MinHeadBob = 0f;
+        public const float MaxHeadBob = 1f;
+
         public const float MinSensitivity = 0.1f;
         public const float MaxSensitivity = 5f;
         public const float MinFieldOfView = 50f;
@@ -90,6 +98,7 @@ namespace SpaceGame.Core
         private static string voiceMuteBinding;
         private static float mouseSensitivity;
         private static float cameraShakeIntensity;
+        private static float headBobIntensity;
         private static bool invertLookY;
         private static bool invertHotbarScroll;
         private static bool devMode;
@@ -296,6 +305,16 @@ namespace SpaceGame.Core
             get { EnsureLoaded(); return cameraShakeIntensity; }
             set => SetFloat(ref cameraShakeIntensity, value, MinCameraShake, MaxCameraShake,
                             "CameraShakeIntensity");
+        }
+
+        /// <summary>
+        /// How far the first-person view dips with each step, from 0 (off) to 1 (full). See
+        /// <see cref="MinHeadBob"/>.
+        /// </summary>
+        public static float HeadBobIntensity
+        {
+            get { EnsureLoaded(); return headBobIntensity; }
+            set => SetFloat(ref headBobIntensity, value, MinHeadBob, MaxHeadBob, "HeadBobIntensity");
         }
 
         public static bool InvertHotbarScroll
@@ -536,6 +555,7 @@ namespace SpaceGame.Core
             {
                 "PlayerName", "SuitColorIndex", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
+                "HeadBobIntensity",
                 "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap",
                 "VoiceVolume", "VoicePushToTalk", "VoiceGateThreshold", "VoiceInputDevice",
                 "VoiceSelfMuted", "VoicePushToTalkToggle", "VoicePushToTalkBinding", "VoiceMuteBinding",
@@ -609,6 +629,7 @@ namespace SpaceGame.Core
             // Defaults to full, so nobody loses an effect they already had; only a
             // player who deliberately turns it down gets less.
             cameraShakeIntensity = PlayerPrefs.GetFloat(Prefix + "CameraShakeIntensity", 1f);
+            headBobIntensity = PlayerPrefs.GetFloat(Prefix + "HeadBobIntensity", 1f);
             invertHotbarScroll = PlayerPrefs.GetInt(Prefix + "InvertHotbarScroll", 0) == 1;
             devMode = PlayerPrefs.GetInt(Prefix + "DevMode", 0) == 1;
             fieldOfView = PlayerPrefs.GetFloat(Prefix + "FieldOfView", 60f);
@@ -631,6 +652,7 @@ namespace SpaceGame.Core
                                              MaxVoiceGateThreshold);
             mouseSensitivity = Mathf.Clamp(mouseSensitivity, MinSensitivity, MaxSensitivity);
             cameraShakeIntensity = Mathf.Clamp(cameraShakeIntensity, MinCameraShake, MaxCameraShake);
+            headBobIntensity = Mathf.Clamp(headBobIntensity, MinHeadBob, MaxHeadBob);
             fieldOfView = Mathf.Clamp(fieldOfView, MinFieldOfView, MaxFieldOfView);
             resolutionIndex = Mathf.Clamp(resolutionIndex, 0, Mathf.Max(0, ResolutionChoices.Length - 1));
         }

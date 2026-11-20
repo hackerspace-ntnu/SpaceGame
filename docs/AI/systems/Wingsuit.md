@@ -35,8 +35,9 @@ symptoms:
   - "a mid-air quicksave reloads standing still in the sky"
   - "the wingsuit and the wing pack cannot both be carried"
   - "gliding into a cliff at full speed costs nothing"
+  - "the wingsuit stutters when flying"
 reads_with: [Ornithopter, BodyEquipment, PlayerCharacter, Jetpack, Multiplayer, Persistence]
-updated: 2026-09-25
+updated: 2026-10-28
 ---
 
 # Wingsuit
@@ -124,6 +125,7 @@ the thrust set to zero, run on the player's Rigidbody.
 - **Turning is the sum of two things, and only one of them is the mouse's own.** `Steer` supplies the look-speed turn; the bank the same movement asks for adds its aerodynamic turn on top. That double-count is deliberate — it is what makes a hard bank bite — but it means `mouseBank` is not a free knob: raise it far and a swipe of the mouse turns you further than the same swipe turns your head on foot, which is the original complaint inverted.
 - **`SetGliding` is narrower than `DisableGroundSnap` and wider than `SetTethered`, and both halves matter.** A disabled ground snap returns from `FixedUpdate` before doing anything — no grounded state, no animator — which is the bug the tether was written to stop repeating, and the wing *asks `PlayerMovement` where the ground is*. A tether only changes how move input is applied. So `gliding` skips exactly two things: the horizontal write, and fall damage.
 - **The execution order between `PlayerMovement` and `WingsuitFlight` is load-bearing** — hence `[DefaultExecutionOrder(150)]`. Movement runs first, sees `gliding` still true, skips fall damage and writes `wasGrounded = true`; the flight then ends the glide and bills the closing speed. Reverse them and one landing is charged twice. There is also **one ground probe and it is `PlayerMovement`'s** — a second would disagree at the edges, and the edges are where a landing happens, so a deploy could open the wings into a state that lands on the next step.
+- **The view's pitch and roll are BLENDED between physics steps, never written straight.** The flight runs in `FixedUpdate` (50 Hz) while the body it rides is an interpolated Rigidbody whose position and heading move every rendered frame. `SetFlightAttitude` used to set the lens angle directly, so on a 144 Hz display the horizon held for three frames and jumped while the ground slid by smoothly — the whole glide read as stuttering. `SetFlightAttitude` now only stores the last two steps, and `PlayerLook.Update` lerps them by `(Time.time - Time.fixedTime) / fixedDeltaTime`, the fraction Rigidbody interpolation itself uses, so view and body stay in the same phase. Anything else that hands the view a physics-rate angle must go the same way.
 - **`PlayerLook` owns the lens's local rotation, all of it.** The roll goes through it because `Update` reassembles the whole `localRotation` every frame and would delete anything else written there. `ApplyLensRotation` is now the single writer; there used to be three copies.
 - **A corpse does not fly.** Death disables `PlayerMovement` and `PlayerLook` and knows nothing about this, so the flight checks `PlayerController.IsDead` itself — `IsDead`, not the enabled flags.
 - **`WingsuitPose` writes the HIPS at order 920**, before `PlayerHeadLook` (950): everything hangs off the hips so one bone tilts the body, and a head posed first is dragged off its aim by its own parent. **The prone attitude is in the CLIP and only the deviation is measured** — a clip cannot hold an angle that changes every frame, and a peer whose `WingsuitPose` never ran still sees somebody flying rather than standing up in mid-air.

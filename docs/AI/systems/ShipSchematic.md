@@ -31,8 +31,9 @@ symptoms:
   - "the schematic picks a small module when the cursor is just off a big one"
   - "the module the schematic had lit goes dark the moment the mouse button goes down"
   - "the wireframe draws every edge of every triangle"
+  - "the terminal's SHIP page shows no ship at all, with a clean console"
 reads_with: [Terminal, PlayerShip, Multiplayer]
-updated: 2026-10-06
+updated: 2026-10-28
 ---
 
 # ShipSchematic
@@ -86,7 +87,7 @@ feed are [Terminal](Terminal.md); the modules, their sockets and the mask are [P
 | `ShipSchematicModel` | [ShipSchematicModel.cs](Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs) | On the baked prefab: which renderers are modules (socket NAME + kind), which are hull, and their boxes in **model space**, measured from the meshes. |
 | `ShipSchematicBuilder` | ShipSchematicBuilder.cs | **Tools ▸ SpaceGame ▸ Build Ship Schematic Prefab**. Fails loudly if any `ShipPartKind` has no mesh. Writes the line meshes to `Assets/Game/Art/Models/Generated/ShipSchematicWire.asset`. |
 | `FeatureEdges` | [FeatureEdges.cs](Assets/Game/Editor/Environment/FeatureEdges.cs) | Welds by position, then keeps boundary and crease edges as a `MeshTopology.Lines` mesh. |
-| `SchematicHull` / `SchematicWire` | [Shaders/UI/Terminal/](Assets/Game/Art/Shaders/UI/Terminal) | Faces: unlit, near-black, **depth-written**, scanline. Lines: unlit, flat, `ZWrite Off` + `Offset -1,-1`. Both take their colour per renderer. |
+| `SchematicHull` / `SchematicWire` | [Shaders/UI/Terminal/](Assets/Game/Art/Shaders/UI/Terminal) | Faces: unlit, near-black, **depth-written**, scanline, with `DepthOnly` + `DepthNormals` passes. Lines: unlit, flat, `ZWrite Off` + `Offset -1,-1`, queued `Transparent`. Both take their colour per renderer. |
 | `ShipPartNaming` | [ShipPartNaming.cs](Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs) | The `Part_<Kind>_<Side>` convention, shared with `PlayerShipBuilder`. |
 
 ## Flows
@@ -147,8 +148,8 @@ left turned over comes back whole. What the page *shows* is `ShipPartsSaveable`'
 - **Builders load shaders by PATH, never `Shader.Find`:** the name registry is empty for a shader Unity
   has not imported yet, so a build run seconds after a new .shader appears fails with "no shader named
   X" about a file plainly on disk — and leaves the old prefab in place.
-- **`Hologram/Solid` is the wrong shader** and was tried: additive with `ZTest Always`, it collapses a
-  hull into **one flat glowing blob with no near and no far**.
+- **Depth priming hides the whole ship unless both shaders cooperate.** `PC_Renderer` primes depth, so every opaque-queue draw on the lens is `ZTest Equal` against a prepass: `SchematicHull` carries `DepthOnly` + `DepthNormals` to be in it, and `SchematicWire`, which writes no depth and so can never equal it, queues `Transparent`. Missing either, **the SHIP page shows no ship at all**, console clean ([ProjectConfig](ProjectConfig.md) gotcha 14).
+- **`Hologram/Solid` is the wrong shader** and was tried: additive with `ZTest Always`, it collapses a hull into **one flat glowing blob with no near and no far**.
 - **Pointing at eleven small things on a big glass, twice got wrong.** *Forgive to a module's OUTLINE,
   never its middle*: the boxes a ray can cross cover 5.9 % of the viewport, but modules differ threefold
   on the glass (a nuclear motor draws ~70 px across at 1080p, a belly turbine ~23), so a radius round the

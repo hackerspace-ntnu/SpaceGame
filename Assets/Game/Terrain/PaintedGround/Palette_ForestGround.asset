@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0644d6a872934a3d88fd9b6aaa5f54c5, type: 3}
+  m_Name: Palette_ForestGround
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.PaintedGroundPalette
+  layer: {fileID: 8574412962073106934, guid: 2543716fcd0b47b38b8784e7ed71123a, type: 2}
+  pattern: {fileID: 2800000, guid: b599348accab4ee68886551fffad533a, type: 3}
+  patternTile: 3.7
+  patternStrength: 1.0
+  patternRotates: 1
+  baseColour: {r: 0.7358, g: 0.6055, b: 0.4882, a: 1}
+  darkerPatches: {r: 0.6474, g: 0.5328, b: 0.4300, a: 1}
+  palerPatches: {r: 0.7926, g: 0.6552, b: 0.5261, a: 1}
+  windStreaks: {r: 0.7491, g: 0.6198, b: 0.4973, a: 1}
+  pebbles: {r: 0.7601, g: 0.6322, b: 0.5056, a: 1}
+  cliff: {r: 0.6328, g: 0.4994, b: 0.4305, a: 1}
+  cliffStrata: {r: 0.7210, g: 0.5988, b: 0.5148, a: 1}
+  shadowTint: {r: 0.1200, g: 0.1000, b: 0.2000, a: 1}
+  ripples: 0.0
+  pebbleDensity: 0.0
+  dabs: 0.0
+  streaks: 0.0
+  patchScale: 1.0
+  pebbleSpacing: 1.4
+  pebbleRadius: 0.0929
+  rippleScale: 1.0
+  gravel: 0.0
+  cracks: 0.0
+  pebbleToneVariation: 0.0
+  gravelCoverage: 0.0

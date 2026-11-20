@@ -18,6 +18,7 @@ using SpaceGame.Presentation.Speech;
 namespace SpaceGame.Presentation
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(WorldOverlay.ProjectionOrder)]
     public class SpeechBubbles : MonoBehaviour
     {
         [Header("Audience")]

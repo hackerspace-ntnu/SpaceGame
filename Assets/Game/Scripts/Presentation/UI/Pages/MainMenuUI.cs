@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
@@ -8,8 +9,9 @@ using SpaceGame.World;
 public class MainMenuUI : MonoBehaviour
 {
     [Header("Worlds")]
-    [Tooltip("The Story world: the streamed main world. Also what VS and Disposable play in.")]
-    [SerializeField] private GameWorld storyWorld;
+    [Tooltip("The main world: what the Story route, VS and Disposable play in.")]
+    [FormerlySerializedAs("storyWorld")]
+    [SerializeField] private GameWorld mainWorld;
     [Tooltip("The Spillexo world: one authored terrain, no chunk streaming.")]
     [SerializeField] private GameWorld spillexoWorld;
 
@@ -22,7 +24,7 @@ public class MainMenuUI : MonoBehaviour
     // and read by every screen after it, so the world list, the lobby and the scene load all agree.
     private bool spillexoChosen;
 
-    private GameWorld ChosenWorld => spillexoChosen ? spillexoWorld : storyWorld;
+    private GameWorld ChosenWorld => spillexoChosen ? spillexoWorld : mainWorld;
 
     /// <summary>The world the screens this menu opens stage saves against.</summary>
     public WorldStreamingConfig WorldConfig => ChosenWorld != null ? ChosenWorld.Identity : null;

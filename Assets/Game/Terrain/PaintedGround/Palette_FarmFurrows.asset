@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0644d6a872934a3d88fd9b6aaa5f54c5, type: 3}
+  m_Name: Palette_FarmFurrows
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.PaintedGroundPalette
+  layer: {fileID: 8574412962073106934, guid: e6db60c3b73043dfb7a61ac47e73dcae, type: 2}
+  pattern: {fileID: 2800000, guid: c96022bc4bbd4bf1802061b05c8ae6cb, type: 3}
+  patternTile: 3.7
+  patternStrength: 1.0
+  patternRotates: 0
+  baseColour: {r: 0.7302, g: 0.6182, b: 0.4460, a: 1}
+  darkerPatches: {r: 0.6433, g: 0.5447, b: 0.3869, a: 1}
+  palerPatches: {r: 0.7872, g: 0.6663, b: 0.4923, a: 1}
+  windStreaks: {r: 0.7934, g: 0.6715, b: 0.4983, a: 1}
+  pebbles: {r: 0.8504, g: 0.7205, b: 0.5434, a: 1}
+  cliff: {r: 0.6279, g: 0.5055, b: 0.3957, a: 1}
+  cliffStrata: {r: 0.7156, g: 0.6065, b: 0.4788, a: 1}
+  shadowTint: {r: 0.1200, g: 0.1000, b: 0.2000, a: 1}
+  ripples: 0.0
+  pebbleDensity: 0.0
+  dabs: 0.0
+  streaks: 0.0
+  patchScale: 1.0
+  pebbleSpacing: 1.4
+  pebbleRadius: 0.0929
+  rippleScale: 1.0
+  gravel: 0.0
+  cracks: 0.0
+  pebbleToneVariation: 0.0
+  gravelCoverage: 0.0

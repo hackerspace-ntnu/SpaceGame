@@ -15,6 +15,7 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Presentation
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(WorldOverlay.ProjectionOrder)]
     public class DamageNumbers : MonoBehaviour
     {
         [Header("Look")]
@@ -288,7 +289,9 @@ namespace SpaceGame.Presentation
             return created;
         }
 
-        private void Update()
+        // LateUpdate, not Update: no execution order puts an Update after a camera that moves in
+        // LateUpdate. See WorldOverlay.ProjectionOrder.
+        private void LateUpdate()
         {
             WorldOverlay overlay = WorldOverlay.Instance;
             if (overlay == null) return;

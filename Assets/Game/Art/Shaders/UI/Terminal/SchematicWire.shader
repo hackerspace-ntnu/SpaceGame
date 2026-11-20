@@ -9,6 +9,11 @@ Shader "SpaceGame/SchematicWire"
     // Depth is TESTED but not written: the dark faces of SchematicHull have already filled the
     // depth buffer, so a line behind the hull is correctly hidden, while a line lying exactly on
     // the surface it belongs to would z-fight without the offset below.
+    //
+    // Queued after the opaques on purpose. PC_Renderer primes depth, which forces every opaque-queue
+    // draw to ZTest Equal against the prepass; a line that writes no depth of its own, offset off
+    // the surface, never equals it, and the whole wireframe vanished. Past the opaque range the
+    // pass keeps its own ZTest against the hull's primed depth.
     Properties
     {
         _Color ("Phosphor", Color)       = (0.42, 1.0, 0.60, 1)
@@ -17,7 +22,7 @@ Shader "SpaceGame/SchematicWire"
 
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry+1" }
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Transparent" }
 
         Pass
         {

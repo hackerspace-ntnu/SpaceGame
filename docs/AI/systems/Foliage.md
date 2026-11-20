@@ -25,8 +25,10 @@ symptoms:
   - "a mushroom cap, petal or pod renders almost black although its material is pale"
   - "the plant in a planter composite floats on top of a little tree"
   - "bushes never move when the player walks through them"
+  - "swaying plants twitch darker and lighter, like z-fighting, although no faces overlap"
+  - "whole triangles of a kelp or sea whip flash water-blue for one frame"
 reads_with: [Grass, GrassInteraction, ArtPipeline, LevelOfDetail, BarkMaps, VegetationKit, VegetationFamilies, AquaticVegetation]
-updated: 2026-10-28
+updated: 2026-11-02
 ---
 
 # Foliage
@@ -146,21 +148,19 @@ N/A — plants hold no runtime state; their placement lives in the scene / Terra
 - **A plant's bark, leaves and fruit need identical wind values** — tune one material and not the
   others and branches drift off their leaves. Always pick all three from one wind profile (above).
 - **Bushes part only for bodies with a `GrassBender`; plant bases need Read/Write**: [GrassInteraction](GrassInteraction.md).
-- **No GrassField → no wind.** The globals are only set by a GrassField for a camera whose culling
-  mask has its layer (and only while it has a biome). Without one the foliage stands still.
+- **No GrassField → no wind.** The globals are only set by a GrassField for a camera whose culling mask has its layer (and only while it has a biome). Without one the foliage stands still.
 - **Terrain-painted trees only collide through a collider on the prefab ROOT.** The palms' collider
   is a tilted child (the trunk leans), so a *painted* palm has no collision; a dragged-in one does.
-- **A TerrainData built in code loses its alphamaps if `SetAlphamaps` runs before
-  `AssetDatabase.CreateAsset`** (the whole terrain comes back as layer 0): create the asset first.
+- **A TerrainData built in code loses its alphamaps if `SetAlphamaps` runs before `AssetDatabase.CreateAsset`** (the whole terrain comes back as layer 0): create the asset first.
 - **Freshly painted biomes look bald in editor renders**: scripted `cam.Render()` needs ~100 frames.
 - **Dark crown cores** come from the inner shell (`shell` 0) times `_InnerOcclusion`; on thin clumps
   (conifer skirts, cloud pads) they read as black slabs. Raise `_InnerColor`/`_InnerOcclusion`, shrink
   `core_scale`, or turn the core off (the willow has none, its curtains are `Blob.core = False`).
-- **Wind every face to its custom normal**: Blender stores custom normals in the face's normal space, so one
-  against the winding is mangled and caps, petals and pods render near-black. Pass `facing` to `MeshBuilder.face`.
+- **Wind every face to its custom normal**: Blender stores custom normals in the face's normal space, so one against the winding is mangled and caps, petals and pods render near-black. Pass `facing` to `MeshBuilder.face`.
 - **A `Deco_PlanterBed_*` already holds plants**; its `Face_Plant` marker (1–2 m up) sets ours on its little tree.
 - **`Tree_Bulb_B` (+ `_Ember`) is kept on purpose** (an unsaved `gameScene` placed one when the other bulb trees
   were removed, 2026-10-25); delete prefabs, FBX and `Coll_tree_bulb_b` once nothing places them.
+- **Every pass takes its clip position from `precise` `FoliageClipPosition`**, or depth priming's `ZTest Equal` drops random triangles each frame and swaying plants twitch like z-fighting ([ProjectConfig](ProjectConfig.md) gotcha 14).
 - Editor screenshots: set `LODGroup.crossFadeAnimationDuration` tiny (else mid-dither), and call
   `RecordPrefabInstancePropertyModifications` after scripted moves (else a reimport snaps them home).
 

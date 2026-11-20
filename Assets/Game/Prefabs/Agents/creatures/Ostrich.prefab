@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1401129447881618067
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2842600967617587301}
+  m_Layer: 0
+  m_Name: SEAT_Rider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2842600967617587301
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401129447881618067}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.9333334, z: -0.16666667}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3742107592881161932}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6405982917101867349
 GameObject:
   m_ObjectHideFlags: 0
@@ -128,6 +159,7 @@ Transform:
   m_Children:
   - {fileID: 7910077900827871769}
   - {fileID: 3987795919156751077}
+  - {fileID: 2842600967617587301}
   - {fileID: 3680777552004377387}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -485,6 +517,7 @@ MonoBehaviour:
   motionSmooth: 9
   motionRejectThreshold: 60
   hipsAboveSeat: 0.22
+  bodySeat: {fileID: 2842600967617587301}
   swayFollow: 0.6
   swayBaselineSeconds: 1.2
   blendDuration: 0.25
@@ -842,6 +875,8 @@ MonoBehaviour:
     seconds: 86400
     stillSecondsToEscape: 30
     stillTolerance: 0.3
+  stasis:
+    seconds: 5
   inflationTarget: {fileID: 7910077900827871769}
 --- !u!114 &4862729303251889873
 MonoBehaviour:

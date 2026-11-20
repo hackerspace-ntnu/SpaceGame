@@ -34,6 +34,8 @@ symptoms:
   - "the workshop costs as much from the far desert as standing at its gate"
   - "a workshop room has no walls or ceiling when seen down a tunnel"
   - "the workshop's lamps are all lit while I am far outside the mountain"
+  - "the workshop mountain disappears a few km away, sooner on Low or Medium quality"
+  - "the workshop mountain's summit or gate is a hole through to the sky from a distance"
 reads_with: [ArtPipeline, CharacterClothes, SettlementStreets, Workshop]
 updated: 2026-10-28
 ---
@@ -79,7 +81,8 @@ via `SettlementLodBaker.ScreenHeightAt` at FOV 60; measured gains in [Workshop.m
 | Piece | LOD0 / LOD1 (level 1) / LOD2 (level 3) / cull, metres past its edge |
 | --- | --- |
 | Inside (rooms, tunnels, machinery, furniture, vault door) | 25 / to cull / — / 150 |
-| Outside (`Static_Mountain*`, `Static_ShipTunnel*`, everything under `GearDoor`) | 100 / 300 / beyond / 5000 (never on the map) |
+| Outside (`Static_ShipTunnel*`, `Static_Rock*` — the shaft whose rim is the summit crater — everything under `GearDoor`) | 100 / 300 / beyond / never |
+| Landmark (`Static_Mountain*`, the skin) | one tier, the original pinned to `forceMeshLod 0`, never culled: only the camera's far plane hides it |
 
 The 116 lamps go out by distance (`DistanceCulledLights`: 150 + 18 m lamp range, back 10 m nearer).
 
@@ -130,12 +133,11 @@ N/A — no runtime state. LOD is authored on prefabs; a lamp put out by distance
 
 ## Gotchas
 
-- **Workshop: Mesh LOD level 2+ sheds the thin clay walls and ceilings** (StoreHall's whole shell at
-  level 3); level 1 matches level 0. Inside pieces stop at level 1; only outside pieces reach level 3.
-- **Workshop: screen-size culling never culls a room inside the mountain** (a 30 m room stays above
-  1 % screen height to ~5 km), hence distance past its edge; from outside only the skin and gate show.
-- **Workshop LOD lives in the builder:** tune `WorkshopLodBuilder`'s constants, never the prefab.
-
+- **Workshop: Mesh LOD level 2+ sheds the thin clay walls** (StoreHall's whole shell at level 3); level 1 matches
+  level 0, so inside pieces stop at 1. Screen size never culls a room (a 30 m room stays above 1 % to ~5 km),
+  hence distance past its edge. Tune `WorkshopLodBuilder`'s constants, never the prefab.
+- **A finite cull height bakes the editor's `lodBias` (High, 2) in**: Low (1) culls at half range. Never-culled = last tier 0.
+- **Workshop: what plugs a hole in the skin never culls** (gate, ship tunnel, `Static_Rock_00` = summit crater): `OutsideParts`.
 - **Batching Static silently removes Mesh LOD.** The batched renderer draws `Combined Mesh`
   (`lodCount 1`); `forceMeshLod` and `meshLodSelectionBias` are ignored. A renderer whose mesh has
   `lodCount > 1` must not be Batching Static (kit pieces 94 → 90). `StaticBatchingMeshSizeTests`

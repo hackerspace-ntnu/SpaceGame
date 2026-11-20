@@ -45,6 +45,45 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void TheMountainDrawsItsFullMeshAtEveryRange()
+        {
+            var failures = new List<string>();
+            int mountains = 0;
+            foreach (MeshRenderer renderer in Workshop().GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (!renderer.name.StartsWith("Static_Mountain")) continue;
+                mountains++;
+                if (renderer.forceMeshLod != 0) failures.Add($"'{renderer.name}' forces Mesh LOD level {renderer.forceMeshLod}, not 0");
+                if (!renderer.TryGetComponent(out LODGroup group)) { failures.Add($"'{renderer.name}' has no LODGroup"); continue; }
+                LOD[] lods = group.GetLODs();
+                if (lods.Length != 1 || lods[0].screenRelativeTransitionHeight > 0f)
+                    failures.Add($"'{renderer.name}' has {lods.Length} tiers and is culled below {lods[^1].screenRelativeTransitionHeight} of the screen");
+            }
+            Assert.Greater(mountains, 0, "no Static_Mountain renderer in the workshop");
+            Assert.IsEmpty(failures, string.Join("\n", failures));
+        }
+
+        [Test]
+        public void WhatFillsTheMountainsHolesIsNeverCulled()
+        {
+            // Culled, the ship tunnel and gate leave a hole through the skin at its mouth, the shaft's rock at its summit.
+            GameObject workshop = Workshop();
+            Transform gate = workshop.transform.Find("GearDoor");
+            Assert.IsNotNull(gate, "no GearDoor under the workshop");
+            var failures = new List<string>();
+            foreach (LODGroup group in workshop.GetComponentsInChildren<LODGroup>(true))
+            {
+                bool fillsAHole = group.name.StartsWith("Static_ShipTunnel") || group.name.StartsWith("Static_Rock")
+                                  || group.transform.IsChildOf(gate);
+                if (!fillsAHole) continue;
+                LOD[] lods = group.GetLODs();
+                if (lods[^1].screenRelativeTransitionHeight > 0f)
+                    failures.Add($"'{group.name}' is culled below {lods[^1].screenRelativeTransitionHeight} of the screen");
+            }
+            Assert.IsEmpty(failures, string.Join("\n", failures));
+        }
+
+        [Test]
         public void NoPieceWithMeshLodLevelsIsBatchingStatic()
         {
             var failures = new List<string>();

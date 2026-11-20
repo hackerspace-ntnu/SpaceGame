@@ -8,6 +8,7 @@ paths:
   - Assets/Game/Scenes/world/gameScene.unity
   - Assets/Game/Terrain/NoiseTerrain/
   - Assets/Game/Art/Shaders/Terrain/StylizedTerrain.shader
+  - Assets/Game/Art/Textures/Environment/Terrain/
   - Assets/Game/Settings/SpillexoWorldStreamingConfig.asset
 symptoms:
   - "a settlement's flattened ground is gone after regenerating the noise terrain"
@@ -16,8 +17,9 @@ symptoms:
   - "changing octaves on a noise layer made the whole map flat or all mountains"
   - "water on the noise terrain has no shore foam and its shallows look deep"
   - "the ground is gone; the scene is streaks, wedges and flickering colours instead of terrain"
-reads_with: [TerrainGeneration, Scenes, NavMeshSystem, StylizedWater]
-updated: 2026-10-26
+  - "a material copied from another renders exactly like the original even after switching its shader"
+reads_with: [TerrainGeneration, Scenes, NavMeshSystem, StylizedWater, PaintedGround]
+updated: 2026-11-02
 ---
 
 # Noise Heightmap
@@ -63,7 +65,7 @@ DialogePanel, Wind, PlayerCharacter, NavMesh — **without** the `WorldStreamer`
 near-spawn sandstorm and the map hologram ([WorldStreaming.md](WorldStreaming.md) lists what a
 streamerless world loses). Rewired for this map: `SpawnPoint` on flat ground ~160 m from the
 settlement, `SandstormDirector` area = the terrain, `MapService.config` empty, `SaveHotkeys` reloads
-`NoiseTerrain`. Save identity: [SpillexoWorldStreamingConfig.asset](Assets/Game/Settings/SpillexoWorldStreamingConfig.asset)
+`gameScene`. Save identity: [SpillexoWorldStreamingConfig.asset](Assets/Game/Settings/SpillexoWorldStreamingConfig.asset)
 (no chunks; identity only; its site catalog `SpillexoWorldStreamingConfigSites.asset` is baked from this scene).
 NavMesh: [NoiseTerrain_NavMesh.asset](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_NavMesh.asset),
 baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)). The `settlement` (id `3cea8227…`, stamped 2026-10-20)
@@ -71,19 +73,37 @@ owns the bounty hunt `Bounty_NimQuickhands`, whose `BountyHuntSite_NimQuickhands
 ([Bounties.md](Bounties.md)).
 
 **Look:** the terrain's material template is
-[NoiseTerrain_StylizedMars.mat](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_StylizedMars.mat), a
-saturated stylized Mars on [StylizedTerrain.shader](Assets/Game/Art/Shaders/Terrain/StylizedTerrain.shader).
-The shader colours **procedurally from world position and normal — no textures, no splat**:
+[NoiseTerrain_CanyonSand.mat](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_CanyonSand.mat) (since
+2026-11-02): one orange sand colour with soft painted patches, wind streaks, ripples and rare
+pebbles, banded red cliffs and a lilac shadow tint, on
+[StylizedTerrain.shader](Assets/Game/Art/Shaders/Terrain/StylizedTerrain.shader). The user chose it
+over textured ground (Free Stylized PBR sets, generated sculpted sets): every textured option read as
+busy and repetitive against the flat-colour props. The previous saturated Mars,
+[NoiseTerrain_StylizedMars.mat](Assets/Game/Terrain/NoiseTerrain/NoiseTerrain_StylizedMars.mat), is
+kept unassigned. The shader colours **procedurally from world position and normal**; its one
+texture of its own is the near ground-detail map (2026-11-02, the user's pick over a separate cel variant):
 
 | Stage | Driven by | Knobs |
 | --- | --- | --- |
 | 4-stop height ramp valley → mid → high → peak | world Y between `_MinHeight`/`_MaxHeight` (20/300 here), edges jittered by value noise | `_BandSoftness`, `_BandNoise`, `_BandNoiseScale` |
 | Macro patches (dust drifts) | 2-octave rotated value noise in XZ | `_ColorMacro`, `_MacroStrength`, `_MacroScale`, `_MacroCoverage` |
+| Painted patches (before grass and cliffs) | warped blob noise cut at a threshold, at three sizes: regions, patches, small dabs (faded once sub-pixel) | `_PaintStrength`, `_ColorPaintDark`, `_ColorPaintLight`, `_PaintRegionSize`, `_PaintPatchSize`, `_PaintDabSize`, `_PaintDabStrength` |
+| Biomes (before the painted patches) | a `GroundPalette` (base, patch, streak, pebble, cliff, strata, shadow colours + detail strengths) is blended, never finished colours, so patches run on across borders: dry grassland ↔ forest floor by a domain-warped fBm of up to 8 octaves, nudged to forest in valleys/flats; the material's own Canyon Sand on high and steep ground. **Off in gameScene** (`_BiomeStrength` 0, by the user's choice: Canyon Sand everywhere, green only where painted); the other values are kept for turning it back on | `_BiomeStrength`, `_BiomeScale`, `_BiomeOctaves`, `_BiomeBlend`, `_BiomeWarp`, `_BiomeTerrainPull`, `_BiomeHighGround`, `_Dry*`, `_Forest*` |
+| Painted ground (overrides the biomes) | splat weights of `Paint_*` layers, each painting a ground palette at its own scale — see [PaintedGround.md](PaintedGround.md) | `_PaintMapWarp` |
+| Wind streaks and pebbles | stretched noise along a slowly turning direction; rare Voronoi pebbles shaded as paint (fixed light side, drop shadow), not lit | `_ColorStreak`, `_StreakStrength`, `_ColorPebble`, `_PebbleDensity` |
 | Cliff overlay, layered into strata | `dot(N, up)` between `_SlopeStart`/`_SlopeEnd`; strata are per-layer hashed tones along noise-warped world Y | `_ColorCliff`, `_ColorStrata`, `_StrataStrength`, `_StrataSpacing`, `_StrataEdge`, `_StrataWarp`, `_StrataWarpScale` |
-| Lighting | wrapped main + additional lights, flashlight, SH ambient + `_AmbientBoost` + `_ShadowTint` | `_LightWrap`, `_FlatShading` |
+| Wind ripples | two warped ripple sets (2.2 m, 3.6 m) bend the lighting normal on flat ground only, by finite differences | `_RippleStrength` |
+| Ground under grass, near | painted-grass colour × `_GrassRootShade` (0.72 here) up close, easing to × 1 over GrassField's `groundCoverStart/End` (40–200 m), so tufts grow out of their root shade | `_GrassRootShade` |
+| Near ground detail (after cliffs) | [GroundDetail.png](Assets/Game/Art/Textures/Environment/Terrain/GroundDetail.png) on world XZ every `_DetailTile` m, faded out `_DetailFadeStart`→`_DetailFadeEnd` (12→45 m). B = brush strokes, everywhere. On bare flat ground only: A/R = gravel (colour = the ground palette's pebble colour) inside world-noise clumps, G = dried cracks between the clumps. The ground palette's `soil` scales gravel and cracks and sets the clump coverage (the material's grounds: × 1, × 1, `_GravelCoverage`) | `_DetailMap`, `_DetailTile`, `_DetailFade*`, `_GravelStrength`, `_GravelClumpSize`, `_GravelCoverage`, `_CrackStrength`, `_BrushStrength` |
+| Lighting | wrapped main + additional lights, flashlight, SH ambient + `_AmbientBoost` + shadow tint; sunlight × `_LitTint`, cel-banded into `_LightSteps` soft steps (3 here) | `_LightWrap`, `_FlatShading`, `_LitTint`, `_LightSteps`, `_LightStepSoftness` |
 | Atmosphere | rim term and distance tint toward `_FogTint` | `_Rim*`, `_Fog*` |
 
-Strata, macro patches and shadow tint default to off, so the older
+`GroundDetail.png` (512², tileable; sRGB off, mips, Repeat, trilinear, aniso 4): R gravel tone, G
+crack darkness, B brush value (0.5 neutral), A gravel dome height. Generated by a numpy script that is
+not in the repo — the PNG is the source, as with [BarkMaps](BarkMaps.md).
+
+Strata, macro patches, shadow tint, every painted-patch strength, the ground detail, toon steps and
+root shade default to off, so the older
 [StylizedTerrain_Mars.mat](Assets/Game/Art/Materials/Terrain/StylizedTerrain_Mars.mat) (on `Chunk_7_3`
 and `ClankerSettlement`) renders as it did before they were added.
 
@@ -110,7 +130,9 @@ chunk preload ([Multiplayer.md](Multiplayer.md) Flows).
 
 ## Persistence
 
-The generator: N/A — regenerating is a designer action. Spillexo saves are ordinary world saves stamped
+The generator: N/A — regenerating is a designer action. The ground look holds no runtime state: biomes
+come from world position, painted grounds live in the `TerrainData` asset, the same on every machine.
+Spillexo saves are ordinary world saves stamped
 with `SpillexoWorldStreamingConfig`'s id, so a Story save is refused in Spillexo and the reverse
 (`WorldIdentity.AcceptsConfig`). Both worlds' saves share one folder and one world list; picking the
 other world's save shows "This save belongs to a different world".
@@ -122,10 +144,14 @@ other world's save shows "This save belongs to a different world".
 - **An octave sum bunches around 0.5, which is why `contrast` exists.** Four octaves at persistence 0.5 rarely leave ~0.25..0.75, so curves keyed over 0..1 would only see their middle. Changing `octaves`/`persistence` changes that spread — re-check `continentalToHeight` and `erosionToRelief` afterwards.
 - **Wavelengths are in metres, so they must suit the terrain size.** At 2 km with the first defaults (continental 2600 m, peaks 900 m) the whole tile was one mountain range on one plain; the defaults were cut until 4 km shows several distinct ranges. The 8 km map kept them, so it has more ranges of the same size, not bigger regions.
 - **Batch-mode camera renders are magenta beyond `basemapDistance` (default 1000 m).** The URP TerrainLit basemap pass is not ready in `-batchmode`; the terrain is fine. Raise `basemapDistance` only for the preview, after saving the scene.
-- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores the alphamap; the layers stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers. The one exception is painted grass: `GrassField` turns `Ground_*` paint into a `_GrassColorMap` in the terrain's splat property block, which `StylizedTerrain` blends in before its cliff overlay — more strongly with distance, since far grass hides the ground (`_GrassGroundCover`, see [Grass.md](Grass.md)).
+- **The slope splat and the two terrain layers are not what you see.** `StylizedTerrain` ignores those two (and every other layer except `Paint_*` and, through GrassField, `Ground_*`); they stay only because `Generate()` needs two to paint. Retune the look on the material, not the layers. The one exception is painted grass: `GrassField` turns `Ground_*` paint into a `_GrassColorMap` in the terrain's splat property block, which `StylizedTerrain` blends in before its cliff overlay — more strongly with distance, since far grass hides the ground (`_GrassGroundCover`, see [Grass.md](Grass.md)).
 - **`StylizedTerrain` has no terrain-instancing path.** It reads mesh positions/normals, so the terrain's *Draw Instanced* (Terrain → Settings → Basic Terrain) must stay off. Ticked, the ground turns into stretched streaks and black/white wedges that flicker as the camera moves; URP's own terrain shader looks fine on the same terrain, so swapping shaders points the wrong way. Seen 2026-10-25 in `gameScene`: on in the live scene, off on disk.
 - **Height bands are in world metres.** `_MinHeight`/`_MaxHeight` must track the generated range; regenerating with taller mountains or moving the terrain shifts every band.
 - **Shared shader:** a new `StylizedTerrain` property must default to a no-op, or `StylizedTerrain_Mars.mat` on the main-world chunk changes look silently.
+- **The ground detail must fade out before its tiling shows.** At 4 m tiles the gravel repeated visibly past ~50 m; the fade (12→45 m) and the world-noise gravel clumps hide it. Even gravel without clumps read as polka dots, and three-direction brush strokes as parquet: keep the brush channel soft dabs.
+- **`Material.CopyPropertiesFromMaterial` copies the shader too.** Calling it after assigning a new shader silently put the old shader back, and every new property set afterwards was dropped (a variant rendered identical to its source). Copy first, then assign the shader, then set values.
+- **`hash21` falls apart far from the origin.** It multiplies by ~456 before `frac`, so at the cell counts an 8 km terrain reaches (1.4 m pebble cells, the 0.36 m brush-edge noise) the hash collapses to a constant and the pattern turns flat or striped away from (0, 0). The painted patches use their own `paintHash` (scaled by 0.1031 first); use it for any new small-cell pattern. `hash21` stays for the old bands and strata only so existing materials keep their exact look.
+- **Small relief done by normal only reads as holes from low angles.** Normal-mapped pebbles showed their far side darkened, the dimple illusion, in every player-height view; the pebbles are painted instead (lit top, dark underside, drop shadow to one side), and only the broad ripples bend the normal.
 - **Generate wipes a `Settlement`'s terrain sculpting on the same terrain**, with no warning — the settlement still sits where its flattened ground was. Its backup patch holds the pre-sculpt noise heights, so press the settlement's Generate again afterwards (restore, then re-sculpt; seeded by position, same layout). Seen 2026-10-19 on `settlement` at (1560, 75, 838).
 - **Beyond 4097² a bigger map means tiles, not a bigger terrain.** Neighbouring terrains with the same settings join without seams. The far corner of this one is 11 km from the origin, already at the edge of float-precision jitter.
 - **Spillexo's NavMesh goes stale with every edit to the world.** It is one author-time bake of the scene; regenerating the terrain, placing a settlement or a building leaves agents on the old mesh. Re-bake with `World/Bake Open World Scene NavMesh`, or a settlement's **Generate + Bake World NavMesh** (which routes here in this scene). The 2026-10-19 bake predates the `Workshop` placed afterwards.

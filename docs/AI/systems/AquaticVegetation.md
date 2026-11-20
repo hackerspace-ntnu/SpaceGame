@@ -21,7 +21,7 @@ symptoms:
   - "sea plants lean with the wind instead of rocking to and fro under water"
   - "kelp and sea grass stand completely still under water"
 reads_with: [Foliage, Grass, GrassBiomes, VegetationFamilies, StylizedWater, BarkMaps]
-updated: 2026-10-28
+updated: 2026-11-02
 ---
 
 # Aquatic Vegetation
@@ -115,6 +115,8 @@ N/A — no runtime state; placement lives in the scene or TerrainData.
   additively next to gameScene doubles the grass until it is closed (the field warns).
 - **A bark-based material ignores the shell ramp** (`Bark_Ridged`: shell weight 0, height 1, no variation); the
   aquatic bark materials set 0.55 / 0.45 / 0.35 (brain coral 0.85 / 0.25), or corals shade flat.
+- **Twitching darker/lighter that looks like z-fighting** was depth priming, not geometry or shadows (the meshes have
+  no overlapping faces): fixed in the shader with `precise`, see [Foliage.md](Foliage.md) Gotchas.
 - **Tubes must not flutter** (flutter runs along the normal: a radial-normal rope pulses); ropes move by limb sway only.
 - **Everything in a sea fan shares one limb**, or the lace links pull away from their branches.
 - **A Bead's LOD1 was finer than its LOD0** once LOD0 was scaled down; LOD1 is now clamped to LOD0.

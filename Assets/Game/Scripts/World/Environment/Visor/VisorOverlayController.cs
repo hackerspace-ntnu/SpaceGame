@@ -6,7 +6,7 @@ namespace SpaceGame.World
     {
         [SerializeField] private Camera sourceCamera; // The camera for light tracking
         [SerializeField] private Material visorMaterial; // The EVA_Visor material
-        [SerializeField] private Light primaryLight; // Primary light source for lens flare (leave empty to auto-detect)
+        [SerializeField] private Light primaryLight; // The sun the lens flare follows (leave empty to auto-detect: RenderSettings.sun, else the brightest directional light)
         [SerializeField] private float maxRaycastDistance = 10000f; // Maximum distance to check for sun occlusion
         [SerializeField] private float offScreenFlareMultiplier = 0.3f; // Flare intensity when sun is off-screen
         [Tooltip("Seconds between scene-wide searches for a primary light while none is assigned or found. " +
@@ -38,20 +38,12 @@ namespace SpaceGame.World
                 if (primaryLight == null && Time.unscaledTime >= nextLightSearchTime)
                 {
                     nextLightSearchTime = Time.unscaledTime + lightSearchInterval;
-                    Light[] lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
-                    float maxIntensity = 0;
-                    foreach (Light light in lights)
-                    {
-                        if (light.intensity > maxIntensity && light.enabled)
-                        {
-                            maxIntensity = light.intensity;
-                            primaryLight = light;
-                        }
-                    }
+                    primaryLight = FindSun();
                 }
-            
-                // Convert light direction to screen space position
-                if (primaryLight != null && sourceCamera != null)
+
+                // Convert light direction to screen space position. A switched-off sun (night, an
+                // interior) casts no flare.
+                if (primaryLight != null && primaryLight.isActiveAndEnabled && sourceCamera != null)
                 {
                     Vector3 lightDir = -primaryLight.transform.forward; // Direction light is shining
                     Vector3 cameraPos = sourceCamera.transform.position;
@@ -139,6 +131,29 @@ namespace SpaceGame.World
                     visorMaterial.SetVector("_LightSourcePosition", new Vector4(0.5f, 0.5f, 0, 0));
                 }
             }
+        }
+
+        /// <summary>
+        /// The light the flare treats as the sun. Only a DIRECTIONAL light qualifies: the flare reads
+        /// the light's forward as a direction to infinity, which means nothing on a point or spot
+        /// light, and URP lamps are routinely brighter in intensity units than the sun (a workshop
+        /// lamp is 12, a flashlight 25, against a sun of about 1–3). Picking by intensity alone
+        /// latched onto the first bright lamp in the scene and drew a full-strength flare along its
+        /// arbitrary forward axis for the rest of the session.
+        /// </summary>
+        private static Light FindSun()
+        {
+            if (RenderSettings.sun != null && RenderSettings.sun.type == LightType.Directional)
+                return RenderSettings.sun;
+
+            Light brightest = null;
+            foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+            {
+                if (light.type != LightType.Directional || !light.enabled) continue;
+                if (brightest == null || light.intensity > brightest.intensity) brightest = light;
+            }
+
+            return brightest;
         }
     }
 }

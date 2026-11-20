@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: NoiseTerrain_CanyonSand
+  m_Shader: {fileID: 4800000, guid: cdb33389beb2d434296b3ecb96e74b5e, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _DetailMap:
+        m_Texture: {fileID: 2800000, guid: 4ba572d3c430443b4b2658e202b8f3fd, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _GrassColorMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AmbientBoost: 0
+    - _BandNoise: 0.06
+    - _BandNoiseScale: 90
+    - _BandSoftness: 0.15
+    - _BiomeBlend: 0.24
+    - _BiomeHighGround: 1
+    - _BiomeOctaves: 7
+    - _BiomeScale: 550
+    - _BiomeStrength: 0
+    - _BiomeTerrainPull: 0.5
+    - _BiomeWarp: 0.9
+    - _BrushStrength: 0.1
+    - _CrackStrength: 0.45
+    - _DetailFadeEnd: 45
+    - _DetailFadeStart: 12
+    - _DetailTile: 4
+    - _FlatShading: 0
+    - _FogEnd: 3500
+    - _FogStart: 400
+    - _FogStrength: 0.3
+    - _GrassMinHeight: -10000
+    - _GrassRootShade: 0.72
+    - _GravelClumpSize: 9
+    - _GravelCoverage: 0.45
+    - _GravelStrength: 1
+    - _LightStepSoftness: 0.1
+    - _LightSteps: 3
+    - _LightWrap: 0.12
+    - _MacroCoverage: 0.5
+    - _MacroScale: 300
+    - _MacroStrength: 0
+    - _MaxHeight: 300
+    - _MinHeight: 20
+    - _PaintDabSize: 4.5
+    - _PaintDabStrength: 0.8
+    - _PaintMapWarp: 8
+    - _PaintPatchSize: 22
+    - _PaintRegionSize: 140
+    - _PaintStrength: 1
+    - _PebbleDensity: 0.03
+    - _RimPower: 4
+    - _RimStrength: 0.1
+    - _RippleStrength: 0.8
+    - _SlopeEnd: 0.9
+    - _SlopeStart: 0.72
+    - _StrataEdge: 0.35
+    - _StrataSpacing: 3.5
+    - _StrataStrength: 0.9
+    - _StrataWarp: 10
+    - _StrataWarpScale: 140
+    - _StreakStrength: 0.45
+    m_Colors:
+    - _ColorCliff: {r: 0.72156864, g: 0.36862746, b: 0.22745098, a: 1}
+    - _ColorHigh: {r: 0.8784314, g: 0.57254905, b: 0.3529412, a: 1}
+    - _ColorMacro: {r: 0.8784314, g: 0.5568628, b: 0.34509805, a: 1}
+    - _ColorMid: {r: 0.8627451, g: 0.54901963, b: 0.32156864, a: 1}
+    - _ColorPaintDark: {r: 0.7764706, g: 0.4509804, b: 0.24705882, a: 1}
+    - _ColorPaintLight: {r: 0.92156863, g: 0.63529414, b: 0.39607844, a: 1}
+    - _ColorPeak: {r: 0.8980392, g: 0.6039216, b: 0.38431373, a: 1}
+    - _ColorPebble: {r: 0.7176471, g: 0.41568628, b: 0.2509804, a: 1}
+    - _ColorStrata: {r: 0.8117647, g: 0.47843137, b: 0.30588236, a: 1}
+    - _ColorStreak: {r: 0.8901961, g: 0.5882353, b: 0.35686275, a: 1}
+    - _ColorValley: {r: 0.83137256, g: 0.5254902, b: 0.3137255, a: 1}
+    - _DryBase: {r: 0.70980394, g: 0.64705884, b: 0.36862746, a: 1}
+    - _DryCliff: {r: 0.627451, g: 0.47058824, b: 0.3137255, a: 1}
+    - _DryDark: {r: 0.6117647, g: 0.5529412, b: 0.29803923, a: 1}
+    - _DryDetail: {r: 0.3, g: 0.025, b: 0.9, a: 0.55}
+    - _DryLight: {r: 0.79607844, g: 0.7372549, b: 0.45490196, a: 1}
+    - _DryPebble: {r: 0.7882353, g: 0.7058824, b: 0.5568628, a: 1}
+    - _DryShadow: {r: 0.12, g: 0.1, b: 0.2, a: 1}
+    - _DryStrata: {r: 0.7254902, g: 0.5568628, b: 0.36862746, a: 1}
+    - _DryStreak: {r: 0.7607843, g: 0.69803923, b: 0.41568628, a: 1}
+    - _FogTint: {r: 0.8509804, g: 0.6117647, b: 0.47058824, a: 1}
+    - _ForestBase: {r: 0.36862746, g: 0.41960785, b: 0.24313726, a: 1}
+    - _ForestCliff: {r: 0.43137255, g: 0.36862746, b: 0.28235295, a: 1}
+    - _ForestDark: {r: 0.2901961, g: 0.3372549, b: 0.19607843, a: 1}
+    - _ForestDetail: {r: 0, g: 0.04, b: 1.1, a: 0.15}
+    - _ForestLight: {r: 0.44705883, g: 0.49803922, b: 0.2901961, a: 1}
+    - _ForestPebble: {r: 0.5411765, g: 0.49411765, b: 0.4, a: 1}
+    - _ForestShadow: {r: 0.09, g: 0.09, b: 0.17, a: 1}
+    - _ForestStrata: {r: 0.52156866, g: 0.44705883, b: 0.34509805, a: 1}
+    - _ForestStreak: {r: 0.4, g: 0.44313726, b: 0.24705882, a: 1}
+    - _GrassMapRect: {r: 0, g: 0, b: 0, a: 0}
+    - _GrassMapWarp: {r: 0, g: 1, b: 0, a: 0}
+    - _LitTint: {r: 1, g: 0.96, b: 0.88, a: 1}
+    - _PaintMapRect: {r: 0, g: 0, b: 0, a: 0}
+    - _RimColor: {r: 0.8509804, g: 0.6117647, b: 0.47058824, a: 1}
+    - _ShadowTint: {r: 0.14, g: 0.11, b: 0.24, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

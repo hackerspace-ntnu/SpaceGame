@@ -183,8 +183,20 @@ FoliageVertex PlaceFoliageVertex(FoliageAttributes IN)
     // A body pushing through shakes the leaves whatever the wind is doing.
     offset += v.normalWS * (sin(flutterPhase * RUSTLE_PACE) * _BendRustle * IN.wind.y * bend.z);
 
-    v.positionWS = p + offset;
+    precise float3 positionWS = p + offset;
+    v.positionWS = positionWS;
     return v;
+}
+
+// The clip position for the forward and both depth prepasses. With depth priming the forward
+// pass draws with ZTest Equal against the prepass's depth, so the swayed position must come out
+// bit-identical in every pass. Compiled apart, each pass's optimiser fuses the wind maths its
+// own way, the depths differ in the last bit, and whole triangles drop out frame to frame —
+// a flicker that looks like z-fighting. `precise` (here and on positionWS) forbids that.
+float4 FoliageClipPosition(float3 positionWS)
+{
+    precise float4 positionCS = TransformWorldToHClip(positionWS);
+    return positionCS;
 }
 
 half3 FoliageAlbedo(FoliageVertex v)

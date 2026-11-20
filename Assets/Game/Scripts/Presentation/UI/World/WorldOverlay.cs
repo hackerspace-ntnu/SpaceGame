@@ -25,6 +25,15 @@ namespace SpaceGame.Presentation
         /// </summary>
         private const int SortingOrder = -1;
 
+        /// <summary>
+        /// Execution order for every component that projects onto this overlay. A label must be
+        /// placed after the camera and the thing it labels have both reached this frame's pose, and
+        /// several of them only get there in LateUpdate — the mount camera (1000), the jetpack's
+        /// third-person lens (960), a seated rider's pose (900). Projected any earlier, a label
+        /// lands where its target was a frame ago, which at speed is metres off and visibly swims.
+        /// </summary>
+        public const int ProjectionOrder = 2000;
+
         private static WorldOverlay instance;
 
         private RectTransform layer;

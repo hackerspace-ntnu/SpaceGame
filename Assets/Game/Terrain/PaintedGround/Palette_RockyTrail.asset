@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0644d6a872934a3d88fd9b6aaa5f54c5, type: 3}
+  m_Name: Palette_RockyTrail
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Environment.PaintedGroundPalette
+  layer: {fileID: 8574412962073106934, guid: 89282c6c75cb4ff98a6995045c67d473, type: 2}
+  pattern: {fileID: 2800000, guid: 027c8ff8abb740c883e1b0cd558b08d7, type: 3}
+  patternTile: 3.5
+  patternStrength: 1.0
+  patternRotates: 1
+  baseColour: {r: 0.7100, g: 0.6133, b: 0.5254, a: 1}
+  darkerPatches: {r: 0.6252, g: 0.5392, b: 0.4639, a: 1}
+  palerPatches: {r: 0.7697, g: 0.6612, b: 0.5658, a: 1}
+  windStreaks: {r: 0.7309, g: 0.6273, b: 0.5366, a: 1}
+  pebbles: {r: 0.7876, g: 0.6771, b: 0.5784, a: 1}
+  cliff: {r: 0.6106, g: 0.5115, b: 0.4597, a: 1}
+  cliffStrata: {r: 0.6958, g: 0.6050, b: 0.5420, a: 1}
+  shadowTint: {r: 0.1200, g: 0.1000, b: 0.2000, a: 1}
+  ripples: 0.0
+  pebbleDensity: 0.0
+  dabs: 0.0
+  streaks: 0.0
+  patchScale: 1.0
+  pebbleSpacing: 1.4
+  pebbleRadius: 0.0929
+  rippleScale: 1.0
+  gravel: 0.0
+  cracks: 0.0
+  pebbleToneVariation: 0.0
+  gravelCoverage: 0.0

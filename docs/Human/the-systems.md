@@ -132,6 +132,19 @@ It is a workshop, not a wardrobe. You can try as many looks as you like in it, b
 still ships with exactly one, written into the code — which is what keeps the palette from
 quietly drifting into a dozen half-finished variants.
 
+### Painted grounds *(PaintedGround)*
+
+On the stylized terrain you paint ground types with the normal terrain brush: dry grassland, forest
+floor, the canyon sand, and nine more taken from photo textures — farm soil, forest ground, furrowed
+field, gravelly sand, rocky trail, river pebbles, leaf litter, cracked mud and damp sand. Those nine
+are painted-looking versions of the photos, flattened into a few colours and all made equally light;
+the terrain shuffles each one as it lays it down and shades it with large soft patches, so you never
+see it repeat.
+
+**Worth knowing:** a new ground only appears once its palette is listed on the terrain's ground-paint
+component, and the terrain can show at most sixteen layers' worth of painted grounds, so keep the
+painted layers together at the end of the terrain's layer list.
+
 ### Grass *(Grass)*
 
 Grass grows wherever you paint it. Each grass biome — meadows in green, gold, autumn orange,

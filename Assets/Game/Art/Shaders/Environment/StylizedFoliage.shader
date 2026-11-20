@@ -140,7 +140,7 @@ Shader "SpaceGame/StylizedFoliage"
                 FoliageVertex v = PlaceFoliageVertex(IN);
                 Varyings OUT;
                 OUT.positionWS = v.positionWS;
-                OUT.positionCS = TransformWorldToHClip(v.positionWS);
+                OUT.positionCS = FoliageClipPosition(v.positionWS);
                 OUT.albedo = FoliageAlbedo(v);
                 OUT.accentFog = float3(FoliageAccent(v), v.alongLeaf, ComputeFogFactor(OUT.positionCS.z));
             #if defined(_BARK_TEXTURE)
@@ -249,7 +249,7 @@ Shader "SpaceGame/StylizedFoliage"
             float4 vert(FoliageAttributes IN) : SV_POSITION
             {
                 UNITY_SETUP_INSTANCE_ID(IN);
-                return TransformWorldToHClip(PlaceFoliageVertex(IN).positionWS);
+                return FoliageClipPosition(PlaceFoliageVertex(IN).positionWS);
             }
 
             half frag(float4 positionCS : SV_POSITION) : SV_Target
@@ -291,7 +291,7 @@ Shader "SpaceGame/StylizedFoliage"
                 UNITY_SETUP_INSTANCE_ID(IN);
                 FoliageVertex v = PlaceFoliageVertex(IN);
                 Varyings OUT;
-                OUT.positionCS = TransformWorldToHClip(v.positionWS);
+                OUT.positionCS = FoliageClipPosition(v.positionWS);
                 OUT.normalWS = v.normalWS;
                 return OUT;
             }

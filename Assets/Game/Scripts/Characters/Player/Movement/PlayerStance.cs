@@ -39,6 +39,10 @@ namespace SpaceGame.Characters
         [SerializeField] private Animator animator;
         [SerializeField] private PlayerMovement movement;
 
+        [Tooltip("The walking dip, folded into the eye height written here. Leave empty to find " +
+                 "it on this object; without one the eye never bobs.")]
+        [SerializeField] private PlayerHeadBob headBob;
+
         [Header("Crouch")]
         [Tooltip("Crouched capsule height as a fraction of the standing one. Cannot go below " +
                  "twice the radius — a capsule shorter than its own caps is not a shape.")]
@@ -104,6 +108,10 @@ namespace SpaceGame.Characters
         private float stanceT;
         private float appliedT = float.NaN;
 
+        // The head bob's dip last written into the eye height, under the same rule: no write while
+        // it and the stance both hold still.
+        private float appliedBob = float.NaN;
+
         private float standingHeight;
         private float standingCenterY;
         private float standingEyeY;
@@ -137,6 +145,7 @@ namespace SpaceGame.Characters
             controller = GetComponent<PlayerController>();
 
             if (movement == null) movement = GetComponent<PlayerMovement>();
+            if (headBob == null) headBob = GetComponent<PlayerHeadBob>();
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
             if (playerCollider == null) playerCollider = GetComponentInChildren<CapsuleCollider>(true);
 
@@ -167,7 +176,7 @@ namespace SpaceGame.Characters
                               && animator.GetBool(CrouchParameter);
             }
 
-            ApplyStance(Time.deltaTime);
+            ApplyStance(Time.deltaTime, headBob != null ? headBob.HeightOffset : 0f);
         }
 
         /// <summary>
@@ -315,8 +324,10 @@ namespace SpaceGame.Characters
 
         /// <summary>
         /// Ease the body and the view towards the stance, and write neither once they agree.
+        /// <paramref name="bob"/> is the walking dip, added to the eye height only — the capsule
+        /// does not bob, and is not rewritten while only the dip moves.
         /// </summary>
-        private void ApplyStance(float deltaTime)
+        private void ApplyStance(float deltaTime, float bob)
         {
             float target = isCrouching ? 1f : 0f;
 
@@ -324,10 +335,12 @@ namespace SpaceGame.Characters
                 ? target
                 : Mathf.MoveTowards(stanceT, target, deltaTime / stanceBlendTime);
 
-            if (stanceT == appliedT) return;
+            bool stanceMoved = stanceT != appliedT;
+            if (!stanceMoved && bob == appliedBob) return;
             appliedT = stanceT;
+            appliedBob = bob;
 
-            if (playerCollider != null)
+            if (stanceMoved && playerCollider != null)
             {
                 float height = Mathf.Lerp(standingHeight, CrouchedHeight, stanceT);
 
@@ -344,7 +357,7 @@ namespace SpaceGame.Characters
             if (eye != null)
             {
                 Vector3 local = eye.localPosition;
-                local.y = standingEyeY - crouchEyeDrop * stanceT;
+                local.y = standingEyeY - crouchEyeDrop * stanceT + bob;
                 eye.localPosition = local;
             }
         }
@@ -423,7 +436,8 @@ namespace SpaceGame.Characters
             winded = false;
             stanceT = 0f;
             appliedT = float.NaN;
-            ApplyStance(0f);
+            appliedBob = float.NaN;
+            ApplyStance(0f, 0f);
         }
     }
 }

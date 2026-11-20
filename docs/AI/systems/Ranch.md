@@ -31,7 +31,7 @@ symptoms:
   - "the esko's walk and gallop look slow-motion"
   - "the esko does a somersault and lands upside down when it jumps"
 reads_with: [Objectives, Saddles, Lasso, AgentSystem, Residents, NavMeshSystem, Multiplayer, Persistence]
-updated: 2026-10-26
+updated: 2026-11-02
 ---
 
 # Ranch
@@ -56,7 +56,7 @@ eskos **from the saddle**, tow them into the corral, let go and shut the gate �
 | Roping from the saddle is what works | The esko variants weigh 700 kg (`Rigidbody.mass`; the base said 1, which the lasso read as 2 kg). On foot a roped one tows the player; seated, the rope's holder weighs the mount (`LassoArtifact.HolderMass`, [Lasso.md](Lasso.md)) and the wild one is held |
 | The Esko's gaits | `Esko.prefab` `NavMeshAgent.speed` 15 (the gallop), walk 3.3 (`walkSpeedMultiplier` 0.22), acceleration 17.4 — 1.5× the Appa numbers it was cloned with, at the user's request (2026-10-21). `Esko.controller`'s Locomotion tree is foot-matched to them: Idle 0 · Walk 1.6 (timeScale 0.778) · Walk 3.3 (1.604) · Run 15 (0.971); timeScale = threshold ÷ the clip's own ground speed (Walk 2.06 m/s, Run 15.44 m/s at root scale 2.2). The second Walk sample keeps a ~1.5 m/s wander out of the Idle blend, which syncs every child to Idle's 6.7 s cycle. Flee is ×1 (above the last anchor the feet skate); Wild flees ×0.7 = 10.5 m/s, so a galloping rider closes |
 | The Esko's jump | `Jump` plays `Esko_Run` held near its stretched phase (cycle offset 0.07, speed 0.12): a flying gallop for the 0.55 s the motor lifts it. The `Esko_Jump` take is the bear pack's `CanonBall`, a full 360° roll 1.1 s long that the jump cut off upside-down; it is unused now. `IsGrounded` defaults true, so a fresh Esko cannot flash into `Jump` on its first frame |
-| Wild ones are skittish | `Esko_Wild`: `FleeModule` from **Neutral** (any person) inside 16 m, back to calm at 34 m, at 0.7 × speed so a galloping rider closes; `WanderModule.homeRadius` 30 keeps the herd on its range. Penned (inside, gate shut) the server re-homes it on the corral (`RanchStock.KeepIn`) |
+| Wild ones are skittish | `Esko_Wild`: `FleeModule` from **Neutral** (any person) inside 16 m, back to calm at 34 m, at 0.7 × speed so a galloping rider closes; `WanderModule.homeRadius` 30 keeps the herd on its range. Rideable bareback (`SaddleSocket.ridableBareback`, [Saddles.md](Saddles.md)); the tame `Esko_Ranch` still needs its saddle. Penned (inside, gate shut) the server re-homes it on the corral (`RanchStock.KeepIn`) |
 | Tovak keeps the crew's pace | He leads by `AgentGoal` like every NPC, so he walks at a player's walking pace and runs at his run/walk ratio above it ([AgentSystem.md](AgentSystem.md) Gotchas) |
 | The wrangler is rebuilt, not saved | [`RanchWrangler`](Assets/Game/Scripts/World/Ranch/RanchWrangler.cs) on `Raxy_Wrangler` (variant of `Raxy_Job_Drover`): `NpcSpawn` by the server when the chunk loads, `PutAt` the current beat's mark, despawned with the ranch. Outside any `Settlement`, so his resident parts stand down |
 | His lines are the quest's | `QuestVoice` on the prefab: `ObjectiveBriefing` says every briefing through his `Speaker` (jaw, bubbles). Talk (`IDialogResponder`): before the quest the `offer` + `Give`; during it the beat's `hints` in turn; after it `afterwards`. `callOut` once, unasked, when this machine's player first comes within 14 m |

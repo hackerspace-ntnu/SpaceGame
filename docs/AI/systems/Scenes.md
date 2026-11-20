@@ -12,7 +12,7 @@ paths:
   - Assets/Game/Settings/WorldStreamingConfig.asset
 symptoms:
   - "pressing Play in my own scene bounces through Bootstrap and lands somewhere else"
-  - "pressing Play in persistentScene or NoiseTerrain always starts a fresh world with the crash landing"
+  - "pressing Play in persistentScene or gameScene always starts a fresh world with the crash landing"
   - "pressing Play in a scene loads it but nobody spawns and nothing saves"
   - "ViewGuard No enabled camera anywhere for 10.8s and no local player to restore one from, right after pressing Play"
   - "Refused to save 'Editor Spillexo': the capture found no players, and the file already there has some"
@@ -35,12 +35,12 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 
 - **74 scenes on disk**, 67 in build settings, all enabled, none disabled.
 - **Build index 0 is [Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity)** and index 1 must be MainMenu. [Bootstrapper.cs](Assets/Game/Scripts/Core/SceneManagement/Core/Bootstrapper.cs) force-loads index `0` `Single`, then loads back the scene you pressed Play in — falling back to hardcoded **index 1** when there is none. Reordering build settings so MainMenu is not index 1 silently changes the Play-from-Bootstrap destination.
-- **Pressing Play in a world scene runs the game, not a bare scene.** A world is a [`GameWorld`](Assets/Game/Scripts/Core/SceneManagement/Core/GameWorld.cs) asset (scene + save identity) under [Resources/Worlds/](Assets/Game/Resources/Worlds) — `Story` (persistentScene) and `Spillexo` (NoiseTerrain). When the scene you pressed Play in is one, `Bootstrapper.EnterAsNewWorld` puts the loading screen up at once, waits a frame (Bootstrap's objects must have run `Start`), **deletes** the `Editor <World>` save slot, stages a new world under that name and enters it through [`SessionEntry.EnterWorld`](Assets/Game/Scripts/Core/Multiplayer/Session/SessionEntry.cs) — the very call the menu's New World makes: loading screen, `HostLocal`, Netcode scene load. So you get the crash landing, spawning and saving exactly as from the menu. Any other scene still loads plain.
-- **Two world roots, each loaded `Single`:** [persistentScene](Assets/Game/Scenes/world/persistentScene.unity) (Story, streamed in chunks) and [NoiseTerrain](Assets/Game/Scenes/world/gameScene.unity) (Spillexo, one scene, no streaming — chunking is being dropped). The rest of this bullet is persistentScene's; NoiseTerrain carries the same managers minus `WorldStreamer`, the sky fleet and the map hologram.
+- **Pressing Play in a world scene runs the game, not a bare scene.** A world is a [`GameWorld`](Assets/Game/Scripts/Core/SceneManagement/Core/GameWorld.cs) asset (scene + save identity) under [Resources/Worlds/](Assets/Game/Resources/Worlds) — `Story` (persistentScene) and `Spillexo` (gameScene). When the scene you pressed Play in is one, `Bootstrapper.EnterAsNewWorld` puts the loading screen up at once, waits a frame (Bootstrap's objects must have run `Start`), **deletes** the `Editor <World>` save slot, stages a new world under that name and enters it through [`SessionEntry.EnterWorld`](Assets/Game/Scripts/Core/Multiplayer/Session/SessionEntry.cs) — the very call the menu's New World makes: loading screen, `HostLocal`, Netcode scene load. So you get the crash landing, spawning and saving exactly as from the menu. Any other scene still loads plain.
+- **Two world roots, each loaded `Single`:** [persistentScene](Assets/Game/Scenes/world/persistentScene.unity) (Story, streamed in chunks) and [gameScene](Assets/Game/Scenes/world/gameScene.unity) (Spillexo, one scene, no streaming — chunking is being dropped). The rest of this bullet is persistentScene's; gameScene carries the same managers minus `WorldStreamer`, the sky fleet and the map hologram.
 - **[persistentScene](Assets/Game/Scenes/world/persistentScene.unity) is the Story world's root gameplay scene**, loaded `Single`. It holds `Managers`, `WorldStreamer`, `[SaveSystem]`, `InteriorManager`, `NpcWorldSim`, `Weather`, `SpawnPoint`, `ArrivalDirector`, and `Appa` (an animated set-dressing creature near the spawn). Everything else in-game is **additive** on top of it.
 - Three additive layers stack onto the root: **world chunks** (`WorldStreamer`, by scene *name*), **interiors** (`InteriorManager`, by scene *name* from `InteriorScene` assets), and the **minigame arena** (`MainMenuUI`, additive after the root finishes loading).
 - Networked sessions load through `NetworkManager.Singleton.SceneManager.LoadScene`, not `SceneManager`. Both the streamer and `InteriorManager` branch on `Network.IsNetworked` and pick the right one.
-- Scene names are indirected through `SceneReference` ScriptableObjects in [Assets/Game/Scenes/References/](Assets/Game/Scenes/References) so the menu and the lobby cannot disagree; `MainMenuUI.GameSceneName` is the single source for "the world scene".
+- Scene names are indirected through `SceneReference` ScriptableObjects in [Assets/Game/Scenes/References/](Assets/Game/Scenes/References) so the menu and the lobby cannot disagree; `MainMenuUI.GameSceneName` is the single source for "the world scene". **gameScene is the main world**: `MainMenuUI.mainWorld` (Story, VS and Disposable routes) points at the Spillexo `GameWorld`.
 - The exit route is one constant: `SessionExit.MenuSceneName = "MainMenu"` in [SessionExit.cs](Assets/Game/Scripts/Core/Multiplayer/Session/SessionExit.cs).
 
 ## Scenes
@@ -50,7 +50,7 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 | Bootstrap | [Core/Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity) | Index 0. `NetworkManager`, `AudioManager`, `Bootstrapper`; entry gate for every Play mode. **Nothing placed here survives** — see Gotchas | 0 |
 | MainMenu | [Core/MainMenu.unity](Assets/Game/Scenes/Core/MainMenu.unity) | Front end: `MainMenuUI`, lobby preview camera, world select | 1 |
 | persistentScene | [world/persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) | **Root gameplay scene.** Managers, streamer, save system, spawn point, arrival cutscene, Appa | 7 |
-| NoiseTerrain | [world/gameScene.unity](Assets/Game/Scenes/world/gameScene.unity) | **Root of the Spillexo world** (menu entry *Spillexo*, `SceneReference` `Spillexo`): one 8 km terrain from `NoiseHeightmapGenerator` ([NoiseHeightmap.md](NoiseHeightmap.md)) authored straight into the scene, plus a copy of persistentScene's managers, save system, NPC sim, weather, objectives, arrival and spawn point — **no `WorldStreamer`, no chunks**. Its own NavMesh, baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)) | 70 |
+| gameScene | [world/gameScene.unity](Assets/Game/Scenes/world/gameScene.unity) | **Root of the Spillexo world, the main world** (menu entries *Story* and *Spillexo*, `SceneReference` `Spillexo`): one 8 km terrain from `NoiseHeightmapGenerator` ([NoiseHeightmap.md](NoiseHeightmap.md)) authored straight into the scene, plus a copy of persistentScene's managers, save system, NPC sim, weather, objectives, arrival and spawn point — **no `WorldStreamer`, no chunks**. Its own NavMesh, baked from the scene ([NavMeshSystem.md](NavMeshSystem.md)) | 70 |
 | AlgeaCave | [Interiors/AlgeaCave.unity](Assets/Game/Scenes/Interiors/AlgeaCave.unity) | Additive interior; target of `Interior_AlgeaCave` (note the `Algea` spelling) | 8 |
 | SandstoneCaveInterior | [Interiors/SandstoneCaveInterior.unity](Assets/Game/Scenes/Interiors/SandstoneCaveInterior.unity) | Additive interior, ~3.5 MB, 20+ `AlgaeLight_*`; target of `Interior_SandstoneCave` | 9 |
 | Ferdinand_Test_world | [Tests/Ferdinand_Test_world.unity](Assets/Game/Scenes/Tests/Ferdinand_Test_world.unity) | Second-world root; own `WorldStreamer` + `InteriorManager`. Editor-only entry, no menu route | 58 |
@@ -90,7 +90,7 @@ Chunk scene count on disk matches the config chunk count and the build-settings 
 | 58 | `Tests/Ferdinand_Test_world` |
 | 59–66 | `Tests/FerdinandWorld/Chunks/FerdinandChunk_0_0` … `FerdinandChunk_3_1` |
 | 67–69 | added since this table was written; not audited here |
-| 70 | `world/NoiseTerrain` (Spillexo) |
+| 70 | `world/gameScene` (Spillexo) |
 | 71 | `Tests/OceanShowcase` — added by its builder so Play loads it |
 
 All 67 entries have `enabled: 1`. Five personal test scenes (indices 2–6) ship in every build — they push persistentScene off a low index and bloat player builds.
@@ -100,8 +100,8 @@ All 67 entries have `enabled: 1`. Five personal test scenes (indices 2–6) ship
 | Name | Loaded from | In build? |
 | --- | --- | --- |
 | `MainMenu` | `SessionExit.MenuSceneName`; `Main Menu` SceneReference | yes (1) |
-| `persistentScene` | `GameScene` SceneReference → [MainMenuUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MainMenuUI.cs); `SaveHotkeys.worldSceneName`; [AutotestRunner.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.cs); `ChunkStreamingProbeMenu` | yes (7) |
-| `NoiseTerrain` | `Spillexo` SceneReference → `Resources/Worlds/Spillexo` `GameWorld` (`MainMenuUI.spillexoWorld`, `Bootstrapper`); `SaveHotkeys.worldSceneName` in NoiseTerrain | yes (70) |
+| `persistentScene` | `Resources/Worlds/Story` `GameWorld` (`Bootstrapper` only — no menu route since 2026-10-28); `SaveHotkeys.worldSceneName`; [AutotestRunner.cs](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.cs); `ChunkStreamingProbeMenu` | yes (7) |
+| `gameScene` | `Spillexo` SceneReference → `Resources/Worlds/Spillexo` `GameWorld` (`MainMenuUI.mainWorld` and `spillexoWorld`, `Bootstrapper`); `SaveHotkeys.worldSceneName` in gameScene | yes (70) |
 | `AlgeaCave`, `SandstoneCaveInterior` | `InteriorScene` assets in [Assets/Game/Resources/Interiors/](Assets/Game/Resources/Interiors) → `InteriorManager` | yes (8, 9) |
 | `Chunk_{x}_{y}`, `FerdinandChunk_{x}_{y}` | `chunks[].sceneName` in the two streaming configs → `WorldStreamer.ExecuteLoad` | yes (10–57, 59–66) |
 | `Blocking test`, `Ferdinand_Test_world` | `SceneReference` assets only; no C# path reaches them at runtime | yes (2, 58) |
@@ -121,6 +121,8 @@ No scene is loaded by a string that is missing from build settings. [InteriorSce
 9. **Play in a world scene: the first frame is one long frame, and it must already have a camera.** Unity still loads the scene the editor had open before Bootstrap (an 8 km world: ~10 s), and `SessionGuardRunner` gets its first `Update` only after all of it. With no enabled camera at that moment `ViewGuard` counts the whole hitch as a black screen and logs `[ViewGuard] No enabled camera anywhere for 10.8s and no local player…` — and with **Error Pause** on, that error freezes play at frame 1, before NetworkGameManager can spawn anyone. That is why `EnterAsNewWorld` shows the loading screen (its fallback camera) synchronously, before its frame wait.
 10. **A new world must never be staged over an existing save file.** `SaveManager` writes a new world on entry, and refuses (`[Save] Refused to save 'Editor Spillexo': the capture found no players, and the file already there has some`) to replace a world that has players with one that does not yet — an error, so Error Pause again. The menu prevents it by refusing a taken name; the editor Play route deletes its own `Editor <World>` slot first.
 11. **A world scene has exactly one directional light: the `Sun` prefab.** It is `RenderSettings.sun` and carries `DayNightCycle` ([Environment.md](Environment.md)). An extra directional light is lit on every pixel and stays lit at night. Nothing serialized points at such a light: `PersistentSceneVisibility` suspends *every* directional light under the scene roots, and `VisorOverlayController` picks the brightest enabled `Light`. Both are runtime lookups, so a reference grep will not find a stray light. persistentScene's stray `Directional Light` (under `graphics`) was removed on 2026-10-28. gameScene's copy (also under `graphics`) followed the same day.
+
+12. **A `SceneReference` stores the scene NAME as text; renaming the `.unity` leaves it stale.** `sceneName` is refreshed from `sceneAsset` only in `OnValidate`, so the file on disk keeps the old name until the asset is re-saved. `NoiseTerrain.unity` became `gameScene.unity` and the `Spillexo` reference (and gameScene's `SaveHotkeys.worldSceneName`) still said `NoiseTerrain` until 2026-10-28. After renaming a world scene, grep `sceneName:` and `worldSceneName:` for the old name.
 
 ## Extending
 

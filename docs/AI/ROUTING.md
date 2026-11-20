@@ -58,6 +58,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a baked poster's bandit has no eyes | [WantedPosters](systems/WantedPosters.md) |
 | a band hands off in plain view at ~360–400 m: the residents vanish and no stand-ins appear | [Expeditions](systems/Expeditions.md) |
 | a bandit's skin prints in cream or in the poster colour instead of slate blue | [WantedPosters](systems/WantedPosters.md) |
+| a bareback rider hovers over, or sinks into, a wild creature's back | [Saddles](systems/Saddles.md) |
 | a barge door or hatch lid swings into the room the wrong way | [DuneBarge](systems/DuneBarge.md) |
 | a barge ladder can't be grabbed, or drops me in the wrong place at the top | [DuneBarge](systems/DuneBarge.md) |
 | a barge's track links slide over the sand, or run the wrong way round | [TrackBelts](systems/TrackBelts.md) |
@@ -292,6 +293,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a knocked-down body keeps twitching and never comes to rest | [Combat](systems/Combat.md) |
 | a knocked-down body never gets up while it is being shot | [Combat](systems/Combat.md) |
 | a ladder can be climbed from behind or grabbed in mid-air | [Ladders](systems/Ladders.md) |
+| a lamp, battery light or flashlight throws a huge flare across the visor, even pointing away from it | [Environment](systems/Environment.md) |
 | a landed pack stands on the sand with its flames still lit | [Jetpack](systems/Jetpack.md) |
 | a laser beam through a live lasso rope does nothing | [Lasso](systems/Lasso.md) |
 | a laser beam through a tied rope does nothing | [LeashSystem](systems/LeashSystem.md) |
@@ -312,6 +314,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a lump is laid on the player's own body or on the machine they are riding | [FoamGun](systems/FoamGun.md) |
 | a lump of foam is faceted and looks like a low-poly rock | [FoamGun](systems/FoamGun.md) |
 | a mass swells up at the far wall before the spray reaches it | [FoamGun](systems/FoamGun.md) |
+| a material copied from another renders exactly like the original even after switching its shader | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | a melee NPC stops dead, winds up and swings so slowly it never hits me | [AgentSystem](systems/AgentSystem.md) |
 | a menu choice drops me back on the main menu instead of opening the page it names | [UI](systems/UI.md) |
 | a menu list is far shorter on an ultrawide monitor than on a 16:9 one | [UI](systems/UI.md) |
@@ -351,6 +354,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a new grass biome grows nothing where I painted it | [GrassBiomes](systems/GrassBiomes.md) |
 | a new player never meets the Strider city; it is kilometres from the spawn | [Striders](systems/Striders.md) |
 | a newly painted biome has no grass in an editor screenshot | [Foliage](systems/Foliage.md) |
+| a noisy band of tiny squashed patches or pebbles runs along the border between two painted grounds | [PaintedGround](systems/PaintedGround.md) |
 | a nomad build stops after [NetworkPrefabRegistrar] N added and the MCP call disconnects | [EditorTooling](systems/EditorTooling.md) |
 | a nomad building's porch or terrace is an invisible wall | [ArtPipeline](systems/ArtPipeline.md) |
 | a nomad sail tent towers over the settlement at 6-12 m and the LODGroup's own m_Size looks unremarkable | [ArtPipeline](systems/ArtPipeline.md) |
@@ -362,6 +366,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a pack I left closed on the sand is lying open again after a save and reload | [Backpack](systems/Backpack.md) |
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
 | a painted eye texture comes out as two or four pupils, mirrored, on one eyeball | [StylizedEyes](systems/StylizedEyes.md) |
+| a painted ground is covered in round circle-like pebbles that look nothing like its source texture | [PaintedGround](systems/PaintedGround.md) |
+| a painted ground shows only flat colour and the console says its pattern is unlike the first one | [PaintedGround](systems/PaintedGround.md) |
+| a painted ground such as Paint_RiverPebbles or Paint_CrackedMud shows nothing, and the console says the painted grounds span more than 4 splat textures | [PaintedGround](systems/PaintedGround.md) |
 | a painted palm tree has no collision | [Foliage](systems/Foliage.md) |
 | a palette colour looks darker or duller on screen than the value it was authored at | [Environment](systems/Environment.md) |
 | a palette parameter changes in the lab and nothing on screen changes | [Environment](systems/Environment.md) |
@@ -386,6 +393,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a player loaded from a save cannot move and nothing in the log says why | [Hogtie](systems/Hogtie.md) |
 | a player stays seated after the seat was moved, or stands up inside the seat | [Seats](systems/Seats.md) |
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
+| a player's nameplate swims behind them, lags or flickers off and on when they or I move fast | [UI](systems/UI.md) |
 | a player's punch shows BLOCKED and does no damage | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | a PNG named after a Blender image appeared beside the .blend after an export | [ArtPipeline](systems/ArtPipeline.md) |
 | a poison ball over a keeper says BLOCKED | [WitchFight](systems/WitchFight.md) |
@@ -638,6 +646,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a war party's monowheel the player took is gone after a reload, or comes back crewed by Striders | [Striders](systems/Striders.md) |
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
 | a wide dark ring between grass and bare ground when seen from far away | [Grass](systems/Grass.md) |
+| a wild creature can be ridden with no saddle on it | [Saddles](systems/Saddles.md) |
 | a wild creature can be saddled or ridden when the roster says it should not be | [WildCreatures](systems/WildCreatures.md) |
 | a wild creature glides with its legs barely moving, or its feet skate | [WildCreatures](systems/WildCreatures.md) |
 | a wild creature's clips play but its body stays frozen in the bind pose after a re-export | [WildCreatures](systems/WildCreatures.md) |
@@ -1066,6 +1075,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I walk into a house and nobody is ever there | [HouseVisits](systems/HouseVisits.md) |
 | I want to add a new sound and cannot find where to author the FMOD event | [audio](systems/audio.md) |
 | in a disposable session the oxygen plant is never thrown out and the oxygen quest step never comes | [GameModes](systems/GameModes.md) |
+| in multiplayer the second player (the client) sits inside the co-pilot's chair on the host's screen | [PlayerShip](systems/PlayerShip.md) |
 | interaction dies silently on the client while the host works fine | [InteractionSystem](systems/InteractionSystem.md) |
 | InvalidOperationException: This can only be used during play mode (EditorSceneManager.NewScene) | [BottledSingularity](systems/BottledSingularity.md) |
 | inventory_wall_scale.py refuses to run, saying shrinking is not what this pass is for | [Backpack](systems/Backpack.md) |
@@ -1185,6 +1195,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | paint lands somewhere the stream of droplets was never seen to go | [Portals](systems/Portals.md) |
 | painted rocks appear twice, once as plain grey prefabs | [Rocks](systems/Rocks.md) |
 | painting a Ground_ layer in gameScene shows no change on the terrain and grows no grass | [Grass](systems/Grass.md) |
+| painting Paint_DryGrassland or Paint_ForestFloor changes nothing on the terrain | [PaintedGround](systems/PaintedGround.md) |
 | palette_preview.py --check fails after a look was retuned | [LookLab](systems/LookLab.md) |
 | part of my backpack rig sits in the wrong place after I put the pack back on | [BodyEquipment](systems/BodyEquipment.md) |
 | particles in the spray look like flying discs or lenses seen edge-on | [FoamGun](systems/FoamGun.md) |
@@ -1218,7 +1229,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | pressing Jump while strafing along a wall does not climb | [LedgeClimbing](systems/LedgeClimbing.md) |
 | pressing Play in a scene loads it but nobody spawns and nothing saves | [Scenes](systems/Scenes.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
-| pressing Play in persistentScene or NoiseTerrain always starts a fresh world with the crash landing | [Scenes](systems/Scenes.md) |
+| pressing Play in persistentScene or gameScene always starts a fresh world with the crash landing | [Scenes](systems/Scenes.md) |
 | pressing Play in the animation review scene lands in the main menu | [CreatureAnimationReview](systems/CreatureAnimationReview.md) |
 | pressing Play shows only the skybox through a stray Main Camera instead of the game | [Testing](systems/Testing.md) |
 | pressing Q over a placed object pockets it and fires the left gauntlet at the same time | [Placeables](systems/Placeables.md) |
@@ -1312,6 +1323,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [AgentSystem](systems/AgentSystem.md) |
 | Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [NpcFlight](systems/NpcFlight.md) |
 | Sky Wing craft vanish in mid-air / I see a flier for a few seconds and it disappears | [SkyTribe](systems/SkyTribe.md) |
+| some painted grounds look far darker than the others | [PaintedGround](systems/PaintedGround.md) |
 | some players could look around during the intro descent and others could not, or kept their HUD through it | [Cutscenes](systems/Cutscenes.md) |
 | somebody else has the grip | [Workshop](systems/Workshop.md) |
 | someone else's compile error makes my own unrelated test change invisible | [Testing](systems/Testing.md) |
@@ -1332,6 +1344,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | support beams under a model that are not connected to anything | [ArtPipeline](systems/ArtPipeline.md) |
 | surface detail I dialled up does not show in the meshed feature | [TerrainGeneration](systems/TerrainGeneration.md) |
 | surfaces in the colony flicker (a board on the airlock wall, the gear wall, overlapping pipes) | [ColonyInterior](systems/ColonyInterior.md) |
+| swaying plants twitch darker and lighter, like z-fighting, although no faces overlap | [Foliage](systems/Foliage.md) |
 | switching the torch on changes nothing about how the body stands | [Flashlight](systems/Flashlight.md) |
 | taking the gauntlet off leaves a light burning on someone's arm | [Flashlight](systems/Flashlight.md) |
 | talking to the elder before the step that asks for it finished the step early | [Objectives](systems/Objectives.md) |
@@ -1530,6 +1543,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the first objective completes before I have pressed any keys | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | the first objective completes on its own while the ship is still falling | [CrashSiteQuest](systems/CrashSiteQuest.md) |
 | the first-person camera creeps forward out of the helmet as I look at my feet | [PlayerCharacter](systems/PlayerCharacter.md) |
+| the first-person view never bobs while walking, or the bob stops after I crouch once | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the flame grows back up into the fuel tank | [Jetpack](systems/Jetpack.md) |
 | the flame is a few dim specks and the console is clean | [Flamethrower](systems/Flamethrower.md) |
 | the flame is a tiny stub at part throttle | [Jetpack](systems/Jetpack.md) |
@@ -1594,6 +1608,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the grappling hook hooks straight down instead of where I am pointing while flying | [Ornithopter](systems/Ornithopter.md) |
 | the grappling hook is back on the catwalk board after I took it and reloaded | [SatelliteDish](systems/SatelliteDish.md) |
 | the grass grows in squares | [Grass](systems/Grass.md) |
+| the grass is gone where I painted a dry grassland or forest floor ground | [PaintedGround](systems/PaintedGround.md) |
 | the grass is thinner on Low or Medium quality | [Grass](systems/Grass.md) |
 | the grass is too short for the player | [GrassBiomes](systems/GrassBiomes.md) |
 | the grass is twice as dense as it should be | [Grass](systems/Grass.md) |
@@ -1725,6 +1740,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the Network Messages / Network Objects profiler modules stay empty during play | [Multiplayer](systems/Multiplayer.md) |
 | the new animals are tiny next to the player | [WildCreatures](systems/WildCreatures.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
+| the nomads on the ostriches hover above the bird's back instead of sitting on it | [Saddles](systems/Saddles.md) |
+| the nomads on the ostriches hover above the bird's back instead of sitting on it | [Vehicles](systems/Vehicles.md) |
 | the nozzle tips never go red however hot the pack gets | [Jetpack](systems/Jetpack.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the objective is stuck on Answer the signal with no waypoint | [ShipSignal](systems/ShipSignal.md) |
@@ -1987,6 +2004,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the terminal stands on the deck but pressing a tab does nothing | [Terminal](systems/Terminal.md) |
 | the terminal's page changes for me but not for the other player | [Terminal](systems/Terminal.md) |
 | the terminal's SHIP page is a flat white rectangle | [ShipSchematic](systems/ShipSchematic.md) |
+| the terminal's SHIP page shows no ship at all, with a clean console | [ShipSchematic](systems/ShipSchematic.md) |
 | the terrain is a completely different colour where grass has not loaded yet | [Grass](systems/Grass.md) |
 | the Test Runner reports nothing at all instead of a failing test | [Testing](systems/Testing.md) |
 | the thief with the gear runs away and I cannot catch him | [WorkshopMission](systems/WorkshopMission.md) |
@@ -2076,6 +2094,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wings come out and I drop like a brick anyway | [Wingsuit](systems/Wingsuit.md) |
 | the wings stay on the pack instead of going onto my arms | [Wingsuit](systems/Wingsuit.md) |
 | the wingsuit and the wing pack cannot both be carried | [Wingsuit](systems/Wingsuit.md) |
+| the wingsuit stutters when flying | [Wingsuit](systems/Wingsuit.md) |
 | the wireframe draws every edge of every triangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the witch never shows up, I cannot find her | [WitchFight](systems/WitchFight.md) |
 | the witch takes no damage at all, every hit just says blocked | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
@@ -2083,6 +2102,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the words on a worn gauntlet's screen read backwards | [Artifacts](systems/Artifacts.md) |
 | the workshop costs as much from the far desert as standing at its gate | [LevelOfDetail](systems/LevelOfDetail.md) |
 | the workshop gate is shut and I cannot get into the ship lane | [GearDoor](systems/GearDoor.md) |
+| the workshop mountain disappears a few km away, sooner on Low or Medium quality | [LevelOfDetail](systems/LevelOfDetail.md) |
+| the workshop mountain's summit or gate is a hole through to the sky from a distance | [LevelOfDetail](systems/LevelOfDetail.md) |
 | the workshop prefab lost my hand edits | [Workshop](systems/Workshop.md) |
 | the workshop's gears do not turn, or turn through each other | [Workshop](systems/Workshop.md) |
 | the workshop's lamps are all lit while I am far outside the mountain | [LevelOfDetail](systems/LevelOfDetail.md) |
@@ -2175,6 +2196,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | which menu item wires this prefab, item, creature or vehicle | [EditorTooling](systems/EditorTooling.md) |
 | which scene is build index 0 or 1, and where does the world scene live | [Scenes](systems/Scenes.md) |
 | which Unity, URP or Netcode version is this project on, and what packages are installed | [ProjectConfig](systems/ProjectConfig.md) |
+| whole triangles of a kelp or sea whip flash water-blue for one frame | [Foliage](systems/Foliage.md) |
 | Wire Saveable Prefabs reports success but the placed half's prefabId is still empty | [Placeables](systems/Placeables.md) |
 | with several players the intro takes a minute or two to load and chunks stream in far from the landing site | [PlayerShip](systems/PlayerShip.md) |
 | worn gear drifts off the body during play and ends up metres away | [BodyEquipment](systems/BodyEquipment.md) |
@@ -2860,6 +2882,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/Environment/GlintSpire` | [Glintback](systems/Glintback.md) |
 | `Assets/Game/Art/Models/Items/flamethrower.fbx` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Art/Textures/Environment/Foliage/` | [BarkMaps](systems/BarkMaps.md) |
+| `Assets/Game/Art/Textures/Environment/Terrain/` | [NoiseHeightmap](systems/NoiseHeightmap.md) |
 | `Assets/Game/Editor/Animation/ClipPoseSheet.cs` | [AnimationCatalog](systems/AnimationCatalog.md) |
 | `Assets/Game/Editor/Dev/StriderCityTeleport.cs` | [Striders](systems/Striders.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
@@ -2886,6 +2909,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Objectives/Quest` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Gameplay/ThornEruption.cs` | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
 | `Assets/Game/Scripts/Items/Equipped/WornFit.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/World/Environment/Ground/` | [PaintedGround](systems/PaintedGround.md) |
 | `Assets/Game/Art/Materials/Environment/Grass/` | [GrassBiomes](systems/GrassBiomes.md) |
 | `Assets/Game/Art/Materials/Environment/Rocks/` | [Rocks](systems/Rocks.md) |
 | `Assets/Game/Art/Materials/Items/FoamMist.mat` | [FoamGun](systems/FoamGun.md) |
@@ -3090,6 +3114,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/Lifting/` | [Lifting](systems/Lifting.md) |
 | `Assets/Game/Scripts/World/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Scripts/World/Seating/` | [Seats](systems/Seats.md) |
+| `Assets/Game/Terrain/PaintedGround/` | [PaintedGround](systems/PaintedGround.md) |
 | `ProjectSettings/NavMeshAreas.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Art/Textures/Posters/` | [WantedPosters](systems/WantedPosters.md) |
 | `Assets/Game/Prefabs/Vehicles/Sky/` | [SkyTribe](systems/SkyTribe.md) |
@@ -3165,4 +3190,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2168 symptoms, 971 paths, 120 docs -->
+<!-- 2190 symptoms, 974 paths, 121 docs -->

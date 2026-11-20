@@ -837,6 +837,11 @@ namespace SpaceGame.Presentation
                 () => GameSettings.FieldOfView, v => GameSettings.FieldOfView = v,
                 v => $"{Mathf.RoundToInt(v)}°", 1f));
 
+            Track(SettingsWidgets.Slider(page, "Head bob",
+                GameSettings.MinHeadBob, GameSettings.MaxHeadBob,
+                () => GameSettings.HeadBobIntensity, v => GameSettings.HeadBobIntensity = v,
+                v => $"{Mathf.RoundToInt(v * 100f)}%", 0.05f));
+
             SettingsWidgets.Caption(page,
                 Application.isEditor
                     ? "Resolution and fullscreen are ignored in the editor — the Game view sizes itself."

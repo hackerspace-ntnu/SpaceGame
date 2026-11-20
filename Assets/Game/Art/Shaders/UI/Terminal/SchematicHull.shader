@@ -98,6 +98,41 @@ Shader "SpaceGame/SchematicHull"
             }
             ENDHLSL
         }
+
+        // The depth prepasses. PC_Renderer primes depth, so the face pass above is tested
+        // ZTest Equal against whichever of these ran first: without them the hull is missing from
+        // the prepass and the whole schematic draws nothing.
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask 0
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex   RigidDepthVert
+            #pragma fragment RigidDepthFrag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "../../DepthNormals.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma vertex   RigidDepthVert
+            #pragma fragment RigidDepthNormalsFrag
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "../../DepthNormals.hlsl"
+            ENDHLSL
+        }
     }
 
     Fallback Off

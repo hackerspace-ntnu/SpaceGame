@@ -216,6 +216,8 @@ priming on (`Auto`) the forward pass draws only where its depth equals that prep
 
 **How it fails.** No pass: the object is invisible on PC quality, and water foam and fog ignore it. A pass inherited from Lit through
 `FallBack` or a pass that skips the displacement: the object flickers or has holes wherever its vertices move. Nothing logs.
+Even identical source flickers when vertices animate: each pass compiles alone and rounds the displacement differently, and
+`ZTest Equal` needs the last bit. Compute the clip position in a `precise` variable (`FoliageClipPosition`).
 
 **Where.** [ProjectConfig](systems/ProjectConfig.md) · [NoiseHeightmap](systems/NoiseHeightmap.md) · [StylizedWater](systems/StylizedWater.md) · [FoamGun](systems/FoamGun.md) · [Grass](systems/Grass.md)
 

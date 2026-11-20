@@ -50,12 +50,18 @@ namespace SpaceGame.Agents
         [SerializeField, Min(0f)] private float motionRejectThreshold = 60f;
 
         [Header("Saddle")]
-        [Tooltip("Metres the rider's hip joint sits above the saddle's seat marker " +
-                 "(SaddleSocket.RiderSeat). The rider is parented to the mount's ROOT, which does " +
-                 "not move when the animal's back does, so without this the saddle heaves and rolls " +
-                 "under a rider frozen in place. With a saddle on, the pelvis is put on the seat every " +
-                 "frame and the body rides the back. No saddle: the rider stays where seatOffset put them.")]
+        [Tooltip("Metres the rider's hip joint sits above the seat marker (a fitted saddle's " +
+                 "SaddleSocket.RiderSeat, else bodySeat). The rider is parented to the mount's ROOT, " +
+                 "which does not move when the animal's back does, so without this the saddle heaves " +
+                 "and rolls under a rider frozen in place. With a seat marker, the pelvis is put on it " +
+                 "every frame and the body rides the back. No marker: the rider stays where seatOffset " +
+                 "put them, which is wherever the clip's hip height happens to land.")]
         [SerializeField] private float hipsAboveSeat = 0.22f;
+
+        [Tooltip("Seat marker for a mount whose seat is part of its body rather than a fitted saddle " +
+                 "(the ostrich): placed on the back's surface where the pelvis belongs. A fitted " +
+                 "saddle's SEAT_Rider marker wins over this. Empty on saddled animals.")]
+        [SerializeField] private Transform bodySeat;
 
         [Tooltip("Share of the saddle's pitch and roll the rider's body takes, 0..1. The rider's own " +
                  "balance takes the rest: a rider rocks with the animal, but less than it does.")]
@@ -96,8 +102,11 @@ namespace SpaceGame.Agents
         /// <summary>Current blend weight, 0 (animator owns the bones) to 1 (fully seated).</summary>
         public float Weight => weight;
 
-        // The seat on the live saddle, which rides the animal's back bone; null with no saddle on.
-        private Transform Seat => saddleSocket != null ? saddleSocket.RiderSeat : null;
+        // The seat on the live saddle, which rides the animal's back bone; else the body's own seat
+        // marker; null when there is neither.
+        private Transform Seat => saddleSocket != null && saddleSocket.RiderSeat != null
+            ? saddleSocket.RiderSeat
+            : bodySeat;
 
         private void Awake()
         {

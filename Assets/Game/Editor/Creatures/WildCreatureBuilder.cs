@@ -590,6 +590,7 @@ namespace SpaceGame.EditorTools
             {
                 SerializedFields.SetString(so, "mountBoneName", entry.saddleBone);
                 SerializedFields.SetVector3(so, "rootPosition", saddle);
+                SerializedFields.SetBool(so, "ridableBareback", true);
                 SerializedFields.SetFloat(so, "dropRadius", templateSocket.FindProperty("dropRadius").floatValue * lengthRatio);
                 SerializedFields.SetFloat(so, "dropHeight", templateSocket.FindProperty("dropHeight").floatValue * heightRatio);
             });
@@ -742,6 +743,9 @@ namespace SpaceGame.EditorTools
             }
             if (rideable && prefab.GetComponentsInChildren<Transform>(true).All(t => t.name != entry.saddleBone))
                 problems.Add($"no saddle bone '{entry.saddleBone}'");
+            var socket = prefab.GetComponent<SaddleSocket>();
+            if (rideable && socket != null && !new SerializedObject(socket).FindProperty("ridableBareback").boolValue)
+                problems.Add("rideable but not ridable bareback");
             if (prefab.GetComponents<Component>().Any(c => c == null)) problems.Add("missing script");
 
             // every clip the animator plays must move bones on THIS skeleton, or it bound to nothing

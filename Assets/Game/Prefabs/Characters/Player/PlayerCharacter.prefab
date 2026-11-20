@@ -175,6 +175,7 @@ GameObject:
   - component: {fileID: 5216251872559827799}
   - component: {fileID: 8469934664603299133}
   - component: {fileID: 257940740392925301}
+  - component: {fileID: 604392154140929710}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -575,8 +576,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
   prefabId: 9ab1ff9f9caaf86469f66c4bd3fb3b2e
-  instanceId: c2d2a46cb2f34c7799f77ab9c942d78d
-  authored: 1
+  instanceId: 
+  authored: 0
   scope: 1
 --- !u!114 &8160784556367248615
 MonoBehaviour:
@@ -798,6 +799,7 @@ MonoBehaviour:
   eye: {fileID: 3211930088316101119}
   animator: {fileID: 5496312837281773235}
   movement: {fileID: 1264622234854504379}
+  headBob: {fileID: 604392154140929710}
   crouchHeightFraction: 0.6
   crouchEyeDrop: 0.6
   stanceBlendTime: 0.12
@@ -897,15 +899,12 @@ MonoBehaviour:
     fallSeconds: 0.1
     minSeconds: 0.1
     maxSeconds: 0.2
-    threshold: 0.35
     fullSeverity: 1
     damageWeight: 1
     lowHealthWeight: 0.5
     knockbackWeight: 1
     knockbackReferenceSpeed: 20
     settleGraceSeconds: 1.5
-    reknockImmunitySeconds: 1
-  hitImpulse: 3
   deathLift: 1.5
   downedCameraOffset: {x: 0.6, y: 1.8, z: -2.4}
   downedCameraLerp: 6
@@ -1042,6 +1041,15 @@ MonoBehaviour:
     breakDamage: 10
   swallowed:
     seconds: 6
+  shocked:
+    seconds: 3
+    immunity: 2
+  bound:
+    seconds: 86400
+    stillSecondsToEscape: 30
+    stillTolerance: 0.3
+  stasis:
+    seconds: 5
   inflationTarget: {fileID: 0}
 --- !u!114 &2667149556336272184
 MonoBehaviour:
@@ -1218,6 +1226,25 @@ MonoBehaviour:
   minHeight: 0.2
   airReach: 3.3
   afterJumpDelay: 0.15
+--- !u!114 &604392154140929710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e40f6fafa7d040fcbd387c82e551da4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerHeadBob
+  movement: {fileID: 1264622234854504379}
+  look: {fileID: 6455897939897930130}
+  walkDip: 0.04
+  walkStepRate: 2
+  sprintDip: 0.07
+  sprintStepRate: 3
+  fadeTime: 0.2
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0

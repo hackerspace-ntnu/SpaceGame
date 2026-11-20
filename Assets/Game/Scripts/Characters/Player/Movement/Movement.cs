@@ -38,7 +38,11 @@ namespace SpaceGame.Characters
         [SerializeField] private float tetherAcceleration = 22f;
 
         [Header("Jumping")]
+        [Tooltip("Upward speed a jump starts with, m/s. Jump height grows with its square.")]
         [SerializeField] private float jumpForce = 7f;
+
+        [Tooltip("Seconds after a jump before the next one, under the ordinary rules. A game mode " +
+                 "may replace this with ready-on-landing — see SetJumpRules.")]
         [SerializeField] private float jumpCooldown = 0.6f;
         [SerializeField] private float groundCheckDistance = 0.2f;
         [SerializeField] private LayerMask groundMask = ~0;
@@ -78,6 +82,12 @@ namespace SpaceGame.Characters
         private float jumpCooldownTimer;
         private bool jumpOnCooldown;
         private bool groundSnapEnabled = true;
+
+        // The ordinary rules until a game mode says otherwise; see SetJumpRules.
+        private float jumpHeightScale = 1f;
+        private bool jumpReadyOnLanding;
+        private float jumpBufferSeconds;
+        private float bufferedJumpUntil = float.NegativeInfinity;
     
         [Header("Fall Damage")]
         [SerializeField] private float minFallSpeed = -5f;
@@ -143,6 +153,39 @@ namespace SpaceGame.Characters
 
         /// <summary>Whether the player was on the ground as of the last physics step.</summary>
         public bool IsOnGround => wasGrounded;
+
+        /// <summary>
+        /// Replaces the jump's rules for as long as this body lives — a game mode's call, made on
+        /// the machine that owns the player, because that is the machine that moves them.
+        ///
+        /// <para>
+        /// <paramref name="heightScale"/> multiplies the jump's HEIGHT, not its speed: height grows
+        /// with the square of the take-off speed, so the speed is scaled by its square root.
+        /// </para>
+        /// <para>
+        /// <paramref name="readyOnLanding"/> drops the timed cooldown. The next jump is allowed the
+        /// moment the body is on the ground and no longer rising — the rising test is what stops a
+        /// second press in the take-off step from stacking a second launch on the first, which is
+        /// all the timer was ever there to prevent. A jump that lands on a crate half-way through
+        /// the timer no longer waits out the rest of it. Every jump also leaves at full speed,
+        /// however fast the body was still falling when the press arrived — see
+        /// <see cref="TryJump"/>.
+        /// </para>
+        /// <para>
+        /// <paramref name="bufferSeconds"/> keeps a press that arrives that long before touchdown
+        /// and spends it on landing (GDC-L1-FEEL-0003 — read the intent, not the frame). Without it
+        /// a hop pressed a frame early is simply lost, which feels exactly like a landing cooldown.
+        /// </para>
+        /// </summary>
+        public void SetJumpRules(float heightScale, bool readyOnLanding, float bufferSeconds)
+        {
+            jumpHeightScale = Mathf.Max(0f, heightScale);
+            jumpReadyOnLanding = readyOnLanding;
+            jumpBufferSeconds = Mathf.Max(0f, bufferSeconds);
+        }
+
+        /// <summary>Take-off speed under the current rules, m/s.</summary>
+        private float JumpSpeed => jumpForce * Mathf.Sqrt(jumpHeightScale);
 
         /// <summary>
         /// The body, resolved on demand. <see cref="rb"/> is the authored reference; this is here so
@@ -273,6 +316,7 @@ namespace SpaceGame.Characters
 
             moveInput = inputs.MoveInput;
             HandleJumpCooldown();
+            SpendBufferedJump();
 
             if (!groundSnapEnabled)
             {
@@ -705,9 +749,15 @@ namespace SpaceGame.Characters
 
         public void OnJump()
         {
+            if (!TryJump() && jumpBufferSeconds > 0f) bufferedJumpUntil = Time.time + jumpBufferSeconds;
+        }
+
+        /// <summary>A jump press, now: a ledge climb, a jump, or nothing. True when it did something.</summary>
+        private bool TryJump()
+        {
             if (rb == null || !isActiveAndEnabled || rb.isKinematic)
             {
-                return;
+                return false;
             }
 
             // Something sprung owns Jump while it is carrying this player — see SetBouncing. Not
@@ -716,7 +766,7 @@ namespace SpaceGame.Characters
             // a smaller number and the player would go lower for having timed it well.
             if (bouncing || climbing || HaulingBlocksActions)
             {
-                return;
+                return false;
             }
 
             // A wall too tall to jump onto is climbed instead. Asked here, before the leg jump, rather
@@ -724,19 +774,34 @@ namespace SpaceGame.Characters
             // would leave the ground in the same step the climb took the body.
             if (ledgeClimber != null && ledgeClimber.TryClimb())
             {
-                return;
+                return true;
             }
 
-            if (IsGrounded() && !jumpOnCooldown)
-            {
-                Vector3 v = rb.linearVelocity;
-                if (v.y > 0f) v.y = 0f;
-                rb.linearVelocity = v;
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-                jumpOnCooldown = true;
+            if (!IsGrounded() || jumpOnCooldown) return false;
 
-                OnJumped?.Invoke();
-            }
+            // Written straight into the velocity rather than added as a force, so the take-off is
+            // visible to the very next read — the ready-on-landing test asks whether the body is
+            // still rising, and a queued force would answer "no" for one step.
+            //
+            // Under ready-on-landing the jump REPLACES what is left of the fall instead of adding
+            // to it. The ground probe reaches about half a metre below the feet, so a press just
+            // before touchdown counts as grounded while the body is still dropping at nearly the
+            // jump's own speed — added together they made a jump of almost nothing, which then
+            // read as the next jump being ready, and a held key launched twice per landing.
+            Vector3 v = rb.linearVelocity;
+            v.y = jumpReadyOnLanding ? JumpSpeed : Mathf.Min(v.y, 0f) + JumpSpeed;
+            rb.linearVelocity = v;
+            jumpOnCooldown = true;
+            bufferedJumpUntil = float.NegativeInfinity;
+
+            OnJumped?.Invoke();
+            return true;
+        }
+
+        /// <summary>A press kept from just before touchdown, spent as soon as it can be. See SetJumpRules.</summary>
+        private void SpendBufferedJump()
+        {
+            if (Time.time <= bufferedJumpUntil) TryJump();
         }
 
         public void OnDash()
@@ -806,6 +871,12 @@ namespace SpaceGame.Characters
         private void HandleJumpCooldown()
         {
             if (!jumpOnCooldown) return;
+
+            if (jumpReadyOnLanding)
+            {
+                if (IsGrounded() && rb.linearVelocity.y <= momentumRiseThreshold) jumpOnCooldown = false;
+                return;
+            }
 
             jumpCooldownTimer += Time.deltaTime;
             if (jumpCooldownTimer >= jumpCooldown)

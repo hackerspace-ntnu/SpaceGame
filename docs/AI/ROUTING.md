@@ -184,6 +184,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a dead NPC drops nothing, or its gun appears on the sand only after I reload | [Inventory](systems/Inventory.md) |
 | a dead NPC's body stays lying there for minutes | [EntitySystem](systems/EntitySystem.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
+| a dead player in the arena vanishes instead of falling over | [Arena](systems/Arena.md) |
 | a decoration or tent placed by a Settlement renders enormous even though its own prefab measures correctly outside the settlement | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a decoration's glass, water or glow looks opaque or dark and it needs a shared material | [ArtPipeline](systems/ArtPipeline.md) |
 | a decoration's net, pole or tree trunk turns into a solid sheet or a wedge a little way off | [LevelOfDetail](systems/LevelOfDetail.md) |
@@ -285,6 +286,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a jetpack climbs off a lassoed body but it stays on the ground while the rope gets longer and longer | [Lasso](systems/Lasso.md) |
 | a jetpack pilot cannot lift the player they have roped, or lifts a crate they should not | [LeashSystem](systems/LeashSystem.md) |
 | a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table | [Multiplayer](systems/Multiplayer.md) |
+| a jump pressed just as I land does nothing, like there is a cooldown on landing | [PlayerCharacter](systems/PlayerCharacter.md) |
 | a killed double monowheel keeps its gunners sitting on the wreck | [Striders](systems/Striders.md) |
 | a killed monowheel keeps rolling and can still be mounted | [Striders](systems/Striders.md) |
 | a killed monowheel's driver vanishes with the wreck and is never counted dead | [Striders](systems/Striders.md) |
@@ -638,6 +640,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a war party stops at an old position and never follows me again | [AgentSystem](systems/AgentSystem.md) |
 | a war party's monowheel the player took is gone after a reload, or comes back crewed by Striders | [Striders](systems/Striders.md) |
 | a watching machine's magazine empties twice as fast as the shooter's | [Combat](systems/Combat.md) |
+| a weapon's glint flashes in the wrong place or huge across the map | [Arena](systems/Arena.md) |
 | a wide dark ring between grass and bare ground when seen from far away | [Grass](systems/Grass.md) |
 | a wild creature can be saddled or ridden when the roster says it should not be | [WildCreatures](systems/WildCreatures.md) |
 | a wild creature glides with its legs barely moving, or its feet skate | [WildCreatures](systems/WildCreatures.md) |
@@ -959,6 +962,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | hidden residents (indoors, offstage) still start gestures and fidgets | [Residents](systems/Residents.md) |
 | hidden residents still start gestures and fidgets, and their animators still evaluate | [HumanoidAnimation](systems/HumanoidAnimation.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
+| holding jump launches twice on every landing | [PlayerCharacter](systems/PlayerCharacter.md) |
 | holding W does the same thing whether I look up or down | [Jetpack](systems/Jetpack.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
 | how do I check a change to the residents still gives the same settlement day | [ResidentsBaseline](systems/ResidentsBaseline.md) |
@@ -1365,6 +1369,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the aperture's edge and its halo wobble out of phase with one another | [Portals](systems/Portals.md) |
 | the arena logs no ObjectiveDirector / no BountyBoard | [Arena](systems/Arena.md) |
 | the arena never starts a round and just says waiting for both teams | [Arena](systems/Arena.md) |
+| the arena's cliffs are gone after regenerating the terrain | [Arena](systems/Arena.md) |
 | the arm holding the torch drops whenever I pick something up | [Flashlight](systems/Flashlight.md) |
 | the arm stays up after the torch is switched off | [Flashlight](systems/Flashlight.md) |
 | the arm twists to the crosshair while holding a two-handed item | [Flashlight](systems/Flashlight.md) |
@@ -1664,6 +1669,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the jetpack lifts me but the animal I roped stays glued to the sand | [LeashSystem](systems/LeashSystem.md) |
 | the jetpack pushes me forward the instant I press W | [Jetpack](systems/Jetpack.md) |
 | the jetpack switches itself off in mid-air while I am working the throttle | [Jetpack](systems/Jetpack.md) |
+| the jump is higher in the arena than in the story world | [Arena](systems/Arena.md) |
 | the keeper I was carrying dropped out of my arms by itself | [WitchFight](systems/WitchFight.md) |
 | the keepers never throw anything | [WitchFight](systems/WitchFight.md) |
 | the keepers stand around and never chant | [SpriteHamletQuest](systems/SpriteHamletQuest.md) |
@@ -2392,6 +2398,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Items/Placeables/Rules/GearPegPlacement.cs` | [GearDoor](systems/GearDoor.md) |
 | `Assets/Game/Art/Models/Environment/nature/Vegetation/Aquatic/` | [AquaticVegetation](systems/AquaticVegetation.md) |
 | `Assets/Game/Art/Shaders/Artifacts/Materials/Mat_StormVeil.mat` | [StormFlask](systems/StormFlask.md) |
+| `Assets/Game/Art/Shaders/Effects/Materials/Mat_PickupGlint.mat` | [Arena](systems/Arena.md) |
 | `Assets/Game/Editor/Creatures/CreatureAnimationReviewWindow.cs` | [CreatureAnimationReview](systems/CreatureAnimationReview.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/GroundFire.prefab` | [Flamethrower](systems/Flamethrower.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/StormCloud.prefab` | [StormFlask](systems/StormFlask.md) |
@@ -2701,6 +2708,7 @@ Longest match wins.
 | `Assets/Game/Art/Shaders/Artifacts/FoamSurface.hlsl` | [FoamGun](systems/FoamGun.md) |
 | `Assets/Game/Art/Shaders/Artifacts/StormVeil.shader` | [StormFlask](systems/StormFlask.md) |
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Art/Shaders/Effects/PickupGlint.shader` | [Arena](systems/Arena.md) |
 | `Assets/Game/Editor/Animation/HumanoidPoseLayers.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Creatures/WildCreatureRoster.cs` | [WildCreatures](systems/WildCreatures.md) |
 | `Assets/Game/Editor/Tests/MonowheelPoseMathTests.cs` | [Monowheel](systems/Monowheel.md) |
@@ -3164,6 +3172,7 @@ Longest match wins.
 | `Assets/Game/Tests/EditMode/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Art/Animations` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Scripts/Audio/` | [audio](systems/audio.md) |
+| `Assets/Game/Terrain/Arena/` | [Arena](systems/Arena.md) |
 | `Assets/Game/Art/Materials` | [ArtPipeline](systems/ArtPipeline.md) |
 | `Assets/Game/Editor/Tests/` | [Testing](systems/Testing.md) |
 | `Assets/Game/Prefabs/Items` | [Inventory](systems/Inventory.md) |
@@ -3182,4 +3191,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2178 symptoms, 978 paths, 121 docs -->
+<!-- 2184 symptoms, 981 paths, 121 docs -->

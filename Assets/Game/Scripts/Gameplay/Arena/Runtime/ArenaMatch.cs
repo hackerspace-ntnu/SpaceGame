@@ -57,6 +57,15 @@ namespace SpaceGame.Gameplay.Arena
                  "fewer than three hits.")]
         [SerializeField, Min(1)] private int maxHitDamage = 34;
 
+        [Header("Movement")]
+        [Tooltip("Every contestant's jump height is multiplied by this. Height, not speed: 2 is a " +
+                 "jump twice as high.")]
+        [SerializeField, Min(0f)] private float jumpHeightScale = 2f;
+
+        [Tooltip("Seconds a jump pressed just before landing is kept and spent on touchdown. The " +
+                 "arena's jump is ready the moment a player lands — no timed cooldown.")]
+        [SerializeField, Min(0f)] private float jumpBufferSeconds = 0.15f;
+
         [Header("Arena")]
         [SerializeField] private ArenaBounds bounds;
         [SerializeField] private ArenaTeamSpawn[] teamSpawns = System.Array.Empty<ArenaTeamSpawn>();
@@ -181,6 +190,7 @@ namespace SpaceGame.Gameplay.Arena
         private void OnRosterChanged()
         {
             BindLocalPlayer();
+            TakeEliminatedBodiesOffField();
 
             if (IsServer) SyncContestants();
         }
@@ -188,9 +198,10 @@ namespace SpaceGame.Gameplay.Arena
         // ──────────────────────────────────────────────────────────────── every peer
 
         /// <summary>
-        /// Finds the player this peer drives, so its death can be met with the spectator camera.
-        /// Only the owner hears <see cref="PlayerController.OnPlayerDeath"/>, which is exactly the
-        /// machine whose camera should change.
+        /// Finds the player this peer drives, so its death can be met with the spectator camera, and
+        /// gives it the arena's jump. Only the owner hears <see cref="PlayerController.OnPlayerDeath"/>,
+        /// which is exactly the machine whose camera should change — and movement is the owner's
+        /// too, so the jump rules only need setting here.
         /// </summary>
         private void BindLocalPlayer()
         {
@@ -201,8 +212,29 @@ namespace SpaceGame.Gameplay.Arena
                 if (identity == null || !identity.IsOwner) continue;
 
                 localPlayer = identity.GetComponentInChildren<PlayerController>();
-                if (localPlayer != null) localPlayer.OnPlayerDeath += Spectate;
+                if (localPlayer == null) return;
+
+                localPlayer.OnPlayerDeath += Spectate;
+
+                PlayerMovement movement = localPlayer.GetComponent<PlayerMovement>();
+                if (movement != null) movement.SetJumpRules(jumpHeightScale, readyOnLanding: true, jumpBufferSeconds);
                 return;
+            }
+        }
+
+        /// <summary>
+        /// Every player, on every machine, vanishes on elimination instead of falling as a ragdoll.
+        /// See <see cref="ArenaEliminatedBody"/>.
+        /// </summary>
+        private static void TakeEliminatedBodiesOffField()
+        {
+            foreach (PlayerIdentity identity in PlayerIdentity.All)
+            {
+                if (identity == null) continue;
+
+                HealthComponent health = identity.GetComponentInChildren<HealthComponent>();
+                if (health != null && !health.TryGetComponent(out ArenaEliminatedBody _))
+                    health.gameObject.AddComponent<ArenaEliminatedBody>();
             }
         }
 

@@ -9,6 +9,8 @@ paths:
   - Assets/Game/Scripts/Presentation/Appearance/
   - Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs
 symptoms:
+  - "a jump pressed just as I land does nothing, like there is a cooldown on landing"
+  - "holding jump launches twice on every landing"
   - "my player cannot move at all after loading a saved world"
   - "setting transform.position on the player does nothing, it snaps back the same frame"
   - "the flashlight or thing I attached to the player is invisible to other players"
@@ -31,7 +33,7 @@ symptoms:
   - "editing a script while the game is running kills my camera and controls for the rest of the session"
   - "turning my head feels laggy, and the view lurches further whenever the frame rate dips"
 reads_with: [Persistence, Inventory, Artifacts, Vehicles, Wingsuit, Pushables]
-updated: 2026-10-21
+updated: 2026-11-20
 ---
 
 # Player Character
@@ -55,7 +57,7 @@ The astronaut the human drives: rigidbody movement, first-person look, stances, 
 | Type | File | Role |
 | --- | --- | --- |
 | `PlayerController` | [Core/PlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerController.cs) | Enable/disable the local player, cutscene handover, death freeze, spectator swap, `OnPlayerDeath`/`OnPlayerRevive` |
-| `PlayerMovement` | [Movement/Movement.cs](Assets/Game/Scripts/Characters/Player/Movement/Movement.cs) | Walk/sprint/crouch speeds, jump (`OnJump` asks [`LedgeClimber.TryClimb`](LedgeClimbing.md) first), dash, ground probe (`IsOnGround`, `GroundNormal`), fall damage (a damaging landing also requests a 1 s fall knockdown — [Combat.md](Combat.md)), animator blend + stride rate, `CarryMomentum`/`SetTethered`/`SetGliding`/`SetClimbing`/`SetBouncing`/`EnsureMovableBody`, `BodyCapsule` (the one body capsule; the ragdoll adds others) |
+| `PlayerMovement` | [Movement/Movement.cs](Assets/Game/Scripts/Characters/Player/Movement/Movement.cs) | Walk/sprint/crouch speeds, jump (`OnJump` asks [`LedgeClimber.TryClimb`](LedgeClimbing.md) first; `SetJumpRules(heightScale, readyOnLanding, bufferSeconds)` lets a game mode replace the timed `jumpCooldown` — the [Arena](Arena.md) does), dash, ground probe (`IsOnGround`, `GroundNormal`), fall damage (a damaging landing also requests a 1 s fall knockdown — [Combat.md](Combat.md)), animator blend + stride rate, `CarryMomentum`/`SetTethered`/`SetGliding`/`SetClimbing`/`SetBouncing`/`EnsureMovableBody`, `BodyCapsule` (the one body capsule; the ragdoll adds others) |
 | `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, the look-down eye slide, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf (serialized) and runtime renderers per owner (`HideFromEye`: the worn pack, a shouldered captive's parts in the eye line) |
 | `PlayerSeating` | [Movement/PlayerSeating.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerSeating.cs) | Sits the player on a `Seat` and stands them up (Jump or interact): owner asks, server decides into a `NetworkVariable<int>`, the owner moves its own body. On `PlayerCharacterNetworked`. [Seats.md](Seats.md) |
 | `PlayerPushing` | [Movement/PlayerPushing.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerPushing.cs) | Puts the player's hands on a `Pushable` cart and takes them off (interact, jump, a drawn item, death): owner asks, server decides into a `NetworkVariable<int>`, every machine poses the cart from the body (`CartPusher`); the owner's speed is held to `pushSpeed` through `PlayerMovement.StartHauling`. On `PlayerCharacterNetworked`. [Pushables.md](Pushables.md) |
@@ -111,6 +113,8 @@ Root pivot is **1 m above the soles** — measure with [`BodyFeet`](Assets/Game/
 Player state is keyed by profile, not by scene: [`PlayerSaveSync`](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveSync.cs) (networked) or [`PlayerSaveBinder`](Assets/Game/Scripts/Core/Persistence/Runtime/PlayerSaveBinder.cs) (editor/offline) binds the body to a `PlayerRecord` (position, rotation, display name, state bag). Savers on the root: `HealthSaveable`, `PlayerInventorySaveable`, `BackpackSaveable`, [`PlayerLookSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/PlayerLookSaveable.cs) (`"look"` — pitch only; yaw rides the rotation), [`SuitColorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/SuitColorSaveable.cs) (`"suit"`), `EffectsSaveable`, `InteriorVisitSaveable`, `PortalPairSaveable`. See [Persistence.md](Persistence.md).
 
 ## Gotchas
+
+- **The ground probe says "grounded" about half a metre before the feet touch.** `IsGrounded` sphere-casts `extents.y + groundCheckDistance` down from the capsule's centre with ~0.9× its radius, so a body still dropping at ~9 m/s already counts as landed. Under the ordinary rules a jump pressed there ADDS its take-off speed to that fall (`min(v.y, 0) + jumpForce`) and fizzles — then the 0.6 s `jumpCooldown` starts, which players feel as a cooldown on landing. `SetJumpRules(readyOnLanding: true)` replaces the fall instead of adding to it and clears the lock as soon as the body is grounded and not rising; without the replacement, a held Jump launched twice per landing (a dud, then a full jump on the next step). Jump height grows with the square of `jumpForce`, so `heightScale` scales the speed by its square root.
 
 - **`moveSpeed` is also every NPC's travelling pace.** `PlayerMovement.Awake` reports it to [`PlayerPace`](Assets/Game/Scripts/Characters/Player/Movement/PlayerPace.cs), and goal travel walks at it ([AgentSystem.md](AgentSystem.md)) so the crew can follow a guide without stopping. Changing the player's walk changes how fast every quest-giver leads.
 

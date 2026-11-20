@@ -1,9 +1,12 @@
 ---
 system: Arena
 layer: presentation
-summary: Two-team elimination in a walled settlement: best-of rounds, weapon pads, scaled damage, no friendly fire
+summary: Two-team elimination in a cliff-ringed settlement: best-of rounds, weapon pads, scaled damage, arena jump
 paths:
   - Assets/Game/Scripts/Gameplay/Arena/
+  - Assets/Game/Art/Shaders/Effects/PickupGlint.shader
+  - Assets/Game/Art/Shaders/Effects/Materials/Mat_PickupGlint.mat
+  - Assets/Game/Terrain/Arena/
   - Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.Arena.cs
   - Assets/Game/Scripts/Presentation/UI/HUD/ArenaHudUI.cs
   - Assets/Game/Scenes/Arena/NomadArena.unity
@@ -21,13 +24,17 @@ symptoms:
   - "the weapon pads are empty"
   - "I picked a weapon up in the arena with a full hotbar and nothing happened"
   - "the arena logs no ObjectiveDirector / no BountyBoard"
-reads_with: [GameModes, Combat, Lobby, Multiplayer, Artifacts]
+  - "a dead player in the arena vanishes instead of falling over"
+  - "a weapon's glint flashes in the wrong place or huge across the map"
+  - "the arena's cliffs are gone after regenerating the terrain"
+  - "the jump is higher in the arena than in the story world"
+reads_with: [GameModes, Combat, Lobby, Multiplayer, Artifacts, PlayerCharacter]
 updated: 2026-11-20
 ---
 
 # Arena
 
-A two-team elimination match fought inside a settlement walled in with invisible walls. Last team standing takes the round, first to three rounds takes the match, and the weapons are artifacts lying on pads around the map.
+A two-team elimination match fought inside a settlement ringed by cliffs, with invisible walls at their foot. Last team standing takes the round, first to three rounds takes the match, and the weapons are artifacts lying on pads around the map.
 
 **Scope:** [Assets/Game/Scripts/Gameplay/Arena/](Assets/Game/Scripts/Gameplay/Arena), [NetworkGameManager.Arena.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.Arena.cs), [ArenaHudUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/ArenaHudUI.cs), [NomadArena.unity](Assets/Game/Scenes/Arena/NomadArena.unity)
 **Related:** [GameModes.md](GameModes.md) · [Combat.md](Combat.md) · [Lobby.md](Lobby.md) · [Multiplayer.md](Multiplayer.md) · [Artifacts.md](Artifacts.md)
@@ -41,6 +48,11 @@ A two-team elimination match fought inside a settlement walled in with invisible
 - **Practice rounds** (`ArenaMatchState.Practice`) let the arena be tried alone. While waiting with a side empty, the host presses **P** (`ArenaHudUI`) → `ArenaMatch.TogglePractice`. A practice round is reset like any round, does not advance the round count, scores nothing, ends only when everyone in it is down (`EvaluateRound(..., practice: true)` → `Draw`) or the host presses P again, and lets joiners spawn straight in. When both sides have a player it is replaced by a real round on the next tick.
 - **An empty side is filled by the server.** The lobby puts anyone who never clicked a team on team 0, so a host and friends who just pressed Ready arrive on one side. While waiting or practising, once every connected client has a body (`inMatch == ConnectedClientsIds.Count`, so a 2v2 isn't broken by whoever loads first), `ArenaRules.SideToFill` → `ArenaMatch.FillEmptySide` moves the newest non-host player across (`VersusTeamRoster.Claim` + `PlayerIdentity.SetTeam`), and the round that follows stands them at their new spawn. Never during a real round. A single player is never moved — that is practice.
 - **Balance is the match's, not the weapons'.** The weapons are tuned for the story world. Inside an arena every hit on a contestant is multiplied by `damageScale` (0.6), then capped at `maxHitDamage` (34): against 100 health nobody dies in fewer than three hits. [`ArenaDamageRules`](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaDamageRules.cs) is the pure rule. Reference TTKs: pellet gun ~2.7 s sustained, laser staff ~1.7 s of beam on target, bazooka two good rockets.
+- **The map is a 72 m circle of dense cover** (GDC-L1-LEVEL-0008: the space decides which fights happen). Centre (2412, 1412); `ArenaBounds` radius 72 at that centre; team A spawns north (2430, 1470), team B south (2405, 1350), each behind a building. The settlement's core buildings stand where generation put them; the solar mast, smithy, work yard, market stand and hearth plaza were moved inward by hand, and B22, B35 and the garden terrace were deleted along with every street tile and sail outside the circle. `Arena/Cover` holds ~90 hand-scattered cover prefabs (clay walls ×1.7, sandbags, open containers, ruin walls, boulders, crate stacks, fallen columns) plus a kitchen, guard post, watchtower, healer cot and animal pen in the widest gaps. The 12 pads sit on open ground spread by farthest-point sampling, roughly as far from either spawn.
+- **The edge is terrain, not a wall you see.** A ring of cliffs is sculpted into the arena `TerrainData`: the toe starts 1.5–5.5 m outside the wall radius, rises 24–46 m over 9 m, then rolls on upward as hills, and slopes past 22–38° are painted with the steep layer. The invisible walls stand at the cliff foot so nobody climbs out.
+- **Arena movement is not story movement.** On the local player only (movement is owner-authoritative), `ArenaMatch` calls `PlayerMovement.SetJumpRules(jumpHeightScale = 2, readyOnLanding, jumpBufferSeconds = 0.15)`: twice the jump height, no timed cooldown, and a press shortly before touchdown kept and spent on landing. See [PlayerCharacter.md](PlayerCharacter.md) for why ready-on-landing must replace the fall speed rather than add to it.
+- **An eliminated player leaves the field.** No death ragdoll: [`ArenaEliminatedBody`](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaEliminatedBody.cs) sets `RagdollController.LimpsOnDeath = false` and, on `OnDeath`, hides every renderer, switches off `PlayerMovement.BodyCapsule` and holds the rigidbody kinematic; `OnRevive` hands back exactly what it took. A non-limp corpse left visible stood frozen upright and read as a live opponent.
+- **Loose weapons glint.** [`ArenaPickupGlint`](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaPickupGlint.cs) flashes a crescent slash ([`PickupGlint.shader`](Assets/Game/Art/Shaders/Effects/PickupGlint.shader)) across every spawned `PickupableItem` every `intervalSeconds` (3) so weapons can be spotted across the map (GDC-L1-LEVEL-0001). Presentation only, on every peer.
 - `Core/` is Unity-free in its own asmdef (`SpaceGame.Arena.Core`, `noEngineReferences`) so [ArenaRulesTests](Assets/Game/Tests/EditMode/ArenaRulesTests.cs) reach it.
 
 ## Key types
@@ -49,7 +61,9 @@ A two-team elimination match fought inside a settlement walled in with invisible
 | --- | --- | --- |
 | `ArenaRules` / `ArenaPhase` | [Core/ArenaRules.cs](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaRules.cs) | `EvaluateRound(alive0, alive1, practice)` → team, `Draw` or `Undecided`; `MatchWinner`; `CanStartRound`; `CanStartPractice`; `SideToFill` |
 | `ArenaDamageRules` | [Core/ArenaDamageRules.cs](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaDamageRules.cs) | 0 outside `Fighting`, 0 between teammates (self-damage still lands), else scale then cap; a non-zero hit is never rounded to 0 |
-| `ArenaMatch` | [Runtime/ArenaMatch.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatch.cs) | Server state machine, `IDamageFilter` on every contestant, round reset, death drop, wall safety net; on every peer, spectator mode on the local player's death |
+| `ArenaMatch` | [Runtime/ArenaMatch.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatch.cs) | Server state machine, `IDamageFilter` on every contestant, round reset, death drop, wall safety net; on every peer, spectator mode on the local player's death, the local player's jump rules (`jumpHeightScale`, `jumpBufferSeconds`), and an `ArenaEliminatedBody` on every player as they appear |
+| `ArenaEliminatedBody` | [Runtime/ArenaEliminatedBody.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaEliminatedBody.cs) | Added at runtime beside each player's `HealthComponent`, every peer: no death ragdoll; hide on death, show on revive |
+| `ArenaPickupGlint` | [Runtime/ArenaPickupGlint.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaPickupGlint.cs) | Scene object under `Arena`: pooled camera-facing quads with `Mat_PickupGlint`, one per loose weapon per flash, `_Progress` 0→1 over `flashSeconds` |
 | `ArenaMatchState` | [Runtime/ArenaMatchState.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatchState.cs) | The replicated scoreboard |
 | `ArenaTeamSpawn` | [Runtime/ArenaTeamSpawn.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaTeamSpawn.cs) | A team tag on a `SpawnPoint`; the spawn point's own scatter and clearance pick the position |
 | `ArenaWeaponPad` / `ArenaWeaponTable` | [Runtime/](Assets/Game/Scripts/Gameplay/Arena/Runtime) | Server-only pad: weighted pick from the table, `World.Spawn`, respawn `respawnSeconds` (20) after its item is despawned (picked up) |
@@ -69,7 +83,7 @@ A two-team elimination match fought inside a settlement walled in with invisible
 3. Every frame in `Fighting`, the round is evaluated from the alive counts, which covers deaths and disconnects alike. Any living contestant found outside `ArenaBounds.Contains` is teleported back to their team's spawn.
 4. When the round is decided → `RoundOver` (draw scores nothing) or `MatchOver` at `roundsToWin`. The pads are disarmed.
 
-**Death** — server: `HealthComponent.OnDeath` → `PlayerInventoryNetwork.DropSlot` for every slot (the drop key's server half). Owner: `PlayerController.OnPlayerDeath` → `EnterSpectatorMode` (free-fly `SpectatorCamera`); the next round's revive exits it through `OnRevive`. `PlayerRespawn.OnRespawnRequested` refuses while a match exists, and `DeathScreenUI` hides its overlay.
+**Death** — server: `HealthComponent.OnDeath` → `PlayerInventoryNetwork.DropSlot` for every slot (the drop key's server half). Every peer: `ArenaEliminatedBody` hides the body (the ragdoll stays out, `LimpsOnDeath` false); the next round's `ReviveAt` → `OnRevive` shows it again. Owner: `PlayerController.OnPlayerDeath` → `EnterSpectatorMode` (free-fly `SpectatorCamera`); the next round's revive exits it through `OnRevive`. `PlayerRespawn.OnRespawnRequested` refuses while a match exists, and `DeathScreenUI` hides its overlay.
 
 **End** — `MatchOver` shows the winner and a Back to menu button that takes the cursor through `GameplayMenuScope` and calls `SessionExit.ToMainMenu(saveWorld: false)`.
 
@@ -84,6 +98,9 @@ A two-team elimination match fought inside a settlement walled in with invisible
 | Revive/teleport | Server asks, owner moves (`NetworkedTeleport` inside `ReviveAt`) |
 | Walls | Built locally on every machine — movement is owner-authoritative |
 | Spectating | Owner only, off its own replicated death |
+| Jump rules | Owner only — `SetJumpRules` on the local `PlayerMovement` |
+| Hiding the eliminated | Every peer, off the replicated `OnDeath`/`OnRevive` |
+| Weapon glint | Every peer, locally; flashes need not line up between screens |
 
 The pad items are ordinary `InventoryItem.itemPrefab`s, which are already registered network prefabs, so nothing new needs registering. `ArenaMatch` is a scene-placed `NetworkObject` in `NomadArena.unity`.
 
@@ -100,10 +117,13 @@ N/A — a match is single-session by design. The arena scene has no `[SaveSystem
 - **Gauntlets are left out of the pad table on purpose.** A gauntlet picked up from the ground sits in the hotbar and only works once moved to a forearm on the body screen. The gravel blaster is out too: `refireSeconds` 0 kills in about a second even capped.
 - **A late joiner waits behind the loading screen while a round is live** (`AcceptsSpawns`), then spawns at the next countdown.
 - **The settlement was generated on terrain flattened first.** On the bowl's natural slope the terrace sculptor cut the buildings into pits. The terrain is an arena-only `TerrainData` (`Assets/Game/Terrain/Arena/`, seed 80459). Never point the arena at Spillexo's `NoiseTerrain_TerrainData`.
+- **Never press Generate on the arena terrain or the arena settlement.** The cliff ring is sculpted into the `TerrainData` by hand, after the noise pass — `NoiseHeightmapGenerator`'s button overwrites the heights and erases it. Regenerating `NomadSettlement` brings back the outlying buildings, streets and sails that were moved or removed to fit the 72 m circle, under the cover, outside the walls.
+- **The glint measures mesh renderers only.** Some weapons carry a trail, line or particle renderer that idles at the world origin; summed into the item's bounds it put the slash halfway across the map at kilometres wide. `ArenaPickupGlint.TryMeasure` skips anything but `MeshRenderer`/`SkinnedMeshRenderer` and clamps to `maximumSize`.
+- **The player's collider is on a child.** The root has the `Rigidbody` and the ragdoll; the body capsule is a child, next to the ragdoll's own bone capsules. Ask `PlayerMovement.BodyCapsule` — `GetComponent<Collider>()` on the root returns nothing, and a search finds a bone.
 - **`ObjectiveNetwork` / `BountyNetwork` stay quiet in an arena.** They ride on the `NetworkGameManager` prefab and only log a missing director or board when no `ArenaMatch` exists.
 
 ## Extending
 
 - **Tune balance** on the `ArenaMatch` component (`damageScale`, `maxHitDamage`, `roundsToWin`, timers) and the pool in `NomadArenaWeapons.asset`. Keep `3 × maxHitDamage ≥ 100 > 2 × maxHitDamage` if the three-hit promise should hold. `ArenaRulesTests.ThreeCappedHitsAreNeededToKill` pins it for the default numbers.
-- **A new arena map** — a scene with an `ArenaMatch` (on a `NetworkObject`), an `ArenaBounds`, one `ArenaTeamSpawn` per team, pads with a table, a `BreathableVolume` trigger (Ignore Raycast layer) over the playable area, and the `NetworkGameManager` + `SpawnManager` prefabs. Then a `GameWorld` in `Resources/Worlds`, and an entry at the END of Build Settings. A map choice in the lobby would replace `MainMenuUI.arenaWorld`.
+- **A new arena map** — a scene with an `ArenaMatch` (on a `NetworkObject`), an `ArenaBounds`, one `ArenaTeamSpawn` per team, pads with a table, an `ArenaPickupGlint` with `Mat_PickupGlint`, a `BreathableVolume` trigger (Ignore Raycast layer) over the playable area, and the `NetworkGameManager` + `SpawnManager` prefabs. Then a `GameWorld` in `Resources/Worlds`, and an entry at the END of Build Settings. A map choice in the lobby would replace `MainMenuUI.arenaWorld`.
 - **A new win condition** belongs in `ArenaRules`, as pure arithmetic with a test, and is read from `ArenaMatch.Update`.

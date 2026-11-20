@@ -68,6 +68,14 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         public KnockdownTuning Tuning => knockdown;
 
+        /// <summary>
+        /// Whether death lays this body down limp. True everywhere but where a game mode says
+        /// otherwise — the arena takes its eliminated players off the field instead
+        /// (<c>ArenaEliminatedBody</c>). Knockdowns are untouched: this is about death alone.
+        /// Has to be the same on every machine, since each runs its own copy of the ragdoll.
+        /// </summary>
+        public bool LimpsOnDeath { get; set; } = true;
+
         /// <summary>Is something holding this body down right now?</summary>
         public bool IsHeld => holders.Count > 0;
 
@@ -205,7 +213,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             holders.Clear();
             rig.BudgetExempt = false;
             rig.IsCorpse = true;
-            if (RagdollsDisabled) return;
+            if (RagdollsDisabled || !LimpsOnDeath) return;
 
             // A save being loaded: the body lies down where the record put it, without being
             // thrown again — a corpse relaunched on every load walks its way across the desert one

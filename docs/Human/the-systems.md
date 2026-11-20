@@ -794,7 +794,7 @@ Four ways to play. *Arena* is two teams fighting rounds of last-team-standing in
 
 Two teams fight in rounds inside a nomad settlement, walled in by invisible walls. Everyone starts each round empty-handed at their team's side, and weapons — the game's own artifacts — sit on crates around the streets and reappear a little while after someone takes one. Dying takes you out until the round ends, and you watch from a free-flying camera. The last team with anyone standing wins the round, and the first team to three rounds wins the match. You cannot hurt your own team, and every hit is toned down and capped so a fight lasts a few seconds instead of one shot.
 
-**Worth knowing:** with only one player in the arena it waits forever — a round needs someone on each side.
+**Worth knowing:** a real round needs someone on each side, so alone you get a practice round instead — the host presses P to start one (and P again to end it). Nothing is scored, and the moment someone joins the other team a real round begins. If everyone lands on the same team (the lobby puts you on the first team unless you click another), the game moves the newest player across once everyone has loaded in, so the match can start.
 
 ### Quests *(Objectives)*
 

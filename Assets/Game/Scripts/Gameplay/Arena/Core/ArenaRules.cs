@@ -40,12 +40,19 @@ namespace SpaceGame.Gameplay.Arena
         /// Returns the winning team's index when exactly one side has anyone left,
         /// <see cref="Draw"/> when nobody is left at all — a rocket that took the last of both
         /// teams, say — and <see cref="Undecided"/> while both sides still have someone.
+        ///
+        /// <para>
+        /// A <paramref name="practice"/> round — one the host started with a side empty — has no
+        /// opponent to eliminate, so it runs until nobody is left and then ends as a
+        /// <see cref="Draw"/>: nothing is scored for it.
+        /// </para>
         /// </summary>
-        public static int EvaluateRound(int aliveTeam0, int aliveTeam1)
+        public static int EvaluateRound(int aliveTeam0, int aliveTeam1, bool practice = false)
         {
             bool zeroStanding = aliveTeam0 > 0;
             bool oneStanding = aliveTeam1 > 0;
 
+            if (practice) return zeroStanding || oneStanding ? Undecided : Draw;
             if (zeroStanding && oneStanding) return Undecided;
             if (zeroStanding) return 0;
             if (oneStanding) return 1;
@@ -68,5 +75,30 @@ namespace SpaceGame.Gameplay.Arena
         /// <summary>Whether a round can start: both sides need at least one player in the arena.</summary>
         public static bool CanStartRound(int playersTeam0, int playersTeam1) =>
             playersTeam0 > 0 && playersTeam1 > 0;
+
+        /// <summary>
+        /// Whether the host may start a practice round instead: someone is in the arena, but not
+        /// on both sides, so a real round cannot start yet.
+        /// </summary>
+        public static bool CanStartPractice(int playersTeam0, int playersTeam1) =>
+            playersTeam0 + playersTeam1 > 0 && !CanStartRound(playersTeam0, playersTeam1);
+
+        /// <summary>
+        /// The side someone has to be moved to before a round can start, or -1 when nobody needs
+        /// moving: everyone is on one side and there are enough of them to split.
+        ///
+        /// <para>
+        /// The lobby leaves anyone who never clicked a team on team 0, so a host and a friend who
+        /// both just pressed Ready arrive on the same side — and a match with an empty side can
+        /// never start. One person alone is left where they are: that is what practice is for.
+        /// </para>
+        /// </summary>
+        public static int SideToFill(int playersTeam0, int playersTeam1)
+        {
+            if (playersTeam0 + playersTeam1 < 2) return -1;
+            if (playersTeam1 == 0) return 1;
+            if (playersTeam0 == 0) return 0;
+            return -1;
+        }
     }
 }

@@ -991,6 +991,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I can walk through a tunnel wall / the walk check says HOLES IN THE WALLS | [Workshop](systems/Workshop.md) |
 | I can't find the ranch mission / Tovak is not in the town | [Ranch](systems/Ranch.md) |
 | I can't pick up the wing pack a Sky nomad dropped | [Inventory](systems/Inventory.md) |
+| I can't test the arena alone | [Arena](systems/Arena.md) |
 | I can't walk from the barge's stair into the cockpit | [DuneBarge](systems/DuneBarge.md) |
 | I cannot climb or vault over a railing, only solid walls work | [LedgeClimbing](systems/LedgeClimbing.md) |
 | I cannot come down without holding another key | [Jetpack](systems/Jetpack.md) |
@@ -2146,6 +2147,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | two focus overlays outline things at each other's line thickness | [Backpack](systems/Backpack.md) |
 | two long buildings in a Settlement can never stand close along their long sides | [TerrainGeneration](systems/TerrainGeneration.md) |
 | two lumps meet with a visible seam or a fillet welded onto empty air | [FoamGun](systems/FoamGun.md) |
+| two players in the arena are stuck in practice / both on the same team | [Arena](systems/Arena.md) |
 | two players' visors both announce OXYGEN CRITICAL when only one is low | [Visor](systems/Visor.md) |
 | two residents sit on one seat, or a player sits in a resident's lap | [Seats](systems/Seats.md) |
 | two residents talk while walking but stop dead to face each other | [Errands](systems/Errands.md) |
@@ -3180,4 +3182,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 2176 symptoms, 978 paths, 121 docs -->
+<!-- 2178 symptoms, 978 paths, 121 docs -->

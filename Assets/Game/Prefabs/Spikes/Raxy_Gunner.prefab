@@ -2055,6 +2055,7 @@ MonoBehaviour:
   walkAnimBoost: 1
   animatorSpeedScale: 1.0074075
   measuredRunSpeed: 3.5
+  runClipSpeed: 7.2
   strideEndPhases: []
 --- !u!114 &9194199185284800700
 MonoBehaviour:
@@ -2106,6 +2107,7 @@ MonoBehaviour:
   targetAimHeight: 1
   headAimHeight: 1.6
   headInset: 0.15
+  sightRecheckInterval: 0.2
 --- !u!114 &8850766705227383606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2127,6 +2129,7 @@ MonoBehaviour:
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
   onlyReachableDestinations: 0
+  homeRadius: 0
   minWaitTime: 0.5
   maxWaitTime: 2
   stopDistance: 0.2
@@ -2269,6 +2272,8 @@ MonoBehaviour:
   - Drifters! On me!
   drawnAction: {fileID: 0}
   waryAction: {fileID: 11400000, guid: d9403d33a047405d91dc92050ffee8a9, type: 2}
+  drawnAnimatorBool: 
+  waryAnimatorBool: 
   standGroundWhileDrawn: 1
   facingPriority: 22
 --- !u!114 &2473993276596902955
@@ -2299,7 +2304,6 @@ MonoBehaviour:
   - Ears are cold. Ears are always cold.
   - Quiet today. Good quiet.
   silentWhileFighting: 1
-  voiceId: 401
   voiceSound:
     Guid:
       Data1: 0
@@ -2354,7 +2358,6 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
-  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -2439,6 +2442,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
   MotorComponent: {fileID: 0}
   animatorDriver: {fileID: 0}
+  acquiresTargets: 1
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
 --- !u!114 &5013918040811814301
@@ -2458,7 +2462,6 @@ MonoBehaviour:
   dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
-  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -2471,7 +2474,6 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
-  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -2479,7 +2481,7 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  despawnDelay: 8
+  corpseLifetime: 180
   disableAgentOnDeath: 1
   logDamage: 0
 --- !u!114 &1552731644144407853
@@ -2518,7 +2520,6 @@ MonoBehaviour:
   restartFromBeginningAfterSeconds: 10
   useDelayBetweenDialogues: 1
   dialogueDelaySeconds: 1.5
-  voiceId: 401
   voiceSound:
     Guid:
       Data1: 0
@@ -2552,7 +2553,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 941005759
+  GlobalObjectIdHash: 3135084593
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2664,7 +2665,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 7718fe4cf55ed4b29bec192e7a251133
+  prefabId: 25ca1287fca2b4b88b8d5d17a9069a5c
   instanceId: 
   authored: 0
   scope: 0
@@ -2752,6 +2753,9 @@ MonoBehaviour:
   slopeFollow: 0.35
   maxTiltDegrees: 30
   tiltFollowSpeed: 8
+  reprobeDistance: 0.02
+  reprobeAngle: 2
+  maxProbeInterval: 0.25
 --- !u!114 &8444671160406851880
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2922,13 +2926,17 @@ MonoBehaviour:
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  maxJointMassRatio: 8
   angularDamping: 0.6
   linearDamping: 0.05
   solverIterations: 14
   sleepWhenSettled: 1
+  boneSleepThreshold: 0.05
   selfCollision: 0
   swingLimit: 45
   twistLimit: 25
+  projectionDistance: 0.05
+  projectionAngle: 10
   settleLinearSpeed: 0.35
   settleAngularSpeed: 1.2
   settleSeconds: 0.45
@@ -2951,9 +2959,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  knockdown:
+    fallSeconds: 0.1
+    minSeconds: 0.1
+    maxSeconds: 0.2
+    fullSeverity: 1
+    damageWeight: 1
+    lowHealthWeight: 0.5
+    knockbackWeight: 1
+    knockbackReferenceSpeed: 20
+    settleGraceSeconds: 1.5
   deathImpulse: 2.5
   deathImpulseLift: 0.35
-  downedSeconds: 1.2
 --- !u!114 &6238086770813450359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3132,6 +3149,7 @@ MonoBehaviour:
   offstageAfterSeconds: 10
   settleDistance: 30
   doorstepDistance: 2
+  onMeshWithin: 2
   deckReach: 3
   approachStandOff: 8
   thresholdArriveRadius: 0.5
@@ -3361,6 +3379,7 @@ MonoBehaviour:
   maxSpeedMultiplier: 1.35
   leaderMovingSpeed: 0.4
   restRadius: 6
+  holdSlotAtRest: 0
   regroupDistance: 40
   navSampleDistance: 6
 --- !u!114 &-5128969827953894360
@@ -3389,8 +3408,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NpcItemUseModule
   priority: 22
   active: 1
-  slotIndex: 0
-  equipBeforeUse: 1
   trigger: 0
   minRange: 3
   maxRange: 25
@@ -3408,6 +3425,8 @@ MonoBehaviour:
     m_Bits: 4294967295
   claimFacing: 1
   facingPriority: 22
+  slotIndex: 0
+  equipBeforeUse: 1
 --- !u!1 &6352483063516593831
 GameObject:
   m_ObjectHideFlags: 0

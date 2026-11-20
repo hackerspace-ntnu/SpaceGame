@@ -30,6 +30,12 @@ namespace SpaceGame.Gameplay.Arena
         /// <summary>Server time the current timed phase (countdown, round over) ends at; 0 when untimed.</summary>
         public double PhaseEndsAt;
 
+        /// <summary>
+        /// The round in play is a practice round the host started alone: unscored, ending only when
+        /// everyone in it is down, and replaced by a real round as soon as both sides have a player.
+        /// </summary>
+        public bool Practice;
+
         public int ScoreOf(int team) => team == 0 ? ScoreTeam0 : ScoreTeam1;
 
         public int AliveOf(int team) => team == 0 ? AliveTeam0 : AliveTeam1;
@@ -44,17 +50,20 @@ namespace SpaceGame.Gameplay.Arena
             serializer.SerializeValue(ref AliveTeam1);
             serializer.SerializeValue(ref RoundWinner);
             serializer.SerializeValue(ref PhaseEndsAt);
+            serializer.SerializeValue(ref Practice);
         }
 
         public bool Equals(ArenaMatchState other) =>
             Phase == other.Phase && Round == other.Round &&
             ScoreTeam0 == other.ScoreTeam0 && ScoreTeam1 == other.ScoreTeam1 &&
             AliveTeam0 == other.AliveTeam0 && AliveTeam1 == other.AliveTeam1 &&
-            RoundWinner == other.RoundWinner && PhaseEndsAt.Equals(other.PhaseEndsAt);
+            RoundWinner == other.RoundWinner && PhaseEndsAt.Equals(other.PhaseEndsAt) &&
+            Practice == other.Practice;
 
         public override bool Equals(object obj) => obj is ArenaMatchState other && Equals(other);
 
         public override int GetHashCode() =>
-            HashCode.Combine(Phase, Round, ScoreTeam0, ScoreTeam1, AliveTeam0, AliveTeam1, RoundWinner, PhaseEndsAt);
+            HashCode.Combine(HashCode.Combine(Phase, Round, ScoreTeam0, ScoreTeam1, AliveTeam0, AliveTeam1, RoundWinner),
+                             PhaseEndsAt, Practice);
     }
 }

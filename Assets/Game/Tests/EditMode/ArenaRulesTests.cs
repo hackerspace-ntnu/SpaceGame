@@ -39,6 +39,34 @@ namespace SpaceGame.Tests
             Assert.IsFalse(ArenaRules.CanStartRound(0, 0));
         }
 
+        [TestCase(1, 0, ArenaRules.Undecided)]
+        [TestCase(0, 2, ArenaRules.Undecided)]
+        [TestCase(0, 0, ArenaRules.Draw)]
+        public void APracticeRoundRunsUntilEveryoneIsDownAndScoresNothing(int alive0, int alive1, int expected)
+        {
+            Assert.AreEqual(expected, ArenaRules.EvaluateRound(alive0, alive1, practice: true));
+        }
+
+        [Test]
+        public void PracticeIsOfferedOnlyWhileARealRoundCannotStart()
+        {
+            Assert.IsTrue(ArenaRules.CanStartPractice(1, 0));
+            Assert.IsTrue(ArenaRules.CanStartPractice(0, 3));
+            Assert.IsFalse(ArenaRules.CanStartPractice(1, 1));
+            Assert.IsFalse(ArenaRules.CanStartPractice(0, 0));
+        }
+
+        [TestCase(2, 0, 1)]
+        [TestCase(0, 3, 0)]
+        [TestCase(1, 0, -1)]
+        [TestCase(0, 0, -1)]
+        [TestCase(1, 1, -1)]
+        [TestCase(3, 1, -1)]
+        public void AnEmptySideIsFilledOnlyWhenThereIsSomeoneToSpare(int players0, int players1, int expected)
+        {
+            Assert.AreEqual(expected, ArenaRules.SideToFill(players0, players1));
+        }
+
         [Test]
         public void NothingLandsOutsideALiveRound()
         {

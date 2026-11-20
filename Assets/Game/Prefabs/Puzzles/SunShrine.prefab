@@ -458,7 +458,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 658487595
+  GlobalObjectIdHash: 3490393201
   InScenePlacedSourceGlobalObjectIdHash: 1050338203
   DeferredDespawnTick: 0
   Ownership: 1
@@ -547,7 +547,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 707ef036c65d4e64996eb8669978ddd5
+  prefabId: 156f1eb8de88f8f4db232b0873aecb5a
   instanceId: 
   authored: 0
   scope: 0
@@ -1454,7 +1454,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1511543762564884288, guid: cfb26757b484f49d58f3ffbc6329685f, type: 3}
       propertyPath: GlobalObjectIdHash
-      value: 836184342
+      value: 1638464687
       objectReference: {fileID: 0}
     - target: {fileID: 1511543762564884288, guid: cfb26757b484f49d58f3ffbc6329685f, type: 3}
       propertyPath: InScenePlacedSourceGlobalObjectIdHash
@@ -1463,6 +1463,10 @@ PrefabInstance:
     - target: {fileID: 3312304618714363465, guid: cfb26757b484f49d58f3ffbc6329685f, type: 3}
       propertyPath: authored
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3312304618714363465, guid: cfb26757b484f49d58f3ffbc6329685f, type: 3}
+      propertyPath: prefabId
+      value: 156f1eb8de88f8f4db232b0873aecb5a
       objectReference: {fileID: 0}
     - target: {fileID: 3312304618714363465, guid: cfb26757b484f49d58f3ffbc6329685f, type: 3}
       propertyPath: instanceId

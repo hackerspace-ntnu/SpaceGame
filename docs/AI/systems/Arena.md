@@ -12,6 +12,8 @@ paths:
   - Assets/Game/Resources/Worlds/Arena.asset
 symptoms:
   - "the arena never starts a round and just says waiting for both teams"
+  - "I can't test the arena alone"
+  - "two players in the arena are stuck in practice / both on the same team"
   - "I died in the arena and there is no respawn button"
   - "a player who joined mid-round is stuck on the loading screen"
   - "my teammate's shots do nothing to me in the arena"
@@ -20,7 +22,7 @@ symptoms:
   - "I picked a weapon up in the arena with a full hotbar and nothing happened"
   - "the arena logs no ObjectiveDirector / no BountyBoard"
 reads_with: [GameModes, Combat, Lobby, Multiplayer, Artifacts]
-updated: 2026-11-19
+updated: 2026-11-20
 ---
 
 # Arena
@@ -36,6 +38,8 @@ A two-team elimination match fought inside a settlement walled in with invisible
 - **"Is this an arena" means `ArenaMatch.Instance != null`.** It is set in `Awake`, before the network spawn, so it is answered the same way on every machine from the moment the scene loads. The spawn flow, the respawn gate, the death screen, the pickup overflow and the objective/bounty networks all ask this.
 - **One state machine, server-side, replicated whole.** [`ArenaMatch`](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatch.cs) holds a `NetworkVariable<ArenaMatchState>` with the phase, round, score per team, alive count per team, round winner and phase end time. Every peer's HUD reads that and nothing else.
 - **Phases** ([`ArenaPhase`](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaRules.cs)): `Waiting` (both sides need a player) → `Countdown` → `Fighting` → `RoundOver` → the next `Countdown`, or `MatchOver`. Damage only lands in `Fighting`.
+- **Practice rounds** (`ArenaMatchState.Practice`) let the arena be tried alone. While waiting with a side empty, the host presses **P** (`ArenaHudUI`) → `ArenaMatch.TogglePractice`. A practice round is reset like any round, does not advance the round count, scores nothing, ends only when everyone in it is down (`EvaluateRound(..., practice: true)` → `Draw`) or the host presses P again, and lets joiners spawn straight in. When both sides have a player it is replaced by a real round on the next tick.
+- **An empty side is filled by the server.** The lobby puts anyone who never clicked a team on team 0, so a host and friends who just pressed Ready arrive on one side. While waiting or practising, once every connected client has a body (`inMatch == ConnectedClientsIds.Count`, so a 2v2 isn't broken by whoever loads first), `ArenaRules.SideToFill` → `ArenaMatch.FillEmptySide` moves the newest non-host player across (`VersusTeamRoster.Claim` + `PlayerIdentity.SetTeam`), and the round that follows stands them at their new spawn. Never during a real round. A single player is never moved — that is practice.
 - **Balance is the match's, not the weapons'.** The weapons are tuned for the story world. Inside an arena every hit on a contestant is multiplied by `damageScale` (0.6), then capped at `maxHitDamage` (34): against 100 health nobody dies in fewer than three hits. [`ArenaDamageRules`](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaDamageRules.cs) is the pure rule. Reference TTKs: pellet gun ~2.7 s sustained, laser staff ~1.7 s of beam on target, bazooka two good rockets.
 - `Core/` is Unity-free in its own asmdef (`SpaceGame.Arena.Core`, `noEngineReferences`) so [ArenaRulesTests](Assets/Game/Tests/EditMode/ArenaRulesTests.cs) reach it.
 
@@ -43,7 +47,7 @@ A two-team elimination match fought inside a settlement walled in with invisible
 
 | Type | File | Role |
 | --- | --- | --- |
-| `ArenaRules` / `ArenaPhase` | [Core/ArenaRules.cs](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaRules.cs) | `EvaluateRound(alive0, alive1)` → team, `Draw` or `Undecided`; `MatchWinner`; `CanStartRound` |
+| `ArenaRules` / `ArenaPhase` | [Core/ArenaRules.cs](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaRules.cs) | `EvaluateRound(alive0, alive1, practice)` → team, `Draw` or `Undecided`; `MatchWinner`; `CanStartRound`; `CanStartPractice`; `SideToFill` |
 | `ArenaDamageRules` | [Core/ArenaDamageRules.cs](Assets/Game/Scripts/Gameplay/Arena/Core/ArenaDamageRules.cs) | 0 outside `Fighting`, 0 between teammates (self-damage still lands), else scale then cap; a non-zero hit is never rounded to 0 |
 | `ArenaMatch` | [Runtime/ArenaMatch.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatch.cs) | Server state machine, `IDamageFilter` on every contestant, round reset, death drop, wall safety net; on every peer, spectator mode on the local player's death |
 | `ArenaMatchState` | [Runtime/ArenaMatchState.cs](Assets/Game/Scripts/Gameplay/Arena/Runtime/ArenaMatchState.cs) | The replicated scoreboard |
@@ -89,7 +93,8 @@ N/A — a match is single-session by design. The arena scene has no `[SaveSystem
 
 ## Gotchas
 
-- **Solo, the match waits forever.** `CanStartRound` needs both sides populated. Test rounds with two players (Multiplayer Play Mode, or a build plus the Editor).
+- **Solo, a real round never starts.** `CanStartRound` needs both sides populated; use a practice round (P, host only) to test alone. P is read straight off `Keyboard.current` and gated on `GameplayMenuScope.AcceptsGameplayInput`, so a dead host cannot end a practice that a teammate is still alive in — it ends when they go down.
+- **A moved player's `VersusSession.LocalTeam` is stale.** `FillEmptySide` changes `PlayerIdentity.Team`, which everything in the arena reads, but the client's own session still names its lobby team; only the voice list's team grouping (`SpeakerTeams`) reads that.
 - **Only damage is team-filtered.** Knockdowns, freezes, nets and lassos bypass `HealthComponent`, so a teammate can still shove or freeze you (see [Combat.md](Combat.md) — the filter cannot see them).
 - **The backpack is no overflow in an arena.** `PickupableItem` refuses a pickup with a full hotbar while a match exists. A stowed weapon would survive both the round reset and the death drop, which only touch hotbars.
 - **Gauntlets are left out of the pad table on purpose.** A gauntlet picked up from the ground sits in the hotbar and only works once moved to a forearm on the body screen. The gravel blaster is out too: `refireSeconds` 0 kills in about a second even capped.

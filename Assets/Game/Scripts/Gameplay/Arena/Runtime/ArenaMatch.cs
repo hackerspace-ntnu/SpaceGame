@@ -89,6 +89,10 @@ namespace SpaceGame.Gameplay.Arena
 
         private PlayerController localPlayer;
 
+        // Who is in the arena per side as of the last server tick, living or dead.
+        private int playersTeam0;
+        private int playersTeam1;
+
         public ArenaMatchState State => state.Value;
 
         /// <summary>Seconds left in the current timed phase, as this peer reckons server time; 0 when untimed.</summary>
@@ -104,11 +108,40 @@ namespace SpaceGame.Gameplay.Arena
         public int RoundsToWin => roundsToWin;
 
         /// <summary>
-        /// Whether a player may be given a body right now. Not while a round is live: someone who
-        /// joins mid-round would be a fresh player dropped into an elimination, so they wait for
-        /// the next one.
+        /// Whether a player may be given a body right now. Not while a real round is live: someone
+        /// who joins mid-round would be a fresh player dropped into an elimination, so they wait for
+        /// the next one. A practice round lets them straight in — their arrival on the empty side is
+        /// what starts the real match.
         /// </summary>
-        public bool AcceptsSpawns => state.Value.Phase != ArenaPhase.Fighting;
+        public bool AcceptsSpawns => state.Value.Phase != ArenaPhase.Fighting || state.Value.Practice;
+
+        /// <summary>
+        /// Server. Whether <see cref="TogglePractice"/> would do anything: the match is waiting with
+        /// someone in it but not on both sides, or a practice round is already running.
+        /// </summary>
+        public bool CanTogglePractice =>
+            IsServer && (state.Value.Practice
+                ? state.Value.Phase == ArenaPhase.Countdown || state.Value.Phase == ArenaPhase.Fighting
+                : state.Value.Phase == ArenaPhase.Waiting && ArenaRules.CanStartPractice(playersTeam0, playersTeam1));
+
+        /// <summary>
+        /// Server, the host's call. Starts a practice round when the match is waiting for an
+        /// opponent — so the arena can be tried alone — or ends the practice round that is running.
+        /// A practice round is reset like any other round, is never scored, and gives way to a real
+        /// round as soon as both sides have a player.
+        /// </summary>
+        public void TogglePractice()
+        {
+            if (!CanTogglePractice) return;
+
+            ArenaMatchState next = state.Value;
+            double now = NetworkManager.ServerTime.Time;
+
+            if (next.Practice) EndRound(ref next, ArenaRules.Draw, now);
+            else BeginRound(ref next, now, practice: true);
+
+            state.Value = next;
+        }
 
         private void Awake()
         {
@@ -186,13 +219,22 @@ namespace SpaceGame.Gameplay.Arena
             double now = NetworkManager.ServerTime.Time;
 
             Count(out int total0, out int total1, out int alive0, out int alive1);
+
+            // Never in a real round — its sides are settled until it is decided. Whatever round
+            // comes next stands the moved player at their new side's spawn.
+            if ((next.Phase == ArenaPhase.Waiting || next.Practice) &&
+                FillEmptySide(ArenaRules.SideToFill(total0, total1)))
+                Count(out total0, out total1, out alive0, out alive1);
+
+            playersTeam0 = total0;
+            playersTeam1 = total1;
             next.AliveTeam0 = (byte)alive0;
             next.AliveTeam1 = (byte)alive1;
 
             switch (next.Phase)
             {
                 case ArenaPhase.Waiting:
-                    if (ArenaRules.CanStartRound(total0, total1)) BeginRound(ref next, now);
+                    if (ArenaRules.CanStartRound(total0, total1)) BeginRound(ref next, now, practice: false);
                     break;
 
                 case ArenaPhase.Countdown:
@@ -200,7 +242,14 @@ namespace SpaceGame.Gameplay.Arena
                     break;
 
                 case ArenaPhase.Fighting:
-                    int winner = ArenaRules.EvaluateRound(alive0, alive1);
+                    // Someone arrived on the empty side: the practice is over, the match begins.
+                    if (next.Practice && ArenaRules.CanStartRound(total0, total1))
+                    {
+                        BeginRound(ref next, now, practice: false);
+                        break;
+                    }
+
+                    int winner = ArenaRules.EvaluateRound(alive0, alive1, next.Practice);
                     if (winner != ArenaRules.Undecided) EndRound(ref next, winner, now);
                     else KeepInside();
                     break;
@@ -208,8 +257,15 @@ namespace SpaceGame.Gameplay.Arena
                 case ArenaPhase.RoundOver:
                     if (now < next.PhaseEndsAt) break;
 
-                    if (ArenaRules.CanStartRound(total0, total1)) BeginRound(ref next, now);
-                    else next.Phase = ArenaPhase.Waiting;
+                    if (ArenaRules.CanStartRound(total0, total1))
+                    {
+                        BeginRound(ref next, now, practice: false);
+                    }
+                    else
+                    {
+                        next.Phase = ArenaPhase.Waiting;
+                        next.Practice = false;
+                    }
                     break;
             }
 
@@ -231,12 +287,60 @@ namespace SpaceGame.Gameplay.Arena
             }
         }
 
-        private void BeginRound(ref ArenaMatchState next, double now)
+        /// <summary>
+        /// Moves one player onto <paramref name="side"/>, which is empty while the other side has
+        /// several (<see cref="ArenaRules.SideToFill"/>). The lobby puts anyone who never picked a
+        /// team on team 0, so without this a host and friends who just pressed Ready would all
+        /// land on one side and the match could never start.
+        ///
+        /// <para>
+        /// The newest arrival goes rather than the host, who set the match up. The roster is
+        /// told too, so a reconnect brings them back to the side they now play on.
+        /// </para>
+        ///
+        /// <para>
+        /// That client's own <c>VersusSession.LocalTeam</c> still names the side the lobby gave
+        /// them; only the team voice grouping reads it. Everything in the arena reads
+        /// <see cref="PlayerIdentity.Team"/>, which this does change.
+        /// </para>
+        /// </summary>
+        private bool FillEmptySide(int side)
+        {
+            if (side < 0) return false;
+
+            Contestant mover = null;
+            int inMatch = 0;
+
+            foreach (Contestant contestant in contestants)
+            {
+                if (!contestant.InMatch) continue;
+
+                inMatch++;
+                if (contestant.Team != side && (mover == null || !contestant.Identity.IsSessionHost))
+                    mover = contestant;
+            }
+
+            // Only once everyone connected is standing in the arena. Someone still loading may well
+            // have picked the empty side, and moving a player for them would unbalance a 2v2 into
+            // a 1v3 the moment they arrive.
+            if (mover == null || inMatch < NetworkManager.ConnectedClientsIds.Count) return false;
+
+            VersusTeamRoster.Claim(mover.Identity.OwnerClientId, side, ArenaRules.TeamCount);
+            mover.Identity.SetTeam(side);
+
+            Debug.Log($"[Arena] Everyone was on one side, so '{mover.Identity.DisplayName}' now plays " +
+                      $"for {VersusRules.TeamName(side)}.", this);
+            return true;
+        }
+
+        private void BeginRound(ref ArenaMatchState next, double now, bool practice)
         {
             ClearFloor();
             ReviveEveryone();
 
-            next.Round++;
+            // A practice round is not one of the match's rounds, so it does not advance the count.
+            if (!practice) next.Round++;
+            next.Practice = practice;
             next.RoundWinner = ArenaRules.Undecided;
             next.Phase = ArenaPhase.Countdown;
             next.PhaseEndsAt = now + countdownSeconds;

@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -19,11 +20,21 @@ namespace SpaceGame.Presentation
     /// <see cref="ArenaMatch.State"/>, which replicates, so a client shows exactly what the host does.
     /// Read every frame rather than on change, because the countdown ticks every frame anyway.
     /// </para>
+    ///
+    /// <para>
+    /// It is also where the host starts and ends a practice round (<see cref="PracticeKey"/>), so
+    /// the arena can be tried alone. Read straight off the keyboard, like
+    /// <see cref="SpectatorCamera"/>: one host-only key does not warrant a new action in the
+    /// gameplay map.
+    /// </para>
     /// </summary>
     public class ArenaHudUI : MonoBehaviour
     {
         // Over the player HUD and world prompts, under every menu: the pause menu covers it.
         private const int SortingOrder = 700;
+
+        // Unbound in the gameplay map. Named in the banner text below, so change both together.
+        private static Key PracticeKey => Key.P;
 
         private static ArenaHudUI instance;
 
@@ -84,6 +95,10 @@ namespace SpaceGame.Presentation
                 return;
             }
 
+            if (match.CanTogglePractice && GameplayMenuScope.AcceptsGameplayInput &&
+                Keyboard.current != null && Keyboard.current[PracticeKey].wasPressedThisFrame)
+                match.TogglePractice();
+
             Render(match, match.State);
         }
 
@@ -100,7 +115,8 @@ namespace SpaceGame.Presentation
                 : $"First to {match.RoundsToWin}";
 
             bool matchOver = state.Phase == ArenaPhase.MatchOver;
-            Banner(state, match.SecondsLeft, out string headline, out string detail, out Color tint);
+            Banner(state, match.SecondsLeft, match.CanTogglePractice, out string headline, out string detail,
+                   out Color tint);
 
             bannerLabel.text = headline;
             bannerLabel.color = tint;
@@ -113,7 +129,8 @@ namespace SpaceGame.Presentation
             else ReleaseScope();
         }
 
-        private static void Banner(in ArenaMatchState state, float secondsLeft,
+        /// <param name="hostCanPractice">This peer is the host and may start or end a practice round now.</param>
+        private static void Banner(in ArenaMatchState state, float secondsLeft, bool hostCanPractice,
                                    out string headline, out string detail, out Color tint)
         {
             tint = UITheme.Bright;
@@ -123,16 +140,24 @@ namespace SpaceGame.Presentation
             {
                 case ArenaPhase.Waiting:
                     headline = "Waiting for both teams";
-                    detail = "A round starts once each side has a player.";
+                    detail = hostCanPractice
+                        ? "Press P to start a practice round on your own."
+                        : "A round starts once each side has a player.";
                     return;
 
                 case ArenaPhase.Countdown:
-                    headline = $"Round {state.Round} in {Mathf.CeilToInt(secondsLeft)}";
+                    headline = state.Practice
+                        ? $"Practice in {Mathf.CeilToInt(secondsLeft)}"
+                        : $"Round {state.Round} in {Mathf.CeilToInt(secondsLeft)}";
                     detail = "Grab a weapon from the pads when it starts.";
                     return;
 
                 case ArenaPhase.RoundOver:
-                    if (state.RoundWinner >= 0)
+                    if (state.Practice)
+                    {
+                        headline = "Practice over";
+                    }
+                    else if (state.RoundWinner >= 0)
                     {
                         headline = $"{VersusRules.TeamName(state.RoundWinner)} takes the round";
                         tint = TeamColor(state.RoundWinner);
@@ -153,9 +178,19 @@ namespace SpaceGame.Presentation
                 default:
                     PlayerController local = GameplayMenuScope.FindLocalPlayer();
                     bool eliminated = local != null && local.IsDead;
-                    headline = eliminated ? "Eliminated" : string.Empty;
-                    detail = eliminated ? "Spectating until the round ends.  WASD to fly, Space/Ctrl up and down." : string.Empty;
-                    tint = UITheme.Danger;
+                    if (eliminated)
+                    {
+                        headline = "Eliminated";
+                        detail = "Spectating until the round ends.  WASD to fly, Space/Ctrl up and down.";
+                        tint = UITheme.Danger;
+                    }
+                    else
+                    {
+                        headline = string.Empty;
+                        detail = !state.Practice ? string.Empty
+                               : hostCanPractice ? "Practice round - nothing is scored.  Press P to end it."
+                               : "Practice round - nothing is scored.";
+                    }
                     return;
             }
         }
